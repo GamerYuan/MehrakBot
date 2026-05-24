@@ -1,52 +1,37 @@
 <script setup>
+import { useGameViewInject } from "../../composables/game/injectKey";
 import Dialog from "primevue/dialog";
 import Password from "primevue/password";
 import Button from "primevue/button";
 import Message from "primevue/message";
 
-const props = defineProps({
-  visible: Boolean,
-  authProfileId: [String, Number],
-  authPassphrase: String,
-  authLoading: Boolean,
-  authError: String,
-});
-
-const emit = defineEmits([
-  "update:visible",
-  "update:authPassphrase",
-  "handleAuth",
-]);
+const gv = useGameViewInject();
 
 const handleVisibleUpdate = (value) => {
-  emit("update:visible", value);
+  gv.showAuthModal = value;
   if (!value) {
-    emit("update:authPassphrase", "");
+    gv.authPassphrase = "";
   }
 };
-const handlePassphraseUpdate = (value) => emit("update:authPassphrase", value);
-const handleSubmit = () => emit("handleAuth");
 </script>
 
 <template>
   <Dialog
-    :visible="visible"
-    @update:visible="handleVisibleUpdate"
+    v-model:visible="gv.showAuthModal"
     modal
     header="Profile Authentication Required"
     :style="{ width: '25rem' }"
   >
     <p class="mb-4">
-      Please authenticate profile <strong>{{ authProfileId }}</strong>
+      Please authenticate profile <strong>{{ gv.authProfileId }}</strong>
     </p>
 
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent="gv.handleAuth()">
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-2">
           <label>Passphrase</label>
           <Password
-            :modelValue="authPassphrase"
-            @update:modelValue="handlePassphraseUpdate"
+            v-model="gv.authPassphrase"
             required
             :feedback="false"
             toggleMask
@@ -54,7 +39,9 @@ const handleSubmit = () => emit("handleAuth");
           />
         </div>
 
-        <Message v-if="authError" severity="error">{{ authError }}</Message>
+        <Message v-if="gv.authError" severity="error">{{
+          gv.authError
+        }}</Message>
 
         <div class="flex justify-end gap-2">
           <Button
@@ -65,8 +52,8 @@ const handleSubmit = () => emit("handleAuth");
           />
           <Button
             type="submit"
-            :label="authLoading ? 'Authenticating...' : 'Authenticate'"
-            :loading="authLoading"
+            :label="gv.authLoading ? 'Authenticating...' : 'Authenticate'"
+            :loading="gv.authLoading"
           />
         </div>
       </div>

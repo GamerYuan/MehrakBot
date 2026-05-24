@@ -8,16 +8,23 @@ import DashboardHomeView from "../views/DashboardHomeView.vue";
 import ChangePasswordView from "../views/ChangePasswordView.vue";
 import UserManagementView from "../views/UserManagementView.vue";
 import DocsManagementView from "../views/DocsManagementView.vue";
-import GenshinView from "../views/GenshinView.vue";
-import HsrView from "../views/HsrView.vue";
-import ZzzView from "../views/ZzzView.vue";
-import Hi3View from "../views/Hi3View.vue";
+import GameView from "../views/GameView.vue";
 import SeaweedFilerView from "../views/SeaweedFilerView.vue";
 import PrivacyPolicyView from "../views/PrivacyPolicyView.vue";
 import TermsOfServiceView from "../views/TermsOfServiceView.vue";
+import { gameMeta } from "../configs/gameMeta";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (to.hash) {
+      return { el: to.hash, behavior: "smooth" };
+    }
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0 };
+  },
   routes: [
     {
       path: "/",
@@ -69,24 +76,17 @@ const router = createRouter({
           component: DocsManagementView,
         },
         {
-          path: "genshin",
-          name: "genshin",
-          component: GenshinView,
-        },
-        {
-          path: "hsr",
-          name: "hsr",
-          component: HsrView,
-        },
-        {
-          path: "zzz",
-          name: "zzz",
-          component: ZzzView,
-        },
-        {
-          path: "hi3",
-          name: "hi3",
-          component: Hi3View,
+          path: ":game",
+          name: "game",
+          component: GameView,
+          beforeEnter: (to) => {
+            const validGames = Object.values(gameMeta)
+              .map((m) => m.routeKey)
+              .filter(Boolean);
+            if (!validGames.includes(to.params.game)) {
+              return { name: "dashboard-home" };
+            }
+          },
         },
         {
           path: "seaweed-filer",
@@ -101,6 +101,15 @@ const router = createRouter({
       ],
     },
   ],
+});
+
+router.beforeEach((to) => {
+  if (to.path.startsWith("/dashboard")) {
+    const storedUser = localStorage.getItem("mehrak_user");
+    if (!storedUser) {
+      return { name: "login" };
+    }
+  }
 });
 
 export default router;

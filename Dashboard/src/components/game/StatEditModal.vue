@@ -1,53 +1,34 @@
 <script setup>
+import { useGameViewInject } from "../../composables/game/injectKey";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 
-const props = defineProps({
-  visible: Boolean,
-  characterName: String,
-  baseVal: [Number, null],
-  maxAscVal: [Number, null],
-  loading: Boolean,
-  fetching: Boolean,
-});
-
-const emit = defineEmits([
-  "update:visible",
-  "update:baseVal",
-  "update:maxAscVal",
-  "submit",
-]);
-
-const handleVisibleUpdate = (value) => emit("update:visible", value);
-const handleBaseValUpdate = (value) => emit("update:baseVal", value);
-const handleMaxAscValUpdate = (value) => emit("update:maxAscVal", value);
-const handleSubmit = () => emit("submit");
+const gv = useGameViewInject();
 </script>
 
 <template>
   <Dialog
-    :visible="visible"
-    @update:visible="handleVisibleUpdate"
+    v-model:visible="gv.showEditStatModal"
     modal
     header="Edit Character Stats"
     :style="{ width: '30rem' }"
   >
     <div class="relative">
       <div
-        v-if="fetching"
+        v-if="gv.editStatFetching"
         class="absolute inset-0 z-10 flex items-center justify-center rounded bg-black/20"
       >
         <i class="pi pi-spin pi-spinner text-xl"></i>
       </div>
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="gv.handleStatSubmit()">
         <div class="flex flex-col gap-4">
           <div class="flex flex-col gap-2">
             <label for="stat-char">Character Name</label>
             <InputText
               id="stat-char"
-              :modelValue="characterName"
+              :modelValue="gv.editStatCharacter"
               disabled
               fluid
             />
@@ -57,8 +38,7 @@ const handleSubmit = () => emit("submit");
             <div class="flex gap-2">
               <InputNumber
                 id="stat-base"
-                :modelValue="baseVal"
-                @update:modelValue="handleBaseValUpdate"
+                v-model="gv.editStatBase"
                 :minFractionDigits="0"
                 :maxFractionDigits="5"
                 fluid
@@ -69,7 +49,7 @@ const handleSubmit = () => emit("submit");
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                @click="handleBaseValUpdate(null)"
+                @click="gv.editStatBase = null"
               />
             </div>
           </div>
@@ -78,8 +58,7 @@ const handleSubmit = () => emit("submit");
             <div class="flex gap-2">
               <InputNumber
                 id="stat-max"
-                :modelValue="maxAscVal"
-                @update:modelValue="handleMaxAscValUpdate"
+                v-model="gv.editStatMax"
                 :minFractionDigits="0"
                 :maxFractionDigits="5"
                 fluid
@@ -90,7 +69,7 @@ const handleSubmit = () => emit("submit");
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                @click="handleMaxAscValUpdate(null)"
+                @click="gv.editStatMax = null"
               />
             </div>
           </div>
@@ -99,9 +78,13 @@ const handleSubmit = () => emit("submit");
               type="button"
               label="Cancel"
               severity="secondary"
-              @click="handleVisibleUpdate(false)"
+              @click="gv.showEditStatModal = false"
             />
-            <Button type="submit" label="Update" :loading="loading" />
+            <Button
+              type="submit"
+              label="Update"
+              :loading="gv.editStatLoading"
+            />
           </div>
         </div>
       </form>

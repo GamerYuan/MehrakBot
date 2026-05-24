@@ -1,9 +1,11 @@
 <script setup>
 import { useRouter, useRoute } from "vue-router";
 import { computed } from "vue";
+import { useApi } from "../composables/useApi";
 
 const router = useRouter();
 const route = useRoute();
+const { apiFetch } = useApi();
 
 const props = defineProps({
   userInfo: {
@@ -21,13 +23,7 @@ const hasPermission = (perm) => {
 
 const handleLogout = async () => {
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    if (backendUrl) {
-      await fetch(`${backendUrl}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    }
+    await apiFetch("/auth/logout", { method: "POST", skipAuthRedirect: true });
   } catch (e) {
     console.error("Logout error", e);
   } finally {

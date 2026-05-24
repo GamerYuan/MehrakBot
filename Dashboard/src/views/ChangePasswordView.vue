@@ -1,48 +1,27 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { useToast } from "primevue/usetoast";
+import { useApi } from "../composables/useApi";
+import { usePasswordValidation } from "../composables/usePasswordValidation";
 import Password from "primevue/password";
 import Button from "primevue/button";
 import Card from "primevue/card";
-import Message from "primevue/message";
 
 const router = useRouter();
-const toast = useToast();
+const { apiFetch } = useApi();
 
-const currentPassword = ref("");
-const newPassword = ref("");
-const confirmPassword = ref("");
+const {
+  newPassword,
+  confirmPassword,
+  currentPassword,
+  passwordsMatch,
+  isPasswordValid,
+  passwordRequirements,
+  isValid,
+} = usePasswordValidation({ requireCurrentPassword: true });
+
 const error = ref("");
 const loading = ref(false);
-
-const passwordsMatch = computed(() => {
-  return newPassword.value === confirmPassword.value;
-});
-
-const passwordRequirements = computed(() => {
-  const pwd = newPassword.value;
-  return {
-    length: pwd.length >= 8,
-    uppercase: /[A-Z]/.test(pwd),
-    lowercase: /[a-z]/.test(pwd),
-    number: /\d/.test(pwd),
-    symbol: /[\W_]/.test(pwd),
-  };
-});
-
-const isPasswordValid = computed(() => {
-  const r = passwordRequirements.value;
-  return r.length && r.uppercase && r.lowercase && r.number && r.symbol;
-});
-
-const isValid = computed(() => {
-  return (
-    currentPassword.value.length > 0 &&
-    isPasswordValid.value &&
-    passwordsMatch.value
-  );
-});
 
 const handleChangePassword = async () => {
   if (!isValid.value) return;
@@ -51,47 +30,25 @@ const handleChangePassword = async () => {
   error.value = "";
 
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    if (!backendUrl) throw new Error("Backend URL not configured");
-
-    const response = await fetch(`${backendUrl}/auth/password`, {
+    const response = await apiFetch("/auth/password", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         currentPassword: currentPassword.value,
         newPassword: newPassword.value,
       }),
     });
 
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
       throw new Error(data.error || "Failed to change password");
     }
 
-    // Success
-    // Clear local storage as the session might be invalidated or user needs to re-login
     localStorage.removeItem("mehrak_user");
-
-    // Redirect to login with success flag
     router.push("/login?passwordChanged=true");
   } catch (err) {
-    console.error(err);
+    if (err._redirected) return;
     error.value = err.message || "An error occurred";
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: error.value,
-      life: 5000,
-    });
   } finally {
     loading.value = false;
   }
@@ -186,4 +143,28 @@ const handleChangePassword = async () => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.password-requirements p {
+  margin: 0;
+  padding: 0.25rem 0;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.password-requirements p.met {
+  color: #22c55e;
+}
+</style>

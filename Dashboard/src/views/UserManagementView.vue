@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useConfirm } from "primevue/useconfirm";
-import { useToast } from "primevue/usetoast";
+import { useApi } from "../composables/useApi";
+import { availablePermissions, permissionLabels } from "../configs/gameMeta";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
@@ -12,10 +12,16 @@ import Checkbox from "primevue/checkbox";
 import ToggleButton from "primevue/togglebutton";
 import Tag from "primevue/tag";
 import Select from "primevue/select";
+import Message from "primevue/message";
 
-const router = useRouter();
 const confirm = useConfirm();
-const toast = useToast();
+const {
+  apiFetch,
+  apiFetchJson,
+  showErrorToast,
+  showSuccessToast,
+  showWarnToast,
+} = useApi();
 
 const props = defineProps({
   userInfo: {
@@ -26,70 +32,21 @@ const props = defineProps({
 
 const users = ref([]);
 const loading = ref(false);
-const error = ref("");
 const searchQuery = ref("");
 const filterPermission = ref("All");
 
-// Modal states
 const showAddModal = ref(false);
 const showUpdateModal = ref(false);
 const showTempPasswordModal = ref(false);
 
 const selectedUser = ref(null);
 const tempPassword = ref("");
-
-const showErrorToast = (message, status) => {
-  toast.add({
-    severity: "error",
-    summary: "Error",
-    detail: `${message} (Code: ${status ?? "N/A"})`,
-    life: 5000,
-  });
-};
-
-const buildError = (message, status) => {
-  const err = new Error(message);
-  err.status = status;
-  return err;
-};
-
-// Form data
-const formData = ref({
-  username: "",
-  discordUserId: "",
-  isSuperAdmin: false,
-  isActive: true,
-  permissions: {
-    genshin: false,
-    honkaistarrail: false,
-    honkaiimpact3: false,
-    zenlesszonezero: false,
-  },
-});
-
-const availablePermissions = [
-  "genshin",
-  "honkaistarrail",
-  "honkaiimpact3",
-  "zenlesszonezero",
-];
+const error = ref("");
 
 const isRootUser = (user) => !!user?.isRootUser;
 
 const blockRootAction = () => {
-  toast.add({
-    severity: "warn",
-    summary: "Action not allowed",
-    detail: "Root user cannot be modified.",
-    life: 4000,
-  });
-};
-
-const permissionLabels = {
-  genshin: "Genshin Impact",
-  honkaistarrail: "Honkai: Star Rail",
-  honkaiimpact3: "Honkai Impact 3rd",
-  zenlesszonezero: "Zenless Zone Zero",
+  showWarnToast("Root users cannot be modified.");
 };
 
 const formatPermission = (str) => {
@@ -97,24 +54,27 @@ const formatPermission = (str) => {
   return permissionLabels[str] || str;
 };
 
+const formData = ref({
+  username: "",
+  discordUserId: "",
+  isSuperAdmin: false,
+  isActive: true,
+  permissions: Object.fromEntries(availablePermissions.map((p) => [p, false])),
+});
+
 const fetchUsers = async () => {
   loading.value = true;
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/users/list`, {
-      credentials: "include",
-    });
-    if (response.status === 401) {
-      router.push("/login");
-      return;
+    const { ok, data, status } = await apiFetchJson("/users/list");
+    if (ok) {
+      users.value = data;
+    } else {
+      error.value = "Failed to fetch users";
+      showErrorToast(data.error || "Failed to fetch users", status);
     }
-    if (!response.ok) {
-      throw buildError("Failed to fetch users", response.status);
-    }
-    users.value = await response.json();
   } catch (err) {
+    if (err._redirected) return;
     error.value = err.message;
-    showErrorToast(err.message, err.status);
   } finally {
     loading.value = false;
   }
@@ -144,12 +104,9 @@ const resetForm = () => {
     discordUserId: "",
     isSuperAdmin: false,
     isActive: true,
-    permissions: {
-      genshin: false,
-      honkaistarrail: false,
-      honkaiimpact3: false,
-      zenlesszonezero: false,
-    },
+    permissions: Object.fromEntries(
+      availablePermissions.map((p) => [p, false]),
+    ),
   };
 };
 
@@ -235,29 +192,30 @@ const getSelectedPermissions = () => {
 
 const handleAddUser = async () => {
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    let discordId;
+    try {
+      discordId = BigInt(formData.value.discordUserId).toString();
+    } catch {
+      showErrorToast("Discord ID must be a valid number");
+      return;
+    }
+
     const payload = {
       username: formData.value.username,
-      discordUserId: BigInt(formData.value.discordUserId).toString(),
+      discordUserId: discordId,
       isSuperAdmin: formData.value.isSuperAdmin,
       gameWritePermissions: getSelectedPermissions(),
     };
 
-    const response = await fetch(`${backendUrl}/users/add`, {
+    const response = await apiFetch("/users/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify(payload),
     });
 
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(data.error || "Failed to add user", response.status);
+      throw new Error(data.error || "Failed to add user");
     }
 
     const result = await response.json();
@@ -265,13 +223,9 @@ const handleAddUser = async () => {
     showAddModal.value = false;
     showTempPasswordModal.value = true;
     fetchUsers();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "User added successfully",
-      life: 3000,
-    });
+    showSuccessToast("User added successfully");
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
@@ -282,44 +236,38 @@ const handleUpdateUser = async () => {
     return;
   }
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
+    let discordId;
+    try {
+      discordId = BigInt(formData.value.discordUserId).toString();
+    } catch {
+      showErrorToast("Discord ID must be a valid number");
+      return;
+    }
+
     const payload = {
       username: formData.value.username,
-      discordUserId: BigInt(formData.value.discordUserId).toString(),
+      discordUserId: discordId,
       isSuperAdmin: formData.value.isSuperAdmin,
       isActive: formData.value.isActive,
       gameWritePermissions: getSelectedPermissions(),
     };
 
-    const response = await fetch(
-      `${backendUrl}/users/${selectedUser.value.userId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      },
-    );
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
+    const response = await apiFetch(`/users/${selectedUser.value.userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(data.error || "Failed to update user", response.status);
+      throw new Error(data.error || "Failed to update user");
     }
 
     showUpdateModal.value = false;
     fetchUsers();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "User updated successfully",
-      life: 3000,
-    });
+    showSuccessToast("User updated successfully");
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
@@ -330,30 +278,19 @@ const handleDeleteUser = async (user) => {
     return;
   }
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/users/${user.userId}`, {
+    const response = await apiFetch(`/users/${user.userId}`, {
       method: "DELETE",
-      credentials: "include",
     });
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
 
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(data.error || "Failed to delete user", response.status);
+      throw new Error(data.error || "Failed to delete user");
     }
 
     fetchUsers();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "User deleted successfully",
-      life: 3000,
-    });
+    showSuccessToast("User deleted successfully");
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
@@ -364,34 +301,19 @@ const handleResetPassword = async (user) => {
     return;
   }
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(
-      `${backendUrl}/users/${user.userId}/password/require-reset`,
-      {
-        method: "POST",
-        credentials: "include",
-      },
+    const response = await apiFetch(
+      `/users/${user.userId}/password/require-reset`,
+      { method: "POST" },
     );
 
     if (!response.ok) {
-      if (response.status === 401) {
-        router.push("/login");
-        return;
-      }
-      const data = await response.json();
-      throw buildError(
-        data.error || "Failed to reset password",
-        response.status,
-      );
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to reset password");
     }
 
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "Password reset required for user.",
-      life: 5000,
-    });
+    showSuccessToast("Password reset required for user.", "Success");
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
@@ -415,9 +337,11 @@ const permissionOptions = computed(() => {
 <template>
   <div class="user-management">
     <div class="header">
-      <h1>User Management</h1>
+      <h1 class="text-4xl font-bold mb-3">User Management</h1>
       <Button label="Add User" icon="pi pi-plus" @click="openAddModal" />
     </div>
+
+    <Message v-if="error" severity="error" class="mb-4">{{ error }}</Message>
 
     <div class="controls flex gap-4 mb-4">
       <InputText
@@ -685,6 +609,16 @@ const permissionOptions = computed(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+.code-block {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 1.1rem;
+  word-break: break-all;
 }
 
 .text-orange-500 {

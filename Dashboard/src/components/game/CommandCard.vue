@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { useGameViewInject } from "../../composables/game/injectKey";
 import InputNumber from "primevue/inputnumber";
 import Select from "primevue/select";
 import AutoComplete from "primevue/autocomplete";
@@ -7,49 +7,26 @@ import Button from "primevue/button";
 import Card from "primevue/card";
 import Message from "primevue/message";
 
-const props = defineProps({
-  activeTab: String,
+defineProps({
   tabConfig: Object,
-  config: Object,
-  profileId: Number,
-  server: String,
-  characterName: String,
-  floor: Number,
-  filteredCharacters: Array,
-  loading: Boolean,
-  error: String,
 });
 
-const emit = defineEmits([
-  "update:profileId",
-  "update:server",
-  "update:characterName",
-  "update:floor",
-  "searchCharacter",
-  "execute",
-]);
-
-const handleProfileIdUpdate = (value) => emit("update:profileId", value);
-const handleServerUpdate = (value) => emit("update:server", value);
-const handleCharacterNameUpdate = (value) =>
-  emit("update:characterName", value);
-const handleFloorUpdate = (value) => emit("update:floor", value);
-const handleSearch = (event) => emit("searchCharacter", event);
-const handleSubmit = () => emit("execute");
+const gv = useGameViewInject();
 </script>
 
 <template>
   <Card class="command-card">
     <template #content>
-      <form @submit.prevent="handleSubmit">
+      <form @submit.prevent="gv.executeCommand()">
         <div class="flex flex-col gap-4">
           <div class="flex flex-row md:flex-row gap-4">
             <div class="flex flex-col gap-2 flex-1">
-              <label :for="`${idPrefix}-profile-id`">Profile ID (1-10)</label>
+              <label :for="`${tabConfig?.id}-profile-id`"
+                >Profile ID (1-10)</label
+              >
               <InputNumber
-                :inputId="`${idPrefix}-profile-id`"
-                :modelValue="profileId"
-                @update:modelValue="handleProfileIdUpdate"
+                :inputId="`${tabConfig?.id}-profile-id`"
+                v-model="gv.profileId"
                 showButtons
                 :min="1"
                 :max="10"
@@ -57,12 +34,11 @@ const handleSubmit = () => emit("execute");
               />
             </div>
             <div class="flex flex-col gap-2 flex-1">
-              <label :for="`${idPrefix}-server`">Server</label>
+              <label :for="`${tabConfig?.id}-server`">Server</label>
               <Select
-                :inputId="`${idPrefix}-server`"
-                :modelValue="server"
-                @update:modelValue="handleServerUpdate"
-                :options="config.servers"
+                :inputId="`${tabConfig?.id}-server`"
+                v-model="gv.server"
+                :options="gv.config.servers"
                 optionLabel="label"
                 optionValue="value"
                 fluid
@@ -72,29 +48,27 @@ const handleSubmit = () => emit("execute");
           </div>
 
           <div v-if="tabConfig?.hasCharacterInput" class="flex flex-col gap-2">
-            <label :for="`${idPrefix}-character-name`">
+            <label :for="`${tabConfig?.id}-character-name`">
               {{ tabConfig?.characterLabel || "Character Name" }}
             </label>
             <AutoComplete
-              :inputId="`${idPrefix}-character-name`"
-              :modelValue="characterName"
-              @update:modelValue="handleCharacterNameUpdate"
-              :suggestions="filteredCharacters"
-              @complete="handleSearch"
+              :inputId="`${tabConfig?.id}-character-name`"
+              v-model="gv.characterName"
+              :suggestions="gv.filteredCharacters"
+              @complete="gv.searchCharacter"
               dropdown
               fluid
-              :placeholder="config.characterPlaceholder"
+              :placeholder="gv.config.characterPlaceholder"
             />
           </div>
 
           <div v-if="tabConfig?.hasFloorInput" class="flex flex-col gap-2">
-            <label :for="`${idPrefix}-floor`"
+            <label :for="`${tabConfig?.id}-floor`"
               >Floor ({{ tabConfig.floorMin }}-{{ tabConfig.floorMax }})</label
             >
             <InputNumber
-              :inputId="`${idPrefix}-floor`"
-              :modelValue="floor"
-              @update:modelValue="handleFloorUpdate"
+              :inputId="`${tabConfig?.id}-floor`"
+              v-model="gv.floor"
               showButtons
               :min="tabConfig.floorMin"
               :max="tabConfig.floorMax"
@@ -104,14 +78,14 @@ const handleSubmit = () => emit("execute");
 
           <Button
             type="submit"
-            :label="loading ? 'Executing...' : 'Execute'"
-            :loading="loading"
+            :label="gv.loading ? 'Executing...' : 'Execute'"
+            :loading="gv.loading"
             fluid
           />
         </div>
       </form>
-      <Message v-if="error" severity="error" class="mt-2">
-        {{ error }}
+      <Message v-if="gv.error" severity="error" class="mt-2">
+        {{ gv.error }}
       </Message>
     </template>
   </Card>

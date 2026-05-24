@@ -7,6 +7,7 @@ import Textarea from "primevue/textarea";
 import Select from "primevue/select";
 import Checkbox from "primevue/checkbox";
 import Divider from "primevue/divider";
+import { gameOptions } from "../../configs/gameMeta";
 
 const props = defineProps({
   visible: Boolean,
@@ -16,14 +17,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:visible", "save"]);
-
-const gameOptions = [
-  { label: "Genshin Impact", value: "Genshin" },
-  { label: "Honkai: Star Rail", value: "HonkaiStarRail" },
-  { label: "Zenless Zone Zero", value: "ZenlessZoneZero" },
-  { label: "Honkai Impact 3rd", value: "HonkaiImpact3" },
-  { label: "Miscellaneous", value: "Unsupported" },
-];
 
 const form = ref({
   name: "",
@@ -162,7 +155,9 @@ const canEditGame = computed(() => {
 
         <div class="flex flex-col gap-2">
           <label class="font-semibold text-zinc-200">Parameters</label>
-          <div class="flex gap-2 items-start flex-wrap p-3 bg-white/5 rounded-md border border-white/10">
+          <div
+            class="flex gap-2 items-start flex-wrap p-3 bg-white/5 rounded-md border border-white/10"
+          >
             <div class="flex flex-col gap-2 flex-1 min-w-0">
               <div class="flex gap-2 items-center flex-wrap w-full">
                 <InputText
@@ -182,7 +177,9 @@ const canEditGame = computed(() => {
                     binary
                     inputId="param-required"
                   />
-                  <label for="param-required" class="text-sm text-zinc-300">Required</label>
+                  <label for="param-required" class="text-sm text-zinc-300"
+                    >Required</label
+                  >
                 </div>
               </div>
               <InputText
@@ -206,12 +203,23 @@ const canEditGame = computed(() => {
               :key="index"
               class="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-md border border-white/10"
             >
-              <span class="font-semibold font-mono text-white">{{ param.name }}</span>
-              <span class="text-xs px-1.5 py-0.5 bg-emerald-500/20 text-emerald-200 rounded font-mono">{{ param.type }}</span>
-              <span v-if="param.required" class="text-[0.65rem] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded uppercase font-semibold"
+              <span class="font-semibold font-mono text-white">{{
+                param.name
+              }}</span>
+              <span
+                class="text-xs px-1.5 py-0.5 bg-emerald-500/20 text-emerald-200 rounded font-mono"
+                >{{ param.type }}</span
+              >
+              <span
+                v-if="param.required"
+                class="text-[0.65rem] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded uppercase font-semibold"
                 >Required</span
               >
-              <span v-if="param.description" class="flex-1 text-zinc-400 text-sm">{{ param.description }}</span>
+              <span
+                v-if="param.description"
+                class="flex-1 text-zinc-400 text-sm"
+                >{{ param.description }}</span
+              >
               <Button
                 type="button"
                 icon="pi pi-times"
@@ -249,7 +257,9 @@ const canEditGame = computed(() => {
               :key="index"
               class="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-md border border-white/10"
             >
-              <code class="flex-1 font-mono text-sm text-emerald-300/80">{{ example }}</code>
+              <code class="flex-1 font-mono text-sm text-emerald-300/80">{{
+                example
+              }}</code>
               <Button
                 type="button"
                 icon="pi pi-times"
@@ -279,5 +289,3 @@ const canEditGame = computed(() => {
     </form>
   </Dialog>
 </template>
-
-

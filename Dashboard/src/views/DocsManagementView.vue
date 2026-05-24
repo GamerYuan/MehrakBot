@@ -1,20 +1,18 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useConfirm } from "primevue/useconfirm";
-import { useToast } from "primevue/usetoast";
+import { useApi } from "../composables/useApi";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
-import Tag from "primevue/tag";
-import DocFormModal from "../components/docs/DocFormModal.vue";
 import GameTag from "../components/docs/GameTag.vue";
+import DocFormModal from "../components/docs/DocFormModal.vue";
+import { gameFilterOptions, gameLabels } from "../configs/gameMeta";
 
-const router = useRouter();
 const confirm = useConfirm();
-const toast = useToast();
+const { apiFetch, apiFetchJson, showErrorToast, showSuccessToast } = useApi();
 
 const props = defineProps({
   userInfo: {
@@ -25,45 +23,12 @@ const props = defineProps({
 
 const documents = ref([]);
 const loading = ref(false);
-const error = ref("");
 const searchQuery = ref("");
 const filterGame = ref("All");
 
 const showModal = ref(false);
 const selectedDoc = ref(null);
 const isEditing = ref(false);
-
-const gameOptions = [
-  { label: "All Games", value: "All" },
-  { label: "Genshin Impact", value: "Genshin" },
-  { label: "Honkai: Star Rail", value: "HonkaiStarRail" },
-  { label: "Zenless Zone Zero", value: "ZenlessZoneZero" },
-  { label: "Honkai Impact 3rd", value: "HonkaiImpact3" },
-  { label: "Miscellaneous", value: "Unsupported" },
-];
-
-const gameLabels = {
-  Genshin: "Genshin Impact",
-  HonkaiStarRail: "Honkai: Star Rail",
-  ZenlessZoneZero: "Zenless Zone Zero",
-  HonkaiImpact3: "Honkai Impact 3rd",
-  Unsupported: "Miscellaneous",
-};
-
-const showErrorToast = (message, status) => {
-  toast.add({
-    severity: "error",
-    summary: "Error",
-    detail: `${message} (Code: ${status ?? "N/A"})`,
-    life: 5000,
-  });
-};
-
-const buildError = (message, status) => {
-  const err = new Error(message);
-  err.status = status;
-  return err;
-};
 
 const hasGameWriteAccess = (game) => {
   if (props.userInfo.isSuperAdmin) return true;
@@ -74,21 +39,14 @@ const hasGameWriteAccess = (game) => {
 const fetchDocuments = async () => {
   loading.value = true;
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/docs/list`, {
-      credentials: "include",
-    });
-    if (response.status === 401) {
-      router.push("/login");
-      return;
+    const { ok, data, status } = await apiFetchJson("/docs/list");
+    if (ok) {
+      documents.value = data;
+    } else {
+      showErrorToast(data.error || "Failed to fetch documentation", status);
     }
-    if (!response.ok) {
-      throw buildError("Failed to fetch documentation", response.status);
-    }
-    documents.value = await response.json();
   } catch (err) {
-    error.value = err.message;
-    showErrorToast(err.message, err.status);
+    if (err._redirected) return;
   } finally {
     loading.value = false;
   }
@@ -113,42 +71,27 @@ const openAddModal = () => {
 
 const openEditModal = async (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    toast.add({
-      severity: "warn",
-      summary: "Permission Denied",
-      detail: "You do not have permission to edit this documentation.",
-      life: 4000,
-    });
+    showErrorToast("You do not have permission to edit this documentation.");
     return;
   }
 
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/docs/${doc.id}`, {
-      credentials: "include",
-    });
+    const response = await apiFetch(`/docs/${doc.id}`);
     if (!response.ok) {
-      throw buildError(
-        "Failed to fetch documentation details",
-        response.status,
-      );
+      throw new Error("Failed to fetch documentation details");
     }
     selectedDoc.value = await response.json();
     isEditing.value = true;
     showModal.value = true;
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
 
 const confirmDelete = (doc) => {
   if (!hasGameWriteAccess(doc.game)) {
-    toast.add({
-      severity: "warn",
-      summary: "Permission Denied",
-      detail: "You do not have permission to delete this documentation.",
-      life: 4000,
-    });
+    showErrorToast("You do not have permission to delete this documentation.");
     return;
   }
 
@@ -171,74 +114,48 @@ const confirmDelete = (doc) => {
 
 const handleDelete = async (doc) => {
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const response = await fetch(`${backendUrl}/docs/${doc.id}`, {
+    const response = await apiFetch(`/docs/${doc.id}`, {
       method: "DELETE",
-      credentials: "include",
     });
-
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
 
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(
-        data.error || "Failed to delete documentation",
-        response.status,
-      );
+      throw new Error(data.error || "Failed to delete documentation");
     }
 
     fetchDocuments();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: "Documentation deleted successfully",
-      life: 3000,
-    });
+    showSuccessToast("Documentation deleted successfully");
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
 
 const handleSave = async (formData) => {
   try {
-    const backendUrl = import.meta.env.VITE_APP_BACKEND_URL;
-    const url = isEditing.value
-      ? `${backendUrl}/docs/${selectedDoc.value.id}`
-      : `${backendUrl}/docs/add`;
+    const url = isEditing.value ? `/docs/${selectedDoc.value.id}` : "/docs/add";
     const method = isEditing.value ? "PUT" : "POST";
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify(formData),
     });
 
-    if (response.status === 401) {
-      router.push("/login");
-      return;
-    }
-
     if (!response.ok) {
       const data = await response.json();
-      throw buildError(
-        data.error || "Failed to save documentation",
-        response.status,
-      );
+      throw new Error(data.error || "Failed to save documentation");
     }
 
     showModal.value = false;
     fetchDocuments();
-    toast.add({
-      severity: "success",
-      summary: "Success",
-      detail: `Documentation ${isEditing.value ? "updated" : "created"} successfully`,
-      life: 3000,
-    });
+    showSuccessToast(
+      isEditing.value
+        ? "Documentation updated successfully"
+        : "Documentation created successfully",
+    );
   } catch (err) {
+    if (err._redirected) return;
     showErrorToast(err.message, err.status);
   }
 };
@@ -260,7 +177,7 @@ onMounted(() => {
 <template>
   <div class="docs-management">
     <div class="header">
-      <h1>Documentation Management</h1>
+      <h1 class="text-4xl font-bold mb-3">Documentation Management</h1>
       <Button
         label="Add Documentation"
         icon="pi pi-plus"
@@ -277,7 +194,7 @@ onMounted(() => {
       />
       <Select
         v-model="filterGame"
-        :options="gameOptions"
+        :options="gameFilterOptions"
         optionLabel="label"
         optionValue="value"
         placeholder="Filter by game"
@@ -352,9 +269,5 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-}
-
-.text-gray-400 {
-  color: #888;
 }
 </style>
