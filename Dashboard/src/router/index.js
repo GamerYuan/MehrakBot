@@ -70,11 +70,16 @@ const router = createRouter({
           name: "user-management",
           component: UserManagementView,
         },
-        {
-          path: "docs",
-          name: "docs-management",
-          component: DocsManagementView,
-        },
+      {
+        path: "docs",
+        name: "docs-management",
+        component: () => import("@/views/DocsManagementView.vue"),
+      },
+      {
+        path: "release-notes",
+        name: "release-notes-management",
+        component: () => import("@/views/ReleaseNotesManagementView.vue"),
+      },
         {
           path: ":game",
           name: "game",

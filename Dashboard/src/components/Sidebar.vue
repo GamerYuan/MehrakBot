@@ -76,6 +76,15 @@ const handleLogout = async () => {
       </router-link>
 
       <router-link
+        v-if="userInfo.isSuperAdmin || userInfo.gameWritePermissions?.length"
+        to="/dashboard/release-notes"
+        class="nav-item"
+        :class="{ active: isActive('/dashboard/release-notes') }"
+      >
+        Release Notes
+      </router-link>
+
+      <router-link
         to="/dashboard/genshin"
         class="nav-item"
         :class="{ active: isActive('/dashboard/genshin') }"
