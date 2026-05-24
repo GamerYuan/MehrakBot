@@ -108,6 +108,9 @@ public sealed class ReleaseNotesController : ControllerBase
 
         var trimmedVersion = request.Version.Trim().ReplaceLineEndings("");
 
+        if (string.IsNullOrEmpty(trimmedVersion))
+            return BadRequest(new { error = "Version is required." });
+
         var release = new ReleaseVersionModel
         {
             Version = trimmedVersion,
@@ -157,6 +160,9 @@ public sealed class ReleaseNotesController : ControllerBase
 
         var trimmedVersion = request.Version.Trim().ReplaceLineEndings("");
 
+        if (string.IsNullOrEmpty(trimmedVersion))
+            return BadRequest(new { error = "Version is required." });
+
         var existing = await m_DbContext.ReleaseVersions
             .AnyAsync(r => r.Id != id && r.Version.Equals(trimmedVersion, StringComparison.CurrentCultureIgnoreCase));
 
@@ -177,7 +183,15 @@ public sealed class ReleaseNotesController : ControllerBase
         })];
         release.UpdatedAt = DateTime.UtcNow;
 
-        await m_DbContext.SaveChangesAsync();
+        try
+        {
+            await m_DbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            m_Logger.LogWarning(ex, "Duplicate release version {Version} detected at update", trimmedVersion);
+            return Conflict(new { error = "Release version already exists." });
+        }
 
         await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
         m_Logger.LogInformation("Updated release version {Version} and invalidated cache", release.Version);
