@@ -1,4 +1,5 @@
 using Mehrak.Dashboard.Models;
+using Mehrak.Domain.Services.Abstractions;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -12,11 +13,17 @@ namespace Mehrak.Dashboard.Controllers;
 public sealed class ReleaseNotesController : ControllerBase
 {
     private readonly ReleaseNoteDbContext m_DbContext;
+    private readonly ICacheService m_CacheService;
     private readonly ILogger<ReleaseNotesController> m_Logger;
+    private static readonly TimeSpan s_CacheDuration = TimeSpan.FromMinutes(60);
 
-    public ReleaseNotesController(ReleaseNoteDbContext dbContext, ILogger<ReleaseNotesController> logger)
+    public ReleaseNotesController(
+        ReleaseNoteDbContext dbContext,
+        ICacheService cacheService,
+        ILogger<ReleaseNotesController> logger)
     {
         m_DbContext = dbContext;
+        m_CacheService = cacheService;
         m_Logger = logger;
     }
 
@@ -24,27 +31,39 @@ public sealed class ReleaseNotesController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetAllReleaseNotes()
     {
+        var cached = await m_CacheService.GetAsync<List<ReleaseNoteResponse>>(CacheKeys.ReleaseNotes);
+        if (cached is not null)
+        {
+            m_Logger.LogDebug("Serving release notes from cache");
+            return Ok(cached);
+        }
+
         var releases = await m_DbContext.ReleaseVersions
             .AsNoTracking()
             .OrderByDescending(r => r.DisplayOrder)
-            .Select(r => new
+            .Select(r => new ReleaseNoteResponse
             {
-                r.Id,
-                r.Version,
-                r.Date,
-                r.DisplayOrder,
-                Sections = r.Sections.Select(s => new
+                Id = r.Id,
+                Version = r.Version,
+                Date = r.Date,
+                DisplayOrder = r.DisplayOrder,
+                Sections = r.Sections.Select(s => new ReleaseNoteSectionResponse
                 {
-                    s.Name,
-                    Notes = s.Notes.Select(n => new
+                    Name = s.Name,
+                    Notes = s.Notes.Select(n => new ReleaseNoteEntryResponse
                     {
-                        n.Type,
-                        n.Text
-                    })
-                })
+                        Type = n.Type,
+                        Text = n.Text
+                    }).ToList()
+                }).ToList()
             })
             .ToListAsync();
 
+        var cacheEntry = new CacheEntryBase<List<ReleaseNoteResponse>>(
+            CacheKeys.ReleaseNotes, releases, s_CacheDuration);
+        await m_CacheService.SetAsync(cacheEntry);
+
+        m_Logger.LogDebug("Populated release notes cache");
         return Ok(releases);
     }
 
@@ -55,21 +74,21 @@ public sealed class ReleaseNotesController : ControllerBase
         var release = await m_DbContext.ReleaseVersions
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new
+            .Select(r => new ReleaseNoteResponse
             {
-                r.Id,
-                r.Version,
-                r.Date,
-                r.DisplayOrder,
-                Sections = r.Sections.Select(s => new
+                Id = r.Id,
+                Version = r.Version,
+                Date = r.Date,
+                DisplayOrder = r.DisplayOrder,
+                Sections = r.Sections.Select(s => new ReleaseNoteSectionResponse
                 {
-                    s.Name,
-                    Notes = s.Notes.Select(n => new
+                    Name = s.Name,
+                    Notes = s.Notes.Select(n => new ReleaseNoteEntryResponse
                     {
-                        n.Type,
-                        n.Text
-                    })
-                })
+                        Type = n.Type,
+                        Text = n.Text
+                    }).ToList()
+                }).ToList()
             })
             .FirstOrDefaultAsync();
 
@@ -115,7 +134,8 @@ public sealed class ReleaseNotesController : ControllerBase
         m_DbContext.ReleaseVersions.Add(release);
         await m_DbContext.SaveChangesAsync();
 
-        m_Logger.LogInformation("Created release version {Version}", release.Version);
+        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        m_Logger.LogInformation("Created release version {Version} and invalidated cache", release.Version);
 
         return Ok(new { id = release.Id });
     }
@@ -155,7 +175,8 @@ public sealed class ReleaseNotesController : ControllerBase
 
         await m_DbContext.SaveChangesAsync();
 
-        m_Logger.LogInformation("Updated release version {Version}", release.Version);
+        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        m_Logger.LogInformation("Updated release version {Version} and invalidated cache", release.Version);
 
         return NoContent();
     }
@@ -171,7 +192,8 @@ public sealed class ReleaseNotesController : ControllerBase
         m_DbContext.ReleaseVersions.Remove(release);
         await m_DbContext.SaveChangesAsync();
 
-        m_Logger.LogInformation("Deleted release version {Version}", release.Version);
+        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        m_Logger.LogInformation("Deleted release version {Version} and invalidated cache", release.Version);
 
         return NoContent();
     }
