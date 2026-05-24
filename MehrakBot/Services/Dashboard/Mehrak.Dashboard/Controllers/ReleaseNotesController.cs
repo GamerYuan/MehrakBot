@@ -164,7 +164,7 @@ public sealed class ReleaseNotesController : ControllerBase
             return BadRequest(new { error = "Version is required." });
 
         var existing = await m_DbContext.ReleaseVersions
-            .AnyAsync(r => r.Id != id && r.Version.Equals(trimmedVersion, StringComparison.CurrentCultureIgnoreCase));
+            .AnyAsync(r => r.Id != id && r.Version.ToLower() == trimmedVersion.ToLower());
 
         if (existing)
             return Conflict(new { error = "Release version already exists." });
