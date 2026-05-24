@@ -21,6 +21,7 @@ const loading = ref(false);
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const error = ref(null);
 
 const emptySection = () => ({
   name: "",
@@ -51,10 +52,12 @@ const sortedReleases = computed(() => {
 
 const loadReleases = async () => {
   loading.value = true;
+  error.value = null;
   try {
     releases.value = await fetchAll();
   } catch {
     releases.value = [];
+    error.value = "Failed to load release notes.";
   } finally {
     loading.value = false;
   }
@@ -200,6 +203,10 @@ onMounted(loadReleases);
 
     <div v-if="loading" class="flex justify-center py-12">
       <ProgressSpinner />
+    </div>
+
+    <div v-else-if="error" class="text-center py-12 text-red-400">
+      {{ error }}
     </div>
 
     <div v-else-if="!sortedReleases.length" class="text-center py-12 text-zinc-400">
