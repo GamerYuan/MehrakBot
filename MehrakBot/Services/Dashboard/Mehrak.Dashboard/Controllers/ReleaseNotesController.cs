@@ -111,6 +111,12 @@ public sealed class ReleaseNotesController : ControllerBase
         if (string.IsNullOrEmpty(trimmedVersion))
             return BadRequest(new { error = "Version is required." });
 
+        var existing = await m_DbContext.ReleaseVersions
+            .AnyAsync(r => r.Version.ToLower() == trimmedVersion.ToLower());
+
+        if (existing)
+            return Conflict(new { error = "Release version already exists." });
+
         var release = new ReleaseVersionModel
         {
             Version = trimmedVersion,
