@@ -29,7 +29,7 @@ export function useReleaseNotes() {
       return null;
     }
     showSuccessToast("Release version created successfully");
-    return result.data;
+    return true;
   };
 
   const updateVersion = async (id, data) => {

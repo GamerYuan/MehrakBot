@@ -153,10 +153,10 @@ public sealed class ReleaseNotesController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "An error occurred while creating the release version." });
         }
 
-        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        await TryInvalidateCacheAsync();
         m_Logger.LogInformation("Created release version {Version} and invalidated cache", release.Version);
 
-        return Ok(new { id = release.Id });
+        return CreatedAtAction(nameof(GetReleaseNote), new { id = release.Id }, new { id = release.Id });
     }
 
     [HttpPut("{id:guid}")]
@@ -211,7 +211,7 @@ public sealed class ReleaseNotesController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "An error occurred while updating the release version." });
         }
 
-        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        await TryInvalidateCacheAsync();
         m_Logger.LogInformation("Updated release version {Version} and invalidated cache", release.Version);
 
         return NoContent();
@@ -228,9 +228,21 @@ public sealed class ReleaseNotesController : ControllerBase
         m_DbContext.ReleaseVersions.Remove(release);
         await m_DbContext.SaveChangesAsync();
 
-        await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        await TryInvalidateCacheAsync();
         m_Logger.LogInformation("Deleted release version {Version} and invalidated cache", release.Version);
 
         return NoContent();
+    }
+
+    private async ValueTask TryInvalidateCacheAsync()
+    {
+        try
+        {
+            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogWarning(ex, "Failed to invalidate release notes cache, database update already completed");
+        }
     }
 }
