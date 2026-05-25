@@ -162,16 +162,15 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
         var avatarDataList = await avatarDataTask;
 
+        var renderer = new CharacterModuleRenderer(moduleStyle);
         var layout =
             ImageUtility.CalculateGridLayout(avatarDataList.Count,
-                CharacterModuleRenderer.CanvasSize.Width, CharacterModuleRenderer.CanvasSize.Height, [170, 50, 120, 50]);
+                renderer.CanvasSize.Width, renderer.CanvasSize.Height, [170, 50, 120, 50]);
 
         var outputWidth = layout.OutputWidth;
         var outputHeight = layout.OutputHeight + 50;
         if (background.Width != outputWidth || background.Height != outputHeight)
             background.Mutate(ctx => ctx.Resize(outputWidth, outputHeight));
-
-        var renderer = new CharacterModuleRenderer(moduleStyle);
         background.Mutate(ctx =>
         {
             ctx.Clear(Color.FromRgb(27, 27, 27));
