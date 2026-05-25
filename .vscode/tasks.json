@@ -28,7 +28,6 @@
       "group": "build",
       "presentation": { "reveal": "silent" },
       "problemMatcher": "$msCompile",
-      "dependsOn": "build-application",
       "dependsOrder": "sequence"
     },
     {
@@ -43,15 +42,7 @@
       ],
       "group": "build",
       "presentation": { "reveal": "silent" },
-      "problemMatcher": "$msCompile",
-      "dependsOn": "build-application",
-      "dependsOrder": "sequence"
-    },
-    {
-      "label": "build-all",
-      "dependsOn": ["build-application", "build-bot", "build-dashboard"],
-      "dependsOrder": "sequence",
-      "group": "build"
+      "problemMatcher": "$msCompile"
     }
   ]
 }
