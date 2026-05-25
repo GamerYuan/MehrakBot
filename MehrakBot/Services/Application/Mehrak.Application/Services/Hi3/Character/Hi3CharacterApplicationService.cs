@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
@@ -24,6 +24,9 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
+
+ protected override string CommandName => "Character";
+ protected override string CardName => "Character";
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
@@ -47,12 +50,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 
-        try
-        {
             var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -161,17 +162,5 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
             ]);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

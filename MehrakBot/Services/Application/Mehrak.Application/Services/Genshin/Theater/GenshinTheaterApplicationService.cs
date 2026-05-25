@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
@@ -30,6 +30,9 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
+
+ protected override string CommandName => "Theater";
+ protected override string CardName => "Imaginarium Theater";
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
         IApiService<GenshinTheaterInformation, BaseHoYoApiContext> apiService,
@@ -48,10 +51,8 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -169,17 +170,5 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Theater", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Imaginarium Theater"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Theater", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

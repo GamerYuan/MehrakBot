@@ -24,6 +24,8 @@ public class CodeRedeemApplicationService : BaseApplicationService
 
     private readonly int m_RedeemDelay = 5500;
 
+    protected override string CommandName => "Codes";
+
     public CodeRedeemApplicationService(
         CodeRedeemDbContext codeContext,
         IApiService<CodeRedeemResult, CodeRedeemApiContext> apiService,
@@ -36,14 +38,12 @@ public class CodeRedeemApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
         var game = Enum.Parse<Game>(context.GetParameter("game")!);
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion(game);
 
-        try
-        {
             var profile =
                 await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region);
 
@@ -109,12 +109,6 @@ public class CodeRedeemApplicationService : BaseApplicationService
                 await UpdateCodesAsync(game, successfulCodes).ConfigureAwait(false);
 
             return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, $"{game} Codes", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes)

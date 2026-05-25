@@ -19,6 +19,8 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
+    protected override string CommandName => "Genshin Notes";
+
     public GenshinRealTimeNotesApplicationService(
         IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -29,43 +31,36 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
+
+        var profile =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+
+        if (profile == null)
         {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
-
-            var profile =
-                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
-
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
-
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
-
-            var gameUid = profile.GameUid;
-
-            var notesResult = await m_ApiService.GetAsync(
-                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
-
-            if (!notesResult.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
-            }
-
-            return await BuildRealTimeNotes(notesResult.Data, server, gameUid);
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
-        catch (Exception e)
+
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+
+        var gameUid = profile.GameUid;
+
+        var notesResult = await m_ApiService.GetAsync(
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+        if (!notesResult.IsSuccess)
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Notes", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
         }
+
+        return await BuildRealTimeNotes(notesResult.Data, server, gameUid);
+
     }
 
     private async Task<CommandResult> BuildRealTimeNotes(GenshinRealTimeNotesData data,

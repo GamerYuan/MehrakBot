@@ -118,7 +118,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
             Logger.LogInformation(LogMessage.CardGenSuccess, m_CardTypeName, context.UserId);
             return stream;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not ImageNotFoundException)
         {
             Logger.LogError(ex, LogMessage.CardGenError, m_CardTypeName, context.UserId,
                 JsonSerializer.Serialize(context.Data));

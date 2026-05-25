@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
@@ -24,6 +24,9 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrMemoryInformation, BaseHoYoApiContext> m_ApiService;
 
+
+ protected override string CommandName => "Memory of Chaos";
+ protected override string CardName => "Memory of Chaos";
     public HsrMemoryApplicationService(
         ICardService<HsrMemoryInformation> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -39,10 +42,8 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -129,17 +130,5 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Memory of Chaos", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Memory of Chaos"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Memory of Chaos", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

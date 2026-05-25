@@ -18,6 +18,8 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
+    protected override string CommandName => "Notes";
+
     public ZzzRealTimeNotesApplicationService(
         IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -28,10 +30,8 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -61,12 +61,6 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
             var notesData = notesResult.Data;
 
             return await BuildRealTimeNotes(notesData, gameUid);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Notes", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task<CommandResult> BuildRealTimeNotes(ZzzRealTimeNotesData data, string uid)

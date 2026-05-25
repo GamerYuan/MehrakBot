@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -35,6 +35,9 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
     private readonly IImageRepository m_ImageRepository;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
 
+
+ protected override string CommandName => "CharList";
+ protected override string CardName => "Character List";
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<IEnumerable<GenshinBasicCharacterData>> cardService,
@@ -56,10 +59,9 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_WikiApi = wikiApi;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -182,18 +184,6 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
             ]);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character List"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task<Result<string>>

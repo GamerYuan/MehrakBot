@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -39,6 +39,9 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly RelicDbContext m_RelicContext;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
+
+ protected override string CommandName => "Character";
+ protected override string CardName => "Character";
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
         IApiService<JsonNode, WikiApiContext> wikiApi,
@@ -67,10 +70,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
             var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -170,18 +171,6 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
             return CommandResult.Success(components,
                 ephemeralMessage: string.Join('\n', failureMessages));
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task<Result<string>> ProcessCharacterAsync(

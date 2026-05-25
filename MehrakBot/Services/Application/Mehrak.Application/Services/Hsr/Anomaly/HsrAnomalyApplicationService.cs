@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
@@ -22,6 +22,9 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrAnomalyInformation, BaseHoYoApiContext> m_ApiService;
 
+
+ protected override string CommandName => "Anomaly Arbitration";
+ protected override string CardName => "Anomaly Arbitration";
     public HsrAnomalyApplicationService(
         ICardService<HsrAnomalyInformation> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -37,10 +40,8 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -156,17 +157,5 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Anomaly Arbitration", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Anomaly Arbitration"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Anomaly Arbitration", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

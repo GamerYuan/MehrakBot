@@ -19,6 +19,8 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
 {
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
+    protected override string CommandName => "Notes";
+
     public HsrRealTimeNotesApplicationService(
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -29,10 +31,8 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -62,12 +62,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
             var notesData = notesResult.Data;
 
             return await BuildRealTimeNotes(notesData, server, gameUid);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Notes", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task<CommandResult> BuildRealTimeNotes(HsrRealTimeNotesData data,

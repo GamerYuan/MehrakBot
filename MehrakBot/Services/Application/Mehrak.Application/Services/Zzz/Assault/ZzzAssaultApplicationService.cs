@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
@@ -30,6 +30,9 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<ZzzAssaultData, BaseHoYoApiContext> m_ApiService;
 
+
+ protected override string CommandName => "Assault";
+ protected override string CardName => "Deadly Assault";
     public ZzzAssaultApplicationService(
         ICardService<ZzzAssaultData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -45,10 +48,8 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -151,18 +152,6 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Assault", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Deadly Assault"));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, LogMessage.UnknownError, "Assault", context.UserId, ex.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private static IMultiImageProcessor GetBossImageProcessor()

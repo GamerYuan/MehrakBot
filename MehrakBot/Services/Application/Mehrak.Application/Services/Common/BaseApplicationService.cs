@@ -2,6 +2,8 @@
 
 using System.Security.Cryptography;
 using Mehrak.Application.Services.Abstractions;
+using Mehrak.Application.Utility;
+using Mehrak.Domain.Common;
 using Mehrak.Domain.Enums;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Services.Abstractions;
@@ -20,6 +22,8 @@ public abstract class BaseApplicationService : IApplicationService
     private readonly UserDbContext m_UserContext;
     protected readonly ILogger<BaseApplicationService> Logger;
 
+    protected virtual string CommandName => "Undefined";
+
     protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ILogger<BaseApplicationService> logger)
@@ -29,7 +33,20 @@ public abstract class BaseApplicationService : IApplicationService
         Logger = logger;
     }
 
-    public abstract Task<CommandResult> ExecuteAsync(IApplicationContext context);
+    public virtual async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    {
+        try
+        {
+            return await ExecuteCommandAsync(context);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
+            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+        }
+    }
+
+    protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context);
 
     protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
         string region)
@@ -97,6 +114,8 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
 {
     private readonly IAttachmentStorageService m_AttachmentStorageService;
 
+    protected virtual string CardName => "Undefined";
+
     protected BaseAttachmentApplicationService(
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -104,6 +123,34 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         ILogger<BaseAttachmentApplicationService> logger) : base(gameRoleApi, userContext, logger)
     {
         m_AttachmentStorageService = attachmentStorageService;
+    }
+
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    {
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                return await ExecuteCommandAsync(context);
+            }
+            catch (ImageNotFoundException ex)
+            {
+                Logger.LogError(ex, "Image not found for User {UserId}, Command {CommandName}: {Message}",
+                    context.UserId, CommandName, ex.Message);
+                if (attempt == 3)
+                {
+                    return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
+                }
+                continue;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
+                return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            }
+        }
+        Logger.LogError("Failed to execute command {CommandName} for User {UserId} after 3 attempts", CommandName, context.UserId);
+        return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
     }
 
     protected static string GetFileName(string serializedData, string extension, string gameUid)

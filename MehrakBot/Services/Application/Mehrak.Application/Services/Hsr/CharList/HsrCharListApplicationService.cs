@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
@@ -27,6 +27,9 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
 
+
+ protected override string CommandName => "CharList";
+ protected override string CardName => "Character List";
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -44,10 +47,8 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterCache = characterCache;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -121,17 +122,5 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
                 new CommandText($"<@{context.UserId}>")
                 , new CommandAttachment(fileName)
             ]);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character List"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

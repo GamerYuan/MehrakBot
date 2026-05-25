@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
@@ -22,6 +22,9 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<IEnumerable<ZzzBuddyData>, BaseHoYoApiContext> m_BuddyApi;
     private readonly ICharacterCacheService m_CharacterCacheService;
 
+
+ protected override string CommandName => "CharList";
+ protected override string CardName => "Character List";
     public ZzzCharListApplicationService(
         ICardService<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -41,10 +44,8 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterCacheService = characterCacheService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -129,17 +130,5 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
             ]);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character List"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "CharList", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

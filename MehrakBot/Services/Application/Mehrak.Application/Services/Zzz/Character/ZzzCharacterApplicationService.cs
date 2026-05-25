@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -32,6 +32,9 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
+
+ protected override string CommandName => "Character";
+ protected override string CardName => "Character";
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -59,12 +62,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -202,18 +203,6 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
             ]);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,

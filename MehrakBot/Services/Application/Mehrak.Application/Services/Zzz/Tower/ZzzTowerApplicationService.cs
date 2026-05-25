@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
 using Mehrak.Application.Services.Common.Types;
@@ -20,6 +20,9 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
+
+ protected override string CommandName => "Simulated Battle Trial";
+ protected override string CardName => "Simulated Battle Trial";
     public ZzzTowerApplicationService(
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -37,10 +40,8 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -144,17 +145,5 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Simulated Battle Trial", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Simulated Battle Trial"));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, LogMessage.UnknownError, "Simulated Battle Trial", context.UserId, ex.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }

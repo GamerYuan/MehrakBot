@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using Mehrak.Application.Builders;
@@ -24,6 +24,9 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
     private readonly ICardService<StygianData> m_CardService;
     private readonly IApiService<GenshinStygianInformation, BaseHoYoApiContext> m_ApiService;
 
+
+ protected override string CommandName => "Stygian";
+ protected override string CardName => "Stygian Onslaught";
     public GenshinStygianApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<StygianData> cardService,
@@ -39,10 +42,8 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
-        {
             var server = Enum.Parse<Server>(context.GetParameter("server")!);
             var region = server.ToRegion();
 
@@ -138,17 +139,5 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
-        }
-        catch (CommandException e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Stygian", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Stygian Onslaught"));
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Stygian", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
     }
 }
