@@ -4,6 +4,7 @@ using Amazon.S3;
 using Mehrak.Domain.Repositories;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Repositories;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -61,7 +62,7 @@ public sealed class S3TestHelper : IDisposable
         Mock<IOptions<S3StorageConfig>> options = new();
         options.Setup(x => x.Value).Returns(storageConfig);
 
-        ImageRepository = new ImageRepository(m_Client, options.Object, Mock.Of<ILogger<ImageRepository>>());
+        ImageRepository = new ImageRepository(m_Client, options.Object, Mock.Of<ILogger<ImageRepository>>(), Mock.Of<IMemoryCache>());
     }
 
     public ulong GetUniqueUserId()
