@@ -905,6 +905,7 @@ public class ZzzCharacterApplicationServiceTests
         // Real game role API service
         var gameRoleApiService = new GameRoleApiService(
             httpClientFactory.Object,
+            Mock.Of<ICacheService>(),
             Mock.Of<ILogger<GameRoleApiService>>());
 
         // Real image updater service

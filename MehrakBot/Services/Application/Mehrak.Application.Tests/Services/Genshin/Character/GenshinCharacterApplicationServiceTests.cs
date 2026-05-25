@@ -1606,6 +1606,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var gameRoleApiService = new GameRoleApiService(
             httpClientFactory.Object,
+            Mock.Of<ICacheService>(),
             Mock.Of<ILogger<GameRoleApiService>>());
 
         var imageUpdaterService = new ImageUpdaterService(

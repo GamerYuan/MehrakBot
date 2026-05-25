@@ -49,7 +49,6 @@ public class CommandRateLimitServiceTests
     {
         // Arrange
         ulong userId = 123456789;
-        var expectedKey = "TestInstance:cmd_rate_limit:123456789";
 
         // Mock ScriptEvaluateAsync to return 1 (Allowed)
         m_MockDatabase.Setup(x => x.ScriptEvaluateAsync(
