@@ -142,7 +142,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                     MapRarity(x.Rarity),
                     image,
                     x.Rank,
-                    Icon: m_SmallElementIcons[StatUtils.GetElementNameFromId(x.ElementType, x.SubElementType)],
+                    Icon: m_SmallElementIcons.GetValueOrDefault(StatUtils.GetElementNameFromId(x.ElementType, x.SubElementType)),
                     Weapon: null));
             })
             .ToListAsync(cancellationToken: cancellationToken);
@@ -164,7 +164,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                     MapRarity(x.Rarity),
                     image,
                     ConstellationNum: 0,
-                    Icon: m_StarImages[x.Star],
+                    Icon: m_StarImages.GetValueOrDefault(x.Star),
                     Weapon: null);
             })
             .ToListAsync(cancellationToken: cancellationToken);
@@ -218,7 +218,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 {
                     (var character, var moduleData) = charModules[i];
                     renderer.Render(ctx, moduleData, new Point(pos.X, pos.Y),
-                        ElementForeground[StatUtils.GetElementNameFromId(character.ElementType, 0)]);
+                        ElementForeground.TryGetValue(StatUtils.GetElementNameFromId(character.ElementType, 0), out var fgColor) ? fgColor : null);
                 }
                 else
                 {
@@ -238,14 +238,14 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
             foreach (var entry in charCountByElem)
             {
-                var module = renderer.RenderFooterModule(entry.Element, entry.Count, ElementForeground[entry.Element], m_ElementIcons[entry.Element]);
+                var module = renderer.RenderFooterModule(entry.Element, entry.Count, ElementForeground.GetValueOrDefault(entry.Element), m_ElementIcons.GetValueOrDefault(entry.Element));
                 disposables.Add(module);
                 footerModules.Add(module);
             }
 
             foreach (var entry in charCountByProfession)
             {
-                var module = renderer.RenderFooterModule(entry.Profession, entry.Count, Color.White, m_ProfessionIcons[entry.Profession]);
+                var module = renderer.RenderFooterModule(entry.Profession, entry.Count, Color.White, m_ProfessionIcons.GetValueOrDefault(entry.Profession));
                 disposables.Add(module);
                 footerModules.Add(module);
             }
