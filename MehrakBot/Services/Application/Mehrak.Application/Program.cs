@@ -94,8 +94,6 @@ public class Program
 
         builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
 
-        builder.Services.AddMemoryCache();
-
         var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 
         builder.Services.AddOpenTelemetry()
