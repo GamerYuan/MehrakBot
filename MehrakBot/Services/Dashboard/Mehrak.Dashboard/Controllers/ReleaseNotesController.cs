@@ -141,10 +141,16 @@ public sealed class ReleaseNotesController : ControllerBase
         {
             await m_DbContext.SaveChangesAsync();
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx
+                                          && pgEx.SqlState == "23505")
         {
             m_Logger.LogWarning(ex, "Duplicate release version {Version} detected at save", trimmedVersion);
             return Conflict(new { error = "Release version already exists." });
+        }
+        catch (DbUpdateException ex)
+        {
+            m_Logger.LogError(ex, "Error creating release version {Version}", trimmedVersion);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "An error occurred while creating the release version." });
         }
 
         await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
@@ -193,10 +199,16 @@ public sealed class ReleaseNotesController : ControllerBase
         {
             await m_DbContext.SaveChangesAsync();
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx
+                                          && pgEx.SqlState == "23505")
         {
             m_Logger.LogWarning(ex, "Duplicate release version {Version} detected at update", trimmedVersion);
             return Conflict(new { error = "Release version already exists." });
+        }
+        catch (DbUpdateException ex)
+        {
+            m_Logger.LogError(ex, "Error updating release version {Version}", trimmedVersion);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "An error occurred while updating the release version." });
         }
 
         await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
