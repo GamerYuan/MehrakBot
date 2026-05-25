@@ -10,6 +10,7 @@ import UserManagementView from "../views/UserManagementView.vue";
 import DocsManagementView from "../views/DocsManagementView.vue";
 import GameView from "../views/GameView.vue";
 import SeaweedFilerView from "../views/SeaweedFilerView.vue";
+import ReleaseNotesManagementView from "../views/ReleaseNotesManagementView.vue";
 import PrivacyPolicyView from "../views/PrivacyPolicyView.vue";
 import TermsOfServiceView from "../views/TermsOfServiceView.vue";
 import { gameMeta } from "../configs/gameMeta";
@@ -70,11 +71,16 @@ const router = createRouter({
           name: "user-management",
           component: UserManagementView,
         },
-        {
-          path: "docs",
-          name: "docs-management",
-          component: DocsManagementView,
-        },
+      {
+        path: "docs",
+        name: "docs-management",
+        component: DocsManagementView,
+      },
+      {
+        path: "release-notes",
+        name: "release-notes-management",
+        component: ReleaseNotesManagementView,
+      },
         {
           path: ":game",
           name: "game",

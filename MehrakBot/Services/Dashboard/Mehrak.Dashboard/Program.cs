@@ -292,6 +292,7 @@ public class Program
 
         var app = builder.Build();
         await AddDefaultSuperAdminAccount(app);
+        await ReleaseNoteSeedData.SeedReleaseNotesAsync(app);
 
         app.UseForwardedHeaders();
         app.UseCors();
