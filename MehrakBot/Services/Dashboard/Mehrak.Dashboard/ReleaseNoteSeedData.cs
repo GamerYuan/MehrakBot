@@ -22,16 +22,21 @@ public static class ReleaseNoteSeedData
         {
             await db.SaveChangesAsync();
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx
+                                          && pgEx.SqlState == "23505")
         {
             // Another instance already inserted seed data, which is fine
+        }
+        catch (DbUpdateException ex)
+        {
+            app.Logger.LogWarning(ex, "Failed to seed release notes");
         }
     }
 
     private static List<ReleaseVersionModel> GetSeedData()
     {
         var now = DateTime.UtcNow;
-        var i = 0;
+        var order = 0;
 
         return
         [
@@ -80,8 +85,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -156,8 +161,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -175,8 +180,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -202,8 +207,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -272,8 +277,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -318,8 +323,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -337,8 +342,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -356,8 +361,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -393,8 +398,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -420,8 +425,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -473,8 +478,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -521,8 +526,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -557,8 +562,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -605,8 +610,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -647,8 +652,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -666,8 +671,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -695,8 +700,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -722,8 +727,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -763,8 +768,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             },
             new ReleaseVersionModel
             {
@@ -799,8 +804,8 @@ public static class ReleaseNoteSeedData
                         ]
                     }
                 ],
-                CreatedAt = now.AddMilliseconds(++i),
-                UpdatedAt = now.AddMilliseconds(++i)
+                CreatedAt = now.AddMilliseconds(++order),
+                UpdatedAt = now.AddMilliseconds(++order)
             }
         ];
     }

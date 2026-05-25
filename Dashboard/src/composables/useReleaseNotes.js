@@ -6,10 +6,6 @@ export function useReleaseNotes() {
   const fetchAll = async () => {
     const result = await apiFetchJson("/release-notes");
     if (!result.ok) {
-      showErrorToast(
-        result.data?.error || "Failed to fetch release notes",
-        result.status
-      );
       throw new Error(result.data?.error || "Failed to fetch release notes");
     }
     return result.data;
@@ -26,7 +22,7 @@ export function useReleaseNotes() {
         result.data?.error || "Failed to create release version",
         result.status
       );
-      return null;
+      return false;
     }
     showSuccessToast("Release version created successfully");
     return true;

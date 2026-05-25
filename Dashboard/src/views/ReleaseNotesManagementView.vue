@@ -56,7 +56,6 @@ const loadReleases = async () => {
   try {
     releases.value = await fetchAll();
   } catch {
-    releases.value = [];
     error.value = "Failed to load release notes.";
   } finally {
     loading.value = false;

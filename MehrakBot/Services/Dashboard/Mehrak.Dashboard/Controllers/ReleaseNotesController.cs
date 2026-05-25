@@ -106,10 +106,20 @@ public sealed class ReleaseNotesController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        if (request.Sections.Count == 0)
+            return BadRequest(new { error = "At least one section is required." });
+
+        if (request.Sections.Any(s => s.Notes.Count == 0))
+            return BadRequest(new { error = "Each section must have at least one note." });
+
         var trimmedVersion = request.Version.Trim().ReplaceLineEndings("");
 
         if (string.IsNullOrEmpty(trimmedVersion))
             return BadRequest(new { error = "Version is required." });
+
+        var trimmedDate = request.Date?.Trim().ReplaceLineEndings("");
+        if (!string.IsNullOrEmpty(trimmedDate) && !System.Text.RegularExpressions.Regex.IsMatch(trimmedDate, @"^\d{4}-\d{2}-\d{2}$"))
+            return BadRequest(new { error = "Date must be in YYYY-MM-DD format." });
 
         var existing = await m_DbContext.ReleaseVersions
             .AnyAsync(r => r.Version.ToLower() == trimmedVersion.ToLower());
@@ -120,7 +130,7 @@ public sealed class ReleaseNotesController : ControllerBase
         var release = new ReleaseVersionModel
         {
             Version = trimmedVersion,
-            Date = request.Date?.Trim().ReplaceLineEndings(""),
+            Date = trimmedDate,
             DisplayOrder = request.DisplayOrder,
             Sections = [.. request.Sections.Select(s => new ReleaseNoteSection
             {
@@ -166,6 +176,12 @@ public sealed class ReleaseNotesController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        if (request.Sections.Count == 0)
+            return BadRequest(new { error = "At least one section is required." });
+
+        if (request.Sections.Any(s => s.Notes.Count == 0))
+            return BadRequest(new { error = "Each section must have at least one note." });
+
         var release = await m_DbContext.ReleaseVersions.FindAsync(id);
         if (release is null)
             return NotFound(new { error = "Release version not found." });
@@ -182,7 +198,12 @@ public sealed class ReleaseNotesController : ControllerBase
             return Conflict(new { error = "Release version already exists." });
 
         release.Version = trimmedVersion;
-        release.Date = request.Date?.Trim().ReplaceLineEndings("");
+
+        var trimmedDate = request.Date?.Trim().ReplaceLineEndings("");
+        if (!string.IsNullOrEmpty(trimmedDate) && !System.Text.RegularExpressions.Regex.IsMatch(trimmedDate, @"^\d{4}-\d{2}-\d{2}$"))
+            return BadRequest(new { error = "Date must be in YYYY-MM-DD format." });
+
+        release.Date = trimmedDate;
         release.DisplayOrder = request.DisplayOrder;
         release.Sections = [.. request.Sections.Select(s => new ReleaseNoteSection
         {
@@ -226,7 +247,16 @@ public sealed class ReleaseNotesController : ControllerBase
             return NotFound(new { error = "Release version not found." });
 
         m_DbContext.ReleaseVersions.Remove(release);
-        await m_DbContext.SaveChangesAsync();
+
+        try
+        {
+            await m_DbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            m_Logger.LogError(ex, "Error deleting release version {Version}", release.Version);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "An error occurred while deleting the release version." });
+        }
 
         await TryInvalidateCacheAsync();
         m_Logger.LogInformation("Deleted release version {Version} and invalidated cache", release.Version);
