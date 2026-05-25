@@ -40,7 +40,8 @@ public record CharacterModuleStyle(
     Color GoldConstTextColor,
     Color FooterTextColor,
     Image? PlaceholderWeaponIcon = null,
-    bool DrawWeapon = true);
+    bool DrawWeapon = true,
+    Color? AvatarBorderColor = null);
 
 public class CharacterModuleRenderer
 {
@@ -281,6 +282,12 @@ public class CharacterModuleRenderer
                 tctx.DrawImage(data.Icon, new Point(5, 5), 1f);
             }
 
+            if (m_Style.AvatarBorderColor.HasValue)
+            {
+                var borderPath = ImageUtility.CreateRoundedRectanglePath(width - 1, height - 1, 10);
+                tctx.Draw(m_Style.AvatarBorderColor.Value, 5, borderPath);
+            }
+
             tctx.ApplyRoundedCorners(10);
         });
 
@@ -326,6 +333,12 @@ public class CharacterModuleRenderer
                 },
                     weapon.AffixLevel.ToString()!,
                     weapon.AffixLevel == 5 ? m_Style.GoldConstTextColor : Color.White);
+            }
+
+            if (m_Style.AvatarBorderColor.HasValue)
+            {
+                var borderPath = ImageUtility.CreateRoundedRectanglePath(width - 1, height - 1, 10);
+                tctx.Draw(m_Style.AvatarBorderColor.Value, 5, borderPath);
             }
 
             tctx.ApplyRoundedCorners(10);
