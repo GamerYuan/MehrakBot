@@ -22,17 +22,16 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
     private static readonly Dictionary<string, Color> ElementForeground = new(StringComparer.OrdinalIgnoreCase)
     {
         { "Physical", Color.FromRgb(255, 226, 0) },
-        { "Fire", Color.FromRgb(254, 120, 26) },
+        { "Fire", Color.FromRgb(254, 83, 26) },
         { "Ice", Color.FromRgb(126, 233, 232) },
-        { "Electric", Color.FromRgb(37, 218, 250) },
-        { "Ether", Color.FromRgb(252, 23, 40) },
+        { "Electric", Color.FromRgb(0, 145, 217) },
+        { "Ether", Color.FromRgb(122, 78, 204) },
     };
 
     private static readonly char[] RarityOrder = ['S', 'A'];
 
     private static readonly Color GoldBackgroundColor = Color.FromRgb(183, 125, 76);
     private static readonly Color PurpleBackgroundColor = Color.FromRgb(132, 104, 173);
-    private static readonly Color PurpleForegroundColor = Color.FromRgb(204, 173, 255);
 
     private static readonly TextInfo TextInfo = new CultureInfo("en-US", false).TextInfo;
 
@@ -48,6 +47,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
     private readonly Dictionary<string, Image> m_ElementIcons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Image> m_SmallElementIcons = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Image> m_ProfessionIcons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<int, Image> m_StarImages = [];
 
     public ZzzCharListCardService(IImageRepository imageRepository,
         ILogger<ZzzCharListCardService> logger,
@@ -79,6 +79,15 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             var image = await Image.LoadAsync(stream, cancellationToken);
             image.Mutate(x => x.Resize(40, 0, KnownResamplers.Bicubic));
             m_ProfessionIcons[StatUtils.GetProfessionNameFromId(professionId)] = image;
+        }
+
+        foreach (var star in Enumerable.Range(1, 5))
+        {
+            var iconName = string.Format(FileNameFormat.Zzz.WeaponStarName, star);
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
+            var image = await Image.LoadAsync(stream, cancellationToken);
+            image.Mutate(x => x.Resize(65, 0, KnownResamplers.Bicubic));
+            m_StarImages[star] = image;
         }
     }
 
@@ -117,6 +126,8 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
         var charModuleDataTask = charData
             .OrderByDescending(x => x.Level)
+            .ThenBy(x => x.ElementType)
+            .ThenByDescending(x => x.SubElementType)
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
             .ToAsyncEnumerable()
@@ -145,14 +156,15 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             {
                 await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token);
                 var image = await Image.LoadAsync(stream, token);
+                image.Mutate(ctx => ctx.Crop(new Rectangle(45, 20, image.Width - 45, image.Height - 20)));
                 disposables.Add(image);
                 return new CharacterModuleData(
                     x.Name,
                     x.Level,
-                    x.Star,
+                    MapRarity(x.Rarity),
                     image,
                     ConstellationNum: 0,
-                    Icon: null,
+                    Icon: m_StarImages[x.Star],
                     Weapon: null);
             })
             .ToListAsync(cancellationToken: cancellationToken);
@@ -197,21 +209,20 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             ctx.Clear(Color.FromRgb(27, 27, 27));
 
             renderer.RenderHeader(ctx, outputWidth,
-                $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", context.GameProfile.GameUid!,
-                Color.Black);
+                $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", context.GameProfile.GameUid!);
 
-            for (int i = 0; i < charModules.Count + buddyModules.Count; i++)
+            for (var i = 0; i < charModules.Count + buddyModules.Count; i++)
             {
                 var pos = layout.ImagePositions[i];
                 if (i < charModules.Count)
                 {
                     (var character, var moduleData) = charModules[i];
                     renderer.Render(ctx, moduleData, new Point(pos.X, pos.Y),
-                        ElementForeground[StatUtils.GetElementNameFromId(charData[i].ElementType, 0)]);
+                        ElementForeground[StatUtils.GetElementNameFromId(character.ElementType, 0)]);
                 }
                 else
                 {
-                    renderer.Render(ctx, buddyModules[i - charModules.Count], new Point(pos.X, pos.Y), Color.Black);
+                    renderer.Render(ctx, buddyModules[i - charModules.Count], new Point(pos.X, pos.Y), Color.LightGray);
                 }
             }
 
@@ -219,7 +230,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
             foreach (var entry in charCountByRarity)
             {
-                var bc = entry.Rarity == "S-Rank" ? Color.Gold : PurpleForegroundColor;
+                var bc = entry.Rarity == "S-Rank" ? GoldBackgroundColor : PurpleBackgroundColor;
                 var module = renderer.RenderFooterModule(entry.Rarity, entry.Count, bc);
                 disposables.Add(module);
                 footerModules.Add(module);
