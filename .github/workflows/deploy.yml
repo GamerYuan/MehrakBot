@@ -49,7 +49,7 @@ jobs:
         uses: docker/bake-action@v6
         env:
           VERSION: ${{ env.VERSION }}
-          BASE_IMAGE_TAG: opencv-4.12.0
+          BASE_IMAGE_TAG: opencv-4.12.0-ocvsharp-4.11.0.20250507
           BUILDX_BAKE_GIT_AUTH_TOKEN: ${{ secrets.ASSETS_PAT }}
         with:
           load: true

@@ -1,4 +1,4 @@
-﻿ARG BASE_IMAGE_TAG=opencv-4.12.0
+﻿ARG BASE_IMAGE_TAG=opencv-4.12.0-ocvsharp-4.11.0.20250507
 FROM ghcr.io/gameryuan/mehrak-app-base:${BASE_IMAGE_TAG} AS build
 WORKDIR /app
 

@@ -37,6 +37,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 ARG OPENCV_VERSION
+ARG OPENCVSHARP_VERSION=4.11.0.20250507
 
 RUN set -eux; \
     wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip; \
@@ -94,7 +95,7 @@ RUN --mount=type=cache,target=/root/.ccache \
     cmake --install /opencv/build; \
     ldconfig
 
-RUN git clone --branch 4.11.0.20250507 https://github.com/shimat/opencvsharp.git /opencvsharp
+RUN git clone --branch ${OPENCVSHARP_VERSION} https://github.com/shimat/opencvsharp.git /opencvsharp
 
 RUN --mount=type=cache,target=/root/.ccache \
     set -eux; \
@@ -110,4 +111,10 @@ RUN --mount=type=cache,target=/root/.ccache \
     mkdir -p /artifacts; \
     cp /opencvsharp/make/OpenCvSharpExtern/libOpenCvSharpExtern.so /artifacts/
 
-RUN apt update && apt install -y clang
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    set -eux; \
+    apt-get update; \
+    apt-get -y install --no-install-recommends clang; \
+    apt-get -y clean; \
+    rm -rf /var/lib/apt/lists/*

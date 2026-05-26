@@ -10,6 +10,10 @@ on:
         description: "OpenCV version to build"
         required: true
         default: "4.12.0"
+      opencvsharp_version:
+        description: "OpenCvSharp release tag"
+        required: true
+        default: "4.11.0.20250507"
 
 jobs:
   build-base:
@@ -39,7 +43,9 @@ jobs:
           push: true
           tags: |
             ghcr.io/gameryuan/mehrak-app-base:opencv-${{ inputs.opencv_version }}
+            ghcr.io/gameryuan/mehrak-app-base:opencv-${{ inputs.opencv_version }}-ocvsharp-${{ inputs.opencvsharp_version }}
           build-args: |
             OPENCV_VERSION=${{ inputs.opencv_version }}
+            OPENCVSHARP_VERSION=${{ inputs.opencvsharp_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
