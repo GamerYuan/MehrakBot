@@ -89,7 +89,7 @@ public class ImageRepository : IImageRepository
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             m_Logger.LogWarning("File {FileName} not found in S3 bucket {Bucket}", fileName, m_Bucket);
-            m_ExistsCache.Remove(fileName);
+            m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
             throw new ImageNotFoundException(fileName);
         }
     }
@@ -104,7 +104,7 @@ public class ImageRepository : IImageRepository
             Key = fileName
         };
         await m_S3.DeleteObjectAsync(delReq, cancellationToken).ConfigureAwait(false);
-        m_ExistsCache.Remove(fileName);
+        m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
     }
 
     public async Task<bool> FileExistsAsync(string fileName, CancellationToken cancellationToken = default)
@@ -133,7 +133,7 @@ public class ImageRepository : IImageRepository
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             exists = false;
-            m_ExistsCache.Remove(fileName);
+            m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
             return false;
         }
         catch (AmazonS3Exception ex)
@@ -179,7 +179,7 @@ public class ImageRepository : IImageRepository
     public void InvalidateCache(string fileName)
     {
         m_Logger.LogDebug("Invalidating cache for file: {FileName}", fileName);
-        m_ExistsCache.Remove(fileName);
+        m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
     }
 
     private static MemoryCacheEntryOptions CreateExistsCacheOptions()

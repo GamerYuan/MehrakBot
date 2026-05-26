@@ -88,18 +88,26 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
     private GameProfileDto? TryDeserializeAndMap(string cachedData, GameRoleApiContext context)
     {
-        var cachedJson = JsonSerializer.Deserialize<ApiResponse<GameProfileResponse>>(cachedData);
-        var cachedProfile = cachedJson?.Data?.List
-            .FirstOrDefault(x => x.GameBiz == context.Game.ToGameBizString() && x.Region == context.Region);
+        try
+        {
+            var cachedJson = JsonSerializer.Deserialize<ApiResponse<GameProfileResponse>>(cachedData);
+            var cachedProfile = cachedJson?.Data?.List
+                .FirstOrDefault(x => x.GameBiz == context.Game.ToGameBizString() && x.Region == context.Region);
 
-        if (cachedProfile == null)
+            if (cachedProfile == null)
+                return null;
+
+            var dto = MapToGameProfileDto(cachedProfile);
+            if (dto == null)
+                return null;
+
+            return dto;
+        }
+        catch (JsonException ex)
+        {
+            m_Logger.LogWarning(ex, "Failed to deserialize cached game profile data for user {UserId}. Falling back to API fetch.", context.UserId);
             return null;
-
-        var dto = MapToGameProfileDto(cachedProfile);
-        if (dto == null)
-            return null;
-
-        return dto;
+        }
     }
 
     private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context)
