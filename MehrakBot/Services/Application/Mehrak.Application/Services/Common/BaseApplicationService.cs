@@ -143,6 +143,12 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
                 }
                 continue;
             }
+            catch (CommandException ex)
+            {
+                Logger.LogError(ex, "Command error for User {UserId}, Command {CommandName}: {Message}",
+                    context.UserId, CommandName, ex.Message);
+                return CommandResult.Failure(CommandFailureReason.BotError, ex.Message);
+            }
             catch (Exception ex)
             {
                 Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
