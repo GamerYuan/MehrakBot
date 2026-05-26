@@ -43,6 +43,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
+
+    protected override string CommandName => "Genshin Character";
+    protected override string CardName => "Character";
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
         ICharacterCacheService characterCacheService,
@@ -72,133 +75,119 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_PortraitConfigService = portraitConfigService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
+        var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (input.Length > MaxRequestCount)
         {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
-            var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (input.Length > MaxRequestCount)
-            {
-                return CommandResult.Success(
-                    [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
-                    isEphemeral: true);
-            }
-
-            var profile =
-                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
-
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
-
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
-
-            var gameUid = profile.GameUid;
-
-            var charListResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
-                    context.LToken, gameUid, region));
-            if (!charListResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid,
-                    charListResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character List"));
-            }
-
-            var characters = charListResponse.Data;
-            _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
-                characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
-
-            var names = characters.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
-            HashSet<int> validCharacters = [];
-            List<string> failureMessages = [];
-
-            foreach (var c in input)
-            {
-                var character = names.GetValueOrDefault(c);
-
-                if (character == null)
-                {
-                    m_AliasService.GetAliases(Game.Genshin).TryGetValue(c, out var name);
-
-                    if (name == null ||
-                        (character = names.GetValueOrDefault(name)) == null)
-                    {
-                        Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
-                        failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
-                    }
-                }
-
-                if (character != null)
-                {
-                    validCharacters.Add(character.Id!.Value);
-                }
-            }
-
-            if (validCharacters.Count == 0)
-            {
-                return CommandResult.Success(
-                    [new CommandText(string.Join('\n', failureMessages))],
-                    isEphemeral: true);
-            }
-
-            var characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
-                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region, validCharacters));
-
-            if (!characterInfo.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid,
-                    characterInfo);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character data"));
-            }
-
-            List<string> attachments = [];
-
-            foreach (var charData in characterInfo.Data.List)
-            {
-                var result = await ProcessCharacterAsync(context, server, profile, charData,
-                    characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki);
-                if (result.IsSuccess)
-                {
-                    attachments.Add(result.Data);
-                }
-                else
-                {
-                    failureMessages.Add($"{charData.Base.Name}: {result.ErrorMessage}");
-                }
-            }
-
-            if (attachments.Count == 0)
-            {
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Join('\n', failureMessages));
-            }
-
-            List<ICommandResultComponent> components = [];
-            components.Add(new CommandText($"<@{context.UserId}>"));
-            components.AddRange(attachments.Select(x => new CommandAttachment(x)));
-
-            return CommandResult.Success(components,
-                ephemeralMessage: string.Join('\n', failureMessages));
+            return CommandResult.Success(
+                [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
+                isEphemeral: true);
         }
-        catch (CommandException e)
+
+        var profile =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+
+        if (profile == null)
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character"));
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
-        catch (Exception e)
+
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+
+        var gameUid = profile.GameUid;
+
+        var charListResponse = await
+            m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
+                context.LToken, gameUid, region));
+        if (!charListResponse.IsSuccess)
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid,
+                charListResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character List"));
         }
+
+        var characters = charListResponse.Data;
+        _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
+            characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
+
+        var names = characters.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
+        HashSet<int> validCharacters = [];
+        List<string> failureMessages = [];
+
+        foreach (var c in input)
+        {
+            var character = names.GetValueOrDefault(c);
+
+            if (character == null)
+            {
+                m_AliasService.GetAliases(Game.Genshin).TryGetValue(c, out var name);
+
+                if (name == null ||
+                    (character = names.GetValueOrDefault(name)) == null)
+                {
+                    Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
+                    failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
+                }
+            }
+
+            if (character != null)
+            {
+                validCharacters.Add(character.Id!.Value);
+            }
+        }
+
+        if (validCharacters.Count == 0)
+        {
+            return CommandResult.Success(
+                [new CommandText(string.Join('\n', failureMessages))],
+                isEphemeral: true);
+        }
+
+        var characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
+            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region, validCharacters));
+
+        if (!characterInfo.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid,
+                characterInfo);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character data"));
+        }
+
+        List<string> attachments = [];
+
+        foreach (var charData in characterInfo.Data.List)
+        {
+            var result = await ProcessCharacterAsync(context, server, profile, charData,
+                characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki);
+            if (result.IsSuccess)
+            {
+                attachments.Add(result.Data);
+            }
+            else
+            {
+                failureMessages.Add($"{charData.Base.Name}: {result.ErrorMessage}");
+            }
+        }
+
+        if (attachments.Count == 0)
+        {
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Join('\n', failureMessages));
+        }
+
+        List<ICommandResultComponent> components = [];
+        components.Add(new CommandText($"<@{context.UserId}>"));
+        components.AddRange(attachments.Select(x => new CommandAttachment(x)));
+
+        return CommandResult.Success(components,
+            ephemeralMessage: string.Join('\n', failureMessages));
     }
 
     private async Task<Result<string>> ProcessCharacterAsync(

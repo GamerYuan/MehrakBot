@@ -83,6 +83,8 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
+        services.AddMemoryCache();
+
         return services;
     }
 }

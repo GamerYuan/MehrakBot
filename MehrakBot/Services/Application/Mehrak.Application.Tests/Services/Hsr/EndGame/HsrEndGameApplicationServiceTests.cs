@@ -548,6 +548,7 @@ public class HsrEndGameApplicationServiceTests
 
         var gameRoleApiService = new GameRoleApiService(
             httpClientFactory.Object,
+            Mock.Of<ICacheService>(),
             Mock.Of<ILogger<GameRoleApiService>>());
 
         var imageUpdaterService = new ImageUpdaterService(
@@ -659,16 +660,16 @@ public class HsrEndGameApplicationServiceTests
 
     private sealed class TestServiceProvider : IKeyedServiceProvider
     {
-        private readonly Dictionary<(Type ServiceType, object Key), object> _keyedServices = new();
+        private readonly Dictionary<(Type ServiceType, object Key), object> m_KeyedServices = new();
 
         public void RegisterKeyedService(Type serviceType, object key, object service)
         {
-            _keyedServices[(serviceType, key)] = service;
+            m_KeyedServices[(serviceType, key)] = service;
         }
 
         public object? GetService(Type serviceType)
         {
-            foreach (var kvp in _keyedServices)
+            foreach (var kvp in m_KeyedServices)
             {
                 if (kvp.Key.ServiceType == serviceType)
                     return kvp.Value;
@@ -678,12 +679,12 @@ public class HsrEndGameApplicationServiceTests
 
         public object? GetKeyedService(Type serviceType, object? serviceKey)
         {
-            return serviceKey != null && _keyedServices.TryGetValue((serviceType, serviceKey), out var service) ? service : null;
+            return serviceKey != null && m_KeyedServices.TryGetValue((serviceType, serviceKey), out var service) ? service : null;
         }
 
         public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
         {
-            if (serviceKey != null && _keyedServices.TryGetValue((serviceType, serviceKey), out var service))
+            if (serviceKey != null && m_KeyedServices.TryGetValue((serviceType, serviceKey), out var service))
             {
                 return service;
             }

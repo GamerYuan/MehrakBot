@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -32,6 +32,9 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
+
+    protected override string CommandName => "ZZZ Character";
+    protected override string CardName => "Character";
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -59,161 +62,147 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
         var characterName = context.GetParameter("character")!;
 
-        try
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
+
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region);
+
+        if (profile == null)
         {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-                region);
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
 
-            if (profile == null)
+        var gameUid = profile.GameUid;
+
+        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+        if (!charResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character List"));
+        }
+
+        var characters = charResponse.Data;
+        _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
+            characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
+
+        var character = characters.FirstOrDefault(x =>
+            x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase) ||
+            x.FullName.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+        if (character == null)
+        {
+            m_AliasService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
+
+            if (name == null ||
+                (character =
+                    characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==
+                null)
             {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+                Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                return CommandResult.Success(
+                    [new CommandText(string.Format(ResponseMessage.CharacterNotFound, characterName))],
+                    isEphemeral: true);
             }
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        var response = await
+            m_CharacterApi.GetCharacterDetailAsync(new CharacterApiContext(context.UserId, context.LtUid,
+                context.LToken, gameUid, region, character.Id!));
 
-            var gameUid = profile.GameUid;
+        if (!response.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character data"));
+        }
 
-            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+        var characterData = response.Data;
+        var charInfo = characterData.AvatarList[0];
 
-            if (!charResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character List"));
-            }
-
-            var characters = charResponse.Data;
-            _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
-                characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
-
-            var character = characters.FirstOrDefault(x =>
-                x.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase) ||
-                x.FullName.Equals(characterName, StringComparison.OrdinalIgnoreCase));
-
-            if (character == null)
-            {
-                m_AliasService.GetAliases(Game.ZenlessZoneZero).TryGetValue(characterName, out var name);
-
-                if (name == null ||
-                    (character =
-                        characters.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) ==
-                    null)
-                {
-                    Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                    return CommandResult.Success(
-                        [new CommandText(string.Format(ResponseMessage.CharacterNotFound, characterName))],
-                        isEphemeral: true);
-                }
-            }
-
-            var response = await
-                m_CharacterApi.GetCharacterDetailAsync(new CharacterApiContext(context.UserId, context.LtUid,
-                    context.LToken, gameUid, region, character.Id!));
-
-            if (!response.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character data"));
-            }
-
-            var characterData = response.Data;
-            var charInfo = characterData.AvatarList[0];
-
-            var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
-                return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName)
-                ]);
-            }
-
-            Task<Result<string>>? charImageUrlTask = null;
-
-            List<Task<bool>> tasks = [];
-
-            if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
-            {
-                var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-                charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage);
-            }
-
-            if (charInfo.Weapon != null)
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charInfo.Weapon.ToImageData(),
-                    new ImageProcessorBuilder().Resize(150, 0).Build()));
-
-            tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
-                .Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                        new ImageProcessorBuilder().Resize(140, 0).Build())));
-
-            if (charImageUrlTask != null)
-            {
-                var charImage = await charImageUrlTask;
-                if (!charImage.IsSuccess)
-                {
-                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
-
-                var url = charImage.Data;
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                    url), ImageProcessors.None));
-            }
-
-            var completed = await Task.WhenAll(tasks);
-
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
-                    JsonSerializer.Serialize(charInfo));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
-
-            var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
-            cardContext.SetParameter("server", server);
-
-            var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
-            if (portraitConfig != null)
-                cardContext.SetParameter("portraitConfig", portraitConfig);
-
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
-            }
-
+        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
-
             return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
+                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
             ]);
         }
-        catch (CommandException e)
+
+        Task<Result<string>>? charImageUrlTask = null;
+
+        List<Task<bool>> tasks = [];
+
+        if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Character"));
+            var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
+            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage);
         }
-        catch (Exception e)
+
+        if (charInfo.Weapon != null)
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charInfo.Weapon.ToImageData(),
+                new ImageProcessorBuilder().Resize(150, 0).Build()));
+
+        tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
+            .Select(x =>
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                    new ImageProcessorBuilder().Resize(140, 0).Build())));
+
+        if (charImageUrlTask != null)
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Character", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            var charImage = await charImageUrlTask;
+            if (!charImage.IsSuccess)
+            {
+                Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Character Image"));
+            }
+
+            var url = charImage.Data;
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
+                url), ImageProcessors.None));
         }
+
+        var completed = await Task.WhenAll(tasks);
+
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
+                JsonSerializer.Serialize(charInfo));
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
+        cardContext.SetParameter("server", server);
+
+        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
+        if (portraitConfig != null)
+            cardContext.SetParameter("portraitConfig", portraitConfig);
+
+        await using var card = await m_CardService.GetCardAsync(cardContext);
+
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+        }
+
+        m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
+
+        return CommandResult.Success([
+            new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
+        ]);
     }
 
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,

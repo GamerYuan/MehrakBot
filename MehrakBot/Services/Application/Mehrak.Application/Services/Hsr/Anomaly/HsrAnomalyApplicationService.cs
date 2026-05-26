@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Builders;
 using Mehrak.Application.Extensions;
 using Mehrak.Application.Services.Abstractions;
@@ -22,6 +22,9 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<HsrAnomalyInformation, BaseHoYoApiContext> m_ApiService;
 
+
+    protected override string CommandName => "Anomaly Arbitration";
+    protected override string CardName => "Anomaly Arbitration";
     public HsrAnomalyApplicationService(
         ICardService<HsrAnomalyInformation> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -37,136 +40,122 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-        try
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
+
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+            Game.HonkaiStarRail, region);
+
+        if (profile == null)
         {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
-                Game.HonkaiStarRail, region);
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        var gameUid = profile.GameUid;
+        var anomalyResult =
+            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                gameUid, region));
+        if (!anomalyResult.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Anomaly Arbitration", context.UserId, gameUid, anomalyResult);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Anomaly Arbitration data"));
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        var anomalyData = anomalyResult.Data;
 
-            var gameUid = profile.GameUid;
-            var anomalyResult =
-                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                    gameUid, region));
-            if (!anomalyResult.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Anomaly Arbitration", context.UserId, gameUid, anomalyResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Anomaly Arbitration data"));
-            }
+        if (anomalyData.ChallengeRecords.Count == 0)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
+                isEphemeral: true);
+        }
 
-            var anomalyData = anomalyResult.Data;
+        var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
+            ? anomalyData.ChallengeRecords.FirstOrDefault(
+                x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
+                    && x.MobStars == anomalyData.BestRecord.MobStars)
+            : anomalyData.ChallengeRecords.FirstOrDefault(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
 
-            if (anomalyData.ChallengeRecords.Count == 0)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
-                    isEphemeral: true);
-            }
+        if (bestRecord == null)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
+                isEphemeral: true);
+        }
 
-            var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
-                ? anomalyData.ChallengeRecords.FirstOrDefault(
-                    x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
-                        && x.MobStars == anomalyData.BestRecord.MobStars)
-                : anomalyData.ChallengeRecords.FirstOrDefault(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+        var tz = server.GetTimeZoneInfo();
+        var startTime = new DateTimeOffset(bestRecord.Group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
+            .ToUnixTimeSeconds();
+        var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
+            .ToUnixTimeSeconds();
 
-            if (bestRecord == null)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
-                    isEphemeral: true);
-            }
-
-            var tz = server.GetTimeZoneInfo();
-            var startTime = new DateTimeOffset(bestRecord.Group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-
-            var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                return CommandResult.Success(
-                    [
-                        new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                    ],
-                    true);
-            }
-
-            List<Task<bool>> tasks = [];
-
-            tasks.AddRange(bestRecord.MobRecords.SelectMany(x => x.Avatars)
-                .Concat(bestRecord.BossRecord?.Avatars ?? [])
-                .DistinctBy(x => x.Id)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
-
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
-                new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
-
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
-                new ImageProcessorBuilder().Resize(120, 0).Build()));
-
-            if (bestRecord.BossRecord != null)
-            {
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossRecord.Buff.ToImageData(),
-                    new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
-            }
-
-            var completed = await Task.WhenAll(tasks);
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Anomaly Arbitration", context.UserId,
-                    JsonSerializer.Serialize(anomalyData));
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
-            }
-
-            var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(context.UserId, anomalyData, profile);
-            cardContext.SetParameter("server", server);
-
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError,
-                    ResponseMessage.AttachmentStoreError);
-            }
-
+        var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), "jpg", gameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
             return CommandResult.Success(
                 [
                     new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
                 ],
                 true);
         }
-        catch (CommandException e)
+
+        List<Task<bool>> tasks = [];
+
+        tasks.AddRange(bestRecord.MobRecords.SelectMany(x => x.Avatars)
+            .Concat(bestRecord.BossRecord?.Avatars ?? [])
+            .DistinctBy(x => x.Id)
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
+
+        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
+            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+
+        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
+            new ImageProcessorBuilder().Resize(120, 0).Build()));
+
+        if (bestRecord.BossRecord != null)
         {
-            Logger.LogError(e, LogMessage.UnknownError, "Anomaly Arbitration", context.UserId, e.Message);
+            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossRecord.Buff.ToImageData(),
+                new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
+        }
+
+        var completed = await Task.WhenAll(tasks);
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Anomaly Arbitration", context.UserId,
+                JsonSerializer.Serialize(anomalyData));
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(context.UserId, anomalyData, profile);
+        cardContext.SetParameter("server", server);
+
+        await using var card = await m_CardService.GetCardAsync(cardContext);
+
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                string.Format(ResponseMessage.CardGenError, "Anomaly Arbitration"));
+                ResponseMessage.AttachmentStoreError);
         }
-        catch (Exception e)
-        {
-            Logger.LogError(e, LogMessage.UnknownError, "Anomaly Arbitration", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
-        }
+
+        return CommandResult.Success(
+            [
+                new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                    new CommandAttachment(fileName),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+            ],
+            true);
     }
 }

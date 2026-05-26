@@ -11,4 +11,6 @@ public interface IImageRepository
     Task<bool> FileExistsAsync(string fileName, CancellationToken cancellationToken = default);
 
     Task<List<string>> ListFilesAsync(string prefix = "", CancellationToken cancellationToken = default);
+
+    void InvalidateCache(string fileName);
 }
