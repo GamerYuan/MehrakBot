@@ -54,10 +54,7 @@ public class ImageRepository : IImageRepository
         var success = (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
         if (success)
         {
-            m_ExistsCache.Set(fileName, true, new MemoryCacheEntryOptions()
-            {
-                SlidingExpiration = TimeSpan.FromHours(1)
-            });
+            m_ExistsCache.Set(fileName, true, CreateExistsCacheOptions());
         }
         else
         {
@@ -83,10 +80,7 @@ public class ImageRepository : IImageRepository
             MemoryStream stream = new();
 
             if ((int)response.HttpStatusCode >= 300) return Stream.Null;
-            m_ExistsCache.Set(fileName, true, new MemoryCacheEntryOptions()
-            {
-                SlidingExpiration = TimeSpan.FromHours(1)
-            });
+            m_ExistsCache.Set(fileName, true, CreateExistsCacheOptions());
 
             await response.ResponseStream.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
             stream.Position = 0;
@@ -133,10 +127,7 @@ public class ImageRepository : IImageRepository
 
             var response = await m_S3.GetObjectMetadataAsync(headReq, cancellationToken).ConfigureAwait(false);
             exists = (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
-            m_ExistsCache.Set(fileName, exists, new MemoryCacheEntryOptions()
-            {
-                SlidingExpiration = TimeSpan.FromHours(1)
-            });
+            m_ExistsCache.Set(fileName, exists, CreateExistsCacheOptions());
             return exists;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -179,10 +170,7 @@ public class ImageRepository : IImageRepository
         foreach (var key in keys)
         {
             m_Logger.LogDebug("Found file in S3: {Key}", key);
-            m_ExistsCache.Set(key, true, new MemoryCacheEntryOptions()
-            {
-                SlidingExpiration = TimeSpan.FromHours(1)
-            });
+            m_ExistsCache.Set(key, true, CreateExistsCacheOptions());
         }
 
         return keys;
@@ -192,5 +180,13 @@ public class ImageRepository : IImageRepository
     {
         m_Logger.LogDebug("Invalidating cache for file: {FileName}", fileName);
         m_ExistsCache.Remove(fileName);
+    }
+
+    private static MemoryCacheEntryOptions CreateExistsCacheOptions()
+    {
+        return new MemoryCacheEntryOptions()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+        };
     }
 }
