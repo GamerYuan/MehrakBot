@@ -1,6 +1,7 @@
 name: Deploy
 permissions:
   contents: read
+  packages: read
 
 on:
   push:
@@ -37,11 +38,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Docker images
         uses: docker/bake-action@v6
         env:
           VERSION: ${{ env.VERSION }}
-          OPENCV_VERSION: 4.12.0
+          BASE_IMAGE_TAG: opencv-4.12.0
           BUILDX_BAKE_GIT_AUTH_TOKEN: ${{ secrets.ASSETS_PAT }}
         with:
           load: true
