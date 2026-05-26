@@ -25,8 +25,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
 
- protected override string CommandName => "Character";
- protected override string CardName => "Character";
+    protected override string CommandName => "HI3 Character";
+    protected override string CardName => "Character";
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
@@ -54,113 +54,113 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     {
         var characterName = context.GetParameter("character")!;
 
-            var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
-                region);
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
+            region);
 
-            if (profile == null)
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
+
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString());
+
+        var gameUid = profile.GameUid;
+
+        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+        if (!charResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character data"));
+        }
+
+        var characterList = charResponse.Data.ToList();
+        _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3,
+            characterList.SelectMany(x => x.Costumes.Select(c =>
+                new CharacterUpsertEntry(x.Avatar.Name, c.Id))));
+
+        var characterInfo = characterList.FirstOrDefault(x =>
+            x.Avatar.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+        if (characterInfo == null)
+        {
+            m_AliasService.GetAliases(Game.HonkaiImpact3).TryGetValue(characterName, out var alias);
+            if (alias == null ||
+                (characterInfo = characterList.FirstOrDefault(x =>
+                    x.Avatar.Name.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
             {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
-
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString());
-
-            var gameUid = profile.GameUid;
-
-            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
-
-            if (!charResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character data"));
-            }
-
-            var characterList = charResponse.Data.ToList();
-            _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3,
-                characterList.SelectMany(x => x.Costumes.Select(c =>
-                    new CharacterUpsertEntry(x.Avatar.Name, c.Id))));
-
-            var characterInfo = characterList.FirstOrDefault(x =>
-                x.Avatar.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
-
-            if (characterInfo == null)
-            {
-                m_AliasService.GetAliases(Game.HonkaiImpact3).TryGetValue(characterName, out var alias);
-                if (alias == null ||
-                    (characterInfo = characterList.FirstOrDefault(x =>
-                        x.Avatar.Name.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
-                {
-                    Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                    return CommandResult.Success([
-                        new CommandText(
-                            string.Format(ResponseMessage.CharacterNotFound, characterName))
-                    ], isEphemeral: true);
-                }
-            }
-
-            var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
-                    characterInfo.Avatar.Name.ToLowerInvariant());
+                Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
                 return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
-                ]);
+                    new CommandText(
+                            string.Format(ResponseMessage.CharacterNotFound, characterName))
+                ], isEphemeral: true);
             }
+        }
 
-            List<Task<bool>> tasks = [];
-            var costumeTasks = characterInfo.Costumes
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
-                .ToList();
-
-            tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build())));
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build()));
-
-            await Task.WhenAll(tasks.Concat(costumeTasks));
-
-            var hasNonCostumeFailure = tasks.Any(x => !x.Result);
-            var baseCostumeUpdated = costumeTasks.Count == 0 || costumeTasks[^1].Result;
-
-            if (hasNonCostumeFailure || !baseCostumeUpdated)
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
-                    JsonSerializer.Serialize(characterInfo));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
-
-            var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
-            cardContext.SetParameter("server", server);
-
-            var portraitConfigs = new Dictionary<int, CharacterPortraitConfig>();
-            foreach (var costume in characterInfo.Costumes)
-            {
-                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
-                if (config != null)
-                    portraitConfigs[costume.Id] = config;
-            }
-
-            if (portraitConfigs.Count > 0)
-                cardContext.SetParameter("portraitConfigs", portraitConfigs);
-
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
-            }
-
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());
-
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
             ]);
+        }
+
+        List<Task<bool>> tasks = [];
+        var costumeTasks = characterInfo.Costumes
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
+            .ToList();
+
+        tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build())));
+        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build()));
+
+        await Task.WhenAll(tasks.Concat(costumeTasks));
+
+        var hasNonCostumeFailure = tasks.Any(x => !x.Result);
+        var baseCostumeUpdated = costumeTasks.Count == 0 || costumeTasks[^1].Result;
+
+        if (hasNonCostumeFailure || !baseCostumeUpdated)
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
+                JsonSerializer.Serialize(characterInfo));
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
+        cardContext.SetParameter("server", server);
+
+        var portraitConfigs = new Dictionary<int, CharacterPortraitConfig>();
+        foreach (var costume in characterInfo.Costumes)
+        {
+            var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+            if (config != null)
+                portraitConfigs[costume.Id] = config;
+        }
+
+        if (portraitConfigs.Count > 0)
+            cardContext.SetParameter("portraitConfigs", portraitConfigs);
+
+        await using var card = await m_CardService.GetCardAsync(cardContext);
+
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+        }
+
+        m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
+            characterInfo.Avatar.Name.ToLowerInvariant());
+
+        return CommandResult.Success([
+            new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
+        ]);
     }
 }

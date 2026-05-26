@@ -40,8 +40,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
 
 
- protected override string CommandName => "Character";
- protected override string CardName => "Character";
+    protected override string CommandName => "HSR Character";
+    protected override string CardName => "Character";
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
         IApiService<JsonNode, WikiApiContext> wikiApi,
@@ -72,105 +72,105 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
-            var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
+        var input = context.GetParameter("character")!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            if (input.Length > MaxRequestCount)
+        if (input.Length > MaxRequestCount)
+        {
+            return CommandResult.Success(
+                [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
+                isEphemeral: true);
+        }
+
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            region);
+
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
+
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+
+        var gameUid = profile.GameUid;
+
+        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+
+        if (!charResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character data"));
+        }
+
+        var characterList = charResponse.Data.First();
+        _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
+            characterList.AvatarList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
+
+        var names = characterList.AvatarList.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
+        Dictionary<int, HsrCharacterInformation> validCharacters = [];
+        List<string> failureMessages = [];
+
+        foreach (var c in input)
+        {
+            var character = names.GetValueOrDefault(c);
+
+            if (character == null)
             {
-                return CommandResult.Success(
-                    [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
-                    isEphemeral: true);
-            }
+                m_AliasService.GetAliases(Game.HonkaiStarRail).TryGetValue(c, out var name);
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-                region);
-
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
-
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
-
-            var gameUid = profile.GameUid;
-
-            var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
-
-            if (!charResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character data"));
-            }
-
-            var characterList = charResponse.Data.First();
-            _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiStarRail,
-                characterList.AvatarList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
-
-            var names = characterList.AvatarList.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
-            Dictionary<int, HsrCharacterInformation> validCharacters = [];
-            List<string> failureMessages = [];
-
-            foreach (var c in input)
-            {
-                var character = names.GetValueOrDefault(c);
-
-                if (character == null)
+                if (name == null ||
+                    (character = names.GetValueOrDefault(name)) == null)
                 {
-                    m_AliasService.GetAliases(Game.HonkaiStarRail).TryGetValue(c, out var name);
-
-                    if (name == null ||
-                        (character = names.GetValueOrDefault(name)) == null)
-                    {
-                        Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
-                        failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
-                    }
-                }
-
-                if (character != null)
-                {
-                    validCharacters.TryAdd(character.Id, character);
+                    Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
+                    failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
                 }
             }
 
-            if (validCharacters.Count == 0)
+            if (character != null)
             {
-                return CommandResult.Success(
-                    [new CommandText(string.Join('\n', failureMessages))],
-                    isEphemeral: true);
+                validCharacters.TryAdd(character.Id, character);
             }
+        }
 
-            List<string> attachments = [];
+        if (validCharacters.Count == 0)
+        {
+            return CommandResult.Success(
+                [new CommandText(string.Join('\n', failureMessages))],
+                isEphemeral: true);
+        }
 
-            foreach (var charData in validCharacters.Values)
+        List<string> attachments = [];
+
+        foreach (var charData in validCharacters.Values)
+        {
+            var result = await ProcessCharacterAsync(context, server, profile, charData,
+                characterList.RelicWiki, characterList.EquipWiki);
+            if (result.IsSuccess)
             {
-                var result = await ProcessCharacterAsync(context, server, profile, charData,
-                    characterList.RelicWiki, characterList.EquipWiki);
-                if (result.IsSuccess)
-                {
-                    attachments.Add(result.Data);
-                }
-                else
-                {
-                    failureMessages.Add($"{charData.Name}: {result.ErrorMessage}");
-                }
+                attachments.Add(result.Data);
             }
-
-            if (attachments.Count == 0)
+            else
             {
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Join('\n', failureMessages));
+                failureMessages.Add($"{charData.Name}: {result.ErrorMessage}");
             }
+        }
 
-            List<ICommandResultComponent> components = [];
-            components.Add(new CommandText($"<@{context.UserId}>"));
-            components.AddRange(attachments.Select(x => new CommandAttachment(x)));
+        if (attachments.Count == 0)
+        {
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Join('\n', failureMessages));
+        }
 
-            return CommandResult.Success(components,
-                ephemeralMessage: string.Join('\n', failureMessages));
+        List<ICommandResultComponent> components = [];
+        components.Add(new CommandText($"<@{context.UserId}>"));
+        components.AddRange(attachments.Select(x => new CommandAttachment(x)));
+
+        return CommandResult.Success(components,
+            ephemeralMessage: string.Join('\n', failureMessages));
     }
 
     private async Task<Result<string>> ProcessCharacterAsync(

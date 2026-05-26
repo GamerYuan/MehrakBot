@@ -36,8 +36,8 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
 
 
- protected override string CommandName => "CharList";
- protected override string CardName => "Character List";
+    protected override string CommandName => "CharList";
+    protected override string CardName => "Character List";
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<IEnumerable<GenshinBasicCharacterData>> cardService,
@@ -62,128 +62,128 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
 
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile =
-                await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+        var profile =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
-            var gameUid = profile.GameUid;
+        var gameUid = profile.GameUid;
 
-            var charResponse = await
-                m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
-                    context.LToken, gameUid, region));
+        var charResponse = await
+            m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
+                context.LToken, gameUid, region));
 
-            if (!charResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character List"));
-            }
+        if (!charResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character List"));
+        }
 
-            var characterList = charResponse.Data.ToList();
-            _ = m_CharacterCache.UpsertCharacters(Game.Genshin,
-                characterList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
+        var characterList = charResponse.Data.ToList();
+        _ = m_CharacterCache.UpsertCharacters(Game.Genshin,
+            characterList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-            var filename = GetFileName(JsonSerializer.Serialize(characterList), "jpg", profile.GameUid);
-            if (await AttachmentExistsAsync(filename))
-            {
-                return CommandResult.Success(
-                [
-                    new CommandText($"<@{context.UserId}>"),
+        var filename = GetFileName(JsonSerializer.Serialize(characterList), "jpg", profile.GameUid);
+        if (await AttachmentExistsAsync(filename))
+        {
+            return CommandResult.Success(
+            [
+                new CommandText($"<@{context.UserId}>"),
                     new CommandAttachment(filename)
-                ]);
-            }
-
-            var avatarTask =
-                characterList.Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            var weaponTask =
-                characterList.Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
-                        new ImageProcessorBuilder().Resize(200, 0).Build()));
-            var temp = await characterList.ToAsyncEnumerable()
-                .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
-                    || x.Weapon.Level == 40).ToListAsync();
-
-            var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
-            var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
-
-            if (charToFetch.Count > 0)
-            {
-                var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
-                    context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
-
-                if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
-                {
-                    var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
-                        .DistinctBy(x => x.Weapon.Id)
-                        .ToAsyncEnumerable()
-                        .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
-                        {
-                            if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
-                            {
-                                return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
-                            }
-                            return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
-                        })
-                        .Where(x => x.Url.IsSuccess)
-                        .Select(x =>
-                        {
-                            weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
-
-                            // Special case for catalyst
-                            if (x.Data.Weapon.Type == 10)
-                            {
-                                return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
-                                    new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
-                            }
-                            else
-                            {
-                                // ignore result from this method
-                                return m_ImageUpdaterService.UpdateMultiImageAsync(
-                                    new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
-                                        [x.Data.Weapon.Icon, x.Url.Data!]),
-                                    new GenshinWeaponImageProcessor()
-                                );
-                            }
-                        }).ToListAsync();
-
-                    await Task.WhenAll(result);
-                }
-            }
-
-            var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
-                    JsonSerializer.Serialize(characterList));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
-
-            var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
-                    characterList, profile);
-            cardContext.SetParameter("server", server);
-
-            using var card = await m_CardService.GetCardAsync(cardContext);
-            if (!await StoreAttachmentAsync(context.UserId, filename, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError,
-                    ResponseMessage.AttachmentStoreError);
-            }
-
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
             ]);
+        }
+
+        var avatarTask =
+            characterList.Select(x =>
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+        var weaponTask =
+            characterList.Select(x =>
+                m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
+                    new ImageProcessorBuilder().Resize(200, 0).Build()));
+        var temp = await characterList.ToAsyncEnumerable()
+            .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
+                || x.Weapon.Level == 40).ToListAsync();
+
+        var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
+        var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
+
+        if (charToFetch.Count > 0)
+        {
+            var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
+                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
+
+            if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
+            {
+                var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
+                    .DistinctBy(x => x.Weapon.Id)
+                    .ToAsyncEnumerable()
+                    .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
+                    {
+                        if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
+                        {
+                            return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
+                        }
+                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
+                    })
+                    .Where(x => x.Url.IsSuccess)
+                    .Select(x =>
+                    {
+                        weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
+
+                        // Special case for catalyst
+                        if (x.Data.Weapon.Type == 10)
+                        {
+                            return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
+                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
+                        }
+                        else
+                        {
+                            // ignore result from this method
+                            return m_ImageUpdaterService.UpdateMultiImageAsync(
+                                new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
+                                    [x.Data.Weapon.Icon, x.Url.Data!]),
+                                new GenshinWeaponImageProcessor()
+                            );
+                        }
+                    }).ToListAsync();
+
+                await Task.WhenAll(result);
+            }
+        }
+
+        var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
+                JsonSerializer.Serialize(characterList));
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
+                characterList, profile);
+        cardContext.SetParameter("server", server);
+
+        using var card = await m_CardService.GetCardAsync(cardContext);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                ResponseMessage.AttachmentStoreError);
+        }
+
+        return CommandResult.Success([
+            new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
+        ]);
     }
 
     private async Task<Result<string>>

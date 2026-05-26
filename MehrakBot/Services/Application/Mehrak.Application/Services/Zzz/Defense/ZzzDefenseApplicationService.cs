@@ -25,8 +25,8 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<ZzzDefenseDataV2, BaseHoYoApiContext> m_ApiService;
 
 
- protected override string CommandName => "Defense";
- protected override string CardName => "Shiyu Defense";
+    protected override string CommandName => "Defense";
+    protected override string CardName => "Shiyu Defense";
     public ZzzDefenseApplicationService(
         ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -44,105 +44,105 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-                region);
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region);
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
 
-            var gameUid = profile.GameUid;
+        var gameUid = profile.GameUid;
 
-            var defenseResponse =
-                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                    gameUid, region));
+        var defenseResponse =
+            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                gameUid, region));
 
-            if (!defenseResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
-            }
+        if (!defenseResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
+        }
 
-            var defenseData = defenseResponse.Data!;
+        var defenseData = defenseResponse.Data!;
 
-            if (defenseData.Brief == null)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
-                    isEphemeral: true);
-            }
+        if (defenseData.Brief == null)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
+                isEphemeral: true);
+        }
 
-            var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList;
-            if (nonNull == null || nonNull.Count == 0)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
-                    isEphemeral: true);
-            }
+        var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList;
+        if (nonNull == null || nonNull.Count == 0)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
+                isEphemeral: true);
+        }
 
-            var fileName = GetFileName(JsonSerializer.Serialize(defenseData), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                return CommandResult.Success([
-                        new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
+        var fileName = GetFileName(JsonSerializer.Serialize(defenseData), "jpg", gameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
+            return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
                         new CommandText(
                             $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
                         new CommandAttachment(fileName),
                         new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                    ],
-                    true);
-            }
+                ],
+                true);
+        }
 
-            var updateImageTask = nonNull.SelectMany(x => x.AvatarList)
-                .DistinctBy(x => x!.Id)
-                .Select(avatar =>
-                    m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
-            var updateBuddyTask = nonNull
-                .Select(x => x.Buddy)
-                .Where(x => x is not null)
-                .DistinctBy(x => x!.Id)
-                .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
-                    new ImageProcessorBuilder().Resize(300, 0).Build()));
-            var bossTask = defenseData.FifthLayerDetail!.LayerChallengeInfoList
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(),
-                    new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+        var updateImageTask = nonNull.SelectMany(x => x.AvatarList)
+            .DistinctBy(x => x!.Id)
+            .Select(avatar =>
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+        var updateBuddyTask = nonNull
+            .Select(x => x.Buddy)
+            .Where(x => x is not null)
+            .DistinctBy(x => x!.Id)
+            .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
+                new ImageProcessorBuilder().Resize(300, 0).Build()));
+        var bossTask = defenseData.FifthLayerDetail!.LayerChallengeInfoList
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(),
+                new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
 
-            var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
+        var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
 
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Shiyu Defense", context.UserId, gameUid);
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Shiyu Defense", context.UserId, gameUid);
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
 
-            var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(context.UserId, defenseData, profile);
-            cardContext.SetParameter("server", server);
+        var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(context.UserId, defenseData, profile);
+        cardContext.SetParameter("server", server);
 
-            await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
-            }
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+        }
 
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
+        return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
                     new CommandText(
                         $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
                     new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            ],
+            true);
     }
 }

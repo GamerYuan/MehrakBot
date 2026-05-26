@@ -33,35 +33,35 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-                region);
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            region);
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
 
-            var gameUid = profile.GameUid;
+        var gameUid = profile.GameUid;
 
-            var notesResult = await m_ApiService.GetAsync(
-                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+        var notesResult = await m_ApiService.GetAsync(
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
 
-            if (!notesResult.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
-            }
+        if (!notesResult.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
+        }
 
-            var notesData = notesResult.Data;
+        var notesData = notesResult.Data;
 
-            return await BuildRealTimeNotes(notesData, server, gameUid);
+        return await BuildRealTimeNotes(notesData, server, gameUid);
     }
 
     private async Task<CommandResult> BuildRealTimeNotes(HsrRealTimeNotesData data,

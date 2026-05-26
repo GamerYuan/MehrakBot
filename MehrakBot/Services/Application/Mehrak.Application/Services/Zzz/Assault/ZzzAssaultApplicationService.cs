@@ -31,8 +31,8 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<ZzzAssaultData, BaseHoYoApiContext> m_ApiService;
 
 
- protected override string CommandName => "Assault";
- protected override string CardName => "Deadly Assault";
+    protected override string CommandName => "Assault";
+    protected override string CardName => "Deadly Assault";
     public ZzzAssaultApplicationService(
         ICardService<ZzzAssaultData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -50,108 +50,108 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-                region);
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region);
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
 
-            var gameUid = profile.GameUid;
+        var gameUid = profile.GameUid;
 
-            var assaultResponse =
-                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                    gameUid, region));
+        var assaultResponse =
+            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                gameUid, region));
 
-            if (!assaultResponse.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
-            }
+        if (!assaultResponse.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
+        }
 
-            var assaultData = assaultResponse.Data;
+        var assaultData = assaultResponse.Data;
 
-            if (!assaultData.HasData || assaultData.List.Count == 0)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Assault", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Deadly Assault"))],
-                    isEphemeral: true);
-            }
+        if (!assaultData.HasData || assaultData.List.Count == 0)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Assault", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Deadly Assault"))],
+                isEphemeral: true);
+        }
 
-            var tz = server.GetTimeZoneInfo();
-            var startTs = assaultData.StartTime.ToTimestamp(tz);
-            var endTs = assaultData.EndTime.ToTimestamp(tz);
+        var tz = server.GetTimeZoneInfo();
+        var startTs = assaultData.StartTime.ToTimestamp(tz);
+        var endTs = assaultData.EndTime.ToTimestamp(tz);
 
-            var fileName = GetFileName(JsonSerializer.Serialize(assaultData), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                return CommandResult.Success([
-                        new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
+        var fileName = GetFileName(JsonSerializer.Serialize(assaultData), "jpg", gameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
+            return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
                         new CommandText($"Cycle start: <t:{startTs}:f>\n" +
                                         $"Cycle end: <t:{endTs}:f>"),
                         new CommandAttachment(fileName),
                         new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                    ],
-                    true);
-            }
+                ],
+                true);
+        }
 
-            var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
-                .DistinctBy(x => x.Id)
-                .Select(avatar =>
-                    m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
-            var buddyImageTask = assaultData.List.Select(x => x.Buddy)
-                .Where(x => x is not null)
-                .DistinctBy(x => x!.Id)
-                .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
-                    new ImageProcessorBuilder().Resize(300, 0).Build()));
-            var bossImageTask = assaultData.List
-                .SelectMany(x => x.Boss)
-                .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
-                    GetBossImageProcessor()));
-            var buffImageTask = assaultData.List
-                .SelectMany(x => x.Buff)
-                .DistinctBy(x => x.Name)
-                .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(80, 0).Build()));
+        var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
+            .DistinctBy(x => x.Id)
+            .Select(avatar =>
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+        var buddyImageTask = assaultData.List.Select(x => x.Buddy)
+            .Where(x => x is not null)
+            .DistinctBy(x => x!.Id)
+            .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
+                new ImageProcessorBuilder().Resize(300, 0).Build()));
+        var bossImageTask = assaultData.List
+            .SelectMany(x => x.Boss)
+            .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
+                GetBossImageProcessor()));
+        var buffImageTask = assaultData.List
+            .SelectMany(x => x.Buff)
+            .DistinctBy(x => x.Name)
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(80, 0).Build()));
 
-            var completed =
-                await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
+        var completed =
+            await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));
 
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Assault", context.UserId,
-                    JsonSerializer.Serialize(assaultData));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Assault", context.UserId,
+                JsonSerializer.Serialize(assaultData));
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
 
-            var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
-            cardContext.SetParameter("server", server);
+        var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
+        cardContext.SetParameter("server", server);
 
-            await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext);
 
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
-            }
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+        }
 
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
+        return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTs}:f>\n" +
                                     $"Cycle end: <t:{endTs}:f>"),
                     new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            ],
+            true);
     }
 
     private static IMultiImageProcessor GetBossImageProcessor()

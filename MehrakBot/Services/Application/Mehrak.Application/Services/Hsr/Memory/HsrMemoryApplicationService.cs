@@ -25,8 +25,8 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<HsrMemoryInformation, BaseHoYoApiContext> m_ApiService;
 
 
- protected override string CommandName => "Memory of Chaos";
- protected override string CardName => "Memory of Chaos";
+    protected override string CommandName => "Memory of Chaos";
+    protected override string CardName => "Memory of Chaos";
     public HsrMemoryApplicationService(
         ICardService<HsrMemoryInformation> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -44,91 +44,91 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
     {
-            var server = Enum.Parse<Server>(context.GetParameter("server")!);
-            var region = server.ToRegion();
+        var server = Enum.Parse<Server>(context.GetParameter("server")!);
+        var region = server.ToRegion();
 
-            var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
-                Game.HonkaiStarRail, region);
+        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+            Game.HonkaiStarRail, region);
 
-            if (profile == null)
-            {
-                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-            }
+        if (profile == null)
+        {
+            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
 
-            await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
 
-            var gameUid = profile.GameUid;
-            var memoryResult =
-                await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                    gameUid, region));
-            if (!memoryResult.IsSuccess)
-            {
-                Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
-            }
+        var gameUid = profile.GameUid;
+        var memoryResult =
+            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                gameUid, region));
+        if (!memoryResult.IsSuccess)
+        {
+            Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
+        }
 
-            var memoryData = memoryResult.Data;
+        var memoryData = memoryResult.Data;
 
-            if (!memoryData.HasData || memoryData.BattleNum == 0)
-            {
-                Logger.LogInformation(LogMessage.NoClearRecords, "Memory of Chaos", context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Memory of Chaos"))],
-                    isEphemeral: true);
-            }
+        if (!memoryData.HasData || memoryData.BattleNum == 0)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Memory of Chaos", context.UserId, gameUid);
+            return CommandResult.Success(
+                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Memory of Chaos"))],
+                isEphemeral: true);
+        }
 
-            var tz = server.GetTimeZoneInfo();
-            var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
-            var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
-                .ToUnixTimeSeconds();
+        var tz = server.GetTimeZoneInfo();
+        var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
+            .ToUnixTimeSeconds();
+        var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
+            .ToUnixTimeSeconds();
 
-            var fileName = GetFileName(JsonSerializer.Serialize(memoryData), "jpg", gameUid);
-            if (await AttachmentExistsAsync(fileName))
-            {
-                return CommandResult.Success(
-                    [
-                        new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                    ],
-                    true);
-            }
-
-            var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
-                .DistinctBy(x => x.Id)
-                .Select(x =>
-                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
-            var completed = await Task.WhenAll(tasks);
-
-            if (completed.Any(x => !x))
-            {
-                Logger.LogError(LogMessage.ImageUpdateError, "Memory of Chaos", context.UserId,
-                    JsonSerializer.Serialize(memoryData));
-                return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
-            }
-
-            var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
-            cardContext.SetParameter("server", server);
-
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-            {
-                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
-            }
-
+        var fileName = GetFileName(JsonSerializer.Serialize(memoryData), "jpg", gameUid);
+        if (await AttachmentExistsAsync(fileName))
+        {
             return CommandResult.Success(
                 [
                     new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
+                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
+                        new CommandAttachment(fileName),
+                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+                ],
+                true);
+        }
+
+        var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            .DistinctBy(x => x.Id)
+            .Select(x =>
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+        var completed = await Task.WhenAll(tasks);
+
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Memory of Chaos", context.UserId,
+                JsonSerializer.Serialize(memoryData));
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+        }
+
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
+        cardContext.SetParameter("server", server);
+
+        await using var card = await m_CardService.GetCardAsync(cardContext);
+
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        {
+            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+        }
+
+        return CommandResult.Success(
+            [
+                new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
                     new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
                     new CommandAttachment(fileName),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            ],
+            true);
     }
 }
