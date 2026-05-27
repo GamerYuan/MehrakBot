@@ -93,6 +93,7 @@ services:
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Storage__ServiceURL=http://seaweed-s3:8333
       - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
+      - Kestrel__Endpoints__MyHttpEndpoint__Url=http://*:12000
 
   postgres:
     image: postgres:18.3
