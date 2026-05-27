@@ -89,7 +89,7 @@ internal partial class HylEmbedService : IBotService
             : $"-# HoYoLAB · <t:{post.Post.CreatedAt}:F>";
 
         var container = new ComponentContainerProperties()
-            .AddComponents(new TextDisplayProperties($"## [{EscapeMarkdown(post.Post.Subject)}](https://www.hoyolab.com/article/{post.Post.PostId})"));
+            .AddComponents(new TextDisplayProperties($"## [{post.Post.Subject}](https://www.hoyolab.com/article/{post.Post.PostId})"));
 
         var components = BuildComponents(inserts, locale, post.Post.PostId);
         m_Logger.LogInformation("Built {ComponentCount} components for post {PostId}", components.Count, post.Post.PostId);
@@ -164,7 +164,7 @@ internal partial class HylEmbedService : IBotService
                     var articleCard = articleCards[i];
                     var title = articleCard.Info.Title;
                     var nickname = articleCard.User.Nickname;
-                    var content = $"{EscapeMarkdown(title)}\n-# {nickname}";
+                    var content = $"{title}\n-# {nickname}";
                     var section = new ComponentSectionProperties(
                         new LinkButtonProperties(articleButton, $"https://www.hoyolab.com/article/{articleCard.Meta.MetaId}"),
                         [new TextDisplayProperties(content)]);
@@ -184,7 +184,7 @@ internal partial class HylEmbedService : IBotService
             {
                 var section = new ComponentSectionProperties(
                     new LinkButtonProperties(voteButton, articleUrl),
-                    [new TextDisplayProperties(EscapeMarkdown(vote.Title))]);
+                    [new TextDisplayProperties(vote.Title)]);
                 components.Add(section);
                 currentLength += vote.Title.Length;
             }
