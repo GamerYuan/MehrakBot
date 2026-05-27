@@ -33,17 +33,6 @@
         "group": "",
         "order": 3
       }
-    },
-    {
-      "name": "Dashboard Frontend",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "npm run dev",
-      "cwd": "${workspaceFolder}/Dashboard",
-      "presentation": {
-        "group": "",
-        "order": 4
-      }
     }
   ]
 }
