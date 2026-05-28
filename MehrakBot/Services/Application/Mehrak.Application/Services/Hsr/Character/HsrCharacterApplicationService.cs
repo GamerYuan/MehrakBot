@@ -70,7 +70,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
@@ -84,7 +84,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         }
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region);
+            region, cancellationToken);
 
         if (profile == null)
         {
@@ -97,7 +97,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
@@ -148,7 +148,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         foreach (var charData in validCharacters.Values)
         {
             var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterList.RelicWiki, characterList.EquipWiki);
+                characterList.RelicWiki, characterList.EquipWiki, cancellationToken);
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
@@ -176,7 +176,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private async Task<Result<string>> ProcessCharacterAsync(
         IApplicationContext context, Server server,
         GameProfileDto profile, HsrCharacterInformation characterInfo,
-        Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki
+        Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki,
+        CancellationToken cancellationToken = default
     )
     {
         var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
@@ -221,7 +222,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                     {
                         var wikiResponse =
                             await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                entryPage, locale));
+                                entryPage, locale), cancellationToken);
                         if (!wikiResponse.IsSuccess)
                         {
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
@@ -280,7 +281,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             foreach (var locale in Enum.GetValues<WikiLocales>())
             {
                 var wikiResponse =
-                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale));
+                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
 
                 if (!wikiResponse.IsSuccess)
                 {

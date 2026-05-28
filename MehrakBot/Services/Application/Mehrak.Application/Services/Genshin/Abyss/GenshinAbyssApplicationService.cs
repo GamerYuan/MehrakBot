@@ -49,14 +49,14 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var floor = int.Parse(context.GetParameter("floor")!);
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
-            region);
+            region, cancellationToken);
         if (profile == null)
         {
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
@@ -67,7 +67,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 
         var abyssInfo = await m_ApiService.GetAsync(
             new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                region));
+                region), cancellationToken);
         if (!abyssInfo.IsSuccess)
         {
             Logger.LogError(LogMessage.ApiError,
@@ -123,7 +123,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 
         var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
             new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                region));
+                region), cancellationToken);
 
         if (!charListResponse.IsSuccess)
         {

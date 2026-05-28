@@ -50,7 +50,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var characterName = context.GetParameter("character")!;
 
@@ -58,7 +58,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var region = server.ToRegion();
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
-            region);
+            region, cancellationToken);
 
         if (profile == null)
         {
@@ -71,7 +71,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {

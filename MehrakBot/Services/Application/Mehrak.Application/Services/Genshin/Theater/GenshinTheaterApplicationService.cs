@@ -51,13 +51,13 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
         var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
 
         if (profile == null)
         {
@@ -71,7 +71,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
         var theaterDataResult =
             await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region));
+                gameUid, region), cancellationToken);
         if (!theaterDataResult.IsSuccess)
         {
             if (theaterDataResult.StatusCode == StatusCode.Unauthorized)
@@ -127,7 +127,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 new ImageProcessorBuilder().Build()));
 
         var charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
-            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
         {

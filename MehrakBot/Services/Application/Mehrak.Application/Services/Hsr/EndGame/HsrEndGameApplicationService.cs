@@ -49,7 +49,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var mode = Enum.Parse<HsrEndGameMode>(context.GetParameter("mode")!);
@@ -59,7 +59,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region);
+            region, cancellationToken);
 
         if (profile == null)
         {
@@ -71,7 +71,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 
         var challengeResponse = await m_ApiService.GetAsync(
             new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
-                mode));
+                mode), cancellationToken);
         if (!challengeResponse.IsSuccess)
         {
             Logger.LogError(LogMessage.ApiError, mode.GetString(), context.UserId, profile.GameUid,

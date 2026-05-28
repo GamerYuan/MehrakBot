@@ -32,7 +32,7 @@ public class DailyCheckInService : IApplicationService
         m_Logger = logger;
     }
 
-    public async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -58,7 +58,7 @@ public class DailyCheckInService : IApplicationService
 
             m_Logger.LogInformation("Starting daily check-in for user {Uid}", context.UserId);
             var gameRecordResult = await m_GameRecordApiService.GetAsync(new GameRecordApiContext(
-                context.UserId, context.LtUid, context.LToken));
+                context.UserId, context.LtUid, context.LToken), cancellationToken);
 
             if (!gameRecordResult.IsSuccess || gameRecordResult.Data == null)
             {
@@ -77,7 +77,7 @@ public class DailyCheckInService : IApplicationService
             foreach (var game in gameRecords.Select(x => x.Game))
             {
                 CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
-                var checkInResponse = await m_ApiService.GetAsync(apiContext);
+                var checkInResponse = await m_ApiService.GetAsync(apiContext, cancellationToken);
 
                 if (checkInResponse.IsSuccess)
                 {

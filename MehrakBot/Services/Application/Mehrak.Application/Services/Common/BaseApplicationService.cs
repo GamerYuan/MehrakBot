@@ -33,11 +33,11 @@ public abstract class BaseApplicationService : IApplicationService
         Logger = logger;
     }
 
-    public virtual async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public virtual async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await ExecuteCommandAsync(context);
+            return await ExecuteCommandAsync(context, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -46,13 +46,13 @@ public abstract class BaseApplicationService : IApplicationService
         }
     }
 
-    protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context);
+    protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default);
 
     protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
-        string region)
+        string region, CancellationToken cancellationToken = default)
     {
         var gameProfileResult =
-            await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region));
+            await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region), cancellationToken);
         if (!gameProfileResult.IsSuccess)
         {
             Logger.LogError(
@@ -125,13 +125,13 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         m_AttachmentStorageService = attachmentStorageService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         for (int attempt = 1; attempt <= 3; attempt++)
         {
             try
             {
-                return await ExecuteCommandAsync(context);
+                return await ExecuteCommandAsync(context, cancellationToken);
             }
             catch (ImageNotFoundException ex)
             {

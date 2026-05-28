@@ -59,14 +59,13 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_WikiApi = wikiApi;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
-
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
         var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
 
         if (profile == null)
         {
@@ -80,7 +79,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
         var charResponse = await
             m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region));
+                context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
@@ -120,7 +119,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         if (charToFetch.Count > 0)
         {
             var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
-                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
+                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch), cancellationToken);
 
             if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
             {
@@ -133,7 +132,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                         {
                             return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
                         }
-                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
+                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], cancellationToken));
                     })
                     .Where(x => x.Url.IsSuccess)
                     .Select(x =>
@@ -188,11 +187,11 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
     private async Task<Result<string>>
         GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
-            string weaponName, string wikiEntry)
+            string weaponName, string wikiEntry, CancellationToken cancellationToken = default)
     {
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
-            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
 
             if (!weapWiki.IsSuccess)
             {

@@ -62,7 +62,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var characterName = context.GetParameter("character")!;
 
@@ -70,7 +70,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var region = server.ToRegion();
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region);
+            region, cancellationToken);
 
         if (profile == null)
         {
@@ -83,7 +83,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
@@ -118,7 +118,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         var response = await
             m_CharacterApi.GetCharacterDetailAsync(new CharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region, character.Id!));
+                context.LToken, gameUid, region, character.Id!), cancellationToken);
 
         if (!response.IsSuccess)
         {
@@ -147,7 +147,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
         {
             var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage);
+            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
         }
 
         if (charInfo.Weapon != null)
@@ -206,14 +206,14 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     }
 
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,
-        ZzzAvatarData charInfo, string entryPage)
+        ZzzAvatarData charInfo, string entryPage, CancellationToken cancellationToken = default)
     {
         string? url = null;
 
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var wikiResponse =
-                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale));
+                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale), cancellationToken);
 
             if (!wikiResponse.IsSuccess)
             {

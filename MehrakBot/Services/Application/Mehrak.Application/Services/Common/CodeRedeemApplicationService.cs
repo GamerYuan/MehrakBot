@@ -38,14 +38,14 @@ public class CodeRedeemApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var game = Enum.Parse<Game>(context.GetParameter("game")!);
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion(game);
 
         var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region);
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region, cancellationToken);
 
         if (profile == null)
         {
@@ -87,7 +87,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
             var trimmedCode = code.ToUpperInvariant().Trim();
             var response = await m_ApiService.GetAsync(
                 new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
-                    game, code.ToUpperInvariant().Trim()));
+                    game, code.ToUpperInvariant().Trim()), cancellationToken);
             if (response.IsSuccess)
             {
                 Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,

@@ -44,13 +44,13 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterCacheService = characterCacheService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
         var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region);
+            region, cancellationToken);
 
         if (profile == null)
         {
@@ -63,7 +63,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
@@ -77,7 +77,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
         var buddyResponse = await m_BuddyApi.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!buddyResponse.IsSuccess)
         {

@@ -95,7 +95,7 @@ public class CommandDispatcher : BackgroundService
             }
 
             using var time = m_Metrics.ObserveCommandDuration(command.Request.CommandName);
-            var result = await service.ExecuteAsync(appContext);
+            var result = await service.ExecuteAsync(appContext, command.CancellationToken);
             command.CompletionSource.TrySetResult(result);
         }
         catch (Exception e)
