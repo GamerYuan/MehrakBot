@@ -322,7 +322,7 @@ public class HylEmbedServiceTests
         m_Service.Context = null;
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(m_Service.ExecuteAsync);
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await m_Service.ExecuteAsync());
     }
 
     #endregion
