@@ -26,7 +26,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<ZzzBuddyData>>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<IEnumerable<ZzzBuddyData>>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -64,7 +64,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -78,7 +78,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBuddyResponse>>(
-                    await response.Content.ReadAsStreamAsync());
+                    await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -113,6 +113,10 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

@@ -22,7 +22,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
         m_Logger = logger;
     }
 
-    public async Task<Result<JsonNode>> GetAsync(WikiApiContext context)
+    public async Task<Result<JsonNode>> GetAsync(WikiApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -45,7 +45,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -57,7 +57,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
 
             if (json == null)
             {
@@ -80,6 +80,10 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<JsonNode>.Success(json, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<JsonNode>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

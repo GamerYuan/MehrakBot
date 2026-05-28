@@ -33,7 +33,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzRealTimeNotesData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -55,7 +55,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -69,7 +69,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             var json = await
                 JsonSerializer.DeserializeAsync<ApiResponse<ZzzRealTimeNotesData>>(
-                    await response.Content.ReadAsStreamAsync(), JsonOptions);
+                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
 
             if (json?.Data == null)
             {
@@ -97,6 +97,10 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

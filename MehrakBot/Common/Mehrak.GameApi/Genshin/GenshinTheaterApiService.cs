@@ -25,7 +25,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinTheaterInformation>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<GenshinTheaterInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -47,7 +47,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -60,7 +60,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinTheaterResponseData>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
 
             if (json?.Data == null)
             {
@@ -103,6 +103,10 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinTheaterInformation>.Success(json.Data.Data[0], requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinTheaterInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

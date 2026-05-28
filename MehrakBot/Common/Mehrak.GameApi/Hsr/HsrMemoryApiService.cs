@@ -25,7 +25,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrMemoryInformation>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<HsrMemoryInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -51,7 +51,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -64,7 +64,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrMemoryInformation>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
 
             if (json?.Data == null)
             {
@@ -92,6 +92,10 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrMemoryInformation>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrMemoryInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

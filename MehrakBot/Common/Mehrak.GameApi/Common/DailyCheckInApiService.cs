@@ -43,7 +43,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         m_Logger = logger;
     }
 
-    public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context)
+    public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context, CancellationToken cancellationToken = default)
     {
         if (!CheckInUrls.TryGetValue(context.Game, out var requestUri) ||
             !CheckInActIds.TryGetValue(context.Game, out var actId))
@@ -68,7 +68,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -80,7 +80,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(cancellationToken);
 
             if (json == null)
             {
@@ -117,6 +117,10 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                         $"An unknown error occurred during check-in", requestUri);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CheckInStatus>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

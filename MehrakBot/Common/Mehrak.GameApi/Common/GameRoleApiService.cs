@@ -34,7 +34,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         m_Logger = logger;
     }
 
-    public async Task<Result<GameProfileDto>> GetAsync(GameRoleApiContext context)
+    public async Task<Result<GameProfileDto>> GetAsync(GameRoleApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -61,12 +61,16 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                         return Result<GameProfileDto>.Success(dto);
                 }
 
-                return await FetchAndCacheGameRoleAsync(cacheKey, context);
+                return await FetchAndCacheGameRoleAsync(cacheKey, context, cancellationToken);
             }
             finally
             {
                 semaphore.Release();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GameProfileDto>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception ex)
         {
@@ -110,7 +114,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
     }
 
-    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context)
+    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context, CancellationToken cancellationToken = default)
     {
         var requestUri = $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}";
 
@@ -126,7 +130,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
         // Info-level outbound request (no headers)
         m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-        var response = await httpClient.SendAsync(request);
+        var response = await httpClient.SendAsync(request, cancellationToken);
 
         // Info-level inbound response (status only)
         m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -137,7 +141,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code", requestUri);
         }
 
-        var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>();
+        var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>(cancellationToken);
 
         if (json == null)
         {

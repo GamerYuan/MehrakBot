@@ -31,7 +31,7 @@ public class
         m_Cache = cache;
     }
 
-    public async Task<Result<IEnumerable<HsrBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context)
+    public async Task<Result<IEnumerable<HsrBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -76,7 +76,7 @@ public class
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -90,7 +90,7 @@ public class
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
-                    await response.Content.ReadAsStreamAsync());
+                    await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -127,6 +127,10 @@ public class
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
@@ -139,7 +143,7 @@ public class
     /// <summary>
     /// Stub! DO NOT USE!
     /// </summary>
-    public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context)
+    public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

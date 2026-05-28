@@ -26,7 +26,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<HsrRealTimeNotesData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -52,7 +52,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -65,7 +65,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
 
             if (json?.Data == null)
             {
@@ -93,6 +93,10 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

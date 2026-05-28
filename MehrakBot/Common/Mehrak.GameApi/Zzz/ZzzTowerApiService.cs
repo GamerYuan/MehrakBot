@@ -22,7 +22,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzTowerData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzTowerData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -43,7 +43,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            using var response = await client.SendAsync(request);
+            using var response = await client.SendAsync(request, cancellationToken);
 
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
@@ -54,7 +54,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
 
             if (json?["data"] == null)
             {
@@ -85,6 +85,10 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzTowerData>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

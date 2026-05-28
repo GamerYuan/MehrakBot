@@ -33,7 +33,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrEndInformation>> GetAsync(HsrEndGameApiContext context)
+    public async Task<Result<HsrEndInformation>> GetAsync(HsrEndGameApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -66,7 +66,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -79,7 +79,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(
-                await response.Content.ReadAsStreamAsync(), JsonOptions);
+                await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
 
             if (json?.Data == null)
             {
@@ -107,6 +107,10 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrEndInformation>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrEndInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

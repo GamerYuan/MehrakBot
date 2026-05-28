@@ -22,7 +22,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
         m_Logger = logger;
     }
 
-    public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context)
+    public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -44,7 +44,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -56,7 +56,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(cancellationToken);
             if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
@@ -109,6 +109,10 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                         "An error occurred while redeeming the code", requestUri);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CodeRedeemResult>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

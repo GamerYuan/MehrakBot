@@ -33,7 +33,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<Hi3CharacterDetail>>> GetAllCharactersAsync(CharacterApiContext context)
+    public async Task<Result<IEnumerable<Hi3CharacterDetail>>> GetAllCharactersAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -78,7 +78,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            using var response = await client.SendAsync(request);
+            using var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -92,7 +92,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
-                    await response.Content.ReadAsStreamAsync(), JsonOptions);
+                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
 
             if (json == null)
             {
@@ -136,6 +136,10 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
         }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
@@ -148,7 +152,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
     /// <summary>
     /// Stub! DO NOT USE!
     /// </summary>
-    public Task<Result<Hi3CharacterDetail>> GetCharacterDetailAsync(CharacterApiContext context)
+    public Task<Result<Hi3CharacterDetail>> GetCharacterDetailAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException();
     }

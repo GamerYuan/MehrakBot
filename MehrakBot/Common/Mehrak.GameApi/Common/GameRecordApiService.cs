@@ -24,7 +24,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<GameRecordDto>>> GetAsync(GameRecordApiContext context)
+    public async Task<Result<IEnumerable<GameRecordDto>>> GetAsync(GameRecordApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -43,7 +43,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -54,7 +54,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>(cancellationToken);
 
             if (json?.Data == null)
             {
@@ -101,6 +101,10 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             });
 
             return Result<IEnumerable<GameRecordDto>>.Success(result ?? [], requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception ex)
         {

@@ -25,7 +25,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzAssaultData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzAssaultData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -47,7 +47,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -60,7 +60,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>();
+                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>(cancellationToken);
 
             if (json?.Data == null)
             {
@@ -88,6 +88,10 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzAssaultData>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzAssaultData>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

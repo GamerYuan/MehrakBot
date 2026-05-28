@@ -36,7 +36,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<ZzzBasicAvatarData>>> GetAllCharactersAsync(CharacterApiContext context)
+    public async Task<Result<IEnumerable<ZzzBasicAvatarData>>> GetAllCharactersAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -74,7 +74,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -88,7 +88,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
-                    await response.Content.ReadAsStreamAsync(), JsonOptions);
+                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -124,6 +124,10 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
@@ -133,7 +137,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
         }
     }
 
-    public async Task<Result<ZzzFullAvatarData>> GetCharacterDetailAsync(CharacterApiContext context)
+    public async Task<Result<ZzzFullAvatarData>> GetCharacterDetailAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterId == 0)
         {
@@ -160,7 +164,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -174,7 +178,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzFullAvatarData>>(
-                    await response.Content.ReadAsStreamAsync(), JsonOptions);
+                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -202,6 +206,10 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzFullAvatarData>.Success(json.Data);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzFullAvatarData>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

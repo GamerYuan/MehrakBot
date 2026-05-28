@@ -20,7 +20,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
         m_Logger = logger;
     }
 
-    public async Task<Result<HylPost>> GetAsync(HylPostApiContext context)
+    public async Task<Result<HylPost>> GetAsync(HylPostApiContext context, CancellationToken cancellationToken = default)
     {
         var requestUri = $"{HoYoLabDomains.BbsApi}/{Endpoint}?post_id={context.PostId}&scene=1";
         try
@@ -40,7 +40,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
             request.Headers.Add("X-Rpc-Lsrag", "");
 
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, cancellationToken);
 
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
@@ -51,8 +51,8 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "An error occurred while accessing HoYoLAB API", requestUri);
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream);
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream, (JsonSerializerOptions?)null, cancellationToken);
 
             if (json == null)
             {
@@ -79,6 +79,10 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HylPost>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {

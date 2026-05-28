@@ -34,7 +34,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(GenshinCharacterApiContext context)
+    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(GenshinCharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -79,7 +79,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -91,7 +91,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "Failed to retrieve character list data", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(cancellationToken);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -126,6 +126,10 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
@@ -135,7 +139,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         }
     }
 
-    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(GenshinCharacterApiContext context)
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(GenshinCharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterIds.Count == 0)
         {
@@ -169,7 +173,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             // Info-level outbound request (no headers)
             m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
 
             // Info-level inbound response (status only)
             m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
@@ -182,7 +186,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
+                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(cancellationToken);
 
             if (json == null || json.Data == null || json.Data.List.Count == 0)
             {
@@ -210,6 +214,10 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinCharacterDetail>.Failure(StatusCode.Cancelled, "Request was cancelled");
         }
         catch (Exception e)
         {
