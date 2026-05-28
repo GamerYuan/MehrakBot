@@ -42,11 +42,8 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<ZzzBuddyData>>.Success(cachedEntry)!;
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}?server={context.Region}&role_id={context.GameUid}";
@@ -62,12 +59,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -104,13 +96,10 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
                 json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
             await m_Cache.SetAsync(cacheEntry);
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
         }

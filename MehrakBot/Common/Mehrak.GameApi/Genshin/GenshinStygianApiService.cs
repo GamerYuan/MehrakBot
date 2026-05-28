@@ -45,12 +45,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -69,7 +64,6 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
-            // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,
                 json.Retcode, context.UserId);
 
@@ -87,7 +81,6 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
                     "An error occurred while retrieving Stygian Onslaught data", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinStygianInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (OperationCanceledException)

@@ -41,12 +41,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -79,8 +74,6 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
-
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
 
             var result = json.Data.List.Select(x => new GameRecordDto
             {

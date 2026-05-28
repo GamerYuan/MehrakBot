@@ -42,12 +42,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 }
             };
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -70,7 +65,6 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             switch (json.Retcode)
             {
                 case 0:
-                    m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
                     m_Logger.LogInformation("Successfully redeemed code {Code} for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",

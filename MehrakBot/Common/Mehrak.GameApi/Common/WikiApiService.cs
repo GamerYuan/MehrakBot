@@ -43,12 +43,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
             else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -78,7 +73,6 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<JsonNode>.Success(json, requestUri: requestUri);
         }
         catch (OperationCanceledException)

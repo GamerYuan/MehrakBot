@@ -39,10 +39,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
             request.Headers.Add("X-Rpc-App_version", "4.9.0");
             request.Headers.Add("X-Rpc-Lsrag", "");
 
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -77,7 +74,6 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "HoYoLAB API returned empty data", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
         }
         catch (OperationCanceledException)

@@ -46,12 +46,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -87,7 +82,6 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrAnomalyInformation>.Success(json.Data, requestUri: requestUri);
         }
         catch (OperationCanceledException)

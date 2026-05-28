@@ -66,12 +66,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             request.Content =
                 new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -100,7 +95,6 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
 
                 case 0:
-                    m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
                     return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
 
                 case -10002:

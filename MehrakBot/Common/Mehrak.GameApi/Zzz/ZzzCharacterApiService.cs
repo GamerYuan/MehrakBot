@@ -52,11 +52,8 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Success(cachedEntry)!;
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}/basic?server={context.Region}&role_id={context.GameUid}";
@@ -72,12 +69,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -114,13 +106,10 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
                 json.Data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
             await m_Cache.SetAsync(cacheEntry);
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }
@@ -162,12 +151,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await httpClient.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -204,7 +188,6 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzFullAvatarData>.Success(json.Data);
         }
         catch (OperationCanceledException)

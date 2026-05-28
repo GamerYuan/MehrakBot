@@ -42,10 +42,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             using HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             using var response = await client.SendAsync(request, cancellationToken);
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -83,7 +80,6 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             var towerData = json["data"]!["climbing_tower_s3"].Deserialize<ZzzTowerData>();
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
         }
         catch (OperationCanceledException)

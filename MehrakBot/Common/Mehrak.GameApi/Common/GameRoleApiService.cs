@@ -128,12 +128,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         };
         request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
 
-        // Info-level outbound request (no headers)
-        m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
         var response = await httpClient.SendAsync(request, cancellationToken);
-
-        // Info-level inbound response (status only)
-        m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -198,7 +193,6 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 "Incomplete game information received. Please try again later", requestUri);
         }
 
-        m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
         return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
     }
 

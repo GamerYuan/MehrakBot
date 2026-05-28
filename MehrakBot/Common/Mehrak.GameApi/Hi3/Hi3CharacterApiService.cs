@@ -50,11 +50,8 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
             // Try to get data from cache first
             if (cachedData != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<Hi3CharacterDetail>>.Success(cachedData);
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.BbsApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}";
@@ -76,12 +73,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 }
             };
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             using var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -125,14 +117,11 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             List<Hi3CharacterDetail> result = [.. json.Data.Characters.Select(x => x.Character)];
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<Hi3CharacterDetail>(cacheKey, result,
                     TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
         }

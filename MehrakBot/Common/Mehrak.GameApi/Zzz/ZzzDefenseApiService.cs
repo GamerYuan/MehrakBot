@@ -45,12 +45,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -86,7 +81,6 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
         }
         catch (OperationCanceledException)

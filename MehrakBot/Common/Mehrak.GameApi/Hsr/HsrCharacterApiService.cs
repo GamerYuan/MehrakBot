@@ -48,11 +48,8 @@ public class
             // Try to get data from cache first
             if (cachedData != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
@@ -74,12 +71,7 @@ public class
                 }
             };
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
             var response = await client.SendAsync(request, cancellationToken);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -116,14 +108,11 @@ public class
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             HsrBasicCharacterData[] result = [json.Data];
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
                     TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
