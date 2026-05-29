@@ -237,10 +237,13 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                                 entryPage, locale), cancellationToken);
                         if (!wikiResponse.IsSuccess)
                         {
-                            if (wikiResponse.StatusCode is StatusCode.Timeout or StatusCode.Cancelled)
+                            if (wikiResponse.StatusCode == StatusCode.Cancelled)
                             {
-                                Logger.LogWarning("Relic wiki request failed for RelicId: {RelicId}, Status: {Status}",
-                                    setId, wikiResponse.StatusCode);
+                                throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Relic wiki request was cancelled");
+                            }
+                            if (wikiResponse.StatusCode == StatusCode.Timeout)
+                            {
+                                Logger.LogWarning("Relic wiki request timed out for RelicId: {RelicId}", setId);
                                 return null;
                             }
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
@@ -288,68 +291,75 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             .Select(r => new ImageData(r.ToImageName(), r.Icon))
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor, cancellationToken)));
 
-        if (characterInfo.Equip != null &&
-            equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
-            !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.EquipName,
-                characterInfo.Equip.Id)))
+        try
         {
-            var entryPage = wikiEntry.Split('/')[^1];
-            string? iconUrl = null;
-
-            foreach (var locale in Enum.GetValues<WikiLocales>())
+            if (characterInfo.Equip != null &&
+                equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
+                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.EquipName,
+                    characterInfo.Equip.Id)))
             {
-                var wikiResponse =
-                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
+                var entryPage = wikiEntry.Split('/')[^1];
+                string? iconUrl = null;
 
-                if (!wikiResponse.IsSuccess)
+                foreach (var locale in Enum.GetValues<WikiLocales>())
                 {
-                    if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                    var wikiResponse =
+                        await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
+
+                    if (!wikiResponse.IsSuccess)
                     {
-                        throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Equip wiki request was cancelled");
+                        if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                        {
+                            throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Equip wiki request was cancelled");
+                        }
+                        if (wikiResponse.StatusCode == StatusCode.Timeout)
+                        {
+                            return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Equip wiki request timed out");
+                        }
+                        Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
+                        continue;
                     }
-                    if (wikiResponse.StatusCode == StatusCode.Timeout)
-                    {
-                        return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Equip wiki request timed out");
-                    }
-                    Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
-                    continue;
+
+                    iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+
+                    if (!string.IsNullOrEmpty(iconUrl)) break;
+
+                    Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
+                        characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
                 }
 
-                iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+                if (string.IsNullOrEmpty(iconUrl))
+                {
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
+                        "Failed to retrieve Icon Url");
+                    return Result<string>.Failure(StatusCode.ExternalServerError,
+                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                }
 
-                if (!string.IsNullOrEmpty(iconUrl)) break;
-
-                Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
-                    characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
+                    new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
+                    new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
             }
 
-            if (string.IsNullOrEmpty(iconUrl))
+            tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build(), cancellationToken)));
+
+            if (characterInfo.ServantDetail != null)
             {
-                Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
-                    "Failed to retrieve Icon Url");
-                return Result<string>.Failure(StatusCode.ExternalServerError,
-                    string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                        new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)) ?? []);
             }
 
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
-                new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
-                new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
+            tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)));
         }
-
-        tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build(), cancellationToken)));
-
-        if (characterInfo.ServantDetail != null)
+        finally
         {
-            tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)) ?? []);
+            await Task.WhenAll(tasks);
         }
 
-        tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)));
-
-        var completed = await Task.WhenAll(tasks);
+        var completed = tasks.Select(x => x.Result).ToArray();
 
         if (completed.Any(x => !x))
         {

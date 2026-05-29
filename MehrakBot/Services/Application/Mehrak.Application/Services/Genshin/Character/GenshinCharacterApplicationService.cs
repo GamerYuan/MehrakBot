@@ -247,48 +247,55 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
                 .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build(), cancellationToken)));
 
-        if (charImageUrlTask != null)
+        try
         {
-            var charImage = await charImageUrlTask;
-            if (!charImage.IsSuccess)
+            if (charImageUrlTask != null)
             {
-                if (charImage.StatusCode == StatusCode.Timeout)
-                    return Result<string>.Failure(StatusCode.Timeout, ResponseMessage.TimeoutError);
-                Logger.LogError("Failed to fetch Character {Character} image from wiki", charData.Base.Name);
-                return Result<string>.Failure(StatusCode.ExternalServerError,
-                    string.Format(ResponseMessage.ApiError, "Character Image"));
+                var charImage = await charImageUrlTask;
+                if (!charImage.IsSuccess)
+                {
+                    if (charImage.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(charImage.ErrorMessage ?? "Cancelled");
+                    if (charImage.StatusCode == StatusCode.Timeout)
+                        return Result<string>.Failure(StatusCode.Timeout, ResponseMessage.TimeoutError);
+                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charData.Base.Name);
+                    return Result<string>.Failure(StatusCode.ExternalServerError,
+                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
+
+                var url = charImage.Data;
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Base.ToImageName(), url),
+                    ImageProcessors.None, cancellationToken));
             }
 
-            var url = charImage.Data;
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Base.ToImageName(), url),
-                ImageProcessors.None, cancellationToken));
-        }
-
-        if (weapImageTask != null)
-        {
-            var weapImage = await weapImageTask;
-            if (weapImage.IsSuccess)
+            if (weapImageTask != null)
             {
-                // Special case for catalyst
-                if (charData.Weapon.Type == 10)
+                var weapImage = await weapImageTask;
+                if (weapImage.IsSuccess)
                 {
-                    tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data),
-                        new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken));
-                }
-                else
-                {
-                    // ignore result from this method
-                    await m_ImageUpdaterService.UpdateMultiImageAsync(
-                        new MultiImageData(charData.Weapon.ToAscendedImageName(),
-                            [charData.Weapon.Icon, weapImage.Data]),
-                        new GenshinWeaponImageProcessor(),
-                        cancellationToken
-                    );
+                    // Special case for catalyst
+                    if (charData.Weapon.Type == 10)
+                    {
+                        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data),
+                            new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken));
+                    }
+                    else
+                    {
+                        // ignore result from this method
+                        await m_ImageUpdaterService.UpdateMultiImageAsync(
+                            new MultiImageData(charData.Weapon.ToAscendedImageName(),
+                                [charData.Weapon.Icon, weapImage.Data]),
+                            new GenshinWeaponImageProcessor(),
+                            cancellationToken
+                        );
+                    }
                 }
             }
         }
-
-        await Task.WhenAll(tasks);
+        finally
+        {
+            await Task.WhenAll(tasks);
+        }
 
         if (tasks.Any(x => !x.Result))
         {

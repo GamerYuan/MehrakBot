@@ -171,24 +171,33 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Resize(140, 0).Build(), cancellationToken)));
 
-        if (charImageUrlTask != null)
+        try
         {
-            var charImage = await charImageUrlTask;
-            if (!charImage.IsSuccess)
+            if (charImageUrlTask != null)
             {
-                if (charImage.StatusCode == StatusCode.Timeout)
-                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-                Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character Image"));
-            }
+                var charImage = await charImageUrlTask;
+                if (!charImage.IsSuccess)
+                {
+                    if (charImage.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(charImage.ErrorMessage ?? "Cancelled");
+                    if (charImage.StatusCode == StatusCode.Timeout)
+                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
 
-            var url = charImage.Data;
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                url), ImageProcessors.None, cancellationToken));
+                var url = charImage.Data;
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
+                    url), ImageProcessors.None, cancellationToken));
+            }
+        }
+        finally
+        {
+            await Task.WhenAll(tasks);
         }
 
-        var completed = await Task.WhenAll(tasks);
+        var completed = tasks.Select(x => x.Result).ToArray();
 
         if (completed.Any(x => !x))
         {

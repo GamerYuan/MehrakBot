@@ -130,27 +130,36 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
                 await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
                     new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken)));
 
-        var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                region), cancellationToken);
+        List<GenshinBasicCharacterData>? charList = null;
 
-        if (!charListResponse.IsSuccess)
+        try
         {
-            if (charListResponse.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
-            if (charListResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogError(LogMessage.ApiError,
-                "Character List", context.UserId, profile.GameUid, charListResponse);
-            return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+            var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
+                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
+                    region), cancellationToken);
+
+            if (!charListResponse.IsSuccess)
+            {
+                if (charListResponse.StatusCode == StatusCode.Cancelled)
+                    throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+                if (charListResponse.StatusCode == StatusCode.Timeout)
+                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                Logger.LogError(LogMessage.ApiError,
+                    "Character List", context.UserId, profile.GameUid, charListResponse);
+                return CommandResult.Failure(CommandFailureReason.ApiError,
+                    string.Format(ResponseMessage.ApiError, "Character List"));
+            }
+
+            charList = charListResponse.Data.ToList();
+        }
+        finally
+        {
+            await Task.WhenAll(tasks);
         }
 
-        var charList = charListResponse.Data.ToList();
+        var constMap = charList!.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
 
-        var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
-
-        var completed = await Task.WhenAll(tasks);
+        var completed = tasks.Select(x => x.Result).ToArray();
         if (completed.Any(x => !x))
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId,

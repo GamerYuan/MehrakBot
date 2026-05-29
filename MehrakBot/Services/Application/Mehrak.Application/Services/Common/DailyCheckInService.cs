@@ -106,6 +106,10 @@ public class DailyCheckInService : IApplicationService
                 }
                 else
                 {
+                    if (checkInResponse.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(checkInResponse.ErrorMessage ?? "Cancelled");
+                    if (checkInResponse.StatusCode == StatusCode.Timeout)
+                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
                     m_Logger.LogError(LogMessage.ApiError, $"Check In {game}", context.UserId, "N/A", checkInResponse);
                     checkInResults.Add((false, $"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}"));
                 }
