@@ -44,8 +44,11 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey, cancellationToken);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey, timeoutCts.Token);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -73,7 +76,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 }
             };
 
-            using var response = await client.SendAsync(request, cancellationToken);
+            using var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -84,7 +87,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json == null)
             {
@@ -121,13 +124,17 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<Hi3CharacterDetail>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), timeoutCts.Token);
 
             return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

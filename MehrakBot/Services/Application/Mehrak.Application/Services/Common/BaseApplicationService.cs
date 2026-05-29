@@ -41,7 +41,7 @@ public abstract class BaseApplicationService : IApplicationService
         }
         catch (OperationCanceledException)
         {
-            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled", isEphemeral: true);
+            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
         }
         catch (Exception ex)
         {
@@ -139,7 +139,7 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
             }
             catch (OperationCanceledException)
             {
-                return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled", isEphemeral: true);
+                return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
             }
             catch (ImageNotFoundException ex)
             {

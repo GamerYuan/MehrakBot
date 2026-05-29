@@ -33,6 +33,9 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}";
 
@@ -42,7 +45,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             using HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            using var response = await client.SendAsync(request, cancellationToken);
+            using var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -51,7 +54,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
 
             if (json?["data"] == null)
             {
@@ -82,9 +85,13 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<ZzzTowerData>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzTowerData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

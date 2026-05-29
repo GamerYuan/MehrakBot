@@ -44,6 +44,9 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var endpoint = context.GameMode switch
             {
                 HsrEndGameMode.PureFiction => "challenge_story",
@@ -64,7 +67,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -74,7 +77,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(
-                await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -102,9 +105,13 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             return Result<HsrEndInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<HsrEndInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrEndInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

@@ -35,6 +35,9 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1";
 
@@ -44,7 +47,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -54,7 +57,7 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinAbyssInformation>>(
-                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -81,9 +84,13 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
 
             return Result<GenshinAbyssInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<GenshinAbyssInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinAbyssInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

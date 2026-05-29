@@ -26,6 +26,9 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var endpoint = GetEndpoint(context.Game);
             var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
 
@@ -43,7 +46,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
             else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -52,7 +55,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
 
             if (json == null)
             {
@@ -75,9 +78,13 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             return Result<JsonNode>.Success(json, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<JsonNode>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<JsonNode>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

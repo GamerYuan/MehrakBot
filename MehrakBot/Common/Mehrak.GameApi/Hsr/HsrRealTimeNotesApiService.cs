@@ -37,6 +37,9 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
@@ -50,7 +53,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -60,7 +63,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -88,9 +91,13 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrRealTimeNotesData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

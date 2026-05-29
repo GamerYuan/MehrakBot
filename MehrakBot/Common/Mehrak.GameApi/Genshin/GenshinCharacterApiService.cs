@@ -45,8 +45,11 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"genshin_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, cancellationToken);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, timeoutCts.Token);
 
             if (cachedEntry != null)
             {
@@ -74,7 +77,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -83,7 +86,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "Failed to retrieve character list data", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(cancellationToken);
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(timeoutCts.Token);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -111,13 +114,17 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), timeoutCts.Token);
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {
@@ -139,6 +146,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
@@ -160,7 +170,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -170,7 +180,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(cancellationToken);
+                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(timeoutCts.Token);
 
             if (json == null || json.Data == null || json.Data.List.Count == 0)
             {
@@ -198,9 +208,13 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<GenshinCharacterDetail>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinCharacterDetail>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

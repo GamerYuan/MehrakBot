@@ -28,6 +28,9 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri = $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}?uid={context.LtUid}";
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
@@ -41,7 +44,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -49,7 +52,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.ExternalServerError, "An error occurred", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>(cancellationToken);
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<UserData>>(timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -95,9 +98,13 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             return Result<IEnumerable<GameRecordDto>>.Success(result ?? [], requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception ex)
         {

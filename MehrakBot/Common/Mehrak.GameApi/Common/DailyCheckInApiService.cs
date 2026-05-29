@@ -54,6 +54,9 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var httpClient = m_HttpClientFactory.CreateClient("Default");
@@ -66,7 +69,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             request.Content =
                 new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -75,7 +78,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(cancellationToken);
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
 
             if (json == null)
             {
@@ -112,9 +115,13 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                         $"An unknown error occurred during check-in", requestUri);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<CheckInStatus>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CheckInStatus>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

@@ -33,6 +33,9 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1";
 
@@ -46,7 +49,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -56,7 +59,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrAnomalyInformation>>(
-                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -84,9 +87,13 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
             return Result<HsrAnomalyInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<HsrAnomalyInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrAnomalyInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

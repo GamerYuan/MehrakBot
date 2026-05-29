@@ -47,8 +47,11 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"zzz_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey, cancellationToken);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey, timeoutCts.Token);
 
             if (cachedEntry != null)
             {
@@ -69,7 +72,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -80,7 +83,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -109,13 +112,17 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
                 json.Data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry, cancellationToken);
+            await m_Cache.SetAsync(cacheEntry, timeoutCts.Token);
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {
@@ -137,6 +144,9 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}/info?id_list[]={context.CharacterId}&server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
@@ -151,7 +161,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -162,7 +172,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzFullAvatarData>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -190,9 +200,13 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             return Result<ZzzFullAvatarData>.Success(json.Data);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<ZzzFullAvatarData>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzFullAvatarData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

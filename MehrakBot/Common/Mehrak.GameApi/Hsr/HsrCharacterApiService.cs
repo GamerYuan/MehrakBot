@@ -42,8 +42,11 @@ public class
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"hsr_characters_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, cancellationToken);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, timeoutCts.Token);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -71,7 +74,7 @@ public class
                 }
             };
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -82,7 +85,7 @@ public class
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -112,13 +115,17 @@ public class
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), timeoutCts.Token);
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

@@ -38,9 +38,12 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"gameProfile:{context.UserId}:{context.LtUid}";
 
-            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, cancellationToken);
+            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
             if (!string.IsNullOrEmpty(cachedData))
             {
                 var dto = TryDeserializeAndMap(cachedData, context);
@@ -49,11 +52,11 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             }
 
             var semaphore = GetOrCreateLock(cacheKey);
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(timeoutCts.Token);
 
             try
             {
-                cachedData = await m_CacheService.GetAsync<string>(cacheKey, cancellationToken);
+                cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
                 if (!string.IsNullOrEmpty(cachedData))
                 {
                     var dto = TryDeserializeAndMap(cachedData, context);
@@ -61,16 +64,20 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                         return Result<GameProfileDto>.Success(dto);
                 }
 
-                return await FetchAndCacheGameRoleAsync(cacheKey, context, cancellationToken);
+                return await FetchAndCacheGameRoleAsync(cacheKey, context, timeoutCts.Token);
             }
             finally
             {
                 semaphore.Release();
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<GameProfileDto>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GameProfileDto>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception ex)
         {

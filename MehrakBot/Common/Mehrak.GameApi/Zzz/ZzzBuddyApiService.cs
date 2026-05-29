@@ -37,8 +37,11 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var cacheKey = $"zzz_buddies_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, cancellationToken);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, timeoutCts.Token);
 
             if (cachedEntry != null)
             {
@@ -59,7 +62,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            var response = await httpClient.SendAsync(request, cancellationToken);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -70,7 +73,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBuddyResponse>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -99,13 +102,17 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
                 json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry, cancellationToken);
+            await m_Cache.SetAsync(cacheEntry, timeoutCts.Token);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

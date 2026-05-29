@@ -25,6 +25,9 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
         var requestUri = $"{HoYoLabDomains.BbsApi}/{Endpoint}?post_id={context.PostId}&scene=1";
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
@@ -39,7 +42,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
             request.Headers.Add("X-Rpc-App_version", "4.9.0");
             request.Headers.Add("X-Rpc-Lsrag", "");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -48,8 +51,8 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "An error occurred while accessing HoYoLAB API", requestUri);
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream, (JsonSerializerOptions?)null, cancellationToken);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream, (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json == null)
             {
@@ -76,9 +79,13 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
 
             return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<HylPost>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HylPost>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

@@ -44,6 +44,9 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
@@ -53,7 +56,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -64,7 +67,7 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             var json = await
                 JsonSerializer.DeserializeAsync<ApiResponse<ZzzRealTimeNotesData>>(
-                    await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -92,9 +95,13 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             return Result<ZzzRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

@@ -36,6 +36,9 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}&schedule_type=1";
 
@@ -45,7 +48,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -55,7 +58,7 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>(cancellationToken);
+                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzAssaultData>>(timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -83,9 +86,13 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
             return Result<ZzzAssaultData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<ZzzAssaultData>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzAssaultData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

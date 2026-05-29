@@ -36,6 +36,9 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
 
@@ -45,7 +48,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -55,7 +58,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>(cancellationToken);
+                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>(timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -83,9 +86,13 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
 
             return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<ZzzDefenseDataV2>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzDefenseDataV2>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

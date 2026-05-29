@@ -57,5 +57,6 @@ public enum StatusCode
     Unauthorized = 401,
     Cancelled = 499,
     BotError = 500,
+    Timeout = 504,
     ExternalServerError = 600
 }

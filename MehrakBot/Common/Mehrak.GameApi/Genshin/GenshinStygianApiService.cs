@@ -36,6 +36,9 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&need_detail=true";
 
@@ -45,7 +48,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -55,7 +58,7 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinStygianInformation>>(
-                await response.Content.ReadAsStreamAsync(cancellationToken), (JsonSerializerOptions?)null, cancellationToken);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -83,9 +86,13 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             return Result<GenshinStygianInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<GenshinStygianInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinStygianInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {

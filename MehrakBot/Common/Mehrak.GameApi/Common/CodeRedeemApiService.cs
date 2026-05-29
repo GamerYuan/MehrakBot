@@ -26,6 +26,9 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+
             var requestUri = $"{GetUri(context.Game)}?cdkey={context.Code}&game_biz={context.Game.ToGameBizString()}" +
                              $"&region={context.Region}&uid={context.GameUid}&lang=en-us";
 
@@ -42,7 +45,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 }
             };
 
-            var response = await client.SendAsync(request, cancellationToken);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -51,7 +54,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(cancellationToken);
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
             if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
@@ -104,9 +107,13 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                         "An error occurred while redeeming the code", requestUri);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Result<CodeRedeemResult>.Failure(StatusCode.Cancelled, "Request was cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CodeRedeemResult>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
         }
         catch (Exception e)
         {
