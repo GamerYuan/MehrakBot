@@ -70,7 +70,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
@@ -83,24 +83,32 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character data"));
@@ -148,10 +156,14 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         foreach (var charData in validCharacters.Values)
         {
             var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterList.RelicWiki, characterList.EquipWiki);
+                characterList.RelicWiki, characterList.EquipWiki, cancellationToken);
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
+            }
+            else if (result.StatusCode == StatusCode.Timeout)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             else
             {
@@ -176,7 +188,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private async Task<Result<string>> ProcessCharacterAsync(
         IApplicationContext context, Server server,
         GameProfileDto profile, HsrCharacterInformation characterInfo,
-        Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki
+        Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki,
+        CancellationToken cancellationToken = default
     )
     {
         var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
@@ -221,9 +234,18 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                     {
                         var wikiResponse =
                             await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                entryPage, locale));
+                                entryPage, locale), cancellationToken);
                         if (!wikiResponse.IsSuccess)
                         {
+                            if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                            {
+                                throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Relic wiki request was cancelled");
+                            }
+                            if (wikiResponse.StatusCode == StatusCode.Timeout)
+                            {
+                                Logger.LogWarning("Relic wiki request timed out for RelicId: {RelicId}", setId);
+                                return null;
+                            }
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
                             continue;
                         }
@@ -257,72 +279,87 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
-            ImageProcessors.None));
+            ImageProcessors.None, cancellationToken));
         tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
             .SelectMany(x => x.Value!.Select((e, i) =>
                 new ImageData(
                     x.Key.ToImageName(x.Key.Pos < 5 ? i + 1 : i + 5),
                     e?["icon_url"]?.GetValue<string>() ?? string.Empty))
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor, cancellationToken))));
         tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
             .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))
             .Select(r => new ImageData(r.ToImageName(), r.Icon))
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor)));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor, cancellationToken)));
 
-        if (characterInfo.Equip != null &&
-            equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
-            !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.EquipName,
-                characterInfo.Equip.Id)))
+        try
         {
-            var entryPage = wikiEntry.Split('/')[^1];
-            string? iconUrl = null;
-
-            foreach (var locale in Enum.GetValues<WikiLocales>())
+            if (characterInfo.Equip != null &&
+                equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
+                !await m_ImageRepository.FileExistsAsync(string.Format(FileNameFormat.Hsr.EquipName,
+                    characterInfo.Equip.Id)))
             {
-                var wikiResponse =
-                    await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale));
+                var entryPage = wikiEntry.Split('/')[^1];
+                string? iconUrl = null;
 
-                if (!wikiResponse.IsSuccess)
+                foreach (var locale in Enum.GetValues<WikiLocales>())
                 {
-                    Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
-                    continue;
+                    var wikiResponse =
+                        await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
+
+                    if (!wikiResponse.IsSuccess)
+                    {
+                        if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                        {
+                            throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Equip wiki request was cancelled");
+                        }
+                        if (wikiResponse.StatusCode == StatusCode.Timeout)
+                        {
+                            return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Equip wiki request timed out");
+                        }
+                        Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
+                        continue;
+                    }
+
+                    iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+
+                    if (!string.IsNullOrEmpty(iconUrl)) break;
+
+                    Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
+                        characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
                 }
 
-                iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
+                if (string.IsNullOrEmpty(iconUrl))
+                {
+                    Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
+                        "Failed to retrieve Icon Url");
+                    return Result<string>.Failure(StatusCode.ExternalServerError,
+                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                }
 
-                if (!string.IsNullOrEmpty(iconUrl)) break;
-
-                Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
-                    characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
+                    new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
+                    new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
             }
 
-            if (string.IsNullOrEmpty(iconUrl))
+            tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build(), cancellationToken)));
+
+            if (characterInfo.ServantDetail != null)
             {
-                Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
-                    "Failed to retrieve Icon Url");
-                return Result<string>.Failure(StatusCode.ExternalServerError,
-                    string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
+                    m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                        new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)) ?? []);
             }
 
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
-                new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
-                new ImageProcessorBuilder().Resize(300, 0).Build()));
+            tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
+                new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)));
         }
-
-        tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
-
-        if (characterInfo.ServantDetail != null)
+        finally
         {
-            tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(80, 0).Build())) ?? []);
+            await Task.WhenAll(tasks);
         }
 
-        tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(80, 0).Build())));
-
-        var completed = await Task.WhenAll(tasks);
+        var completed = tasks.Select(x => x.Result).ToArray();
 
         if (completed.Any(x => !x))
         {

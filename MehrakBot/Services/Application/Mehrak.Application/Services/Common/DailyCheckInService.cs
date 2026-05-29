@@ -32,13 +32,13 @@ public class DailyCheckInService : IApplicationService
         m_Logger = logger;
     }
 
-    public async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
             var profile = await m_UserContext.UserProfiles
                 .Where(x => x.UserId == (long)context.UserId && x.LtUid == (long)context.LtUid)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (profile != null && profile.LastCheckIn.HasValue)
             {
@@ -58,10 +58,14 @@ public class DailyCheckInService : IApplicationService
 
             m_Logger.LogInformation("Starting daily check-in for user {Uid}", context.UserId);
             var gameRecordResult = await m_GameRecordApiService.GetAsync(new GameRecordApiContext(
-                context.UserId, context.LtUid, context.LToken));
+                context.UserId, context.LtUid, context.LToken), cancellationToken);
 
             if (!gameRecordResult.IsSuccess || gameRecordResult.Data == null)
             {
+                if (gameRecordResult.StatusCode == StatusCode.Cancelled)
+                    throw new OperationCanceledException(gameRecordResult.ErrorMessage ?? "Cancelled");
+                if (gameRecordResult.StatusCode == StatusCode.Timeout)
+                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
                 m_Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
@@ -77,7 +81,7 @@ public class DailyCheckInService : IApplicationService
             foreach (var game in gameRecords.Select(x => x.Game))
             {
                 CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
-                var checkInResponse = await m_ApiService.GetAsync(apiContext);
+                var checkInResponse = await m_ApiService.GetAsync(apiContext, cancellationToken);
 
                 if (checkInResponse.IsSuccess)
                 {
@@ -102,6 +106,10 @@ public class DailyCheckInService : IApplicationService
                 }
                 else
                 {
+                    if (checkInResponse.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(checkInResponse.ErrorMessage ?? "Cancelled");
+                    if (checkInResponse.StatusCode == StatusCode.Timeout)
+                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
                     m_Logger.LogError(LogMessage.ApiError, $"Check In {game}", context.UserId, "N/A", checkInResponse);
                     checkInResults.Add((false, $"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}"));
                 }
@@ -115,7 +123,7 @@ public class DailyCheckInService : IApplicationService
 
                 try
                 {
-                    await m_UserContext.SaveChangesAsync();
+                    await m_UserContext.SaveChangesAsync(cancellationToken);
                 }
                 catch (DbUpdateException e)
                 {
@@ -125,6 +133,14 @@ public class DailyCheckInService : IApplicationService
 
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
             return CommandResult.Success([new CommandText(resultContent)]);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
         }
         catch (Exception e)
         {

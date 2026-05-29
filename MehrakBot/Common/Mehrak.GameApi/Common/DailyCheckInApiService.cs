@@ -43,7 +43,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         m_Logger = logger;
     }
 
-    public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context)
+    public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context, CancellationToken cancellationToken = default)
     {
         if (!CheckInUrls.TryGetValue(context.Game, out var requestUri) ||
             !CheckInActIds.TryGetValue(context.Game, out var actId))
@@ -54,6 +54,9 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var httpClient = m_HttpClientFactory.CreateClient("Default");
@@ -66,12 +69,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
             request.Content =
                 new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -80,7 +78,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     "An unknown error occurred during check-in", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
 
             if (json == null)
             {
@@ -100,7 +98,6 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
 
                 case 0:
-                    m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
                     return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
 
                 case -10002:
@@ -117,6 +114,10 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
                         $"An unknown error occurred during check-in", requestUri);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CheckInStatus>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

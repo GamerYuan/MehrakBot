@@ -22,10 +22,13 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
         m_Logger = logger;
     }
 
-    public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context)
+    public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri = $"{GetUri(context.Game)}?cdkey={context.Code}&game_biz={context.Game.ToGameBizString()}" +
                              $"&region={context.Region}&uid={context.GameUid}&lang=en-us";
 
@@ -42,12 +45,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 }
             };
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -56,7 +54,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     "An error occurred while redeeming the code", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
             if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
@@ -70,7 +68,6 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             switch (json.Retcode)
             {
                 case 0:
-                    m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
                     m_Logger.LogInformation("Successfully redeemed code {Code} for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",
@@ -109,6 +106,10 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                         "An error occurred while redeeming the code", requestUri);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CodeRedeemResult>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

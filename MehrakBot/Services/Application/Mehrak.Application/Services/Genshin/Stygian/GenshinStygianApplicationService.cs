@@ -42,29 +42,37 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
-
-        if (profile == null)
+        var profileResult =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var stygianInfo =
             await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region));
+                gameUid, region), cancellationToken);
         if (!stygianInfo.IsSuccess)
         {
+            if (stygianInfo.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(stygianInfo.ErrorMessage ?? "Cancelled");
+            if (stygianInfo.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));
@@ -102,13 +110,13 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var sideAvatarTasks = stygianData.Challenge!.SelectMany(x => x.BestAvatar).Select(x =>
             m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(0, 150).Build()));
+                new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken));
         var monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
             .Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTasks.Concat(sideAvatarTasks).Concat(monsterImageTask));
 

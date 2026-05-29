@@ -48,30 +48,38 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var assaultResponse =
             await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region));
+                gameUid, region), cancellationToken);
 
         if (!assaultResponse.IsSuccess)
         {
+            if (assaultResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(assaultResponse.ErrorMessage ?? "Cancelled");
+            if (assaultResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
@@ -107,21 +115,21 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
             .Select(avatar =>
-                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var buddyImageTask = assaultData.List.Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
-                new ImageProcessorBuilder().Resize(300, 0).Build()));
+                new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
         var bossImageTask = assaultData.List
             .SelectMany(x => x.Boss)
             .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
-                GetBossImageProcessor()));
+                GetBossImageProcessor(), cancellationToken));
         var buffImageTask = assaultData.List
             .SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(80, 0).Build()));
+                new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken));
 
         var completed =
             await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));

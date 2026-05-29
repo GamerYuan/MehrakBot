@@ -20,11 +20,14 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
         m_Logger = logger;
     }
 
-    public async Task<Result<HylPost>> GetAsync(HylPostApiContext context)
+    public async Task<Result<HylPost>> GetAsync(HylPostApiContext context, CancellationToken cancellationToken = default)
     {
         var requestUri = $"{HoYoLabDomains.BbsApi}/{Endpoint}?post_id={context.PostId}&scene=1";
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
@@ -39,10 +42,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
             request.Headers.Add("X-Rpc-App_version", "4.9.0");
             request.Headers.Add("X-Rpc-Lsrag", "");
 
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -51,8 +51,8 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "An error occurred while accessing HoYoLAB API", requestUri);
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
+            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream, (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json == null)
             {
@@ -77,8 +77,11 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                     "HoYoLAB API returned empty data", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HylPost>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

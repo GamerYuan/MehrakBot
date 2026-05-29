@@ -32,7 +32,7 @@ public sealed class ReleaseNotesController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetAllReleaseNotes()
     {
-        var cached = await m_CacheService.GetAsync<List<ReleaseNoteResponse>>(CacheKeys.ReleaseNotes);
+        var cached = await m_CacheService.GetAsync<List<ReleaseNoteResponse>>(CacheKeys.ReleaseNotes, HttpContext.RequestAborted);
         if (cached is not null)
         {
             m_Logger.LogDebug("Serving release notes from cache");
@@ -62,7 +62,7 @@ public sealed class ReleaseNotesController : ControllerBase
 
         var cacheEntry = new CacheEntryBase<List<ReleaseNoteResponse>>(
             CacheKeys.ReleaseNotes, releases, CacheDuration);
-        await m_CacheService.SetAsync(cacheEntry);
+        await m_CacheService.SetAsync(cacheEntry, HttpContext.RequestAborted);
 
         m_Logger.LogDebug("Populated release notes cache");
         return Ok(releases);
@@ -268,7 +268,7 @@ public sealed class ReleaseNotesController : ControllerBase
     {
         try
         {
-            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes);
+            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes, CancellationToken.None); // Intentional: cache invalidation must complete even if the HTTP request is aborted
         }
         catch (Exception ex)
         {

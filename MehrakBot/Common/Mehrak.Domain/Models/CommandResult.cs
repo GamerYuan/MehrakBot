@@ -26,7 +26,9 @@ public enum CommandFailureReason
     Unknown,
     AuthError,
     ApiError,
-    BotError
+    BotError,
+    Cancelled,
+    Timeout
 }
 
 public class CommandResult

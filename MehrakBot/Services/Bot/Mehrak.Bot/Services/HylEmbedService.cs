@@ -32,7 +32,7 @@ internal partial class HylEmbedService : IBotService
         m_Logger = logger;
     }
 
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (Context == null) throw new InvalidOperationException("Context must be set before executing the service.");
 
@@ -44,7 +44,7 @@ internal partial class HylEmbedService : IBotService
             Context.DiscordContext.Interaction.User.Id,
             locale);
 
-        var response = await m_ApiService.GetAsync(new HylPostApiContext(Context.DiscordContext.Interaction.User.Id, postId, locale));
+        var response = await m_ApiService.GetAsync(new HylPostApiContext(Context.DiscordContext.Interaction.User.Id, postId, locale), cancellationToken);
         if (!response.IsSuccess)
         {
             m_Logger.LogWarning("Failed to fetch HoYoLAB post {PostId}. Error: {ErrorMessage}", postId, response.ErrorMessage);

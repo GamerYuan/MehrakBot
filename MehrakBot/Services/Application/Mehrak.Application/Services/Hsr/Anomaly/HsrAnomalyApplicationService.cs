@@ -40,28 +40,36 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
-            Game.HonkaiStarRail, region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+            Game.HonkaiStarRail, region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
         var anomalyResult =
             await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region));
+                gameUid, region), cancellationToken);
         if (!anomalyResult.IsSuccess)
         {
+            if (anomalyResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(anomalyResult.ErrorMessage ?? "Cancelled");
+            if (anomalyResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Anomaly Arbitration", context.UserId, gameUid, anomalyResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Anomaly Arbitration data"));
@@ -115,18 +123,18 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         tasks.AddRange(bestRecord.MobRecords.SelectMany(x => x.Avatars)
             .Concat(bestRecord.BossRecord?.Avatars ?? [])
             .DistinctBy(x => x.Id)
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
-            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build(), cancellationToken));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
-            new ImageProcessorBuilder().Resize(120, 0).Build()));
+            new ImageProcessorBuilder().Resize(120, 0).Build(), cancellationToken));
 
         if (bestRecord.BossRecord != null)
         {
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossRecord.Buff.ToImageData(),
-                new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
+                new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build(), cancellationToken));
         }
 
         var completed = await Task.WhenAll(tasks);

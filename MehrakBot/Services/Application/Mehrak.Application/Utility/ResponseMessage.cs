@@ -27,4 +27,6 @@ internal static class ResponseMessage
     public const string AttachmentStoreError =
         "An error occurred while storing the generated attachment. Please try again later\n" +
         "For repeated errors, please contact the developers";
+
+    public const string TimeoutError = "The request timed out. Please try again later";
 }

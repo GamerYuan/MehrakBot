@@ -33,11 +33,19 @@ public abstract class BaseApplicationService : IApplicationService
         Logger = logger;
     }
 
-    public virtual async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public virtual async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await ExecuteCommandAsync(context);
+            return await ExecuteCommandAsync(context, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
         }
         catch (Exception ex)
         {
@@ -46,25 +54,31 @@ public abstract class BaseApplicationService : IApplicationService
         }
     }
 
-    protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context);
+    protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default);
 
-    protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
-        string region)
+    protected async Task<Result<GameProfileDto>> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
+        string region, CancellationToken cancellationToken = default)
     {
         var gameProfileResult =
-            await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region));
+            await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region), cancellationToken);
         if (!gameProfileResult.IsSuccess)
         {
+            if (gameProfileResult.StatusCode is StatusCode.Cancelled or StatusCode.Timeout)
+            {
+                return Result<GameProfileDto>.Failure(gameProfileResult.StatusCode, gameProfileResult.ErrorMessage);
+            }
+
             Logger.LogError(
                 "Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
                 userId, game, region, gameProfileResult);
-            return null;
+            return Result<GameProfileDto>.Failure(StatusCode.Unauthorized);
         }
 
-        return gameProfileResult.Data;
+        return Result<GameProfileDto>.Success(gameProfileResult.Data);
     }
 
-    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
+    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server,
+        CancellationToken cancellationToken = default)
     {
         var profile = await m_UserContext.UserProfiles
             .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
@@ -74,7 +88,7 @@ public abstract class BaseApplicationService : IApplicationService
                 p.ProfileId,
                 GameUids = p.GameUids.Where(x => x.Game == game && x.Region == server).ToList()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (profile != null)
         {
@@ -98,7 +112,7 @@ public abstract class BaseApplicationService : IApplicationService
 
             try
             {
-                await m_UserContext.SaveChangesAsync();
+                await m_UserContext.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException e)
             {
@@ -125,13 +139,23 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         m_AttachmentStorageService = attachmentStorageService;
     }
 
-    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context)
+    public override async Task<CommandResult> ExecuteAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         for (int attempt = 1; attempt <= 3; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                return await ExecuteCommandAsync(context);
+                return await ExecuteCommandAsync(context, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+            }
+            catch (OperationCanceledException)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             catch (ImageNotFoundException ex)
             {

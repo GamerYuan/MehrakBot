@@ -22,10 +22,13 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
         m_Logger = logger;
     }
 
-    public async Task<Result<JsonNode>> GetAsync(WikiApiContext context)
+    public async Task<Result<JsonNode>> GetAsync(WikiApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var endpoint = GetEndpoint(context.Game);
             var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
 
@@ -43,12 +46,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 request.Headers.Add("X-Rpc-Wiki_app", "zzz");
             else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -57,7 +55,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
 
             if (json == null)
             {
@@ -78,8 +76,11 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<JsonNode>.Success(json, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<JsonNode>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

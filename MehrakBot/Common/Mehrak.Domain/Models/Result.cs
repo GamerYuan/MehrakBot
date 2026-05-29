@@ -39,6 +39,13 @@ public class Result<T>
             RequestUri = requestUri
         };
     }
+
+    public static Result<T> FromCancellation(CancellationToken cancellationToken, string? requestUri = null)
+    {
+        return cancellationToken.IsCancellationRequested
+            ? Failure(StatusCode.Cancelled, "Request was cancelled", requestUri)
+            : Failure(StatusCode.Timeout, "Request timed out", requestUri);
+    }
 }
 
 public enum StatusCode
@@ -46,6 +53,8 @@ public enum StatusCode
     OK = 0,
     BadParameter = 400,
     Unauthorized = 401,
+    Cancelled = 499,
     BotError = 500,
+    Timeout = 504,
     ExternalServerError = 600
 }

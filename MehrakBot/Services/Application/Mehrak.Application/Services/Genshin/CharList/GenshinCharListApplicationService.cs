@@ -59,31 +59,38 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_WikiApi = wikiApi;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
-
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
-
-        if (profile == null)
+        var profileResult =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var charResponse = await
             m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region));
+                context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -105,14 +112,14 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
         var avatarTask =
             characterList.Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var weaponTask =
             characterList.Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
-                    new ImageProcessorBuilder().Resize(200, 0).Build()));
+                    new ImageProcessorBuilder().Resize(200, 0).Build(), cancellationToken));
         var temp = await characterList.ToAsyncEnumerable()
-            .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
-                || x.Weapon.Level == 40).ToListAsync();
+            .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), token))
+                || x.Weapon.Level == 40).ToListAsync(cancellationToken: cancellationToken);
 
         var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
         var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
@@ -120,20 +127,28 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         if (charToFetch.Count > 0)
         {
             var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
-                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch));
+                context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch), cancellationToken);
+
+            if (charDetailResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charDetailResponse.ErrorMessage ?? "Cancelled");
+            if (charDetailResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
 
             if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
             {
                 var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
                     .DistinctBy(x => x.Weapon.Id)
                     .ToAsyncEnumerable()
-                    .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
+                    .Select(async (x, token) =>
                     {
                         if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
                         {
                             return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
                         }
-                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1]));
+                        var urlResult = await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], token);
+                        if (urlResult.StatusCode == StatusCode.Timeout)
+                            throw new OperationCanceledException(urlResult.ErrorMessage ?? "Weapon wiki request timed out");
+                        return (Data: x, Url: urlResult);
                     })
                     .Where(x => x.Url.IsSuccess)
                     .Select(x =>
@@ -144,7 +159,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                         if (x.Data.Weapon.Type == 10)
                         {
                             return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
-                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
+                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken);
                         }
                         else
                         {
@@ -152,10 +167,11 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                             return m_ImageUpdaterService.UpdateMultiImageAsync(
                                 new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
                                     [x.Data.Weapon.Icon, x.Url.Data!]),
-                                new GenshinWeaponImageProcessor()
+                                new GenshinWeaponImageProcessor(),
+                                cancellationToken
                             );
                         }
-                    }).ToListAsync();
+                    }).ToListAsync(cancellationToken);
 
                 await Task.WhenAll(result);
             }
@@ -188,14 +204,22 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
     private async Task<Result<string>>
         GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
-            string weaponName, string wikiEntry)
+            string weaponName, string wikiEntry, CancellationToken cancellationToken = default)
     {
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
-            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale));
+            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
 
             if (!weapWiki.IsSuccess)
             {
+                if (weapWiki.StatusCode == StatusCode.Cancelled)
+                {
+                    throw new OperationCanceledException(weapWiki.ErrorMessage ?? "Weapon wiki request was cancelled");
+                }
+                if (weapWiki.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, weapWiki.ErrorMessage ?? "Weapon wiki request timed out");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;
             }

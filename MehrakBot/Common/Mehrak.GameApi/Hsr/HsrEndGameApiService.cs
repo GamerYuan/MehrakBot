@@ -33,7 +33,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrEndInformation>> GetAsync(HsrEndGameApiContext context)
+    public async Task<Result<HsrEndInformation>> GetAsync(HsrEndGameApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -44,6 +44,9 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var endpoint = context.GameMode switch
             {
                 HsrEndGameMode.PureFiction => "challenge_story",
@@ -64,12 +67,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -79,7 +77,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrEndInformation>>(
-                await response.Content.ReadAsStreamAsync(), JsonOptions);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -105,8 +103,11 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrEndInformation>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrEndInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

@@ -51,29 +51,37 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         m_ImageUpdaterService = imageUpdaterService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region);
-
-        if (profile == null)
+        var profileResult =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogInformation(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var theaterDataResult =
             await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region));
+                gameUid, region), cancellationToken);
         if (!theaterDataResult.IsSuccess)
         {
+            if (theaterDataResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(theaterDataResult.ErrorMessage ?? "Cancelled");
+            if (theaterDataResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             if (theaterDataResult.StatusCode == StatusCode.Unauthorized)
             {
                 Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
@@ -110,7 +118,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
         var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
             .Select(async x =>
-                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var sideAvatarTask =
             ((ItRankAvatar[])
             [
@@ -120,17 +128,21 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             ]).DistinctBy(x => x.AvatarId)
             .Select(async x =>
                 await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(0, 150).Build()));
+                    new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken));
         var buffTask = theaterData.Detail.RoundsData.SelectMany(x => x.SplendourBuff!.Buffs)
             .DistinctBy(x => x.Name)
             .Select(async x => await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Build()));
+                new ImageProcessorBuilder().Build(), cancellationToken));
 
         var charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
-            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
         {
+            if (charListResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+            if (charListResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "character list"));

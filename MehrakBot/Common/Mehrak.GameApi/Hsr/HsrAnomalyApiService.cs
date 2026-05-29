@@ -22,7 +22,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrAnomalyInformation>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<HsrAnomalyInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -33,6 +33,9 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1";
 
@@ -46,12 +49,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -61,7 +59,7 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrAnomalyInformation>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -87,8 +85,11 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrAnomalyInformation>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrAnomalyInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

@@ -47,30 +47,38 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterCache = characterCache;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var charResponse = await
             m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region));
+                context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -90,11 +98,11 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTask = characterList.Select(x => m_ImageUpdaterService
-            .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
+            .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var weaponTask =
             characterList.Where(x => x.Equip is not null).Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToIconImageData(),
-                    new ImageProcessorBuilder().Resize(150, 0).Build()));
+                    new ImageProcessorBuilder().Resize(150, 0).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
 

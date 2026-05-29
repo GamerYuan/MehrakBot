@@ -44,29 +44,37 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         m_CharacterCacheService = characterCacheService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -77,10 +85,14 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
         var buddyResponse = await m_BuddyApi.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!buddyResponse.IsSuccess)
         {
+            if (buddyResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(buddyResponse.ErrorMessage ?? "Cancelled");
+            if (buddyResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Bangboo List", context.UserId, gameUid, buddyResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Bangboo List"));
@@ -100,9 +112,9 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTask = characters.Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var buddyTask = buddies.Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(300, 0).Build()));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTask.Concat(buddyTask));
 

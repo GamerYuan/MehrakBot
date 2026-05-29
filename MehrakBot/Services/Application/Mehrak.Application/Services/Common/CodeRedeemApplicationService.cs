@@ -38,22 +38,26 @@ public class CodeRedeemApplicationService : BaseApplicationService
         m_ApiService = apiService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var game = Enum.Parse<Game>(context.GetParameter("game")!);
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion(game);
 
-        var profile =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region);
-
-        if (profile == null)
+        var profileResult =
+            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, game, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, game, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -87,13 +91,21 @@ public class CodeRedeemApplicationService : BaseApplicationService
             var trimmedCode = code.ToUpperInvariant().Trim();
             var response = await m_ApiService.GetAsync(
                 new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
-                    game, code.ToUpperInvariant().Trim()));
+                    game, code.ToUpperInvariant().Trim()), cancellationToken);
             if (response.IsSuccess)
             {
                 Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
                     context.UserId);
                 sb.Append($"{trimmedCode}: {response.Data.Message}\n");
                 successfulCodes.Add(trimmedCode, response.Data.Status);
+            }
+            else if (response.StatusCode == StatusCode.Cancelled)
+            {
+                throw new OperationCanceledException(response.ErrorMessage ?? "Cancelled");
+            }
+            else if (response.StatusCode == StatusCode.Timeout)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             else
             {
@@ -102,7 +114,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
                 sb.Append($"{trimmedCode}: An error occurred while redeeming the code\n");
             }
 
-            if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay);
+            if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay, cancellationToken);
         }
 
         if (successfulCodes.Count > 0)

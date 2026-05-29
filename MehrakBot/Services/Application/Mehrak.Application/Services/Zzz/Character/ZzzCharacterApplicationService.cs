@@ -62,31 +62,39 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
     }
 
-    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context)
+    protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
     {
         var characterName = context.GetParameter("character")!;
 
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region);
-
-        if (profile == null)
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+            region, cancellationToken);
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
         var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region));
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -118,10 +126,14 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         var response = await
             m_CharacterApi.GetCharacterDetailAsync(new CharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region, character.Id!));
+                context.LToken, gameUid, region, character.Id!), cancellationToken);
 
         if (!response.IsSuccess)
         {
+            if (response.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(response.ErrorMessage ?? "Cancelled");
+            if (response.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character data"));
@@ -147,34 +159,45 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
         {
             var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage);
+            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
         }
 
         if (charInfo.Weapon != null)
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charInfo.Weapon.ToImageData(),
-                new ImageProcessorBuilder().Resize(150, 0).Build()));
+                new ImageProcessorBuilder().Resize(150, 0).Build(), cancellationToken));
 
         tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
             .Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(140, 0).Build())));
+                    new ImageProcessorBuilder().Resize(140, 0).Build(), cancellationToken)));
 
-        if (charImageUrlTask != null)
+        try
         {
-            var charImage = await charImageUrlTask;
-            if (!charImage.IsSuccess)
+            if (charImageUrlTask != null)
             {
-                Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character Image"));
-            }
+                var charImage = await charImageUrlTask;
+                if (!charImage.IsSuccess)
+                {
+                    if (charImage.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(charImage.ErrorMessage ?? "Cancelled");
+                    if (charImage.StatusCode == StatusCode.Timeout)
+                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
+                    return CommandResult.Failure(CommandFailureReason.ApiError,
+                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                }
 
-            var url = charImage.Data;
-            tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                url), ImageProcessors.None));
+                var url = charImage.Data;
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
+                    url), ImageProcessors.None, cancellationToken));
+            }
+        }
+        finally
+        {
+            await Task.WhenAll(tasks);
         }
 
-        var completed = await Task.WhenAll(tasks);
+        var completed = tasks.Select(x => x.Result).ToArray();
 
         if (completed.Any(x => !x))
         {
@@ -206,17 +229,25 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     }
 
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,
-        ZzzAvatarData charInfo, string entryPage)
+        ZzzAvatarData charInfo, string entryPage, CancellationToken cancellationToken = default)
     {
         string? url = null;
 
         foreach (var locale in Enum.GetValues<WikiLocales>())
         {
             var wikiResponse =
-                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale));
+                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale), cancellationToken);
 
             if (!wikiResponse.IsSuccess)
             {
+                if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                {
+                    throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Character wiki request was cancelled");
+                }
+                if (wikiResponse.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Character wiki request timed out");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
                 continue;
             }

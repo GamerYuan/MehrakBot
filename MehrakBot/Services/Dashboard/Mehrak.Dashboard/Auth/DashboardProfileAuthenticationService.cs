@@ -79,7 +79,7 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         }
 
         var cacheKey = CacheKeys.DashboardLToken(discordUserId, profile.LtUid);
-        var cachedToken = await m_CacheService.GetAsync<string>(cacheKey);
+        var cachedToken = await m_CacheService.GetAsync<string>(cacheKey, ct);
 
         if (!string.IsNullOrEmpty(cachedToken))
         {
@@ -125,12 +125,12 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         var cacheKey = CacheKeys.DashboardLToken(discordUserId, ltUid);
         m_Logger.LogDebug("Refreshing dashboard authentication cache for user {UserId}, ltuid {LtUid}",
             discordUserId, ltUid);
-        return RefreshCacheAsync(cacheKey, ltoken);
+        return RefreshCacheAsync(cacheKey, ltoken, ct);
     }
 
-    private Task RefreshCacheAsync(string key, string token)
+    private Task RefreshCacheAsync(string key, string token, CancellationToken cancellationToken = default)
     {
-        return m_CacheService.SetAsync(new CacheEntryBase<string>(key, token, CacheDuration));
+        return m_CacheService.SetAsync(new CacheEntryBase<string>(key, token, CacheDuration), cancellationToken);
     }
 }
 

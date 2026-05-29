@@ -24,11 +24,10 @@ public class ImageUpdaterService : IImageUpdaterService
         m_Logger = logger;
     }
 
-    public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor)
+    public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor, CancellationToken cancellationToken = default)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
-            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return true;
         }
 
@@ -38,100 +37,124 @@ public class ImageUpdaterService : IImageUpdaterService
             return false;
         }
 
-        var client = m_HttpClientFactory.CreateClient();
-
-        m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
-        m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, data.Url);
-        var response = await client.GetAsync(data.Url);
-        m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, data.Url);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, data.Url);
-            return false;
-        }
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
-        await using var stream = await response.Content.ReadAsStreamAsync();
+            var client = m_HttpClientFactory.CreateClient();
 
-        if (processor.ShouldProcess)
-        {
-            m_Logger.LogInformation("Processing {Name}", data.Name);
-            using var processedStream = processor.ProcessImage(stream);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
+            var response = await client.GetAsync(data.Url, timeoutCts.Token);
 
-            if (processedStream == Stream.Null || processedStream.Length == 0)
+            if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, data.Url);
                 return false;
             }
 
-            processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
-        }
-        else
-        {
-            stream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType);
-        }
+            await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
 
-        return true;
+            if (processor.ShouldProcess)
+            {
+                using var processedStream = processor.ProcessImage(stream);
+
+                if (processedStream == Stream.Null || processedStream.Length == 0)
+                {
+                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                    return false;
+                }
+
+                processedStream.Position = 0;
+                await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
+            }
+            else
+            {
+                stream.Position = 0;
+                await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType, timeoutCts.Token);
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            m_Logger.LogWarning("Image download timed out for {Url}", data.Url);
+            return false;
+        }
     }
 
-    public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor)
+    public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor, CancellationToken cancellationToken = default)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
-            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return true;
         }
-
-        var client = m_HttpClientFactory.CreateClient();
-
-        var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
-
-        m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
-
-        var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
-        {
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
-            var r = await client.GetAsync(x, token);
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
-            return r;
-        }).ToListAsync();
-
-        List<Stream> streams = [];
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
-            if (responses.Any(x => !x.IsSuccessStatusCode))
+            var client = m_HttpClientFactory.CreateClient();
+
+            var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
+
+            m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
+
+            var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
             {
-                var failed = responses.Where(x => !x.IsSuccessStatusCode);
-                m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
-                    failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
-                return false;
-            }
+                var r = await client.GetAsync(x, token);
+                return r;
+            }).ToListAsync(timeoutCts.Token);
 
-            streams.AddRange(responses.ToAsyncEnumerable().Select(async (x, token) =>
-                await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable());
+            List<Stream> streams = [];
 
-            using var processedStream = processor.ProcessImage(streams);
-
-            if (processedStream == Stream.Null || processedStream.Length == 0)
+            try
             {
-                m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
 
-                return false;
+                if (responses.Any(x => !x.IsSuccessStatusCode))
+                {
+                    var failed = responses.Where(x => !x.IsSuccessStatusCode);
+                    m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
+                        failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
+                    return false;
+                }
+
+                streams.AddRange(await responses.ToAsyncEnumerable().Select(async (x, token) =>
+                    await x.Content.ReadAsStreamAsync(token)).ToListAsync(cancellationToken: timeoutCts.Token));
+
+                using var processedStream = processor.ProcessImage(streams);
+
+                if (processedStream == Stream.Null || processedStream.Length == 0)
+                {
+                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+
+                    return false;
+                }
+
+                processedStream.Position = 0;
+                await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
+
+                return true;
             }
-
-            processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
-
-            return true;
+            finally
+            {
+                foreach (var item in streams) await item.DisposeAsync();
+                responses.ForEach(x => x.Dispose());
+            }
         }
-        finally
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            foreach (var item in streams) await item.DisposeAsync();
-            responses.ForEach(x => x.Dispose());
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            m_Logger.LogWarning("Multi-image download timed out for {Name}", data.Name);
+            return false;
         }
     }
 }

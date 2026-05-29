@@ -34,13 +34,16 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         m_Logger = logger;
     }
 
-    public async Task<Result<GameProfileDto>> GetAsync(GameRoleApiContext context)
+    public async Task<Result<GameProfileDto>> GetAsync(GameRoleApiContext context, CancellationToken cancellationToken = default)
     {
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var cacheKey = $"gameProfile:{context.UserId}:{context.LtUid}";
 
-            var cachedData = await m_CacheService.GetAsync<string>(cacheKey);
+            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
             if (!string.IsNullOrEmpty(cachedData))
             {
                 var dto = TryDeserializeAndMap(cachedData, context);
@@ -49,11 +52,11 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             }
 
             var semaphore = GetOrCreateLock(cacheKey);
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(timeoutCts.Token);
 
             try
             {
-                cachedData = await m_CacheService.GetAsync<string>(cacheKey);
+                cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
                 if (!string.IsNullOrEmpty(cachedData))
                 {
                     var dto = TryDeserializeAndMap(cachedData, context);
@@ -61,12 +64,16 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                         return Result<GameProfileDto>.Success(dto);
                 }
 
-                return await FetchAndCacheGameRoleAsync(cacheKey, context);
+                return await FetchAndCacheGameRoleAsync(cacheKey, context, timeoutCts.Token);
             }
             finally
             {
                 semaphore.Release();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GameProfileDto>.FromCancellation(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -110,7 +117,8 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
     }
 
-    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context)
+    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context,
+        CancellationToken cancellationToken = default)
     {
         var requestUri = $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}";
 
@@ -124,12 +132,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         };
         request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
 
-        // Info-level outbound request (no headers)
-        m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-        var response = await httpClient.SendAsync(request);
-
-        // Info-level inbound response (status only)
-        m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+        var response = await httpClient.SendAsync(request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -137,7 +140,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             return Result<GameProfileDto>.Failure(StatusCode.ExternalServerError, "API returned error status code", requestUri);
         }
 
-        var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>();
+        var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>(cancellationToken);
 
         if (json == null)
         {
@@ -169,7 +172,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
 
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey,
-            JsonSerializer.Serialize(json), TimeSpan.FromMinutes(10)));
+            JsonSerializer.Serialize(json), TimeSpan.FromMinutes(10)), cancellationToken);
 
         // Info-level API retcode after parse (success path)
         m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, context.UserId);
@@ -194,11 +197,10 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 "Incomplete game information received. Please try again later", requestUri);
         }
 
-        m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
         return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
     }
 
-    private GameProfileDto? MapToGameProfileDto(GameProfile? profile)
+    private static GameProfileDto? MapToGameProfileDto(GameProfile? profile)
     {
         if (profile == null)
             return null;

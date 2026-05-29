@@ -402,8 +402,8 @@ public class HsrCharacterApplicationServiceTests
             }}
         }}");
 
-        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
-            .ReturnsAsync((WikiApiContext c) => Result<JsonNode>.Success(wikiResponseEn!));
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((WikiApiContext c, CancellationToken ct) => Result<JsonNode>.Success(wikiResponseEn!));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -710,8 +710,8 @@ public class HsrCharacterApplicationServiceTests
         var enResponse = JsonNode.Parse($"{{\"data\":{{\"page\":{{\"name\":\"EN Relic Set\",\"modules\":[{{\"components\":[{{\"component_id\":\"set\",\"data\":\"{escapedRelicJson}\"}}]}}]}}}}}}");
 
         List<WikiLocales> calledLocales = [];
-        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
-            .ReturnsAsync((WikiApiContext c) =>
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((WikiApiContext c, CancellationToken ct) =>
             {
                 calledLocales.Add(c.Locale);
                 if (c.Locale == WikiLocales.EN)
@@ -752,8 +752,8 @@ public class HsrCharacterApplicationServiceTests
             .ReturnsAsync((string name, CancellationToken _) => existingFiles.Contains(name));
         imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("21004"))))
             .ReturnsAsync(true);
-        imageUpdaterMock1.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .Returns((IImageData data, IImageProcessor _) =>
+        imageUpdaterMock1.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .Returns((IImageData data, IImageProcessor _, CancellationToken _) =>
             {
                 existingFiles.Add(data.Name);
                 return Task.FromResult(true);
@@ -793,8 +793,8 @@ public class HsrCharacterApplicationServiceTests
 
         imageRepositoryMock2.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync((string name, CancellationToken _) => existingFiles.Contains(name));
-        imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .Returns((IImageData data, IImageProcessor _) =>
+        imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .Returns((IImageData data, IImageProcessor _, CancellationToken _) =>
             {
                 existingFiles.Add(data.Name);
                 return Task.FromResult(true);

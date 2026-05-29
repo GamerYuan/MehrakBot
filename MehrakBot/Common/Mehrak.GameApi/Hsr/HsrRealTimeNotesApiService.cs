@@ -26,7 +26,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<HsrRealTimeNotesData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -37,6 +37,9 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
@@ -50,12 +53,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -65,7 +63,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -91,8 +89,11 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrRealTimeNotesData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

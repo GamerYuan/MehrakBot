@@ -6,7 +6,7 @@ public interface IBotService
 {
     IBotContext? Context { get; set; }
 
-    Task ExecuteAsync();
+    Task ExecuteAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IBotContext
