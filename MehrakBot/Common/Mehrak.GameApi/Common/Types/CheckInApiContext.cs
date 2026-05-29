@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Shared.Abstractions;
+using Mehrak.Domain.Shared.Enums;
 
 #endregion
 

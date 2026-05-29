@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Application.Tests.Extensions;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -54,7 +55,7 @@ public class HsrPureFictionCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
-        cardContext.SetParameter("server", Mehrak.Domain.Enums.Server.Asia);
+        cardContext.SetParameter("server", Server.Asia);
 
         var stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
@@ -93,7 +94,7 @@ public class HsrPureFictionCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
-        cardContext.SetParameter("server", Mehrak.Domain.Enums.Server.Asia);
+        cardContext.SetParameter("server", Server.Asia);
 
         var image = await m_Service.GetCardAsync(cardContext);
 
@@ -161,7 +162,7 @@ public class HsrApocalypticShadowCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
-        cardContext.SetParameter("server", Mehrak.Domain.Enums.Server.Asia);
+        cardContext.SetParameter("server", Server.Asia);
 
         var stream = await m_Service.GetCardAsync(cardContext);
         MemoryStream memoryStream = new();
@@ -200,7 +201,7 @@ public class HsrApocalypticShadowCardServiceTests
         var userGameData = GetTestUserGameData();
 
         var cardContext = new BaseCardGenerationContext<HsrEndInformation>(TestUserId, testData!, userGameData);
-        cardContext.SetParameter("server", Mehrak.Domain.Enums.Server.Asia);
+        cardContext.SetParameter("server", Server.Asia);
 
         var image = await m_Service.GetCardAsync(cardContext);
 

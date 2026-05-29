@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.Command.Models;
 
 namespace Mehrak.Dashboard.Models;
 

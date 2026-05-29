@@ -1,7 +1,7 @@
 ﻿using Mehrak.Dashboard.Auth;
 using Mehrak.Dashboard.Models;
-using Mehrak.Domain.Extensions;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Extensions;
+using Mehrak.Domain.Command.Models;
 using Microsoft.AspNetCore.Mvc;
 using Proto = Mehrak.Domain.Protobuf;
 

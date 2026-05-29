@@ -2,8 +2,8 @@
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Hsr.Anomaly;
 using Mehrak.Application.Tests.Extensions;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Hsr.Types;
 using Microsoft.Extensions.Logging;
 using Moq;

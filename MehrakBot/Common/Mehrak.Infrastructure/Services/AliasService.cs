@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;

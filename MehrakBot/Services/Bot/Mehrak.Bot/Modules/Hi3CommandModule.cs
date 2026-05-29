@@ -2,8 +2,8 @@
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Hi3;
 using Mehrak.Bot.Services.RateLimit;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Services.ApplicationCommands;

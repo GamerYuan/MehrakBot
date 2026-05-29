@@ -1,5 +1,5 @@
 ﻿using Mehrak.Dashboard.Models;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.AspNetCore.Authorization;

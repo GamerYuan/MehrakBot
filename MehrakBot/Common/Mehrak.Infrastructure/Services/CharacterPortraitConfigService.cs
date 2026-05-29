@@ -1,8 +1,8 @@
 using System.Data;
 using System.Text.Json;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;

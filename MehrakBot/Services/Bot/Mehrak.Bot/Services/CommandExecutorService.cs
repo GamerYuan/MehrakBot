@@ -3,11 +3,11 @@
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Extensions;
 using Mehrak.Bot.Services.Abstractions;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
-using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -116,14 +116,14 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     var attachments = commandResult.Data.Components
                         .OfType<ICommandResultAttachment>()
                         .Concat(commandResult.Data.Components
-                            .OfType<Domain.Models.CommandSection>()
+                            .OfType<Domain.Command.Models.CommandSection>()
                             .Select(s => s.Attachment)
                             .Where(a => a != null));
 
                     foreach (var attachment in attachments)
                     {
                         Stream? stream = null;
-                        if (attachment.SourceType == Domain.Models.AttachmentSourceType.ImageStorage)
+                        if (attachment.SourceType == Domain.Command.Models.AttachmentSourceType.ImageStorage)
                         {
                             try
                             {

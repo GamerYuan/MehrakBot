@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

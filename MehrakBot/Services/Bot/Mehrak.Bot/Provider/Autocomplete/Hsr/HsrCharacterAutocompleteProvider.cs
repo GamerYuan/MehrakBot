@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text;
+using Mehrak.Domain.Shared.Enums;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -34,7 +35,7 @@ public class HsrCharacterAutocompleteProvider(ICharacterAutocompleteService auto
         var query = commaSeparated?.Length > 0 ? commaSeparated[^1].Trim() : string.Empty;
 
         var choices = autocompleteService
-            .FindCharacter(Domain.Enums.Game.HonkaiStarRail, query)
+            .FindCharacter(Game.HonkaiStarRail, query)
             .Select(x =>
             {
                 var choice = prefix + x;

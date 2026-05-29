@@ -1,8 +1,8 @@
 ﻿#region
 
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Enums;
 using Moq;
 
 #endregion

@@ -1,6 +1,6 @@
 ﻿using System.Data.Common;
 using ClickHouse.Driver.ADO;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Shared.Models;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Options;
 

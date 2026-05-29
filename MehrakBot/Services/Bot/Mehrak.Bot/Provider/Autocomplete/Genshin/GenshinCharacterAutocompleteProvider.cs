@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text;
+using Mehrak.Domain.Shared.Enums;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -35,7 +36,7 @@ public class GenshinCharacterAutocompleteProvider(
         var query = commaSeparated?.Length > 0 ? commaSeparated[^1].Trim() : string.Empty;
 
         var choices = autocompleteService
-            .FindCharacter(Domain.Enums.Game.Genshin, query)
+            .FindCharacter(Game.Genshin, query)
             .Select(x =>
             {
                 var choice = prefix + x;

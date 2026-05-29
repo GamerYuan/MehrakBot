@@ -8,9 +8,9 @@ using Mehrak.Application.Services.Hsr.EndGame;
 using Mehrak.Application.Services.Hsr.Memory;
 using Mehrak.Application.Services.Hsr.RealTimeNotes;
 using Mehrak.Domain;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Card;
+using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.GameApi.Hsr.Types;
 
 #endregion

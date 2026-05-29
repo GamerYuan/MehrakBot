@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

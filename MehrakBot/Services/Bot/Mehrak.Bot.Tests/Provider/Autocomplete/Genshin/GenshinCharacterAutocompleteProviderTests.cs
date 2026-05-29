@@ -2,7 +2,7 @@
 
 using Mehrak.Bot.Provider;
 using Mehrak.Bot.Provider.Autocomplete.Genshin;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;

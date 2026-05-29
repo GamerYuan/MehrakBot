@@ -1,7 +1,8 @@
 ﻿#region
 
 using Mehrak.Application.Builders;
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Image.Abstractions;
+
 
 #endregion
 

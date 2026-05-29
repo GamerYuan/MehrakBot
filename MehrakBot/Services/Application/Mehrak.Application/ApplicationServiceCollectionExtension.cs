@@ -6,7 +6,7 @@ using Mehrak.Application.Services.Genshin;
 using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Services.Hsr;
 using Mehrak.Application.Services.Zzz;
-using Mehrak.Domain.Common;
+using Mehrak.Domain.Shared.Common;
 
 #endregion
 

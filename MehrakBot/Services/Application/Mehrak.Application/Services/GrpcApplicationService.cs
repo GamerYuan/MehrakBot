@@ -1,6 +1,6 @@
 ﻿using Grpc.Core;
-using Mehrak.Domain.Extensions;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Extensions;
+using Mehrak.Domain.Command.Models;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Services;

@@ -1,5 +1,5 @@
-﻿using Mehrak.Domain.Common;
-using Mehrak.Domain.Repositories;
+﻿using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

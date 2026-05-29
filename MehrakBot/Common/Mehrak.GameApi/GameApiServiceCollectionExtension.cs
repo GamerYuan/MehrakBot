@@ -1,9 +1,12 @@
 ﻿#region
 
 using System.Text.Json.Nodes;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.GameApi.Genshin;

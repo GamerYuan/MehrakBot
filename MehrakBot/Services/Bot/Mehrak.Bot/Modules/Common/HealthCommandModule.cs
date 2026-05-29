@@ -9,7 +9,7 @@ using Amazon.S3;
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Config;
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi;
 using NetCord;
 using NetCord.Gateway;

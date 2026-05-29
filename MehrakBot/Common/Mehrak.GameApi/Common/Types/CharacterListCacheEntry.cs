@@ -1,6 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Cache.Abstractions;
+
 
 #endregion
 

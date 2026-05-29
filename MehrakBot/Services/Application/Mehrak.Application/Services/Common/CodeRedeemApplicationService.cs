@@ -3,9 +3,11 @@
 using System.Text;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.Common;
 using Mehrak.GameApi.Common.Types;

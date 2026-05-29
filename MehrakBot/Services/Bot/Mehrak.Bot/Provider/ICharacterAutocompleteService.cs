@@ -6,7 +6,7 @@
 
 #endregion
 
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 
 namespace Mehrak.Bot.Provider;
 

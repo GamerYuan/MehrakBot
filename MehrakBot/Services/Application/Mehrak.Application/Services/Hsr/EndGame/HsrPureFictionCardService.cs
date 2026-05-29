@@ -1,8 +1,8 @@
 ﻿#region
 
 using Mehrak.Application.Services.Abstractions;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Models;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;

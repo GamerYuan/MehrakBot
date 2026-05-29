@@ -1,11 +1,11 @@
 ﻿#region
 
 using System.Text;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Models;
 using NetCord;
 using NetCord.Rest;
-using static Mehrak.Domain.Models.CommandResult;
-using static Mehrak.Domain.Models.CommandText;
+using static Mehrak.Domain.Command.Models.CommandResult;
+using static Mehrak.Domain.Command.Models.CommandText;
 
 #endregion
 

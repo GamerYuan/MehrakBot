@@ -1,8 +1,8 @@
 ﻿using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Hi3.Character;
 using Mehrak.Domain;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Card;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.GameApi.Hi3.Types;
 
 namespace Mehrak.Application.Services.Hi3;

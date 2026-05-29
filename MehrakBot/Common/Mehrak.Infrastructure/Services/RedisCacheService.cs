@@ -1,8 +1,8 @@
 #region
 
 using System.Text.Json;
-using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Cache;
+using Mehrak.Domain.Cache.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 

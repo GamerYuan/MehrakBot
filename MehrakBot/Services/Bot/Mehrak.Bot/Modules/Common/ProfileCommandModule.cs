@@ -3,8 +3,8 @@
 using System.Text;
 using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;

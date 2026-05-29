@@ -1,8 +1,10 @@
 #region
 
 using Amazon.S3;
-using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Cache;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Context;

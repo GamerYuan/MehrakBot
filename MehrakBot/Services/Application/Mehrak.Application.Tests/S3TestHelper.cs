@@ -1,7 +1,7 @@
 ﻿#region
 
 using Amazon.S3;
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Image;
 using Mehrak.Infrastructure.Config;
 using Mehrak.Infrastructure.Repositories;
 using Microsoft.Extensions.Caching.Memory;

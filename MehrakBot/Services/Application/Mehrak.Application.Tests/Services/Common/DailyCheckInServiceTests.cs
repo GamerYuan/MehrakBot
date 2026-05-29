@@ -2,9 +2,11 @@
 
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Common;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Common.Types;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;

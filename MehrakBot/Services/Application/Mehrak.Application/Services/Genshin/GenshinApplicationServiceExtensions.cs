@@ -8,8 +8,8 @@ using Mehrak.Application.Services.Genshin.RealTimeNotes;
 using Mehrak.Application.Services.Genshin.Stygian;
 using Mehrak.Application.Services.Genshin.Theater;
 using Mehrak.Domain;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Card;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.GameApi.Genshin.Types;
 
 #endregion

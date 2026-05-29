@@ -8,8 +8,8 @@ using Mehrak.Bot.Attributes;
 using Mehrak.Bot.Builders;
 using Mehrak.Bot.Provider.Autocomplete.Zzz;
 using Mehrak.Bot.Services.RateLimit;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
 

@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Extensions;
+﻿using Mehrak.Domain.Shared.Extensions;
 
 namespace Mehrak.Domain.Tests.Extensions;
 

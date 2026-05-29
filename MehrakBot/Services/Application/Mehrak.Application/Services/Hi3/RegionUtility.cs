@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Enums;
+﻿using Mehrak.Domain.Shared.Enums;
 
 namespace Mehrak.Application.Services.Hi3;
 

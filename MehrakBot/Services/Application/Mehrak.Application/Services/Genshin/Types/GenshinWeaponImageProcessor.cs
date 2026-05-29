@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Models.Abstractions;
+﻿using Mehrak.Domain.Image.Abstractions;
 using OpenCvSharp;
 using OpenCvSharp.Features2D;
 using OpenCvSharp.Flann;

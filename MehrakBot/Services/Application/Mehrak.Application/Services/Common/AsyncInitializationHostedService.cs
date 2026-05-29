@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Shared.Services;
 
 #endregion
 

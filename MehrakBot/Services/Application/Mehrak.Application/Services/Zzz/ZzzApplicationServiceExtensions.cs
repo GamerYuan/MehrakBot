@@ -8,8 +8,8 @@ using Mehrak.Application.Services.Zzz.Defense;
 using Mehrak.Application.Services.Zzz.RealTimeNotes;
 using Mehrak.Application.Services.Zzz.Tower;
 using Mehrak.Domain;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Card;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.GameApi.Zzz.Types;
 
 #endregion

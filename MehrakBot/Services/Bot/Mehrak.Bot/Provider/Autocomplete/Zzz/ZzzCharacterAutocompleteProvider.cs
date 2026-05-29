@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Domain.Shared.Enums;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -15,7 +16,7 @@ public class ZzzCharacterAutocompleteProvider(ICharacterAutocompleteService auto
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.ZenlessZoneZero, option.Value ?? string.Empty)
+            .FindCharacter(Game.ZenlessZoneZero, option.Value ?? string.Empty)
             .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }

@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Models;

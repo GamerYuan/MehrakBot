@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Diagnostics.CodeAnalysis;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.User.Models;
 using NetCord.Services;
 
 #endregion

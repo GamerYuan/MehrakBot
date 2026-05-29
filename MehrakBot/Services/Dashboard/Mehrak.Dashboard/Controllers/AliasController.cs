@@ -1,6 +1,6 @@
 ﻿using Mehrak.Dashboard.Models;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

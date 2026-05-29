@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;

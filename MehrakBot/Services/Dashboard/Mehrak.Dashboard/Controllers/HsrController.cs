@@ -1,8 +1,8 @@
 ﻿using System.Security.Claims;
 using Mehrak.Dashboard.Models;
 using Mehrak.Dashboard.Services;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

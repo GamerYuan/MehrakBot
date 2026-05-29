@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Models;
 
 namespace Mehrak.Infrastructure.Extensions;

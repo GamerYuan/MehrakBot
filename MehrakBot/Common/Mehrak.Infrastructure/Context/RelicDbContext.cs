@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Models;
+﻿using Mehrak.Domain.Character.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Context;

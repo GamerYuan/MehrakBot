@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 
 #endregion
 

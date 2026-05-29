@@ -1,9 +1,9 @@
 ﻿#region
 
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Abstractions;
+using Mehrak.Domain.Image.Models;
+using Mehrak.Domain.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 #endregion

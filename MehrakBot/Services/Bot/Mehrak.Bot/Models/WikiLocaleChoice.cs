@@ -1,3 +1,4 @@
+using Mehrak.Domain.Shared.Enums;
 using NetCord.Services.ApplicationCommands;
 
 namespace Mehrak.Bot.Models;
@@ -38,23 +39,23 @@ public enum WikiLocaleChoice
 
 public static class WikiLocaleChoiceExtensions
 {
-    public static Domain.Enums.WikiLocales ToDomainLocale(this WikiLocaleChoice choice) => choice switch
+    public static WikiLocales ToDomainLocale(this WikiLocaleChoice choice) => choice switch
     {
-        WikiLocaleChoice.EN => Domain.Enums.WikiLocales.EN,
-        WikiLocaleChoice.CN => Domain.Enums.WikiLocales.CN,
-        WikiLocaleChoice.TW => Domain.Enums.WikiLocales.TW,
-        WikiLocaleChoice.JP => Domain.Enums.WikiLocales.JP,
-        WikiLocaleChoice.KR => Domain.Enums.WikiLocales.KR,
-        WikiLocaleChoice.DE => Domain.Enums.WikiLocales.DE,
-        WikiLocaleChoice.ES => Domain.Enums.WikiLocales.ES,
-        WikiLocaleChoice.FR => Domain.Enums.WikiLocales.FR,
-        WikiLocaleChoice.ID => Domain.Enums.WikiLocales.ID,
-        WikiLocaleChoice.IT => Domain.Enums.WikiLocales.IT,
-        WikiLocaleChoice.PT => Domain.Enums.WikiLocales.PT,
-        WikiLocaleChoice.RU => Domain.Enums.WikiLocales.RU,
-        WikiLocaleChoice.TH => Domain.Enums.WikiLocales.TH,
-        WikiLocaleChoice.TR => Domain.Enums.WikiLocales.TR,
-        WikiLocaleChoice.VN => Domain.Enums.WikiLocales.VN,
-        _ => Domain.Enums.WikiLocales.EN
+        WikiLocaleChoice.EN => WikiLocales.EN,
+        WikiLocaleChoice.CN => WikiLocales.CN,
+        WikiLocaleChoice.TW => WikiLocales.TW,
+        WikiLocaleChoice.JP => WikiLocales.JP,
+        WikiLocaleChoice.KR => WikiLocales.KR,
+        WikiLocaleChoice.DE => WikiLocales.DE,
+        WikiLocaleChoice.ES => WikiLocales.ES,
+        WikiLocaleChoice.FR => WikiLocales.FR,
+        WikiLocaleChoice.ID => WikiLocales.ID,
+        WikiLocaleChoice.IT => WikiLocales.IT,
+        WikiLocaleChoice.PT => WikiLocales.PT,
+        WikiLocaleChoice.RU => WikiLocales.RU,
+        WikiLocaleChoice.TH => WikiLocales.TH,
+        WikiLocaleChoice.TR => WikiLocales.TR,
+        WikiLocaleChoice.VN => WikiLocales.VN,
+        _ => WikiLocales.EN
     };
 }

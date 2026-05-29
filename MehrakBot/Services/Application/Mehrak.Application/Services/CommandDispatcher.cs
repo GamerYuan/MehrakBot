@@ -2,7 +2,7 @@
 using Mehrak.Application.Models;
 using Mehrak.Application.Models.Context;
 using Mehrak.Application.Services.Abstractions;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Models;
 using Microsoft.Extensions.Options;
 using Proto = Mehrak.Domain.Protobuf;
 
@@ -88,7 +88,7 @@ public class CommandDispatcher : BackgroundService
             if (service == null)
             {
                 m_Logger.LogWarning("No service registered for command {CommandName}", command.Request.CommandName);
-                var failure = Domain.Models.CommandResult.Failure(Domain.Models.CommandFailureReason.BotError,
+                var failure = CommandResult.Failure(CommandFailureReason.BotError,
                     $"No service registered for command {command.Request.CommandName}");
                 command.CompletionSource.TrySetResult(failure);
                 return;
@@ -114,6 +114,6 @@ public class CommandDispatcher : BackgroundService
 
 public record QueuedCommand(
     Proto.ExecuteRequest Request,
-    TaskCompletionSource<Domain.Models.CommandResult> CompletionSource,
+    TaskCompletionSource<CommandResult> CompletionSource,
     CancellationToken CancellationToken
 );

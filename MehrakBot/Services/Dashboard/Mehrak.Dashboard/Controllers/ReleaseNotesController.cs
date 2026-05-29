@@ -1,5 +1,5 @@
 using Mehrak.Dashboard.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Cache;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.AspNetCore.Authorization;

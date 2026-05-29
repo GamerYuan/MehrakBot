@@ -2,10 +2,10 @@
 
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services.Abstractions;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Extensions;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Protobuf;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +52,7 @@ internal abstract class CommandExecutorServiceBase : ICommandExecutorService
 
     public abstract Task ExecuteAsync(int profile);
 
-    protected async Task<Domain.Models.CommandResult> DispatchCommand(
+    protected async Task<Domain.Command.Models.CommandResult> DispatchCommand(
         string commandName,
         ulong discordUserId,
         ulong ltUid,

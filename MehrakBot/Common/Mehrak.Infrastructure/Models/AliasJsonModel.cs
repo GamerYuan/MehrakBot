@@ -1,7 +1,7 @@
 ﻿#region
 
 using System.Text.Json.Serialization;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 
 #endregion
 

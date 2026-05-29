@@ -2,8 +2,8 @@
 
 using Mehrak.Bot.Authentication;
 using Mehrak.Bot.Services;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;

@@ -2,7 +2,7 @@
 
 using System.Security.Cryptography;
 using System.Text;
-using Mehrak.Domain.Services.Abstractions;
+using Mehrak.Domain.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 #endregion

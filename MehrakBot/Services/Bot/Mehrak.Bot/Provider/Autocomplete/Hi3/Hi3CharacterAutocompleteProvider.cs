@@ -1,4 +1,5 @@
-﻿using NetCord;
+﻿using Mehrak.Domain.Shared.Enums;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
@@ -12,7 +13,7 @@ public class Hi3CharacterAutocompleteProvider(
         ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
     {
         return new ValueTask<IEnumerable<ApplicationCommandOptionChoiceProperties>?>(autocompleteService
-            .FindCharacter(Domain.Enums.Game.HonkaiImpact3, option.Value ?? string.Empty)
+            .FindCharacter(Game.HonkaiImpact3, option.Value ?? string.Empty)
             .Select(x => new ApplicationCommandOptionChoiceProperties(x, x)));
     }
 }

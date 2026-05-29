@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;

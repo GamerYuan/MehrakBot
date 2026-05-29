@@ -3,7 +3,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Common;
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Image;
 using Mehrak.Infrastructure.Config;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

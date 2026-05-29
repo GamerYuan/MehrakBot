@@ -1,7 +1,7 @@
 ﻿#region
 
 using Mehrak.Application.Models;
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Image.Abstractions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;

@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using Mehrak.Bot.Resources;
 using Mehrak.Bot.Services.Abstractions;
-using Mehrak.Domain.Enums;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.Extensions.Localization;
 
 namespace Mehrak.Bot.Services;

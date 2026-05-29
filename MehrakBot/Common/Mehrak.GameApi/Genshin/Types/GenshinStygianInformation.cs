@@ -2,9 +2,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using Mehrak.Domain.Common;
+using Mehrak.Domain.Image.Abstractions;
+using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
 
 #endregion
 

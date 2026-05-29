@@ -2,9 +2,9 @@
 using Mehrak.Application.Renderers;
 using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Utility;
-using Mehrak.Domain.Common;
-using Mehrak.Domain.Models.Abstractions;
-using Mehrak.Domain.Repositories;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Models;
+using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
