@@ -91,13 +91,9 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
 
             return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<HsrRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<HsrRealTimeNotesData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<HsrRealTimeNotesData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

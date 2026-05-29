@@ -106,13 +106,9 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<ZzzBuddyData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

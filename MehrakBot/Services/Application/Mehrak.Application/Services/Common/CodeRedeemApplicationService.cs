@@ -99,6 +99,10 @@ public class CodeRedeemApplicationService : BaseApplicationService
                 sb.Append($"{trimmedCode}: {response.Data.Message}\n");
                 successfulCodes.Add(trimmedCode, response.Data.Status);
             }
+            else if (response.StatusCode == StatusCode.Cancelled)
+            {
+                throw new OperationCanceledException(response.ErrorMessage ?? "Cancelled");
+            }
             else if (response.StatusCode == StatusCode.Timeout)
             {
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);

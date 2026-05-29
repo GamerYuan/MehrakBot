@@ -92,13 +92,9 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
 
             return Result<GenshinRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GenshinRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GenshinRealTimeNotesData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GenshinRealTimeNotesData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

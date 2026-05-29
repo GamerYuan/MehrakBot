@@ -116,13 +116,9 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<ZzzBasicAvatarData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {
@@ -200,13 +196,9 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
 
             return Result<ZzzFullAvatarData>.Success(json.Data);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<ZzzFullAvatarData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<ZzzFullAvatarData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<ZzzFullAvatarData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

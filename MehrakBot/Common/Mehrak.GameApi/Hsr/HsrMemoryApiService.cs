@@ -90,13 +90,9 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
 
             return Result<HsrMemoryInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<HsrMemoryInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<HsrMemoryInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<HsrMemoryInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

@@ -118,13 +118,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<GenshinBasicCharacterData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {
@@ -208,13 +204,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GenshinCharacterDetail>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GenshinCharacterDetail>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GenshinCharacterDetail>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

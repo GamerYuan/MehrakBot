@@ -38,7 +38,7 @@ public class DailyCheckInService : IApplicationService
         {
             var profile = await m_UserContext.UserProfiles
                 .Where(x => x.UserId == (long)context.UserId && x.LtUid == (long)context.LtUid)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (profile != null && profile.LastCheckIn.HasValue)
             {
@@ -62,6 +62,10 @@ public class DailyCheckInService : IApplicationService
 
             if (!gameRecordResult.IsSuccess || gameRecordResult.Data == null)
             {
+                if (gameRecordResult.StatusCode == StatusCode.Cancelled)
+                    throw new OperationCanceledException(gameRecordResult.ErrorMessage ?? "Cancelled");
+                if (gameRecordResult.StatusCode == StatusCode.Timeout)
+                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
                 m_Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
@@ -115,7 +119,7 @@ public class DailyCheckInService : IApplicationService
 
                 try
                 {
-                    await m_UserContext.SaveChangesAsync();
+                    await m_UserContext.SaveChangesAsync(cancellationToken);
                 }
                 catch (DbUpdateException e)
                 {

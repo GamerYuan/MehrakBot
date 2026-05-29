@@ -85,13 +85,9 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<ZzzTowerData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<ZzzTowerData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<ZzzTowerData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

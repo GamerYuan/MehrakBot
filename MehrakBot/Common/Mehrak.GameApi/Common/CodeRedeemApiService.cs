@@ -107,13 +107,9 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                         "An error occurred while redeeming the code", requestUri);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<CodeRedeemResult>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<CodeRedeemResult>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<CodeRedeemResult>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

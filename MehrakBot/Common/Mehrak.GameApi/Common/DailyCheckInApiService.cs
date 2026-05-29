@@ -115,13 +115,9 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                         $"An unknown error occurred during check-in", requestUri);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<CheckInStatus>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<CheckInStatus>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<CheckInStatus>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

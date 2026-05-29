@@ -119,13 +119,9 @@ public class
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<HsrBasicCharacterData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

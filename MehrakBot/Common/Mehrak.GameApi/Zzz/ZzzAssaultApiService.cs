@@ -86,13 +86,9 @@ public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiConte
 
             return Result<ZzzAssaultData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<ZzzAssaultData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<ZzzAssaultData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<ZzzAssaultData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

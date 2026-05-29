@@ -98,13 +98,9 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
 
             return Result<IEnumerable<GameRecordDto>>.Success(result ?? [], requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<GameRecordDto>>.FromCancellation(cancellationToken);
         }
         catch (Exception ex)
         {

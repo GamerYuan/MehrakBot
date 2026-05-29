@@ -86,13 +86,9 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
 
             return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<ZzzDefenseDataV2>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<ZzzDefenseDataV2>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<ZzzDefenseDataV2>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

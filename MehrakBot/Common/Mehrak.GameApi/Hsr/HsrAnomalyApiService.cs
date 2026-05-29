@@ -87,13 +87,9 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
             return Result<HsrAnomalyInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<HsrAnomalyInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<HsrAnomalyInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<HsrAnomalyInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

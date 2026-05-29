@@ -105,13 +105,9 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             return Result<HsrEndInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<HsrEndInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<HsrEndInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<HsrEndInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

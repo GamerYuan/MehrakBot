@@ -78,13 +78,9 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
             return Result<JsonNode>.Success(json, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<JsonNode>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<JsonNode>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<JsonNode>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

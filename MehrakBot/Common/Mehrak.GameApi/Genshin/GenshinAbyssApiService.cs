@@ -84,13 +84,9 @@ internal class GenshinAbyssApiService : IApiService<GenshinAbyssInformation, Bas
 
             return Result<GenshinAbyssInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GenshinAbyssInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GenshinAbyssInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GenshinAbyssInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

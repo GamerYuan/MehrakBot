@@ -83,7 +83,7 @@ public class ImageUpdaterService : IImageUpdaterService
         catch (OperationCanceledException)
         {
             m_Logger.LogWarning("Image download timed out for {Url}", data.Url);
-            throw;
+            return false;
         }
     }
 
@@ -154,7 +154,7 @@ public class ImageUpdaterService : IImageUpdaterService
         catch (OperationCanceledException)
         {
             m_Logger.LogWarning("Multi-image download timed out for {Name}", data.Name);
-            throw;
+            return false;
         }
     }
 }

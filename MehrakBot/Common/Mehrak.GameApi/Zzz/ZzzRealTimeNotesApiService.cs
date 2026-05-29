@@ -95,13 +95,9 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
 
             return Result<ZzzRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<ZzzRealTimeNotesData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

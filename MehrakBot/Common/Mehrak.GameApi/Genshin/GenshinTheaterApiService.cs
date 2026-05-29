@@ -100,13 +100,9 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
 
             return Result<GenshinTheaterInformation>.Success(json.Data.Data[0], requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GenshinTheaterInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GenshinTheaterInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GenshinTheaterInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

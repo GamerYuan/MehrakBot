@@ -79,13 +79,9 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
 
             return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<HylPost>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<HylPost>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<HylPost>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

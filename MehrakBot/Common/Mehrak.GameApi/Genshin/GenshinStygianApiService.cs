@@ -86,13 +86,9 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
 
             return Result<GenshinStygianInformation>.Success(json.Data, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GenshinStygianInformation>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GenshinStygianInformation>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GenshinStygianInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

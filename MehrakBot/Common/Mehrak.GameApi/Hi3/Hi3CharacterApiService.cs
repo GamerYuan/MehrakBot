@@ -128,13 +128,9 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<IEnumerable<Hi3CharacterDetail>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

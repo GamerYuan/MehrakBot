@@ -39,15 +39,13 @@ public class Result<T>
             RequestUri = requestUri
         };
     }
-}
 
-public class Result
-{
-    public static Result<T> Success<T>(T data, int retCode = 0, StatusCode statusCode = StatusCode.OK, string? requestUri = null)
-        => Result<T>.Success(data, retCode, statusCode, requestUri);
-
-    public static Result<T> Failure<T>(StatusCode statusCode, string? errorMessage = null, string? requestUri = null)
-        => Result<T>.Failure(statusCode, errorMessage, requestUri);
+    public static Result<T> FromCancellation(CancellationToken cancellationToken, string? requestUri = null)
+    {
+        return cancellationToken.IsCancellationRequested
+            ? Failure(StatusCode.Cancelled, "Request was cancelled", requestUri)
+            : Failure(StatusCode.Timeout, "Request timed out", requestUri);
+    }
 }
 
 public enum StatusCode

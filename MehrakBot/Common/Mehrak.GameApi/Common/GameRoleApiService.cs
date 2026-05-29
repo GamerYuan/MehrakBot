@@ -71,13 +71,9 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
                 semaphore.Release();
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Result<GameProfileDto>.Failure(StatusCode.Cancelled, "Request was cancelled");
-        }
         catch (OperationCanceledException)
         {
-            return Result<GameProfileDto>.Failure(StatusCode.Timeout, "Request to HoYoLAB timed out");
+            return Result<GameProfileDto>.FromCancellation(cancellationToken);
         }
         catch (Exception ex)
         {

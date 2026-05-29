@@ -239,7 +239,9 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                         {
                             if (wikiResponse.StatusCode is StatusCode.Timeout or StatusCode.Cancelled)
                             {
-                                throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Relic wiki request failed");
+                                Logger.LogWarning("Relic wiki request failed for RelicId: {RelicId}, Status: {Status}",
+                                    setId, wikiResponse.StatusCode);
+                                return null;
                             }
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
                             continue;
