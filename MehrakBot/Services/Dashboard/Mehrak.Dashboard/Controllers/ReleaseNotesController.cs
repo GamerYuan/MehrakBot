@@ -268,7 +268,7 @@ public sealed class ReleaseNotesController : ControllerBase
     {
         try
         {
-            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes, CancellationToken.None);
+            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes, CancellationToken.None); // Intentional: cache invalidation must complete even if the HTTP request is aborted
         }
         catch (Exception ex)
         {

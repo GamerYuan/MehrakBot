@@ -227,7 +227,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                         {
                             if (wikiResponse.StatusCode == StatusCode.Cancelled)
                             {
-                                return null;
+                                throw new OperationCanceledException("Relic wiki request was cancelled");
                             }
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
                             continue;

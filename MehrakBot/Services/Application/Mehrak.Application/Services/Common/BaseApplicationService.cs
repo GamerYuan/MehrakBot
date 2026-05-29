@@ -64,6 +64,11 @@ public abstract class BaseApplicationService : IApplicationService
                 throw new OperationCanceledException($"Fetching game profile cancelled by User {userId}, Game {game}, Region {region}");
             }
 
+            if (gameProfileResult.StatusCode == StatusCode.Timeout)
+            {
+                throw new OperationCanceledException($"Fetching game profile timed out for User {userId}, Game {game}, Region {region}");
+            }
+
             Logger.LogError(
                 "Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
                 userId, game, region, gameProfileResult);
