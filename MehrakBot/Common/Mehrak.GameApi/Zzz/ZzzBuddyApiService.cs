@@ -102,7 +102,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
                 json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry, timeoutCts.Token);
+            await m_Cache.SetAsync(cacheEntry, cancellationToken);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
         }

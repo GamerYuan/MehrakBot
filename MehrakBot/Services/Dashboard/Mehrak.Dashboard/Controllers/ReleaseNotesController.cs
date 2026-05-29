@@ -268,7 +268,7 @@ public sealed class ReleaseNotesController : ControllerBase
     {
         try
         {
-            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes, HttpContext.RequestAborted);
+            await m_CacheService.RemoveAsync(CacheKeys.ReleaseNotes, CancellationToken.None);
         }
         catch (Exception ex)
         {

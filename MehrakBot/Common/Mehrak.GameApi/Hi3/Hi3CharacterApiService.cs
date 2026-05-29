@@ -124,7 +124,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<Hi3CharacterDetail>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), timeoutCts.Token);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
         }

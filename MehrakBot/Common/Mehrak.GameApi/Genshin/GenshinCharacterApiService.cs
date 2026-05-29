@@ -114,7 +114,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), timeoutCts.Token);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }

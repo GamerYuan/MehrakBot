@@ -112,7 +112,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
                 json.Data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry, timeoutCts.Token);
+            await m_Cache.SetAsync(cacheEntry, cancellationToken);
 
             return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
         }

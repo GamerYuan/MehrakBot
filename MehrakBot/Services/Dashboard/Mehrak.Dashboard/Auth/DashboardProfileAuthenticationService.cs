@@ -79,7 +79,7 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         }
 
         var cacheKey = CacheKeys.DashboardLToken(discordUserId, profile.LtUid);
-        var cachedToken = await m_CacheService.GetAsync<string>(cacheKey);
+        var cachedToken = await m_CacheService.GetAsync<string>(cacheKey, ct);
 
         if (!string.IsNullOrEmpty(cachedToken))
         {
