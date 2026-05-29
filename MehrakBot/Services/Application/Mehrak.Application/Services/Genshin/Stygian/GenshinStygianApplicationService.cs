@@ -60,7 +60,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -69,6 +69,10 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
                 gameUid, region), cancellationToken);
         if (!stygianInfo.IsSuccess)
         {
+            if (stygianInfo.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(stygianInfo.ErrorMessage ?? "Cancelled");
+            if (stygianInfo.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Stygian", context.UserId, gameUid, stygianInfo);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Stygian Onslaught data"));

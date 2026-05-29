@@ -101,7 +101,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -110,6 +110,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 context.LToken, gameUid, region), cancellationToken);
         if (!charListResponse.IsSuccess)
         {
+            if (charListResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+            if (charListResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid,
                 charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
@@ -158,6 +162,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         if (!characterInfo.IsSuccess)
         {
+            if (characterInfo.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(characterInfo.ErrorMessage ?? "Cancelled");
+            if (characterInfo.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid,
                 characterInfo);
             return CommandResult.Failure(CommandFailureReason.ApiError,
@@ -173,6 +181,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
+            }
+            else if (result.StatusCode == StatusCode.Timeout)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             else
             {

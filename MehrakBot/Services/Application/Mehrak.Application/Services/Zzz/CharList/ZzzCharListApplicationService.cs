@@ -62,7 +62,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -71,6 +71,10 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -85,6 +89,10 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
         if (!buddyResponse.IsSuccess)
         {
+            if (buddyResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(buddyResponse.ErrorMessage ?? "Cancelled");
+            if (buddyResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Bangboo List", context.UserId, gameUid, buddyResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Bangboo List"));

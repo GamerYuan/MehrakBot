@@ -77,7 +77,8 @@ public abstract class BaseApplicationService : IApplicationService
         return Result<GameProfileDto>.Success(gameProfileResult.Data);
     }
 
-    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
+    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server,
+        CancellationToken cancellationToken = default)
     {
         var profile = await m_UserContext.UserProfiles
             .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
@@ -87,7 +88,7 @@ public abstract class BaseApplicationService : IApplicationService
                 p.ProfileId,
                 GameUids = p.GameUids.Where(x => x.Game == game && x.Region == server).ToList()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (profile != null)
         {
@@ -111,7 +112,7 @@ public abstract class BaseApplicationService : IApplicationService
 
             try
             {
-                await m_UserContext.SaveChangesAsync();
+                await m_UserContext.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException e)
             {

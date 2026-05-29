@@ -68,13 +68,17 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var abyssInfo = await m_ApiService.GetAsync(
             new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
                 region), cancellationToken);
         if (!abyssInfo.IsSuccess)
         {
+            if (abyssInfo.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(abyssInfo.ErrorMessage ?? "Cancelled");
+            if (abyssInfo.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError,
                 "Abyss Data", context.UserId, profile.GameUid, abyssInfo);
             return CommandResult.Failure(CommandFailureReason.ApiError,
@@ -132,6 +136,10 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 
         if (!charListResponse.IsSuccess)
         {
+            if (charListResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+            if (charListResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError,
                 "Character List", context.UserId, profile.GameUid, charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,

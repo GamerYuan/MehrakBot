@@ -57,7 +57,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, game, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, game, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -98,6 +98,10 @@ public class CodeRedeemApplicationService : BaseApplicationService
                     context.UserId);
                 sb.Append($"{trimmedCode}: {response.Data.Message}\n");
                 successfulCodes.Add(trimmedCode, response.Data.Status);
+            }
+            else if (response.StatusCode == StatusCode.Timeout)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             else
             {

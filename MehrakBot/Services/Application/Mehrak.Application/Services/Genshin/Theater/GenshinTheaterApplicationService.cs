@@ -69,7 +69,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -78,6 +78,10 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 gameUid, region), cancellationToken);
         if (!theaterDataResult.IsSuccess)
         {
+            if (theaterDataResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(theaterDataResult.ErrorMessage ?? "Cancelled");
+            if (theaterDataResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             if (theaterDataResult.StatusCode == StatusCode.Unauthorized)
             {
                 Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
@@ -135,6 +139,10 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
         if (!charListResponse.IsSuccess || !charListResponse.Data.Any())
         {
+            if (charListResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+            if (charListResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "character list"));

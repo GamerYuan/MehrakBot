@@ -71,13 +71,17 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var challengeResponse = await m_ApiService.GetAsync(
             new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
                 mode), cancellationToken);
         if (!challengeResponse.IsSuccess)
         {
+            if (challengeResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(challengeResponse.ErrorMessage ?? "Cancelled");
+            if (challengeResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, mode.GetString(), context.UserId, profile.GameUid,
                 challengeResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,

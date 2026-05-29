@@ -48,7 +48,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -57,6 +57,10 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
 
         if (!notesResult.IsSuccess)
         {
+            if (notesResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(notesResult.ErrorMessage ?? "Cancelled");
+            if (notesResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Real-Time Notes"));

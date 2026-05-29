@@ -60,7 +60,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -70,6 +70,10 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
         if (!defenseResponse.IsSuccess)
         {
+            if (defenseResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(defenseResponse.ErrorMessage ?? "Cancelled");
+            if (defenseResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));

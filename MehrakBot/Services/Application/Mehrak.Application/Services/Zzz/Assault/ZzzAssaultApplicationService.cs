@@ -66,7 +66,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -76,6 +76,10 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
 
         if (!assaultResponse.IsSuccess)
         {
+            if (assaultResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(assaultResponse.ErrorMessage ?? "Cancelled");
+            if (assaultResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Deadly Assault data"));

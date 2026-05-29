@@ -58,7 +58,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
         var anomalyResult =
@@ -66,6 +66,10 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
                 gameUid, region), cancellationToken);
         if (!anomalyResult.IsSuccess)
         {
+            if (anomalyResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(anomalyResult.ErrorMessage ?? "Cancelled");
+            if (anomalyResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Anomaly Arbitration", context.UserId, gameUid, anomalyResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Anomaly Arbitration data"));

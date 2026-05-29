@@ -58,7 +58,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -67,6 +67,10 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 gameUid, region), cancellationToken);
         if (!towerResponse.IsSuccess)
         {
+            if (towerResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(towerResponse.ErrorMessage ?? "Cancelled");
+            if (towerResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Simulated Battle Trial", context.UserId, gameUid, towerResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Simulated Battle Trial data"));
@@ -88,6 +92,10 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
         if (!characterResponse.IsSuccess)
         {
+            if (characterResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(characterResponse.ErrorMessage ?? "Cancelled");
+            if (characterResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, characterResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List data"));

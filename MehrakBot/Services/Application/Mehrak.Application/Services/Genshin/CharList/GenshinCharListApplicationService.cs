@@ -77,7 +77,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
+        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -87,6 +87,10 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
         if (!charResponse.IsSuccess)
         {
+            if (charResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
+            if (charResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
@@ -124,6 +128,11 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         {
             var charDetailResponse = await m_CharacterApi.GetCharacterDetailAsync(new GenshinCharacterApiContext(
                 context.UserId, context.LtUid, context.LToken, gameUid, region, charToFetch), cancellationToken);
+
+            if (charDetailResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charDetailResponse.ErrorMessage ?? "Cancelled");
+            if (charDetailResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
 
             if (charDetailResponse.IsSuccess && charDetailResponse.Data is var charDetail)
             {
