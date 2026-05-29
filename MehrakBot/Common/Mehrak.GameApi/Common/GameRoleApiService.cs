@@ -40,7 +40,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         {
             var cacheKey = $"gameProfile:{context.UserId}:{context.LtUid}";
 
-            var cachedData = await m_CacheService.GetAsync<string>(cacheKey);
+            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, cancellationToken);
             if (!string.IsNullOrEmpty(cachedData))
             {
                 var dto = TryDeserializeAndMap(cachedData, context);
@@ -53,7 +53,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             try
             {
-                cachedData = await m_CacheService.GetAsync<string>(cacheKey);
+                cachedData = await m_CacheService.GetAsync<string>(cacheKey, cancellationToken);
                 if (!string.IsNullOrEmpty(cachedData))
                 {
                     var dto = TryDeserializeAndMap(cachedData, context);
@@ -169,7 +169,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
 
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey,
-            JsonSerializer.Serialize(json), TimeSpan.FromMinutes(10)));
+            JsonSerializer.Serialize(json), TimeSpan.FromMinutes(10)), cancellationToken);
 
         // Info-level API retcode after parse (success path)
         m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, context.UserId);

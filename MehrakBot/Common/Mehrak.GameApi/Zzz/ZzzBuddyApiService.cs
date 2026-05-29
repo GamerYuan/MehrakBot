@@ -38,7 +38,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
         try
         {
             var cacheKey = $"zzz_buddies_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, cancellationToken);
 
             if (cachedEntry != null)
             {
@@ -99,7 +99,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
                 json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry);
+            await m_Cache.SetAsync(cacheEntry, cancellationToken);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
         }

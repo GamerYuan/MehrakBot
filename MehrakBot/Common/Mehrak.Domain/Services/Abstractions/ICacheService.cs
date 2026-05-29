@@ -8,11 +8,11 @@ namespace Mehrak.Domain.Services.Abstractions;
 
 public interface ICacheService
 {
-    Task SetAsync<T>(ICacheEntry<T> entry);
+    Task SetAsync<T>(ICacheEntry<T> entry, CancellationToken cancellationToken = default);
 
-    Task<T?> GetAsync<T>(string key);
+    Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default);
 
-    Task RemoveAsync(string key);
+    Task RemoveAsync(string key, CancellationToken cancellationToken = default);
 }
 
 public static class CacheKeys

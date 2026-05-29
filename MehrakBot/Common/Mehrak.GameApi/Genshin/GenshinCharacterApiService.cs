@@ -46,7 +46,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         try
         {
             var cacheKey = $"genshin_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, cancellationToken);
 
             if (cachedEntry != null)
             {
@@ -111,7 +111,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)));
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
         }

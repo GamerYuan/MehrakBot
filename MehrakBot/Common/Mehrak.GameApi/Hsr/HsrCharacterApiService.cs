@@ -43,7 +43,7 @@ public class
         try
         {
             var cacheKey = $"hsr_characters_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, cancellationToken);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -112,7 +112,7 @@ public class
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)));
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
         }

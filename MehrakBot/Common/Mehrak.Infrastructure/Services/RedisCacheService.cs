@@ -21,28 +21,28 @@ public class RedisCacheService : ICacheService
         m_Logger = logger;
     }
 
-    public async Task SetAsync<T>(ICacheEntry<T> entry)
+    public async Task SetAsync<T>(ICacheEntry<T> entry, CancellationToken cancellationToken = default)
     {
         m_Logger.LogDebug("Storing object with {Key} into cache", entry.Key);
         var options = new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = entry.ExpirationTime
         };
-        await m_Cache.SetStringAsync(entry.Key, JsonSerializer.Serialize(entry.Value), options);
+        await m_Cache.SetStringAsync(entry.Key, JsonSerializer.Serialize(entry.Value), options, cancellationToken);
     }
 
-    public async Task<T?> GetAsync<T>(string key)
+    public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         m_Logger.LogDebug("Retrieving object with {Key} from cache", key);
-        var val = await m_Cache.GetStringAsync(key);
+        var val = await m_Cache.GetStringAsync(key, cancellationToken);
         if (string.IsNullOrEmpty(val)) return default;
 
         return JsonSerializer.Deserialize<T>(val);
     }
 
-    public async Task RemoveAsync(string key)
+    public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         m_Logger.LogDebug("Removing object with {Key} from cache", key);
-        await m_Cache.RemoveAsync(key);
+        await m_Cache.RemoveAsync(key, cancellationToken);
     }
 }
