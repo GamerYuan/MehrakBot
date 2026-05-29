@@ -123,13 +123,13 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         var tasks = nonNull
             .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
             .DistinctBy(x => x.Id)
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var buffTasks = challengeData.AllFloorDetail.Where(x => !x.IsFast)
             .SelectMany(x => new List<HsrEndBuff> { x.Node1!.Buff, x.Node2!.Buff })
             .DistinctBy(x => x.Id)
             .Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
+                    new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(tasks.Concat(buffTasks));
 

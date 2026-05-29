@@ -100,9 +100,9 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTask = characters.Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var buddyTask = buddies.Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(300, 0).Build()));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTask.Concat(buddyTask));
 

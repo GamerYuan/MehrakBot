@@ -106,16 +106,16 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         var updateImageTask = nonNull.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x!.Id)
             .Select(avatar =>
-                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var updateBuddyTask = nonNull
             .Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
-                new ImageProcessorBuilder().Resize(300, 0).Build()));
+                new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
         var bossTask = defenseData.FifthLayerDetail!.LayerChallengeInfoList
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(),
-                new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+                new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade()).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
 

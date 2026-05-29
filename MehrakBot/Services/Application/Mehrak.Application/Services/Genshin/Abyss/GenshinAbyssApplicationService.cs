@@ -112,14 +112,14 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             }))
             .DistinctBy(x => x.Id)
             .Select(async x =>
-                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
+                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
 
         tasks.AddRange(abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
             .Concat(abyssData.EnergySkillRank!)
             .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
             .Select(async x =>
                 await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(0, 150).Build())));
+                    new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken)));
 
         var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
             new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,

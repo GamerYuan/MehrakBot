@@ -104,11 +104,11 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
         var avatarTask =
             characterList.Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var weaponTask =
             characterList.Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
-                    new ImageProcessorBuilder().Resize(200, 0).Build()));
+                    new ImageProcessorBuilder().Resize(200, 0).Build(), cancellationToken));
         var temp = await characterList.ToAsyncEnumerable()
             .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), token))
                 || x.Weapon.Level == 40).ToListAsync(cancellationToken: cancellationToken);
@@ -143,7 +143,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                         if (x.Data.Weapon.Type == 10)
                         {
                             return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
-                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build());
+                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken);
                         }
                         else
                         {
@@ -151,7 +151,8 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                             return m_ImageUpdaterService.UpdateMultiImageAsync(
                                 new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
                                     [x.Data.Weapon.Icon, x.Url.Data!]),
-                                new GenshinWeaponImageProcessor()
+                                new GenshinWeaponImageProcessor(),
+                                cancellationToken
                             );
                         }
                     }).ToListAsync(cancellationToken);
@@ -195,6 +196,10 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
             if (!weapWiki.IsSuccess)
             {
+                if (weapWiki.StatusCode == StatusCode.Cancelled)
+                {
+                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;
             }

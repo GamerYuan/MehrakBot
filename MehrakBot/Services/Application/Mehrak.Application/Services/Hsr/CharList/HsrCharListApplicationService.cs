@@ -90,11 +90,11 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTask = characterList.Select(x => m_ImageUpdaterService
-            .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor));
+            .UpdateImageAsync(x.ToAvatarImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var weaponTask =
             characterList.Where(x => x.Equip is not null).Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.Equip!.ToIconImageData(),
-                    new ImageProcessorBuilder().Resize(150, 0).Build()));
+                    new ImageProcessorBuilder().Resize(150, 0).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTask.Concat(weaponTask));
 

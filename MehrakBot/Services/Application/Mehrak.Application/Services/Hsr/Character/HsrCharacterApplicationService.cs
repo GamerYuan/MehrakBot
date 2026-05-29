@@ -258,17 +258,17 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
-            ImageProcessors.None));
+            ImageProcessors.None, cancellationToken));
         tasks.AddRange(uniqueRelicSet.Where(x => x.Value != null)
             .SelectMany(x => x.Value!.Select((e, i) =>
                 new ImageData(
                     x.Key.ToImageName(x.Key.Pos < 5 ? i + 1 : i + 5),
                     e?["icon_url"]?.GetValue<string>() ?? string.Empty))
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor))));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor, cancellationToken))));
         tasks.AddRange(characterInfo.Relics.Concat(characterInfo.Ornaments)
             .Where(x => !uniqueRelicSetId.Contains(x.GetSetId()))
             .Select(r => new ImageData(r.ToImageName(), r.Icon))
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor)));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x, relicProcessor, cancellationToken)));
 
         if (characterInfo.Equip != null &&
             equipWiki.TryGetValue(characterInfo.Equip.Id.ToString(), out var wikiEntry) &&
@@ -307,21 +307,21 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
                 new ImageData(string.Format(FileNameFormat.Hsr.EquipName, characterInfo.Equip.Id), iconUrl),
-                new ImageProcessorBuilder().Resize(300, 0).Build()));
+                new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
         }
 
         tasks.AddRange(characterInfo.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build())));
+            new ImageProcessorBuilder().Resize(x.PointType == 1 ? 50 : 80, 0).Build(), cancellationToken)));
 
         if (characterInfo.ServantDetail != null)
         {
             tasks.AddRange(characterInfo.ServantDetail.ServantSkills?.Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(80, 0).Build())) ?? []);
+                    new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)) ?? []);
         }
 
         tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(80, 0).Build())));
+            new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)));
 
         var completed = await Task.WhenAll(tasks);
 

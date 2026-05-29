@@ -107,21 +107,21 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
             .Select(avatar =>
-                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var buddyImageTask = assaultData.List.Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
-                new ImageProcessorBuilder().Resize(300, 0).Build()));
+                new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
         var bossImageTask = assaultData.List
             .SelectMany(x => x.Boss)
             .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
-                GetBossImageProcessor()));
+                GetBossImageProcessor(), cancellationToken));
         var buffImageTask = assaultData.List
             .SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(80, 0).Build()));
+                new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken));
 
         var completed =
             await Task.WhenAll(avatarImageTask.Concat(buddyImageTask).Concat(bossImageTask).Concat(buffImageTask));

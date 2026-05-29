@@ -115,7 +115,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         var avatarImageTask = towerData.DisplayAvatarRankList
             .DistinctBy(x => x.AvatarId)
             .Select(avatar =>
-                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
 
         var completed =
             await Task.WhenAll(avatarImageTask);

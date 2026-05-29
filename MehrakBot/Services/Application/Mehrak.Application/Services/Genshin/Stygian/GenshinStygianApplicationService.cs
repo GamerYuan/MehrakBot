@@ -102,13 +102,13 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         }
 
         var avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
-            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+            m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var sideAvatarTasks = stygianData.Challenge!.SelectMany(x => x.BestAvatar).Select(x =>
             m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(0, 150).Build()));
+                new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken));
         var monsterImageTask = stygianData.Challenge!.Select(x => x.Monster)
             .Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build()));
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Build(), cancellationToken));
 
         var completed = await Task.WhenAll(avatarTasks.Concat(sideAvatarTasks).Concat(monsterImageTask));
 

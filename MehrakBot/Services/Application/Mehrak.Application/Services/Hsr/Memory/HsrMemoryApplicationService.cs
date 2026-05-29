@@ -101,7 +101,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
             .DistinctBy(x => x.Id)
             .Select(x =>
-                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+                m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var completed = await Task.WhenAll(tasks);
 
         if (completed.Any(x => !x))

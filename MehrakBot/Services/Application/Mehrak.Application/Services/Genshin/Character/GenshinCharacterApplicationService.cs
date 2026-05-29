@@ -221,15 +221,15 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
 
         tasks.AddRange(m_ImageUpdaterService.UpdateImageAsync(charData.Weapon.ToImageData(),
-            new ImageProcessorBuilder().Resize(200, 0).Build()));
+            new ImageProcessorBuilder().Resize(200, 0).Build(), cancellationToken));
         tasks.AddRange(charData.Constellations.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-            new ImageProcessorBuilder().Resize(90, 0).Build())));
+            new ImageProcessorBuilder().Resize(90, 0).Build(), cancellationToken)));
         tasks.AddRange(charData.Skills.Select(x => m_ImageUpdaterService.UpdateImageAsync(
             x.ToImageData(charData.Base.Id),
-            new ImageProcessorBuilder().Resize(100, 0).Build())));
+            new ImageProcessorBuilder().Resize(100, 0).Build(), cancellationToken)));
         tasks.AddRange(charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
             new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
-                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build())));
+                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build(), cancellationToken)));
 
         if (charImageUrlTask != null)
         {
@@ -243,7 +243,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             var url = charImage.Data;
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Base.ToImageName(), url),
-                ImageProcessors.None));
+                ImageProcessors.None, cancellationToken));
         }
 
         if (weapImageTask != null)
@@ -255,7 +255,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 if (charData.Weapon.Type == 10)
                 {
                     tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data),
-                        new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build()));
+                        new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken));
                 }
                 else
                 {
@@ -263,7 +263,8 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                     await m_ImageUpdaterService.UpdateMultiImageAsync(
                         new MultiImageData(charData.Weapon.ToAscendedImageName(),
                             [charData.Weapon.Icon, weapImage.Data]),
-                        new GenshinWeaponImageProcessor()
+                        new GenshinWeaponImageProcessor(),
+                        cancellationToken
                     );
                 }
             }

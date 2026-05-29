@@ -115,12 +115,12 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
         List<Task<bool>> tasks = [];
         var costumeTasks = characterInfo.Costumes
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None))
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.None, cancellationToken))
             .ToList();
 
         tasks.AddRange(characterInfo.Stigmatas.Where(x => x.Id != 0)
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build())));
-        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build()));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build(), cancellationToken)));
+        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.Weapon.ToImageData(), new ImageProcessorBuilder().Resize(132, 0).Build(), cancellationToken));
 
         await Task.WhenAll(tasks.Concat(costumeTasks));
 

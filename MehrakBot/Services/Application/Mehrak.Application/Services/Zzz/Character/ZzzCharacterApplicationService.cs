@@ -152,12 +152,12 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         if (charInfo.Weapon != null)
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(charInfo.Weapon.ToImageData(),
-                new ImageProcessorBuilder().Resize(150, 0).Build()));
+                new ImageProcessorBuilder().Resize(150, 0).Build(), cancellationToken));
 
         tasks.AddRange(charInfo.Equip.DistinctBy(x => x.EquipSuit)
             .Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(140, 0).Build())));
+                    new ImageProcessorBuilder().Resize(140, 0).Build(), cancellationToken)));
 
         if (charImageUrlTask != null)
         {
@@ -171,7 +171,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
             var url = charImage.Data;
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                url), ImageProcessors.None));
+                url), ImageProcessors.None, cancellationToken));
         }
 
         var completed = await Task.WhenAll(tasks);

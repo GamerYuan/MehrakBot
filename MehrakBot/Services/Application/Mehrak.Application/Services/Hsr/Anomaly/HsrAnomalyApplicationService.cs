@@ -115,18 +115,18 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         tasks.AddRange(bestRecord.MobRecords.SelectMany(x => x.Avatars)
             .Concat(bestRecord.BossRecord?.Avatars ?? [])
             .DistinctBy(x => x.Id)
-            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor)));
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
-            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build()));
+            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build(), cancellationToken));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
-            new ImageProcessorBuilder().Resize(120, 0).Build()));
+            new ImageProcessorBuilder().Resize(120, 0).Build(), cancellationToken));
 
         if (bestRecord.BossRecord != null)
         {
             tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossRecord.Buff.ToImageData(),
-                new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build()));
+                new ImageProcessorBuilder().AddOperation(x => x.CropTransparentPixels()).Build(), cancellationToken));
         }
 
         var completed = await Task.WhenAll(tasks);

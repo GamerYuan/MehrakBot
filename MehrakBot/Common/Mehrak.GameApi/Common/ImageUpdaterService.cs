@@ -24,11 +24,10 @@ public class ImageUpdaterService : IImageUpdaterService
         m_Logger = logger;
     }
 
-    public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor)
+    public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor, CancellationToken cancellationToken = default)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
-            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return true;
         }
 
@@ -41,9 +40,7 @@ public class ImageUpdaterService : IImageUpdaterService
         var client = m_HttpClientFactory.CreateClient();
 
         m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
-        m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, data.Url);
-        var response = await client.GetAsync(data.Url);
-        m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, data.Url);
+        var response = await client.GetAsync(data.Url, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -51,11 +48,10 @@ public class ImageUpdaterService : IImageUpdaterService
             return false;
         }
 
-        await using var stream = await response.Content.ReadAsStreamAsync();
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
         if (processor.ShouldProcess)
         {
-            m_Logger.LogInformation("Processing {Name}", data.Name);
             using var processedStream = processor.ProcessImage(stream);
 
             if (processedStream == Stream.Null || processedStream.Length == 0)
@@ -76,11 +72,10 @@ public class ImageUpdaterService : IImageUpdaterService
         return true;
     }
 
-    public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor)
+    public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor, CancellationToken cancellationToken = default)
     {
         if (await m_ImageRepository.FileExistsAsync(data.Name))
         {
-            m_Logger.LogInformation("{Name} already exists, skipping download", data.Name);
             return true;
         }
 
@@ -92,11 +87,9 @@ public class ImageUpdaterService : IImageUpdaterService
 
         var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
         {
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, HttpMethod.Get, x);
             var r = await client.GetAsync(x, token);
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)r.StatusCode, x);
             return r;
-        }).ToListAsync();
+        }).ToListAsync(cancellationToken);
 
         List<Stream> streams = [];
 

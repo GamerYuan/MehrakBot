@@ -110,7 +110,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
         var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
             .Select(async x =>
-                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor));
+                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
         var sideAvatarTask =
             ((ItRankAvatar[])
             [
@@ -120,11 +120,11 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             ]).DistinctBy(x => x.AvatarId)
             .Select(async x =>
                 await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(0, 150).Build()));
+                    new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken));
         var buffTask = theaterData.Detail.RoundsData.SelectMany(x => x.SplendourBuff!.Buffs)
             .DistinctBy(x => x.Name)
             .Select(async x => await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Build()));
+                new ImageProcessorBuilder().Build(), cancellationToken));
 
         var charListResponse = await m_CharacterApiService.GetAllCharactersAsync(
             new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
