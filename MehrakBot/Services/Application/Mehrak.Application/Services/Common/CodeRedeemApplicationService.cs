@@ -102,7 +102,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
                 sb.Append($"{trimmedCode}: An error occurred while redeeming the code\n");
             }
 
-            if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay);
+            if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay, cancellationToken);
         }
 
         if (successfulCodes.Count > 0)

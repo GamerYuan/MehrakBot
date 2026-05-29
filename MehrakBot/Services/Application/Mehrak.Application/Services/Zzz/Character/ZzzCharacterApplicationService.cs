@@ -217,6 +217,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
             if (!wikiResponse.IsSuccess)
             {
+                if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                {
+                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
                 continue;
             }

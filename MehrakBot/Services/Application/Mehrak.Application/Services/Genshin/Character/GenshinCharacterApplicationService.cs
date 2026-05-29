@@ -318,6 +318,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             if (!charWiki.IsSuccess)
             {
+                if (charWiki.StatusCode == StatusCode.Cancelled)
+                {
+                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
                 continue;
             }
@@ -348,6 +352,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
             if (!weapWiki.IsSuccess)
             {
+                if (weapWiki.StatusCode == StatusCode.Cancelled)
+                {
+                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                }
                 Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;
             }

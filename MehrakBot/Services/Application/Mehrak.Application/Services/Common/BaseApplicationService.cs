@@ -59,6 +59,11 @@ public abstract class BaseApplicationService : IApplicationService
             await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region), cancellationToken);
         if (!gameProfileResult.IsSuccess)
         {
+            if (gameProfileResult.StatusCode == StatusCode.Cancelled)
+            {
+                throw new OperationCanceledException($"Fetching game profile cancelled by User {userId}, Game {game}, Region {region}");
+            }
+
             Logger.LogError(
                 "Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
                 userId, game, region, gameProfileResult);

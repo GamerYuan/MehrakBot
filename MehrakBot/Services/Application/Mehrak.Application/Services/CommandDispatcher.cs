@@ -100,7 +100,7 @@ public class CommandDispatcher : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            command.CompletionSource.TrySetCanceled();
+            command.CompletionSource.TrySetCanceled(command.CancellationToken);
         }
         catch (Exception e)
         {

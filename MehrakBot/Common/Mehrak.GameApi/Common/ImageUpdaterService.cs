@@ -61,12 +61,12 @@ public class ImageUpdaterService : IImageUpdaterService
             }
 
             processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, cancellationToken);
         }
         else
         {
             stream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType);
+            await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType, cancellationToken);
         }
 
         return true;
@@ -104,8 +104,8 @@ public class ImageUpdaterService : IImageUpdaterService
                 return false;
             }
 
-            streams.AddRange(responses.ToAsyncEnumerable().Select(async (x, token) =>
-                await x.Content.ReadAsStreamAsync(token)).ToBlockingEnumerable());
+            streams.AddRange(await responses.ToAsyncEnumerable().Select(async (x, token) =>
+                await x.Content.ReadAsStreamAsync(token)).ToListAsync(cancellationToken: cancellationToken));
 
             using var processedStream = processor.ProcessImage(streams);
 
@@ -117,7 +117,7 @@ public class ImageUpdaterService : IImageUpdaterService
             }
 
             processedStream.Position = 0;
-            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType);
+            await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, cancellationToken);
 
             return true;
         }
