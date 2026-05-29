@@ -46,7 +46,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var cacheKey = $"genshin_characters_{context.GameUid}";
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, timeoutCts.Token);
@@ -147,7 +147,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 

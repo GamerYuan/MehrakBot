@@ -45,7 +45,7 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var endpoint = context.GameMode switch
             {

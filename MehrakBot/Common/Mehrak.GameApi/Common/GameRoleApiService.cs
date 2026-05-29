@@ -39,7 +39,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var cacheKey = $"gameProfile:{context.UserId}:{context.LtUid}";
 

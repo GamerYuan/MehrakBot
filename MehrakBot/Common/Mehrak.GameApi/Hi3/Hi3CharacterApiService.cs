@@ -45,7 +45,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
             var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey, timeoutCts.Token);

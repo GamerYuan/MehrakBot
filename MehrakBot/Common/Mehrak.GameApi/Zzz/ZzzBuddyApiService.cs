@@ -38,7 +38,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             var cacheKey = $"zzz_buddies_{context.GameUid}";
             var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, timeoutCts.Token);

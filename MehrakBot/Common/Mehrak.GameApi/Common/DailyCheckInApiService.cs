@@ -55,7 +55,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 

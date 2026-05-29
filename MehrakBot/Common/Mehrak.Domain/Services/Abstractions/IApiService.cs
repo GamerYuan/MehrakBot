@@ -7,7 +7,12 @@ using Mehrak.Domain.Models.Abstractions;
 
 namespace Mehrak.Domain.Services.Abstractions;
 
-public interface IApiService<TResult, TContext> where TContext : IApiContext
+public interface IApiService
+{
+    const int MaxTimeoutSeconds = 30;
+}
+
+public interface IApiService<TResult, TContext> : IApiService where TContext : IApiContext
 {
     Task<Result<TResult>> GetAsync(TContext context, CancellationToken cancellationToken = default);
 }
