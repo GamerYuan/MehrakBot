@@ -753,7 +753,7 @@ public class HsrCharacterApplicationServiceTests
         imageRepositoryMock1.Setup(x => x.FileExistsAsync(It.Is<string>(x => x.Contains("21004"))))
             .ReturnsAsync(true);
         imageUpdaterMock1.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
-            .Returns((IImageData data, IImageProcessor _) =>
+            .Returns((IImageData data, IImageProcessor _, CancellationToken _) =>
             {
                 existingFiles.Add(data.Name);
                 return Task.FromResult(true);
@@ -793,8 +793,8 @@ public class HsrCharacterApplicationServiceTests
 
         imageRepositoryMock2.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
             .ReturnsAsync((string name, CancellationToken _) => existingFiles.Contains(name));
-        imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .Returns((IImageData data, IImageProcessor _) =>
+        imageUpdaterMock2.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .Returns((IImageData data, IImageProcessor _, CancellationToken _) =>
             {
                 existingFiles.Add(data.Name);
                 return Task.FromResult(true);

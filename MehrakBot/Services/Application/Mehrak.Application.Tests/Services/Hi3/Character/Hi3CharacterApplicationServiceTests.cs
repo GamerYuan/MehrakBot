@@ -209,8 +209,8 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
 
         var nonBaseCostumeImageName = character.Costumes[0].ToImageName();
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync((IImageData imageData, IImageProcessor _) => imageData.Name != nonBaseCostumeImageName);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IImageData imageData, IImageProcessor _, CancellationToken _) => imageData.Name != nonBaseCostumeImageName);
 
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
             .ReturnsAsync(new MemoryStream());
@@ -243,11 +243,11 @@ public class Hi3CharacterApplicationServiceTests
 
         var character = await LoadTestCharacterAsync("Character_TestData_1.json");
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success(new[] { character }));
+            .ReturnsAsync(Result<IEnumerable<Hi3CharacterDetail>>.Success([character]));
 
         var baseCostumeImageName = character.Costumes[^1].ToImageName();
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync((IImageData imageData, IImageProcessor _) => imageData.Name != baseCostumeImageName);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IImageData imageData, IImageProcessor _, CancellationToken _) => imageData.Name != baseCostumeImageName);
 
         var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));
 
