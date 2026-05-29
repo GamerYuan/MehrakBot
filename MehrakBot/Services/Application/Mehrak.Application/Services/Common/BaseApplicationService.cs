@@ -39,9 +39,13 @@ public abstract class BaseApplicationService : IApplicationService
         {
             return await ExecuteCommandAsync(context, cancellationToken);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
         }
         catch (Exception ex)
         {
@@ -52,30 +56,25 @@ public abstract class BaseApplicationService : IApplicationService
 
     protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default);
 
-    protected async Task<GameProfileDto?> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
+    protected async Task<Result<GameProfileDto>> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
         string region, CancellationToken cancellationToken = default)
     {
         var gameProfileResult =
             await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region), cancellationToken);
         if (!gameProfileResult.IsSuccess)
         {
-            if (gameProfileResult.StatusCode == StatusCode.Cancelled)
+            if (gameProfileResult.StatusCode is StatusCode.Cancelled or StatusCode.Timeout)
             {
-                throw new OperationCanceledException($"Fetching game profile cancelled by User {userId}, Game {game}, Region {region}");
-            }
-
-            if (gameProfileResult.StatusCode == StatusCode.Timeout)
-            {
-                throw new OperationCanceledException($"Fetching game profile timed out for User {userId}, Game {game}, Region {region}");
+                return Result<GameProfileDto>.Failure(gameProfileResult.StatusCode, gameProfileResult.ErrorMessage);
             }
 
             Logger.LogError(
                 "Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
                 userId, game, region, gameProfileResult);
-            return null;
+            return Result<GameProfileDto>.Failure(StatusCode.Unauthorized);
         }
 
-        return gameProfileResult.Data;
+        return Result<GameProfileDto>.Success(gameProfileResult.Data);
     }
 
     protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server)
@@ -143,13 +142,19 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
     {
         for (int attempt = 1; attempt <= 3; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 return await ExecuteCommandAsync(context, cancellationToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+            }
+            catch (OperationCanceledException)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             catch (ImageNotFoundException ex)
             {

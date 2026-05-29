@@ -88,14 +88,18 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 isEphemeral: true);
         }
 
-        var profile =
+        var profileResult =
             await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
-
-        if (profile == null)
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
         await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
@@ -236,6 +240,8 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             var charImage = await charImageUrlTask;
             if (!charImage.IsSuccess)
             {
+                if (charImage.StatusCode == StatusCode.Timeout)
+                    return Result<string>.Failure(StatusCode.Timeout, ResponseMessage.TimeoutError);
                 Logger.LogError("Failed to fetch Character {Character} image from wiki", charData.Base.Name);
                 return Result<string>.Failure(StatusCode.ExternalServerError,
                     string.Format(ResponseMessage.ApiError, "Character Image"));
@@ -320,7 +326,11 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             {
                 if (charWiki.StatusCode == StatusCode.Cancelled)
                 {
-                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                    throw new OperationCanceledException(charWiki.ErrorMessage ?? "Character wiki request was cancelled");
+                }
+                if (charWiki.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, charWiki.ErrorMessage ?? "Character wiki request timed out");
                 }
                 Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
                 continue;
@@ -354,7 +364,11 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             {
                 if (weapWiki.StatusCode == StatusCode.Cancelled)
                 {
-                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                    throw new OperationCanceledException(weapWiki.ErrorMessage ?? "Weapon wiki request was cancelled");
+                }
+                if (weapWiki.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, weapWiki.ErrorMessage ?? "Weapon wiki request timed out");
                 }
                 Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;

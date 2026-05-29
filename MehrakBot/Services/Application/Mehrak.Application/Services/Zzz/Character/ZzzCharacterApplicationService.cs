@@ -69,14 +69,18 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
-
-        if (profile == null)
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
         await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString());
 
@@ -164,6 +168,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             var charImage = await charImageUrlTask;
             if (!charImage.IsSuccess)
             {
+                if (charImage.StatusCode == StatusCode.Timeout)
+                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
                 Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
                     string.Format(ResponseMessage.ApiError, "Character Image"));
@@ -219,7 +225,11 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             {
                 if (wikiResponse.StatusCode == StatusCode.Cancelled)
                 {
-                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                    throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Character wiki request was cancelled");
+                }
+                if (wikiResponse.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Character wiki request timed out");
                 }
                 Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
                 continue;

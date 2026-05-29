@@ -64,14 +64,18 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profile =
+        var profileResult =
             await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
-
-        if (profile == null)
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
         await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString());
 
@@ -132,7 +136,10 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                         {
                             return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
                         }
-                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], token));
+                        var urlResult = await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], token);
+                        if (urlResult.StatusCode == StatusCode.Timeout)
+                            throw new OperationCanceledException(urlResult.ErrorMessage ?? "Weapon wiki request timed out");
+                        return (Data: x, Url: urlResult);
                     })
                     .Where(x => x.Url.IsSuccess)
                     .Select(x =>
@@ -198,7 +205,11 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             {
                 if (weapWiki.StatusCode == StatusCode.Cancelled)
                 {
-                    return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                    throw new OperationCanceledException(weapWiki.ErrorMessage ?? "Weapon wiki request was cancelled");
+                }
+                if (weapWiki.StatusCode == StatusCode.Timeout)
+                {
+                    return Result<string>.Failure(StatusCode.Timeout, weapWiki.ErrorMessage ?? "Weapon wiki request timed out");
                 }
                 Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
                 continue;

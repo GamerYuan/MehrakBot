@@ -83,14 +83,18 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var profile = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
-
-        if (profile == null)
+        if (!profileResult.IsSuccess)
         {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
+        var profile = profileResult.Data;
 
         await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString());
 
@@ -152,6 +156,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
+            }
+            else if (result.StatusCode == StatusCode.Timeout)
+            {
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             }
             else
             {
@@ -225,9 +233,9 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                                 entryPage, locale), cancellationToken);
                         if (!wikiResponse.IsSuccess)
                         {
-                            if (wikiResponse.StatusCode == StatusCode.Cancelled)
+                            if (wikiResponse.StatusCode is StatusCode.Timeout or StatusCode.Cancelled)
                             {
-                                throw new OperationCanceledException("Relic wiki request was cancelled");
+                                throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Relic wiki request failed");
                             }
                             Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
                             continue;
@@ -291,7 +299,11 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 {
                     if (wikiResponse.StatusCode == StatusCode.Cancelled)
                     {
-                        return Result<string>.Failure(StatusCode.Cancelled, "Request was cancelled");
+                        throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Equip wiki request was cancelled");
+                    }
+                    if (wikiResponse.StatusCode == StatusCode.Timeout)
+                    {
+                        return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Equip wiki request timed out");
                     }
                     Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
                     continue;

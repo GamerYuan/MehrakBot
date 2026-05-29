@@ -126,9 +126,13 @@ public class DailyCheckInService : IApplicationService
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
             return CommandResult.Success([new CommandText(resultContent)]);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+        }
+        catch (OperationCanceledException)
+        {
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
         }
         catch (Exception e)
         {
