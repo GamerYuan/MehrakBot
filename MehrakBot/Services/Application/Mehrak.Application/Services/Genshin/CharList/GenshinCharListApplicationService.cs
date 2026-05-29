@@ -110,8 +110,8 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                 m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
                     new ImageProcessorBuilder().Resize(200, 0).Build()));
         var temp = await characterList.ToAsyncEnumerable()
-            .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName()))
-                || x.Weapon.Level == 40).ToListAsync();
+            .Where(async (x, token) => (x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), token))
+                || x.Weapon.Level == 40).ToListAsync(cancellationToken: cancellationToken);
 
         var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
         var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
@@ -126,13 +126,13 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                 var result = await charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
                     .DistinctBy(x => x.Weapon.Id)
                     .ToAsyncEnumerable()
-                    .Select(async (GenshinCharacterInformation x, CancellationToken token) =>
+                    .Select(async (x, token) =>
                     {
                         if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
                         {
                             return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
                         }
-                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], cancellationToken));
+                        return (Data: x, Url: await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], token));
                     })
                     .Where(x => x.Url.IsSuccess)
                     .Select(x =>
@@ -154,7 +154,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                                 new GenshinWeaponImageProcessor()
                             );
                         }
-                    }).ToListAsync();
+                    }).ToListAsync(cancellationToken);
 
                 await Task.WhenAll(result);
             }

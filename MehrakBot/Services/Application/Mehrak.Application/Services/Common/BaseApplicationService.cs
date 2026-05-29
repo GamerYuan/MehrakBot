@@ -39,6 +39,10 @@ public abstract class BaseApplicationService : IApplicationService
         {
             return await ExecuteCommandAsync(context, cancellationToken);
         }
+        catch (OperationCanceledException)
+        {
+            return CommandResult.Success([new CommandText("Command execution cancelled")]);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
@@ -132,6 +136,10 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
             try
             {
                 return await ExecuteCommandAsync(context, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return CommandResult.Success([new CommandText("Command execution cancelled")]);
             }
             catch (ImageNotFoundException ex)
             {

@@ -49,7 +49,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             }
 
             var semaphore = GetOrCreateLock(cacheKey);
-            await semaphore.WaitAsync();
+            await semaphore.WaitAsync(cancellationToken);
 
             try
             {
@@ -114,7 +114,8 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
     }
 
-    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context, CancellationToken cancellationToken = default)
+    private async Task<Result<GameProfileDto>> FetchAndCacheGameRoleAsync(string cacheKey, GameRoleApiContext context,
+        CancellationToken cancellationToken = default)
     {
         var requestUri = $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}";
 
@@ -196,7 +197,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
     }
 
-    private GameProfileDto? MapToGameProfileDto(GameProfile? profile)
+    private static GameProfileDto? MapToGameProfileDto(GameProfile? profile)
     {
         if (profile == null)
             return null;

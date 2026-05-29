@@ -98,6 +98,10 @@ public class CommandDispatcher : BackgroundService
             var result = await service.ExecuteAsync(appContext, command.CancellationToken);
             command.CompletionSource.TrySetResult(result);
         }
+        catch (OperationCanceledException)
+        {
+            command.CompletionSource.TrySetCanceled();
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, "An error occurred while dispatching command {CommandName} for user {UserId}",
