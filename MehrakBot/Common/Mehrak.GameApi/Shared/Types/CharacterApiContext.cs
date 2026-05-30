@@ -1,4 +1,4 @@
-﻿namespace Mehrak.GameApi.Common.Types;
+﻿namespace Mehrak.GameApi.Shared.Types;
 
 public class CharacterApiContext : BaseHoYoApiContext
 {

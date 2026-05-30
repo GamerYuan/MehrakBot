@@ -9,14 +9,15 @@ using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.Infrastructure.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace Mehrak.GameApi.Common;
+namespace Mehrak.GameApi.GameRole;
 
 public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext>
 {

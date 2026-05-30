@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 #endregion
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.Shared.Types;
 
 public class ApiResponse<T> where T : class
 {

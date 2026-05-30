@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace Mehrak.GameApi.Common;
+namespace Mehrak.GameApi.Shared;
 
 public class ImageUpdaterService : IImageUpdaterService
 {

@@ -4,12 +4,12 @@ using System.Text.Json.Nodes;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Shared;
 using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace Mehrak.GameApi.Common;
+namespace Mehrak.GameApi.Wiki;
 
 public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 {

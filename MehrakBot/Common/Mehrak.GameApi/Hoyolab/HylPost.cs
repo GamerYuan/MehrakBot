@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.Hoyolab;
 
 public class HylPostWrapper
 {

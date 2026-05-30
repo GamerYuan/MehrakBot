@@ -7,12 +7,13 @@ using System.Text.Json.Serialization;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 #endregion
 
-namespace Mehrak.GameApi.Common;
+namespace Mehrak.GameApi.DailyCheckIn;
 
 public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiContext>
 {

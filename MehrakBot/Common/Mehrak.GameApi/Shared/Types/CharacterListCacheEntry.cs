@@ -5,7 +5,7 @@ using Mehrak.Domain.Cache.Abstractions;
 
 #endregion
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.Shared.Types;
 
 public class CharacterListCacheEntry<T> : ICacheEntry<IEnumerable<T>>
 {

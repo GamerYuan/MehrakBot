@@ -1,4 +1,4 @@
-﻿namespace Mehrak.GameApi.Common;
+﻿namespace Mehrak.GameApi.Shared;
 
 /// <summary>
 /// Centralized log messages for API services

@@ -4,7 +4,7 @@ using Mehrak.Domain.Shared.Abstractions;
 
 #endregion
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.GameRecord;
 
 public class GameRecordApiContext : IApiContext
 {

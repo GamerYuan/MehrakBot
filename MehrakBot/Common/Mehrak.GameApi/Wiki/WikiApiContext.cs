@@ -5,7 +5,7 @@ using Mehrak.Domain.Shared.Enums;
 
 #endregion
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.Wiki;
 
 public class WikiApiContext : IApiContext
 {

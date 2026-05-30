@@ -12,7 +12,8 @@ using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.GameRole;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.Context;
 

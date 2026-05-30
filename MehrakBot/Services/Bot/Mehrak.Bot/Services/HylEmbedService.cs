@@ -4,7 +4,7 @@ using Mehrak.Bot.Models;
 using Mehrak.Bot.Services.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.GameApi.Hoyolab;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;

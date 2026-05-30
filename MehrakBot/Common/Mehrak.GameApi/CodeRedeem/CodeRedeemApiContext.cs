@@ -1,10 +1,11 @@
 ﻿#region
 
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.GameApi.Shared.Types;
 
 #endregion
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.CodeRedeem;
 
 public class CodeRedeemApiContext : BaseHoYoApiContext
 {

@@ -1,7 +1,7 @@
 ﻿using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 
-namespace Mehrak.GameApi.Common.Types;
+namespace Mehrak.GameApi.Hoyolab;
 
 public class HylPostApiContext : IApiContext
 {
