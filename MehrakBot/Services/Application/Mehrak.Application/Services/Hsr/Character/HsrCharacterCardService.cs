@@ -11,7 +11,7 @@ using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Relic;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;

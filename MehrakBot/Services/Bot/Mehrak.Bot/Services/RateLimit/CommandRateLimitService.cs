@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;

@@ -15,7 +15,7 @@ using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Shared;
 using Mehrak.GameApi.Shared.Types;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;

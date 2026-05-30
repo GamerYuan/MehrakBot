@@ -1,7 +1,7 @@
 ﻿using Mehrak.Dashboard.Models;
 using Mehrak.Domain.Shared.Enums;
-using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.CodeRedeem;
+using Mehrak.Infrastructure.CodeRedeem.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

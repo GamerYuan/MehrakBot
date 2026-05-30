@@ -1,4 +1,4 @@
-﻿using Mehrak.Infrastructure.Config;
+﻿using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 

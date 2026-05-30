@@ -2,8 +2,8 @@
 
 using Amazon.S3;
 using Mehrak.Domain.Image;
-using Mehrak.Infrastructure.Config;
-using Mehrak.Infrastructure.Repositories;
+using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.Infrastructure.Shared.Storage;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

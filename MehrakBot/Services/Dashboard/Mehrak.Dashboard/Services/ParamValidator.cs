@@ -1,6 +1,4 @@
-﻿using Mehrak.Domain.Services.Abstractions;
-
-namespace Mehrak.Dashboard.Services;
+﻿namespace Mehrak.Dashboard.Services;
 
 internal abstract class ParamValidator
 {

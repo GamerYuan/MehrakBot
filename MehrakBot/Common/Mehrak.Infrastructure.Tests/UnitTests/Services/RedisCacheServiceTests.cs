@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Mehrak.Domain.Cache.Abstractions;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Shared.Cache;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Moq;

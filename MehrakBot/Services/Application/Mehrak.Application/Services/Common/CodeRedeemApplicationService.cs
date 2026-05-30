@@ -11,8 +11,9 @@ using Mehrak.Domain.User.Models;
 using Mehrak.Domain.Utility;
 using Mehrak.GameApi.CodeRedeem;
 using Mehrak.GameApi.GameRole;
+using Mehrak.Infrastructure.CodeRedeem;
+using Mehrak.Infrastructure.CodeRedeem.Models;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 
 #endregion

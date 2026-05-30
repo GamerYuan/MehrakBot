@@ -23,7 +23,7 @@ using Mehrak.GameApi.Wiki;
 using Mehrak.GameApi.Zzz;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

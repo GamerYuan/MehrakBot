@@ -10,7 +10,7 @@ using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Context;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetCord;

@@ -1,5 +1,5 @@
 ﻿using Mehrak.Bot.Services.RateLimit;
-using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;

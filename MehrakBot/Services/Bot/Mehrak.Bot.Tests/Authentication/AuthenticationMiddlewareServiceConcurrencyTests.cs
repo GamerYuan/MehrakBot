@@ -7,7 +7,7 @@ using Mehrak.Bot.Authentication;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Infrastructure.Models;
-using Mehrak.Infrastructure.Services;
+using Mehrak.Infrastructure.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord.Services;

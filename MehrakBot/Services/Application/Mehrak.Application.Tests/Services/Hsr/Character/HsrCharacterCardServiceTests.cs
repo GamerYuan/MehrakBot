@@ -7,7 +7,7 @@ using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Hsr.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Relic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;

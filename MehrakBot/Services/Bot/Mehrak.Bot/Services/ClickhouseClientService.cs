@@ -1,7 +1,7 @@
 ﻿using System.Data.Common;
 using ClickHouse.Driver.ADO;
 using Mehrak.Domain.Shared.Models;
-using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Options;
 
 namespace Mehrak.Bot.Services;

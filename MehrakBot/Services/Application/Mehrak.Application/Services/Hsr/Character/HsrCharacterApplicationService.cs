@@ -9,6 +9,7 @@ using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -21,6 +22,7 @@ using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.Relic;
 using Microsoft.EntityFrameworkCore;
 
 #endregion
