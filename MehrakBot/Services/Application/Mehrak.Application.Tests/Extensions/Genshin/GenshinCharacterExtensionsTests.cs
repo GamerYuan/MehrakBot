@@ -1,5 +1,5 @@
 ﻿using System.Globalization;
-using Mehrak.Application.Extensions.Genshin;
+using Mehrak.Application.Genshin.Extensions;
 using Mehrak.GameApi.Genshin.Types;
 
 namespace Mehrak.Application.Tests.Extensions.Genshin;

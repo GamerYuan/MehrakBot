@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Genshin.Stygian;
+using Mehrak.Application.Genshin.Stygian;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Command.Models;
@@ -528,7 +528,7 @@ public class GenshinStygianApplicationServiceTests
         var cardService = new GenshinStygianCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
 
@@ -580,7 +580,7 @@ public class GenshinStygianApplicationServiceTests
         var cardService = new GenshinStygianCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinStygianCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

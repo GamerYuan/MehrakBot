@@ -2,8 +2,8 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Hsr.EndGame;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Command.Models;

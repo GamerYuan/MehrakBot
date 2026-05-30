@@ -1,8 +1,9 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Genshin.CharList;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -31,7 +32,7 @@ public class GenshinCharListCardServiceTests
         m_Service = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>(),
-            Mock.Of<Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         await m_Service.InitializeAsync();
     }

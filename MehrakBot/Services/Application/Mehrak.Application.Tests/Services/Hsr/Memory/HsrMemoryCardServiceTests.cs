@@ -1,8 +1,9 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Hsr.Memory;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Hsr.Memory;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -31,7 +32,7 @@ public class HsrMemoryCardServiceTests
         m_Service = new HsrMemoryCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

@@ -2,8 +2,8 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Genshin.Character;
+using Mehrak.Application.Genshin.Character;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;

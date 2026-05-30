@@ -2,8 +2,9 @@
 
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Zzz.Character;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
+using Mehrak.Application.Zzz.Character;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Zzz.Types;
@@ -31,7 +32,7 @@ public class ZzzCharacterCardServiceTests
         m_Service = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

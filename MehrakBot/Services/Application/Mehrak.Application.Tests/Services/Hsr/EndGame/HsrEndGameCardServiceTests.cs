@@ -2,8 +2,9 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mehrak.Application.Hsr.EndGame;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Hsr.EndGame;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -32,7 +33,7 @@ public class HsrPureFictionCardServiceTests
         m_Service = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrPureFictionCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 
@@ -139,7 +140,7 @@ public class HsrApocalypticShadowCardServiceTests
         m_Service = new HsrApocalypticShadowCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

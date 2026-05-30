@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Genshin.Abyss;
+using Mehrak.Application.Genshin.Abyss;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
@@ -560,7 +560,7 @@ public class GenshinAbyssApplicationServiceTests
         var cardService = new GenshinAbyssCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
         var characterApiMock =
@@ -619,7 +619,7 @@ public class GenshinAbyssApplicationServiceTests
     {
         var cardService = new GenshinAbyssCardService(S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

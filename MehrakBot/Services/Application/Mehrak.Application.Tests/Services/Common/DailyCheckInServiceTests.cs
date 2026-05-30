@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Common;
+using Mehrak.Application.DailyCheckIn;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;

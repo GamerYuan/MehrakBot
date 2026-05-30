@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Services.Genshin.Theater;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -31,7 +32,7 @@ public class GenshinTheaterCardServiceTests
         m_Service = new GenshinTheaterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

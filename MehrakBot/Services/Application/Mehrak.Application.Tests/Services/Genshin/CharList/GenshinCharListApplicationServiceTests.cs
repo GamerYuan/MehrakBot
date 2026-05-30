@@ -2,8 +2,8 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Genshin.CharList;
+using Mehrak.Application.Genshin.CharList;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
@@ -680,7 +680,7 @@ public class GenshinCharListApplicationServiceTests
         var cardService = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var characterApiMock = new Mock<ICharacterApiService<GenshinBasicCharacterData,
             GenshinCharacterDetail, GenshinCharacterApiContext>>();
@@ -737,7 +737,7 @@ public class GenshinCharListApplicationServiceTests
         var cardService = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

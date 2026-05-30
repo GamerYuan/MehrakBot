@@ -1,4 +1,4 @@
-﻿using Mehrak.Application.Services.Genshin.Types;
+﻿using Mehrak.Application.Genshin;
 using OpenCvSharp;
 
 namespace Mehrak.Application.Tests.Services.Genshin.Types;

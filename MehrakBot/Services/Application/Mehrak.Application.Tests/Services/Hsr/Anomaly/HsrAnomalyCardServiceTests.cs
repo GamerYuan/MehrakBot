@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
+using Mehrak.Application.Hsr.Anomaly;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Hsr.Anomaly;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -27,7 +28,7 @@ internal class HsrAnomalyCardServiceTests
         m_Service = new HsrAnomalyCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrAnomalyCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();
     }
 

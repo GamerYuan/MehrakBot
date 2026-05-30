@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Hsr.Anomaly;
+using Mehrak.Application.Hsr.Anomaly;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;

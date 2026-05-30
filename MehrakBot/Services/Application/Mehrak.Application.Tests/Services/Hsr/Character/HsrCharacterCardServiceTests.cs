@@ -1,8 +1,9 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Hsr.Character;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.Extensions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -152,7 +153,7 @@ public class HsrCharacterCardServiceTests
             S3TestHelper.Instance.ImageRepository,
             scopeFactory,
             Mock.Of<ILogger<HsrCharacterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
         await characterCardService.InitializeAsync();
 
         return (relicContext, characterCardService);

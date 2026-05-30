@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Hsr.CharList;
+using Mehrak.Application.Hsr.CharList;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;

@@ -2,9 +2,9 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Common.Types;
-using Mehrak.Application.Services.Hi3.Character;
+using Mehrak.Application.Hi3.Character;
+using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;

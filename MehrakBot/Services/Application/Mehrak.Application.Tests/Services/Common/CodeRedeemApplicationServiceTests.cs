@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Common;
+using Mehrak.Application.CodeRedeem;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;

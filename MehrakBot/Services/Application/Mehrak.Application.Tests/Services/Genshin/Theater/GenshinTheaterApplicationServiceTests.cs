@@ -1,8 +1,8 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Application.Services.Abstractions;
 using Mehrak.Application.Services.Genshin.Theater;
+using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
@@ -552,7 +552,7 @@ public class GenshinTheaterApplicationServiceTests
         var cardService = new GenshinTheaterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var theaterApiMock = new Mock<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>>();
         var characterApiMock =
@@ -611,7 +611,7 @@ public class GenshinTheaterApplicationServiceTests
         var cardService = new GenshinTheaterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinTheaterCardService>>(),
-            Mock.Of<Mehrak.Application.Services.Abstractions.IApplicationMetrics>());
+            Mock.Of<IApplicationMetrics>());
 
         var httpClientFactory = new Mock<IHttpClientFactory>();
         httpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());

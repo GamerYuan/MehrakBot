@@ -1,5 +1,5 @@
-﻿using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Zzz.CharList;
+﻿using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Zzz.CharList;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Command.Models;
