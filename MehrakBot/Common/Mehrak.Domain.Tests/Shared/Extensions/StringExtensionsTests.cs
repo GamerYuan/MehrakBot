@@ -1,6 +1,6 @@
 ﻿using Mehrak.Domain.Shared.Extensions;
 
-namespace Mehrak.Domain.Tests.Extensions;
+namespace Mehrak.Domain.Tests.Shared.Extensions;
 
 [TestFixture]
 public class StringExtensionsTests
