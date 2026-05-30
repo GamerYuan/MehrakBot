@@ -3,7 +3,6 @@
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Image.Models;
-using Mehrak.Domain.Models;
 
 #endregion
 

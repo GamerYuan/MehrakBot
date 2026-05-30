@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json.Nodes;
+using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -101,3 +102,20 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
         };
     }
 }
+
+public class WikiApiContext : IApiContext
+{
+    public ulong UserId { get; }
+    public Game Game { get; }
+    public string EntryPage { get; }
+    public WikiLocales Locale { get; }
+
+    public WikiApiContext(ulong userId, Game game, string entryPage, WikiLocales locale = WikiLocales.EN)
+    {
+        UserId = userId;
+        Game = game;
+        EntryPage = entryPage;
+        Locale = locale;
+    }
+}
+

@@ -1,7 +1,9 @@
 ﻿#region
 
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -110,5 +112,54 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 $"{HoYoLabDomains.PublicApi}{GameRecordApiPath}", context.UserId);
             return Result<IEnumerable<GameRecordDto>>.Failure(StatusCode.BotError, "An error occurred");
         }
+    }
+
+    private sealed class UserData
+    {
+        [JsonPropertyName("list")] public required List<GameData> List { get; set; }
+    }
+
+    private sealed class GameDataEntry
+    {
+        [JsonPropertyName("name")] public required string Name { get; set; }
+
+        [JsonPropertyName("type")] public int Type { get; set; }
+
+        [JsonPropertyName("value")] public required string Value { get; set; }
+    }
+
+    private sealed class GameData
+    {
+        [JsonPropertyName("has_role")] public bool? HasRole { get; set; }
+
+        [JsonPropertyName("game_id")] public int? GameId { get; set; }
+
+        [JsonPropertyName("game_role_id")] public required string GameRoleId { get; set; }
+
+        [JsonPropertyName("nickname")] public required string Nickname { get; set; }
+
+        [JsonPropertyName("region")] public required string Region { get; set; }
+
+        [JsonPropertyName("level")] public int? Level { get; set; }
+
+        [JsonPropertyName("data")] public required List<GameDataEntry> Data { get; set; }
+
+        [JsonPropertyName("region_name")] public required string RegionName { get; set; }
+
+        [JsonPropertyName("game_name")] public required string GameName { get; set; }
+    }
+}
+
+public class GameRecordApiContext : IApiContext
+{
+    public ulong UserId { get; }
+    public ulong LtUid { get; }
+    public string LToken { get; }
+
+    public GameRecordApiContext(ulong userId, ulong ltuid, string ltoken)
+    {
+        UserId = userId;
+        LtUid = ltuid;
+        LToken = ltoken;
     }
 }

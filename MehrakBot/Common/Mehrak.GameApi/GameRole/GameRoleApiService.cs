@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Cache;
+using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -224,5 +225,42 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
     private sealed class GameProfileResponse
     {
         [JsonPropertyName("list")] public List<GameProfile> List { get; set; } = [];
+    }
+
+    private sealed class GameProfile
+    {
+        [JsonPropertyName("game_biz")] public string? GameBiz { get; init; }
+
+        [JsonPropertyName("region")] public string? Region { get; init; }
+
+        [JsonPropertyName("game_uid")] public string? GameUid { get; init; }
+
+        [JsonPropertyName("nickname")] public string? Nickname { get; init; }
+
+        [JsonPropertyName("level")] public int? Level { get; init; }
+
+        [JsonPropertyName("is_chosen")] public bool? IsChosen { get; init; }
+
+        [JsonPropertyName("region_name")] public string? RegionName { get; init; }
+
+        [JsonPropertyName("is_official")] public bool? IsOfficial { get; init; }
+    }
+}
+
+public class GameRoleApiContext : IApiContext
+{
+    public ulong UserId { get; }
+    public ulong LtUid { get; }
+    public string LToken { get; }
+    public Game Game { get; }
+    public string Region { get; }
+
+    public GameRoleApiContext(ulong userId, ulong ltuid, string ltoken, Game game, string region)
+    {
+        UserId = userId;
+        LtUid = ltuid;
+        LToken = ltoken;
+        Game = game;
+        Region = region;
     }
 }
