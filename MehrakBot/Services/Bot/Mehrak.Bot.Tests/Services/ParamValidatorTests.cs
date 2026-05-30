@@ -1,6 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Services;
+using Mehrak.Bot.Shared.Models;
+using Mehrak.Bot.Shared.Services;
 using Moq;
 
 #endregion

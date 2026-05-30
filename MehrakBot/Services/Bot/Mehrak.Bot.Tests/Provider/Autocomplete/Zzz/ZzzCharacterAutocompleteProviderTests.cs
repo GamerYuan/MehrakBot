@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Bot.Provider;
-using Mehrak.Bot.Provider.Autocomplete.Zzz;
+using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Zzz;
 using Mehrak.Domain.Shared.Enums;
 using Moq;
 using NetCord;

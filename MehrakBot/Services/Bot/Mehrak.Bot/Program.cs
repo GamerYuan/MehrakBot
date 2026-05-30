@@ -1,9 +1,9 @@
 ﻿#region
 
 using System.Globalization;
-using Mehrak.Bot.Modules;
-using Mehrak.Bot.Services;
-using Mehrak.Bot.Services.RateLimit;
+using Mehrak.Bot.RateLimit;
+using Mehrak.Bot.Shared.Modules;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Character;

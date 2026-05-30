@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Bot.Extensions;
+using Mehrak.Bot.Shared.Extensions;
 using Mehrak.Domain.Command.Models;
 using NetCord;
 using NetCord.Rest;

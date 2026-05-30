@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Bot.Services;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Enums;
 using Moq;

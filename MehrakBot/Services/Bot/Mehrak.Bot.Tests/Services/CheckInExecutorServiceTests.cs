@@ -1,9 +1,8 @@
 ﻿#region
 
 using Grpc.Core;
-using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Services;
-using Mehrak.Bot.Services.Abstractions;
+using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;

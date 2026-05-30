@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Models;
