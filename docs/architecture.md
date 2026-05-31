@@ -37,12 +37,12 @@ The Application service enqueues the request, resolves the keyed `IApplicationSe
 
 The following path documents the concrete execution flow across the files below:
 
-- `Mehrak.Bot/Modules/GenshinCommandModule.cs`
-- `Mehrak.Bot/Services/CommandExecutorService.cs`
-- `Mehrak.Application/Services/GrpcApplicationService.cs`
-- `Mehrak.Application/Services/CommandDispatcher.cs`
-- `Mehrak.Application/Services/Genshin/Character/GenshinCharacterApplicationService.cs`
-- `Mehrak.Application/Services/Genshin/Character/GenshinCharacterCardService.cs`
+- `Mehrak.Bot/Genshin/GenshinCommandModule.cs`
+- `Mehrak.Bot/Shared/Services/CommandExecutorService.cs`
+- `Mehrak.Application/Shared/Services/GrpcApplicationService.cs`
+- `Mehrak.Application/Shared/Services/CommandDispatcher.cs`
+- `Mehrak.Application/Genshin/Character/GenshinCharacterApplicationService.cs`
+- `Mehrak.Application/Genshin/Character/GenshinCharacterCardService.cs`
 
 ### Sequence Diagram
 

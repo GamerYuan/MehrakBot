@@ -4,9 +4,9 @@ This document explains how to implement command handlers in `Mehrak.Application`
 
 References used in this guide:
 
-- `Mehrak.Application/Services/Genshin/Character/GenshinCharacterApplicationService.cs`
-- `Mehrak.Application/Services/Genshin/RealTimeNotes/GenshinRealTimeNotesApplicationService.cs`
-- `Mehrak.Application/Services/Common/BaseApplicationService.cs`
+- `Mehrak.Application/Genshin/Character/GenshinCharacterApplicationService.cs`
+- `Mehrak.Application/Genshin/RealTimeNotes/GenshinRealTimeNotesApplicationService.cs`
+- `Mehrak.Application/Shared/Services/BaseApplicationService.cs`
 
 ## What An Application Service Is
 
@@ -18,7 +18,7 @@ Task<CommandResult> ExecuteAsync(IApplicationContext context)
 
 Interface:
 
-- `Mehrak.Application/Services/Abstractions/IApplicationService.cs`
+- `Mehrak.Application/Shared/Abstractions/IApplicationService.cs`
 
 It receives a normalized request from `CommandDispatcher`, runs business logic (API calls, data processing, optional card generation), and returns a `CommandResult` that the bot can render/send.
 
@@ -101,7 +101,7 @@ Typical users:
 
 Source:
 
-- `Mehrak.Application/Services/Abstractions/IApplicationContext.cs`
+- `Mehrak.Application/Shared/Abstractions/IApplicationContext.cs`
 
 Available fields:
 
@@ -116,7 +116,7 @@ The context parameters must match bot-side keys exactly (for example `"server"`,
 
 Source:
 
-- `Mehrak.Domain/Models/CommandResult.cs`
+- `Mehrak.Domain/Command/Models/CommandResult.cs`
 
 Return patterns:
 
@@ -224,10 +224,10 @@ internal class ExampleCardApplicationService : BaseAttachmentApplicationService
 
 For every new application service:
 
-1. Add/update command key in `Mehrak.Domain/Common/CommandName.cs`.
+1. Add/update command key in `Mehrak.Domain/Shared/Common/CommandName.cs`.
 2. Register keyed handler in app DI:
    - Common: `Mehrak.Application/ApplicationServiceCollectionExtension.cs`
-   - Game-specific: `Services/<Game>/<Game>ApplicationServiceExtensions.cs`
+   - Game-specific: `Mehrak.Application/<Game>/<Game>ApplicationServiceExtensions.cs`
 3. If card command:
    - Register `ICardService<TData>` implementation
    - Register async initialization if renderer preloads assets
