@@ -71,7 +71,7 @@ Discord User → Bot Module → CommandExecutorService → gRPC → GrpcApplicat
 
 ### Key Patterns
 
-**Command dispatch:** Bot modules use `[SlashCommand]`/`[SubSlashCommand]` attributes and dispatch via `CommandExecutorService`. Application resolves handlers with keyed DI: `AddKeyedTransient<IApplicationService, T>(CommandName.Genshin.Character)`. Every command needs a matching key in `Mehrak.Domain/Common/CommandName.cs` and a keyed DI registration.
+**Command dispatch:** Bot modules use `[SlashCommand]`/`[SubSlashCommand]` attributes and dispatch via `CommandExecutorService`. Application resolves handlers with keyed DI: `AddKeyedTransient<IApplicationService, T>(CommandName.Genshin.Character)`. Every command needs a matching key in `Mehrak.Domain/Shared/Common/CommandName.cs` and a keyed DI registration.
 
 **Card rendering:** `ICardService<TData>` returns a `Stream` from `GetCardAsync(ICardGenerationContext<TData>)`. Services that preload assets also implement `IAsyncInitializable`. All `Image` objects must be tracked and disposed in `finally`. Generated cards use deterministic SHA256 filenames for caching.
 
@@ -93,9 +93,9 @@ From `.editorconfig`:
 
 See `docs/commands.md` for the full guide. Summary:
 
-1. Add command key to `Mehrak.Domain/Common/CommandName.cs`
-2. Add bot command method in the appropriate module under `Mehrak.Bot/Modules/`
-3. Implement `IApplicationService` in `Mehrak.Application/Services/<Game>/`
+1. Add command key to `Mehrak.Domain/Shared/Common/CommandName.cs`
+2. Add bot command method in the appropriate module under `Mehrak.Bot/<Game>/` (e.g. `Mehrak.Bot/Genshin/`)
+3. Implement `IApplicationService` in `Mehrak.Application/<Game>/` (e.g. `Mehrak.Application/Genshin/Character/`)
 4. Register keyed service: `services.AddKeyedTransient<IApplicationService, T>(key)`
 5. If card command: register `ICardService<TData>` (singleton) and optionally `RegisterAsyncInitializableFor`
 6. Update help text in `HelpCommandModule`
