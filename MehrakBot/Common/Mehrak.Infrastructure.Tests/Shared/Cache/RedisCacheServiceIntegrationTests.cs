@@ -1,4 +1,5 @@
-﻿using Mehrak.Infrastructure.Shared.Cache;
+﻿using Mehrak.Domain.Cache;
+using Mehrak.Infrastructure.Shared.Cache;
 using Mehrak.Infrastructure.Tests.TestUtils;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;

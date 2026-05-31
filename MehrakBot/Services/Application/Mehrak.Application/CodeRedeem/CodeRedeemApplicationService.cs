@@ -9,7 +9,7 @@ using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.Domain.Utility;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.GameApi.CodeRedeem;
 using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.CodeRedeem;

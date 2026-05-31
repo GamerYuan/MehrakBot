@@ -1,11 +1,6 @@
-﻿#region
-
 using Mehrak.Domain.Cache.Abstractions;
 
-
-#endregion
-
-namespace Mehrak.Infrastructure.Shared.Cache;
+namespace Mehrak.Domain.Cache;
 
 public class CacheEntryBase<T> : ICacheEntry<T>
 {

@@ -2,7 +2,6 @@ using Mehrak.Dashboard.ReleaseNote.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Infrastructure.ReleaseNote;
 using Mehrak.Infrastructure.ReleaseNote.Models;
-using Mehrak.Infrastructure.Shared.Cache;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

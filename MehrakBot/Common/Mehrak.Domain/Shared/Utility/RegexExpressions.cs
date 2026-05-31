@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 #endregion
 
-namespace Mehrak.Domain.Utility;
+namespace Mehrak.Domain.Shared.Utility;
 
 public static partial class RegexExpressions
 {
