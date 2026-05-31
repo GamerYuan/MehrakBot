@@ -26,6 +26,11 @@ jobs:
       - name: Checkout LFS
         run: git lfs pull
 
+      - name: Setup SixLabors License
+        env:
+          SIXLABORS_LICENSE: ${{ secrets.SIXLABORS_LICENSE }}
+        run: printf '%s' "$SIXLABORS_LICENSE" > MehrakBot/sixlabors.lic
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
         with:

@@ -35,6 +35,11 @@ jobs:
       - name: Checkout LFS
         run: git lfs pull
 
+      - name: Setup SixLabors License
+        env:
+          SIXLABORS_LICENSE: ${{ secrets.SIXLABORS_LICENSE }}
+        run: printf '%s' "$SIXLABORS_LICENSE" > MehrakBot/sixlabors.lic
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -46,18 +51,23 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker images
-        uses: docker/bake-action@v6
         env:
           VERSION: ${{ env.VERSION }}
           BASE_IMAGE_TAG: opencv-4.12.0-ocvsharp-4.11.0.20250507
           BUILDX_BAKE_GIT_AUTH_TOKEN: ${{ secrets.ASSETS_PAT }}
-        with:
-          load: true
-          pull: true
-          source: .
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+        run: |
+          docker buildx bake \
+            --set '*.args.VERSION='"$VERSION" \
+            --set '*.args.BASE_IMAGE_TAG='"$BASE_IMAGE_TAG" \
+            --set '*.cache-from=type=gha' \
+            --set '*.cache-to=type=gha,mode=max' \
+            --set '*.secret[sixlabors-license].id=sixlabors-license' \
+            --set '*.secret[sixlabors-license].src='"$GITHUB_WORKSPACE"'/MehrakBot/sixlabors.lic' \
+            --load
+
+      - name: Cleanup SixLabors License
+        if: always()
+        run: rm -f MehrakBot/sixlabors.lic
 
       - name: Export Docker images
         run: |
