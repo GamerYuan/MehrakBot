@@ -7,19 +7,20 @@ namespace Mehrak.Application.Renderers.Extensions;
 
 public static class ImageIconExtensions
 {
-    public static IImageProcessingContext DrawCenteredIcon(this IImageProcessingContext ctx, Image icon, PointF center, float radius,
+    public static void DrawCenteredIcon(this DrawingCanvas canvas, Image icon, PointF center, float radius,
         float padding = 0, Color? background = null, Color? outline = null)
     {
-        return ctx.DrawCenteredIcon(icon, center, radius, padding,
+        canvas.DrawCenteredIcon(icon, center, radius, padding,
             background ?? Color.Transparent, outline ?? Color.Transparent, 2f);
     }
 
-    public static IImageProcessingContext DrawCenteredIcon(this IImageProcessingContext ctx, Image icon, PointF center, float radius,
+    public static void DrawCenteredIcon(this DrawingCanvas canvas, Image icon, PointF center, float radius,
         float padding, Color background, Color outline, float outlineWidth)
     {
         if (radius <= 0)
             throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be positive.");
 
+        _ = canvas.SaveLayer();
         var iconSize = (radius - padding) * 2;
 
         if (iconSize <= 0)
@@ -27,18 +28,13 @@ public static class ImageIconExtensions
 
         var ellipse = new EllipsePolygon(center, radius);
 
-        ctx.Fill(background, ellipse);
-        ctx.Draw(outline, outlineWidth, ellipse);
+        canvas.Fill(Brushes.Solid(background), ellipse);
+        canvas.Draw(Pens.Solid(outline, outlineWidth), ellipse);
 
-        using var resizedIcon = icon.Clone(x => x.Resize(new ResizeOptions
-        {
-            Mode = ResizeMode.Max,
-            Size = new Size((int)iconSize, (int)iconSize)
-        }));
+        var iconPosition = new Point((int)(center.X - iconSize / 2), (int)(center.Y - iconSize / 2));
 
-        var iconPosition = new Point((int)(center.X - resizedIcon.Width / 2), (int)(center.Y - resizedIcon.Height / 2));
-
-        ctx.DrawImage(resizedIcon, iconPosition, 1f);
-        return ctx;
+        canvas.DrawImage(icon, icon.Bounds,
+            new RectangleF(iconPosition.X, iconPosition.Y, iconSize, iconSize), KnownResamplers.Bicubic);
+        canvas.Restore();
     }
 }

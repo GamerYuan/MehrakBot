@@ -28,12 +28,10 @@ public static class RosterImageBuilder
 
         var offset = (layout.MaxSlots - totalSlots) * layout.AvatarWidth / 2 + 10;
 
-        Image<Rgba32> rosterImage = new(canvasWidth, layout.CanvasHeight);
+        Image<Rgba32> rosterImage = new(canvasWidth, layout.CanvasHeight, Color.Transparent.ToPixel<Rgba32>());
 
         rosterImage.Mutate(ctx =>
         {
-            ctx.Clear(Color.Transparent);
-
             for (var i = 0; i < avatarList.Count; i++)
             {
                 var x = offset + i * (layout.AvatarWidth + layout.Spacing);

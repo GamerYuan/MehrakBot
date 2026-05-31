@@ -60,11 +60,11 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
     {
         Interleaved = false,
         Quality = 90,
-        ColorType = JpegEncodingColor.Rgb
+        ColorType = JpegColorType.Rgb
     };
 
-    protected static readonly Color OverlayColor = Color.FromRgba(0, 0, 0, 128);
-    protected static readonly Color DarkOverlayColor = Color.FromRgba(0, 0, 0, 200);
+    protected static readonly Color OverlayColor = Color.FromPixel(new Rgba32(0, 0, 0, 128));
+    protected static readonly Color DarkOverlayColor = Color.FromPixel(new Rgba32(0, 0, 0, 200));
 
     private readonly string m_CardTypeName;
 

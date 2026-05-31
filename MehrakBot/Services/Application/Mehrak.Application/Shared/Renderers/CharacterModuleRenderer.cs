@@ -58,7 +58,7 @@ public class CharacterModuleRenderer
     private static readonly Point WeaponOffset = new(170, 60);
     private static readonly Point NameCenter = new(165, 30);
     private static readonly Point NoWeaponNameCenter = new(85, 30);
-    private static readonly Color BorderColor = Color.FromRgb(120, 120, 120);
+    private static readonly Color BorderColor = Color.FromPixel(new Rgba32(120, 120, 120));
     private static readonly float BorderThickness = 2f;
     private static readonly int CornerRadius = 15;
     private static readonly int NameAreaHeight = 40;
@@ -67,53 +67,61 @@ public class CharacterModuleRenderer
 
     private static readonly Size LevelOverlaySize = new(150, 30);
 
+    private static readonly DrawingOptions ClipOptions = new()
+    {
+        ShapeOptions = new ShapeOptions()
+        {
+            BooleanOperation = BooleanOperation.Intersection,
+        }
+    };
+
     public CharacterModuleRenderer(CharacterModuleStyle style)
     {
         m_Style = style;
     }
 
-    public void Render(IImageProcessingContext ctx, CharacterModuleData data, Point position, Color? borderColor = null)
+    public void Render(DrawingCanvas canvas, CharacterModuleData data, Point position, Color? borderColor = null)
     {
         var canvasSize = CanvasSize;
         var avatarPos = new Point(position.X + AvatarOffset.X, position.Y + AvatarOffset.Y);
-
-        DrawAvatar(ctx, data, avatarPos);
+        _ = canvas.SaveLayer();
+        DrawAvatar(canvas, data, avatarPos);
 
         if (m_Style.DrawWeapon)
         {
             var weaponPos = new Point(position.X + WeaponOffset.X, position.Y + WeaponOffset.Y);
             if (data.Weapon != null)
             {
-                DrawWeapon(ctx, data.Weapon, weaponPos);
+                DrawWeapon(canvas, data.Weapon, weaponPos);
             }
             else
             {
-                var path = ImageUtility.CreateRoundedRectanglePath(WeaponSize.Width, WeaponSize.Height, 10)
-                    .Translate(weaponPos.X, weaponPos.Y);
-                ctx.Fill(Color.FromRgb(69, 69, 69), path);
+                _ = canvas.SaveLayer();
+                var path = new RoundedRectanglePolygon(new RectangleF(weaponPos.X, weaponPos.Y, WeaponSize.Width, WeaponSize.Height), 10);
+                canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(69, 69, 69))), path);
                 if (m_Style.PlaceholderWeaponIcon != null)
                 {
                     var placeholderPos = new Point(weaponPos.X + (WeaponSize.Width - m_Style.PlaceholderWeaponIcon.Width) / 2,
                         weaponPos.Y + (WeaponSize.Height - m_Style.PlaceholderWeaponIcon.Height) / 2);
-                    ctx.DrawImage(m_Style.PlaceholderWeaponIcon, placeholderPos, 1f);
+                    canvas.DrawImage(m_Style.PlaceholderWeaponIcon, m_Style.PlaceholderWeaponIcon.Bounds,
+                        new RectangleF(placeholderPos.X, placeholderPos.Y, m_Style.PlaceholderWeaponIcon.Width, m_Style.PlaceholderWeaponIcon.Height),
+                        KnownResamplers.Bicubic);
                 }
+                canvas.Restore();
             }
         }
 
-        DrawCharacterName(ctx, data.Name, position);
+        DrawCharacterName(canvas, data.Name, position);
 
         // Rounded border
         var actualBorderColor = borderColor ?? BorderColor;
-        var borderPath = ImageUtility.CreateRoundedRectanglePath(
-                canvasSize.Width - 2,
-                canvasSize.Height - 2,
-                CornerRadius)
-            .Translate(position.X + 1, position.Y + 1);
-        ctx.Draw(actualBorderColor, BorderThickness, borderPath);
+        var border = new RoundedRectanglePolygon(new RectangleF(position, canvasSize), CornerRadius);
+        canvas.Draw(Pens.Solid(actualBorderColor, BorderThickness), border);
+        canvas.Restore();
     }
 
     public void RenderHeader(
-        IImageProcessingContext ctx,
+        DrawingCanvas canvas,
         int outputWidth,
         string topString,
         string uid,
@@ -123,22 +131,22 @@ public class CharacterModuleRenderer
         const int headerX = 50;
         var headerWidth = outputWidth - 100;
 
-        ctx.DrawRoundedRectangleOverlay(headerWidth, headerHeight, new PointF(headerX, 25),
+        canvas.DrawRoundedRectangleOverlay(headerWidth, headerHeight, new PointF(headerX, 25),
             new RoundedRectangleOverlayStyle(Color.Transparent, borderColor ?? BorderColor, BorderWidth: 2, CornerRadius: 15));
 
-        ctx.DrawText(new RichTextOptions(m_Style.Fonts.Title)
+        canvas.DrawText(new RichTextOptions(m_Style.Fonts.Title)
         {
             Origin = new Vector2(headerX + 20, 50),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
-        }, topString, Color.White);
+        }, topString, Brushes.Solid(Color.White), null);
 
-        ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+        canvas.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
         {
             Origin = new Vector2(headerX + 20, 105),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
-        }, $"UID: {uid}", Color.White);
+        }, $"UID: {uid}", Brushes.Solid(Color.White), null);
     }
 
     public Image<Rgba32> RenderFooterModule(string text, int count, Color borderColor, Image? icon = null)
@@ -148,50 +156,50 @@ public class CharacterModuleRenderer
         const int iconSize = 40;
         const int height = 70;
 
-        var textSize = TextMeasurer.MeasureSize(text, new TextOptions(m_Style.Fonts.Normal));
-        var countSize = TextMeasurer.MeasureSize(count.ToString(), new TextOptions(m_Style.Fonts.Normal));
+        var textSize = TextMeasurer.MeasureBounds(text, new TextOptions(m_Style.Fonts.Normal));
+        var countSize = TextMeasurer.MeasureBounds(count.ToString(), new TextOptions(m_Style.Fonts.Normal));
 
         var leftWidth = icon != null
             ? padding + iconSize + padding + (int)textSize.Width
             : padding + (int)textSize.Width;
         var totalWidth = leftWidth + gapBetweenLeftAndCount + (int)countSize.Width + padding;
 
-        Image<Rgba32> module = new(totalWidth, height);
-        module.Mutate(ctx =>
+        Image<Rgba32> module = new(totalWidth, height, Color.Transparent.ToPixel<Rgba32>());
+        module.Mutate(ctx => ctx.Paint(canvas =>
         {
-            ctx.Clear(Color.Transparent);
-
-            var path = ImageUtility.CreateRoundedRectanglePath(totalWidth - 2, height - 2, 10).Translate(1, 1);
-            ctx.Draw(borderColor, 2f, path);
+            var path = new RoundedRectanglePolygon(new RectangleF(1, 1, totalWidth - 2, height - 2), 10);
+            canvas.Draw(Pens.Solid(borderColor, 2f), path);
 
             if (icon != null)
             {
-                ctx.DrawImage(icon, new Point(padding, (height - iconSize) / 2), 1f);
+                canvas.DrawImage(icon, icon.Bounds,
+                    new RectangleF(padding, (height - iconSize) / 2, iconSize, iconSize),
+                    KnownResamplers.Bicubic);
             }
 
             var textX = icon != null
                 ? padding + iconSize + padding + textSize.Width / 2
                 : padding + textSize.Width / 2;
 
-            ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+            canvas.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
             {
                 Origin = new Vector2(textX, height / 2),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
-            }, text, m_Style.FooterTextColor);
+            }, text, Brushes.Solid(m_Style.FooterTextColor), null);
 
-            ctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
+            canvas.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
             {
                 Origin = new Vector2(totalWidth - padding, height / 2),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center
-            }, count.ToString(), m_Style.FooterTextColor);
-        });
+            }, count.ToString(), Brushes.Solid(m_Style.FooterTextColor), null);
+        }));
         return module;
     }
 
     public static void RenderFooter(
-        IImageProcessingContext ctx,
+        DrawingCanvas canvas,
         int outputWidth,
         int gridOutputHeight,
         List<Image<Rgba32>> footerModules,
@@ -210,13 +218,6 @@ public class CharacterModuleRenderer
         if (totalModuleWidth > footerWidth)
         {
             scale = (float)footerWidth / totalModuleWidth;
-            for (var i = 0; i < footerModules.Count; i++)
-            {
-                var oldModule = footerModules[i];
-                var newModule = oldModule.Clone(ctx => ctx.Resize((int)(oldModule.Width * scale), (int)(moduleH * scale)));
-                disposables.Add(newModule);
-                footerModules[i] = newModule;
-            }
         }
 
         var scaledSpacing = spacing * scale;
@@ -225,129 +226,133 @@ public class CharacterModuleRenderer
         var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
         var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
 
-        ctx.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
+        _ = canvas.SaveLayer();
+
+        canvas.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
             new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));
 
         var currentX = moduleStartX;
         for (var i = 0; i < footerModules.Count; i++)
         {
-            ctx.DrawImage(footerModules[i], new Point((int)currentX, (int)moduleStartY), 1f);
+            canvas.DrawImage(footerModules[i], footerModules[i].Bounds,
+                new RectangleF(new Point((int)currentX, (int)moduleStartY),
+                    new Size((int)(footerModules[i].Width * scale), (int)(moduleH * scale))), KnownResamplers.Bicubic);
             currentX += footerModules[i].Width + scaledSpacing;
         }
+        canvas.Restore();
     }
 
-    private void DrawAvatar(IImageProcessingContext ctx, CharacterModuleData data, Point position)
+    private void DrawAvatar(DrawingCanvas canvas, CharacterModuleData data, Point position)
     {
         var width = AvatarSize.Width;
         var height = AvatarSize.Height;
 
-        using var temp = new Image<Rgba32>(width, height);
-        temp.Mutate(tctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, AvatarSize));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(position, AvatarSize), 10);
+        _ = region.Save(ClipOptions, clipPath);
+
+        var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
+            LevelOverlaySize.Width, LevelOverlaySize.Height);
+        var levelTextY = height - LevelOverlaySize.Height / 2;
+
+        region.Fill(Brushes.Solid(m_Style.RarityColors[data.Rarity - 1]), new Rectangle(0, 0, width, height));
+        region.DrawImage(data.AvatarImage, data.AvatarImage.Bounds, new RectangleF(position, data.AvatarImage.Size), KnownResamplers.Bicubic);
+
+        region.Fill(Brushes.Solid(m_Style.LevelOverlayColor), rectangle);
+
+        // Constellation
+        if (data.ConstellationNum > 0)
         {
-            var rectangle = new RectangleF(0, height - LevelOverlaySize.Height,
-                LevelOverlaySize.Width, LevelOverlaySize.Height);
-            var levelTextY = height - LevelOverlaySize.Height / 2;
-
-            tctx.Fill(m_Style.RarityColors[data.Rarity - 1], new RectangleF(0, 0, width, height));
-            tctx.DrawImage(data.AvatarImage, Point.Empty, 1f);
-
-            // Level overlay
-            var levelText = $"Lv. {data.Level}";
-            var levelRect = TextMeasurer.MeasureSize(levelText, new TextOptions(m_Style.Fonts.Small!));
-            tctx.Fill(m_Style.LevelOverlayColor, rectangle);
-            tctx.DrawText(new RichTextOptions(m_Style.Fonts.Small!)
+            region.DrawRoundedRectangleOverlay(30, 30, new PointF(width - 35, height - 65),
+                new RoundedRectangleOverlayStyle(
+                    data.ConstellationNum == 6 ? m_Style.GoldConstColor : m_Style.NormalConstColor,
+                    CornerRadius: 5));
+            region.Restore(); // Restore before drawing text due to bug in ImageSharp.Drawing 3.0.0
+            region.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
             {
-                Origin = new Vector2((width - levelRect.Width) / 2, levelTextY - levelRect.Height / 2),
-            }, levelText, m_Style.LevelTextColor);
+                Origin = new Vector2(width - 20, height - 50),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            },
+                data.ConstellationNum.ToString()!,
+                Brushes.Solid(data.ConstellationNum == 6 ? m_Style.GoldConstTextColor : Color.White), null);
+            _ = region.Save(ClipOptions, clipPath);
+        }
 
-            // Constellation
-            if (data.ConstellationNum > 0)
-            {
-                tctx.DrawRoundedRectangleOverlay(30, 30, new PointF(width - 35, height - 65),
-                    new RoundedRectangleOverlayStyle(
-                        data.ConstellationNum == 6 ? m_Style.GoldConstColor : m_Style.NormalConstColor,
-                        CornerRadius: 5));
-                tctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
-                {
-                    Origin = new Vector2(width - 20, height - 50),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    data.ConstellationNum.ToString()!,
-                    data.ConstellationNum == 6 ? m_Style.GoldConstTextColor : Color.White);
-            }
+        if (data.Icon != null)
+        {
+            region.DrawImage(data.Icon, data.Icon.Bounds, new RectangleF(new Point(5, 5), data.Icon.Size), KnownResamplers.Bicubic);
+        }
 
-            if (data.Icon != null)
-            {
-                tctx.DrawImage(data.Icon, new Point(5, 5), 1f);
-            }
+        if (m_Style.AvatarBorderColor.HasValue)
+        {
+            var borderPath = new RoundedRectanglePolygon(new RectangleF(0, 0, width - 1, height - 1), 10);
+            region.Draw(Pens.Solid(m_Style.AvatarBorderColor.Value, 5), borderPath);
+        }
+        region.Restore();
 
-            if (m_Style.AvatarBorderColor.HasValue)
-            {
-                var borderPath = ImageUtility.CreateRoundedRectanglePath(width - 1, height - 1, 10);
-                tctx.Draw(m_Style.AvatarBorderColor.Value, 5, borderPath);
-            }
-
-            tctx.ApplyRoundedCorners(10);
-        });
-
-        ctx.DrawImage(temp, position, 1f);
+        var levelText = $"Lv. {data.Level}";
+        var levelRect = TextMeasurer.MeasureBounds(levelText, new TextOptions(m_Style.Fonts.Small!));
+        region.DrawText(new RichTextOptions(m_Style.Fonts.Small!)
+        {
+            Origin = new Vector2((width - levelRect.Width) / 2, levelTextY - levelRect.Height / 2),
+        }, levelText, Brushes.Solid(m_Style.LevelTextColor), null);
     }
 
-    private void DrawWeapon(IImageProcessingContext ctx, WeaponModuleData weapon, Point position)
+    private void DrawWeapon(DrawingCanvas canvas, WeaponModuleData weapon, Point position)
     {
         var width = WeaponSize.Width;
         var height = WeaponSize.Height;
 
-        using var temp = new Image<Rgba32>(width, height);
-        temp.Mutate(tctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, WeaponSize));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(position, WeaponSize), 10);
+        _ = region.Save(ClipOptions, clipPath);
+
+        var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
+            LevelOverlaySize.Width, LevelOverlaySize.Height);
+        var levelTextY = height - LevelOverlaySize.Height / 2;
+
+        region.Fill(Brushes.Solid(m_Style.RarityColors[weapon.Rarity - 1]), new Rectangle(0, 0, width, height));
+        region.DrawImage(weapon.WeaponImage, weapon.WeaponImage.Bounds,
+            new RectangleF(new Point(0, 0), weapon.WeaponImage.Size), KnownResamplers.Bicubic);
+
+        region.Fill(Brushes.Solid(m_Style.LevelOverlayColor), rectangle);
+
+        // Affix level as const text
+        if (weapon.AffixLevel > 0)
         {
-            var rectangle = new RectangleF(0, height - LevelOverlaySize.Height,
-                LevelOverlaySize.Width, LevelOverlaySize.Height);
-            var levelTextY = height - LevelOverlaySize.Height / 2;
-
-            tctx.Fill(m_Style.RarityColors[weapon.Rarity - 1], new RectangleF(0, 0, width, height));
-            tctx.DrawImage(weapon.WeaponImage, Point.Empty, 1f);
-
-            // Level overlay
-            var levelText = $"Lv. {weapon.Level}";
-            var levelRect = TextMeasurer.MeasureSize(levelText, new TextOptions(m_Style.Fonts.Small!));
-            tctx.Fill(m_Style.LevelOverlayColor, rectangle);
-            tctx.DrawText(new RichTextOptions(m_Style.Fonts.Small!)
+            region.DrawRoundedRectangleOverlay(30, 30, new PointF(5, height - 65),
+                new RoundedRectangleOverlayStyle(
+                    weapon.AffixLevel == 5 ? m_Style.GoldConstColor : m_Style.NormalConstColor,
+                    CornerRadius: 5));
+            region.Restore(); // Restore before drawing text due to bug in ImageSharp.Drawing 3.0.0
+            region.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
             {
-                Origin = new Vector2((width - levelRect.Width) / 2, levelTextY - levelRect.Height / 2),
-            }, levelText, m_Style.LevelTextColor);
+                Origin = new Vector2(20, height - 50),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            },
+                weapon.AffixLevel.ToString()!,
+                Brushes.Solid(weapon.AffixLevel == 5 ? m_Style.GoldConstTextColor : Color.White), null);
+            _ = region.Save(ClipOptions, clipPath);
+        }
 
-            // Affix level as const text
-            if (weapon.AffixLevel > 0)
-            {
-                tctx.DrawRoundedRectangleOverlay(30, 30, new PointF(5, height - 65),
-                    new RoundedRectangleOverlayStyle(
-                        weapon.AffixLevel == 5 ? m_Style.GoldConstColor : m_Style.NormalConstColor,
-                        CornerRadius: 5));
-                tctx.DrawText(new RichTextOptions(m_Style.Fonts.Normal)
-                {
-                    Origin = new Vector2(20, height - 50),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    weapon.AffixLevel.ToString()!,
-                    weapon.AffixLevel == 5 ? m_Style.GoldConstTextColor : Color.White);
-            }
+        if (m_Style.AvatarBorderColor.HasValue)
+        {
+            var borderPath = new RoundedRectanglePolygon(new RectangleF(0, 0, width - 1, height - 1), 10);
+            region.Draw(Pens.Solid(m_Style.AvatarBorderColor.Value, 5), borderPath);
+        }
+        region.Restore();
 
-            if (m_Style.AvatarBorderColor.HasValue)
-            {
-                var borderPath = ImageUtility.CreateRoundedRectanglePath(width - 1, height - 1, 10);
-                tctx.Draw(m_Style.AvatarBorderColor.Value, 5, borderPath);
-            }
-
-            tctx.ApplyRoundedCorners(10);
-        });
-
-        ctx.DrawImage(temp, position, 1f);
+        var levelText = $"Lv. {weapon.Level}";
+        var levelRect = TextMeasurer.MeasureBounds(levelText, new TextOptions(m_Style.Fonts.Small!));
+        region.DrawText(new RichTextOptions(m_Style.Fonts.Small!)
+        {
+            Origin = new Vector2((width - levelRect.Width) / 2, levelTextY - levelRect.Height / 2),
+        }, levelText, Brushes.Solid(m_Style.LevelTextColor), null);
     }
 
-    private void DrawCharacterName(IImageProcessingContext ctx, string name, Point basePosition)
+    private void DrawCharacterName(DrawingCanvas canvas, string name, Point basePosition)
     {
         var nameCenter = GetNameCenter();
         var nameAreaWidth = GetNameAreaWidth();
@@ -363,7 +368,7 @@ public class CharacterModuleRenderer
                 WrappingLength = nameAreaWidth
             };
 
-            textSize = TextMeasurer.MeasureSize(name, measureOptions);
+            textSize = TextMeasurer.MeasureBounds(name, measureOptions);
             var lineCount = TextMeasurer.CountLines(name, measureOptions);
             if ((lineCount == 1 && textSize.Width <= nameAreaWidth) ||
                 (lineCount > 1 && textSize.Width <= nameAreaWidth && textSize.Height <= NameAreaHeight))
@@ -385,7 +390,7 @@ public class CharacterModuleRenderer
             WrappingLength = nameAreaWidth
         };
 
-        ctx.DrawText(drawOptions, name, m_Style.NameColor);
+        canvas.DrawText(drawOptions, name, Brushes.Solid(m_Style.NameColor), null);
     }
 
     private Point GetNameCenter() => m_Style.DrawWeapon ? NameCenter : NoWeaponNameCenter;

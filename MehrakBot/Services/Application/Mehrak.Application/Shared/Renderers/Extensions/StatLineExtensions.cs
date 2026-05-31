@@ -34,8 +34,8 @@ public static class StatLineExtensions
     /// Draws a stat line with an icon, stat name, right-aligned final value,
     /// and optional base/bonus breakdown rendered below.
     /// </summary>
-    public static IImageProcessingContext DrawStatLine(
-        this IImageProcessingContext ctx,
+    public static void DrawStatLine(
+        this DrawingCanvas canvas,
         StatLineData data,
         StatLineStyle style,
         PointF position,
@@ -59,9 +59,11 @@ public static class StatLineExtensions
         // Icon (or reserved spacing)
         var nameX = position.X + IconSize + IconTextSpacing;
 
+        _ = canvas.SaveLayer();
         if (style.StatIcon != null)
         {
-            ctx.DrawImage(style.StatIcon, new Point((int)position.X, (int)iconTop), 1f);
+            canvas.DrawImage(style.StatIcon, style.StatIcon.Bounds,
+                new RectangleF(new Point((int)position.X, (int)iconTop), new Size(IconSize, IconSize)), KnownResamplers.Bicubic);
         }
 
         // Measure value to determine how much space the name can use
@@ -75,7 +77,7 @@ public static class StatLineExtensions
             VerticalAlignment = VerticalAlignment.Top
         };
 
-        var nameSize = TextMeasurer.MeasureSize(data.StatName, nameOptions);
+        var nameSize = TextMeasurer.MeasureBounds(data.StatName, nameOptions);
 
         if (nameSize.Width > maxNameWidth)
         {
@@ -92,14 +94,14 @@ public static class StatLineExtensions
         }
 
         nameOptions.Origin = new PointF(nameX, GetVisualCenterY(data.StatName, nameOptions, mainCenterY));
-        ctx.DrawText(nameOptions, data.StatName, style.TextColor);
+        canvas.DrawText(nameOptions, data.StatName, Brushes.Solid(style.TextColor), null);
 
         // Final value (right aligned)
-        ctx.DrawText(new RichTextOptions(style.Font)
+        canvas.DrawText(new RichTextOptions(style.Font)
         {
             Origin = new PointF(rightAlignX, GetVisualCenterY(data.FinalValue, style.Font, valueCenterY)),
             HorizontalAlignment = HorizontalAlignment.Right
-        }, data.FinalValue, style.TextColor);
+        }, data.FinalValue, Brushes.Solid(style.TextColor), null);
 
         // Breakdown (base + bonus)
         if (hasBreakdown)
@@ -112,27 +114,26 @@ public static class StatLineExtensions
 
             if (!string.IsNullOrEmpty(data.BonusValue))
             {
-                var bonusSize = TextMeasurer.MeasureSize(data.BonusValue, new RichTextOptions(breakdownFont));
-                ctx.DrawText(new RichTextOptions(breakdownFont)
+                var bonusSize = TextMeasurer.MeasureBounds(data.BonusValue, new RichTextOptions(breakdownFont));
+                canvas.DrawText(new RichTextOptions(breakdownFont)
                 {
                     Origin = new PointF(rightAlignX, GetVisualCenterY(data.BonusValue, breakdownFont, breakdownCenterY)),
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, data.BonusValue, bonusColor);
+                }, data.BonusValue, Brushes.Solid(bonusColor), null);
 
                 baseTextX = rightAlignX - bonusSize.Width - BreakdownGap;
             }
 
             if (!string.IsNullOrEmpty(data.BaseValue))
             {
-                ctx.DrawText(new RichTextOptions(breakdownFont)
+                canvas.DrawText(new RichTextOptions(breakdownFont)
                 {
                     Origin = new PointF(baseTextX, GetVisualCenterY(data.BaseValue, breakdownFont, breakdownCenterY)),
                     HorizontalAlignment = HorizontalAlignment.Right
-                }, data.BaseValue, baseColor);
+                }, data.BaseValue, Brushes.Solid(baseColor), null);
             }
         }
-
-        return ctx;
+        canvas.Restore();
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public static class StatLineExtensions
     /// </summary>
     private static float GetVisualCenterY(string text, Font font, float targetCenterY)
     {
-        var size = TextMeasurer.MeasureSize(text, new RichTextOptions(font)
+        var size = TextMeasurer.MeasureBounds(text, new RichTextOptions(font)
         {
             Origin = PointF.Empty,
         });
@@ -159,7 +160,7 @@ public static class StatLineExtensions
             LineSpacing = options.LineSpacing,
             TextAlignment = options.TextAlignment
         };
-        var size = TextMeasurer.MeasureSize(text, measureOptions);
+        var size = TextMeasurer.MeasureBounds(text, measureOptions);
         return targetCenterY - size.Height / 2f;
     }
 
@@ -175,7 +176,7 @@ public static class StatLineExtensions
                 WrappingLength = maxWidth
             };
 
-            var size = TextMeasurer.MeasureSize(text, options);
+            var size = TextMeasurer.MeasureBounds(text, options);
             var lines = TextMeasurer.CountLines(text, options);
 
             if (size.Height <= maxHeight && lines <= maxLines)
