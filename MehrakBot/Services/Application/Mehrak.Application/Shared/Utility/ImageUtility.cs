@@ -13,7 +13,7 @@ namespace Mehrak.Application.Shared.Utility;
 public static class ImageUtility
 {
     private static readonly Color StarColor = Color.ParseHex("#FFCC33");
-    private static readonly Color ShadowColor = new(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
+    private static readonly Color ShadowColor = Color.FromPixel(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
 
     /// <summary>
     /// Applies a horizontal gradient fade to an image, making it gradually
@@ -40,7 +40,7 @@ public static class ImageUtility
         });
     }
 
-    public static Image<Rgba32> GenerateStarRating(int starCount)
+    public static void DrawStarRating(this DrawingCanvas canvas, int starCount, Point position)
     {
         starCount = Math.Clamp(starCount, 1, 5);
 
@@ -51,27 +51,23 @@ public static class ImageUtility
         var centerY = starSize / 2;
         var offset = (5 - starCount) * starSize / 2;
 
-        var image = new Image<Rgba32>(width, height);
+        using var region = canvas.CreateRegion(new(position, new(width, height)));
+        region.SaveLayer();
 
-        image.Mutate(ctx =>
+        for (var i = 0; i < starCount; i++)
         {
-            ctx.Clear(Color.Transparent);
+            var centerX = offset + i * starSize + starSize / 2;
 
-            for (var i = 0; i < starCount; i++)
-            {
-                var centerX = offset + i * starSize + starSize / 2;
+            // Create a star shape
+            var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
+            var starPolygon = new Polygon(points);
 
-                // Create a star shape
-                var points = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 5);
-                var starPolygon = new Polygon(points);
-
-                ctx.Fill(StarColor, starPolygon);
-            }
-        });
-        return image;
+            region.Fill(Brushes.Solid(StarColor), starPolygon);
+        }
+        region.Restore();
     }
 
-    public static Image<Rgba32> GenerateFourSidedStarRating(int starCount, bool isHorizontal = true,
+    public static void DrawFourSidedStarRating(this DrawingCanvas canvas, int starCount, Point position, bool isHorizontal = true,
         bool drawShadow = true)
     {
         starCount = Math.Clamp(starCount, 1, 5);
@@ -92,71 +88,69 @@ public static class ImageUtility
             height = 5 * starSize;
         }
 
-        var image = new Image<Rgba32>(width, height);
+        using var region = canvas.CreateRegion(new(position, new(width, height)));
+        region.SaveLayer();
 
-        image.Mutate(ctx =>
+        for (var i = 0; i < starCount; i++)
         {
-            ctx.Clear(Color.Transparent);
+            float centerX, centerY;
 
-            for (var i = 0; i < starCount; i++)
+            if (isHorizontal)
             {
-                float centerX, centerY;
-
-                if (isHorizontal)
-                {
-                    centerX = i * starSize + 15; // Left-aligned horizontally
-                    centerY = 15f;
-                }
-                else
-                {
-                    centerX = 15f;
-                    centerY = i * starSize + 15; // Top-aligned vertically
-                }
-
-                // Draw shadow only if requested
-                if (drawShadow)
-                {
-                    // Create shadow first (expanded on all sides)
-                    var shadowPoints = CreateStarPoints(
-                        centerX,
-                        centerY,
-                        (float)starSize / 2 * shadowExpansion, // Larger outer radius
-                        (float)starSize / 4 * shadowExpansion, // Larger inner radius
-                        4);
-                    var shadowPolygon = new Polygon(shadowPoints);
-                    ctx.Fill(ShadowColor, shadowPolygon);
-                }
-
-                // Then create the actual star on top
-                var starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
-                var starPolygon = new Polygon(starPoints);
-                ctx.Fill(StarColor, starPolygon);
+                centerX = i * starSize + 15; // Left-aligned horizontally
+                centerY = 15f;
             }
-        });
-        return image;
+            else
+            {
+                centerX = 15f;
+                centerY = i * starSize + 15; // Top-aligned vertically
+            }
+
+            // Draw shadow only if requested
+            if (drawShadow)
+            {
+                // Create shadow first (expanded on all sides)
+                var shadowPoints = CreateStarPoints(
+                    centerX,
+                    centerY,
+                    (float)starSize / 2 * shadowExpansion, // Larger outer radius
+                    (float)starSize / 4 * shadowExpansion, // Larger inner radius
+                    4);
+                var shadowPolygon = new Polygon(shadowPoints);
+                canvas.Fill(Brushes.Solid(ShadowColor), shadowPolygon);
+            }
+
+            // Then create the actual star on top
+            var starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
+            var starPolygon = new Polygon(starPoints);
+            canvas.Fill(Brushes.Solid(StarColor), starPolygon);
+        }
     }
 
+    [Obsolete("Use RoundedRectanglePolygon with DrawingCanvas API instead")]
     public static IImageProcessingContext ApplyRoundedCorners(this IImageProcessingContext context, float cornerRadius)
     {
         var size = context.GetCurrentSize();
-        IPathCollection corners = BuildCorners(size.Width, size.Height, cornerRadius);
+
+        RoundedRectanglePolygon rect = new(new RectangleF(0, 0, size.Width, size.Height), cornerRadius);
+
+        var graphicsOptions = context.GetGraphicsOptions();
 
         context.SetGraphicsOptions(new GraphicsOptions
         {
             Antialias = true,
-
-            // Enforces that any part of this shape that has color is punched
-            // out of the background
             AlphaCompositionMode = PixelAlphaCompositionMode.DestOut
         });
 
-        // Mutating in here as we already have a cloned original use any color
-        // (not Transparent), so the corners will be clipped
-        foreach (var path in corners) context = context.Fill(Color.Red, path);
+        context.Paint(canvas =>
+        {
+            canvas.Fill(Brushes.Solid(Color.White), rect);
+        });
 
         return context;
     }
 
+    [Obsolete("Use RoundedRectanglePolygon instead")]
     public static IPath CreateRoundedRectanglePath(int width, int height, float cornerRadius)
     {
         var pathBuilder = new PathBuilder();
@@ -219,29 +213,6 @@ public static class ImageUtility
         }
 
         return result;
-    }
-
-    private static PathCollection BuildCorners(int imageWidth, int imageHeight, float cornerRadius)
-    {
-        // First create a square
-        var rect = new RectangularPolygon(-0.5f, -0.5f, cornerRadius, cornerRadius);
-
-        // Then cut out of the square a circle so we are left with a corner
-        var cornerTopLeft = rect.Clip(new EllipsePolygon(cornerRadius - 0.5f, cornerRadius - 0.5f, cornerRadius));
-
-        // Corner is now a corner shape positions top left let's make 3 more
-        // positioned correctly, we can do that by translating the original
-        // around the center of the image.
-
-        var rightPos = imageWidth - cornerTopLeft.Bounds.Width + 1;
-        var bottomPos = imageHeight - cornerTopLeft.Bounds.Height + 1;
-
-        // Move it across the width of the image - the width of the shape
-        var cornerTopRight = cornerTopLeft.RotateDegree(90).Translate(rightPos, 0);
-        var cornerBottomLeft = cornerTopLeft.RotateDegree(-90).Translate(0, bottomPos);
-        var cornerBottomRight = cornerTopLeft.RotateDegree(180).Translate(rightPos, bottomPos);
-
-        return new PathCollection(cornerTopLeft, cornerBottomLeft, cornerTopRight, cornerBottomRight);
     }
 
     public readonly struct ImagePosition(int x, int y, int imageIndex)
