@@ -1,6 +1,6 @@
 ﻿using Grpc.Core;
-using Mehrak.Dashboard.Auth;
-using Mehrak.Dashboard.Services;
+using Mehrak.Dashboard.Shared.Auth;
+using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.Models;
 using Microsoft.Extensions.Logging;
 using Moq;

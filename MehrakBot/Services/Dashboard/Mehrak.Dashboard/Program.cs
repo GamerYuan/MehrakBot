@@ -1,8 +1,9 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Threading.RateLimiting;
-using Mehrak.Dashboard.Auth;
-using Mehrak.Dashboard.Services;
+using Mehrak.Dashboard.ReleaseNote;
+using Mehrak.Dashboard.Shared.Auth;
+using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
