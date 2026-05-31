@@ -37,8 +37,8 @@ public static class ServerUtility
 
         var nextMondayLocal = nowLocal.Date.AddDays(daysUntilMonday).AddHours(4);
 
-        // Convert back to UTC
-        return new DateTimeOffset(nextMondayLocal).ToUnixTimeSeconds();
+        // Convert back to UTC using the server timezone's offset
+        return new DateTimeOffset(nextMondayLocal, tz.GetUtcOffset(nextMondayLocal)).ToUnixTimeSeconds();
     }
 
     public static long GetNextNextWeeklyResetUnix(this Server region)
@@ -56,7 +56,7 @@ public static class ServerUtility
 
         var nextNextMondayLocal = nowLocal.Date.AddDays(daysUntilNextNextMonday).AddHours(4);
 
-        // Convert back to UTC
-        return new DateTimeOffset(nextNextMondayLocal).ToUnixTimeSeconds();
+        // Convert back to UTC using the server timezone's offset
+        return new DateTimeOffset(nextNextMondayLocal, tz.GetUtcOffset(nextNextMondayLocal)).ToUnixTimeSeconds();
     }
 }
