@@ -1,8 +1,9 @@
 ﻿using Mehrak.Infrastructure.Shared.Cache;
+using Mehrak.Infrastructure.Tests.TestUtils;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Mehrak.Infrastructure.Tests.IntegrationTests.Services;
+namespace Mehrak.Infrastructure.Tests.Shared.Cache;
 
 [TestFixture]
 internal class RedisCacheServiceIntegrationTests

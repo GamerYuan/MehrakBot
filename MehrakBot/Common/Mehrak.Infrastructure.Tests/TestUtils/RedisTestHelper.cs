@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using Testcontainers.Redis;
 
-namespace Mehrak.Infrastructure.Tests.IntegrationTests;
+namespace Mehrak.Infrastructure.Tests.TestUtils;
 
 internal sealed class RedisTestHelper : IAsyncDisposable
 {

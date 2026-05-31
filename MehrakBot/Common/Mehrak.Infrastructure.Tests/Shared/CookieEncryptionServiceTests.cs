@@ -3,7 +3,7 @@ using Mehrak.Infrastructure.Shared;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Mehrak.Infrastructure.Tests.UnitTests.Services;
+namespace Mehrak.Infrastructure.Tests.Shared;
 
 /// <summary>
 /// Unit tests for CookieEncryptionService validating encryption/decryption operations,
