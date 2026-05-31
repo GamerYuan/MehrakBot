@@ -8,7 +8,8 @@
 
     <ItemGroup>
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+        <ProjectReference
+            Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
     </ItemGroup>
 
@@ -17,11 +18,14 @@
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient"
+            Version="1.14.0-beta.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="3.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -34,13 +38,16 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
-      <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
-      <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
+        <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+        <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64"
+            Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
+        <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507"
+            Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../../Assets/**/*.*" Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
+        <None Include="../../../Assets/**/*.*"
+            Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>Assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
@@ -58,7 +65,8 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
+    <ItemGroup
+        Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
         <None Include="appsettings.DockerDev.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
