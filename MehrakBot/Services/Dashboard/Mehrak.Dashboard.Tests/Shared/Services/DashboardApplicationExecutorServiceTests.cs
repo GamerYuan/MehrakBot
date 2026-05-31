@@ -1,12 +1,12 @@
 ﻿using Grpc.Core;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Dashboard.Shared.Services;
-using Mehrak.Domain.Models;
+using Mehrak.Domain.User.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Proto = Mehrak.Domain.Protobuf;
 
-namespace Mehrak.Dashboard.Tests.Services;
+namespace Mehrak.Dashboard.Tests.Shared.Services;
 
 [TestFixture]
 public class DashboardApplicationExecutorServiceTests
