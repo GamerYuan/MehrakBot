@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Numerics;
 using Mehrak.Application.Shared.Abstractions;

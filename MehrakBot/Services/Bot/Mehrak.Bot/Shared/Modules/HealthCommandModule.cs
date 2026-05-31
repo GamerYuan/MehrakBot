@@ -6,8 +6,9 @@
 
 using System.Net.NetworkInformation;
 using Amazon.S3;
-using Mehrak.Bot.Shared.Attributes;
 using Mehrak.Bot.Config;
+using Mehrak.Bot.Shared.Attributes;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi;
 using NetCord;
@@ -15,7 +16,6 @@ using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using StackExchange.Redis;
-using Mehrak.Bot.Shared.Services;
 
 #endregion
 

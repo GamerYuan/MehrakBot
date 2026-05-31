@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;

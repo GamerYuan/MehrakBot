@@ -1,4 +1,4 @@
-using Mehrak.Domain.Shared.Enums;
+﻿using Mehrak.Domain.Shared.Enums;
 using NetCord.Services.ApplicationCommands;
 
 namespace Mehrak.Bot.Shared.Models;

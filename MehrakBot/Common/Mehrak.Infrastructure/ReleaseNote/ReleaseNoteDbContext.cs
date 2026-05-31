@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.ReleaseNote.Models;
+﻿using Mehrak.Infrastructure.ReleaseNote.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.ReleaseNote;

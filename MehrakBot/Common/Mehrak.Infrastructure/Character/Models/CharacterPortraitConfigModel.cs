@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Domain.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 

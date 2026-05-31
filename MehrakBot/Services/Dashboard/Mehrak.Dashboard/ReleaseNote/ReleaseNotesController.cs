@@ -1,4 +1,4 @@
-using Mehrak.Dashboard.ReleaseNote.Models;
+﻿using Mehrak.Dashboard.ReleaseNote.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Infrastructure.ReleaseNote;
 using Mehrak.Infrastructure.ReleaseNote.Models;

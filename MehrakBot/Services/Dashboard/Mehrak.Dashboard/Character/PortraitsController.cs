@@ -1,4 +1,4 @@
-using Mehrak.Domain.Character;
+﻿using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;

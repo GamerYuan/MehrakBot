@@ -2,16 +2,16 @@
 
 using System.Text;
 using Mehrak.Bot.Shared.Attributes;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
-using Mehrak.Bot.Shared.Services;
-using Mehrak.Infrastructure.User;
 
 #endregion
 

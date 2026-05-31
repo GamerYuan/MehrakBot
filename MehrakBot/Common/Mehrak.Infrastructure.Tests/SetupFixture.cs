@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Tests.TestUtils;
+﻿using Mehrak.Infrastructure.Tests.TestUtils;
 
 namespace Mehrak.Infrastructure.Tests;
 

@@ -1,4 +1,4 @@
-namespace Mehrak.Dashboard.ReleaseNote.Models;
+﻿namespace Mehrak.Dashboard.ReleaseNote.Models;
 
 public sealed class ReleaseNoteResponse
 {

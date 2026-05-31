@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.ReleaseNote;
+﻿using Mehrak.Infrastructure.ReleaseNote;
 using Mehrak.Infrastructure.ReleaseNote.Models;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;

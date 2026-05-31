@@ -1,4 +1,4 @@
-using CoenM.ImageHash;
+﻿using CoenM.ImageHash;
 using CoenM.ImageHash.HashAlgorithms;
 using NUnit.Framework.Constraints;
 

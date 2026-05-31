@@ -1,4 +1,4 @@
-namespace Mehrak.Domain.Shared.Common;
+﻿namespace Mehrak.Domain.Shared.Common;
 
 public class CommandException : Exception
 {

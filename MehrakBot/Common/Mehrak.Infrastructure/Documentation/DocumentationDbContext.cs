@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Documentation.Models;
+﻿using Mehrak.Infrastructure.Documentation.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Documentation;

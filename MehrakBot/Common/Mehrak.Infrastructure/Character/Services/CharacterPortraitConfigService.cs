@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Text.Json;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;

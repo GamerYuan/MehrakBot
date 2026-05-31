@@ -1,4 +1,4 @@
-namespace Mehrak.Infrastructure.Character;
+﻿namespace Mehrak.Infrastructure.Character;
 
 public class CharacterCacheConfig
 {

@@ -1,4 +1,4 @@
-namespace Mehrak.Bot.Shared.Attributes;
+﻿namespace Mehrak.Bot.Shared.Attributes;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 internal sealed class HelpExampleFallbackAttribute : Attribute

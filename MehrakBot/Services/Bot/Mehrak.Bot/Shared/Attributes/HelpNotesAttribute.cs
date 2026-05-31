@@ -1,4 +1,4 @@
-namespace Mehrak.Bot.Shared.Attributes;
+﻿namespace Mehrak.Bot.Shared.Attributes;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 internal sealed class HelpNotesAttribute : Attribute
