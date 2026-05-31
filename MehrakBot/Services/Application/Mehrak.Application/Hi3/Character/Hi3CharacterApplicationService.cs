@@ -17,7 +17,7 @@ using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hi3.Types;
 using Mehrak.GameApi.Shared.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 
 namespace Mehrak.Application.Hi3.Character;
 

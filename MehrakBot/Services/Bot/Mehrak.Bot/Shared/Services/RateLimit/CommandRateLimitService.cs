@@ -8,7 +8,7 @@ using StackExchange.Redis;
 
 #endregion
 
-namespace Mehrak.Bot.RateLimit;
+namespace Mehrak.Bot.Shared.Services.RateLimit;
 
 internal class CommandRateLimitService : ICommandRateLimitService
 {

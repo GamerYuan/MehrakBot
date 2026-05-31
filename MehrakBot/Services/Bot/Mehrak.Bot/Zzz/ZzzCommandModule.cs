@@ -4,9 +4,9 @@
 
 #region
 
-using Mehrak.Bot.RateLimit;
 using Mehrak.Bot.Shared.Attributes;
 using Mehrak.Bot.Shared.Builders;
+using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Bot.Zzz;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;

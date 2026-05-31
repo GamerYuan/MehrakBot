@@ -3,7 +3,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Mehrak.Bot.Auth;
+using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;

@@ -17,7 +17,7 @@ using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 
 #endregion
 

@@ -1,5 +1,5 @@
-﻿using Mehrak.Bot.RateLimit;
-using Mehrak.Bot.Shared.Abstractions;
+﻿using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Services.RateLimit;
 using Moq;
 using NetCord;
 using NetCord.JsonModels;

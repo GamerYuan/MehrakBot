@@ -10,7 +10,7 @@ using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.DailyCheckIn;
 using Mehrak.GameApi.GameRecord;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

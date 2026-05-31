@@ -1,7 +1,6 @@
 ﻿#region
 
 using Grpc.Core;
-using Mehrak.Bot.Auth;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Tests.TestUtils;
@@ -9,7 +8,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;

@@ -12,7 +12,7 @@ using Mehrak.GameApi.CodeRedeem;
 using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.CodeRedeem;
 using Mehrak.Infrastructure.CodeRedeem.Models;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

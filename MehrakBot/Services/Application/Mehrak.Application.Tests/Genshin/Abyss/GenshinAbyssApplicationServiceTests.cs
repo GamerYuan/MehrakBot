@@ -20,7 +20,7 @@ using Mehrak.GameApi.Genshin;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.GameApi.Shared;
 using Mehrak.GameApi.Shared.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

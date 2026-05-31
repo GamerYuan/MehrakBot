@@ -2,8 +2,8 @@
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Shared.Cache;
+using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Shared.Auth;

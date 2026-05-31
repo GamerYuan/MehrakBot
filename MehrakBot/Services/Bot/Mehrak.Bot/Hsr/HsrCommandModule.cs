@@ -1,10 +1,10 @@
 ﻿using Mehrak.Bot.Shared.Attributes;
 using Mehrak.Bot.Shared.Builders;
+using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ApplicationCommands;
-using Mehrak.Bot.RateLimit;
 
 namespace Mehrak.Bot.Hsr;
 

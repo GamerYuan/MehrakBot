@@ -21,7 +21,7 @@ using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.GameApi.Wiki;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services;
 
-namespace Mehrak.Bot.RateLimit;
+namespace Mehrak.Bot.Shared.Services.RateLimit;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 internal class RateLimitAttribute<TContext> : PreconditionAttribute<TContext> where TContext : IUserContext

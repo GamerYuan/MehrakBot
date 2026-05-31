@@ -1,10 +1,10 @@
 ﻿#region
 
-using Mehrak.Bot.Auth;
+using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

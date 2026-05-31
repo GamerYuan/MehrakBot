@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Shared.Services;
-using Mehrak.Infrastructure.Context;
 
 namespace Mehrak.Infrastructure.User.Services;
 

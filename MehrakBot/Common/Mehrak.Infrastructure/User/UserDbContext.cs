@@ -1,7 +1,7 @@
 ﻿using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mehrak.Infrastructure.Context;
+namespace Mehrak.Infrastructure.User;
 
 public class UserDbContext(DbContextOptions<UserDbContext> options) : DbContext(options)
 {

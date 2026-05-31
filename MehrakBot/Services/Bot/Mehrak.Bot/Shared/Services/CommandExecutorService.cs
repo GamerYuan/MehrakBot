@@ -1,6 +1,5 @@
 ﻿#region
 
-using Mehrak.Bot.Auth;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Extensions;
 using Mehrak.Domain.Command.Models;
@@ -8,7 +7,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;

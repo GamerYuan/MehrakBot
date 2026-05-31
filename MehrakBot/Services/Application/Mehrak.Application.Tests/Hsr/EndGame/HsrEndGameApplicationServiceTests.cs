@@ -19,7 +19,7 @@ using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Shared;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

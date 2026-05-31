@@ -2,12 +2,13 @@
 
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Mehrak.Bot.Auth;
+using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
-using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.Shared;
+using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;

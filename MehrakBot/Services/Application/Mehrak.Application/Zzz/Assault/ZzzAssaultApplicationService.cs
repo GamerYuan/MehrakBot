@@ -19,7 +19,7 @@ using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
-using Mehrak.Infrastructure.Context;
+using Mehrak.Infrastructure.User;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Processing;

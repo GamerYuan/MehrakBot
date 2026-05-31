@@ -1,11 +1,10 @@
 ﻿#region
 
-using Mehrak.Bot.Auth;
 using Mehrak.Bot.HylEmbed;
-using Mehrak.Bot.RateLimit;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Builders;
 using Mehrak.Bot.Shared.Services;
+using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hoyolab;
 using Microsoft.Extensions.DependencyInjection;
