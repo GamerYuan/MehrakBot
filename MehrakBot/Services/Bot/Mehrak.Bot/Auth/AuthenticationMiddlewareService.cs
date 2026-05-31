@@ -2,7 +2,6 @@
 
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
@@ -17,7 +16,7 @@ using NetCord.Rest;
 
 #endregion
 
-namespace Mehrak.Bot.Authentication;
+namespace Mehrak.Bot.Auth;
 
 public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {

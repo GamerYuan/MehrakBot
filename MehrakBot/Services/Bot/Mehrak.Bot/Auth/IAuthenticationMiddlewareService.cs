@@ -6,7 +6,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Shared.Abstractions;
+namespace Mehrak.Bot.Auth;
 
 public interface IAuthenticationMiddlewareService
 {

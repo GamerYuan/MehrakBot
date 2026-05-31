@@ -1,6 +1,6 @@
 ﻿#region
 
-using Mehrak.Bot.Authentication;
+using Mehrak.Bot.Auth;
 using Mehrak.Bot.HylEmbed;
 using Mehrak.Bot.RateLimit;
 using Mehrak.Bot.Shared.Abstractions;
