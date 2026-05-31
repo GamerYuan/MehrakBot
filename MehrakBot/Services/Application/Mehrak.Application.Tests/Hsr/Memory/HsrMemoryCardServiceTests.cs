@@ -1,0 +1,125 @@
+﻿#region
+
+using System.Text.Json;
+using Mehrak.Application.Hsr.Memory;
+using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Services.Types;
+using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.User.Models;
+using Mehrak.GameApi.Hsr.Types;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+#endregion
+
+namespace Mehrak.Application.Tests.Hsr.Memory;
+
+[Parallelizable(ParallelScope.Fixtures)]
+public class HsrMemoryCardServiceTests
+{
+    private HsrMemoryCardService m_Service;
+
+    private const string TestNickName = "Test";
+    private const string TestUid = "800000000";
+    private const ulong TestUserId = 1;
+
+    private static readonly string TestDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
+
+    [SetUp]
+    public async Task Setup()
+    {
+        m_Service = new HsrMemoryCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<HsrMemoryCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await m_Service.InitializeAsync();
+    }
+
+    [Explicit]
+    [Test]
+    [TestCase("Moc_TestData_1.json")]
+    [TestCase("Moc_TestData_2.json")]
+    [TestCase("Moc_TestData_3.json")]
+    [TestCase("Moc_TestData_4.json")]
+    [TestCase("Moc_TestData_5.json")]
+    [TestCase("Moc_TestData_6.json")]
+    public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
+    {
+        var testData =
+            await JsonSerializer.DeserializeAsync<HsrMemoryInformation>(
+                File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)));
+        Assert.That(testData, Is.Not.Null, "Test data should not be null");
+
+        var goldenImage =
+            await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+                "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var stream = await m_Service.GetCardAsync(cardContext);
+        MemoryStream memoryStream = new();
+        await stream.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        var bytes = memoryStream.ToArray();
+
+        // Save generated image to output folder for comparison
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        var outputImagePath = Path.Combine(outputDirectory,
+            $"HsrMoc_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Generated.jpg");
+        await File.WriteAllBytesAsync(outputImagePath, bytes);
+
+        // Save golden image to output folder for comparison
+        var outputGoldenImagePath = Path.Combine(outputDirectory,
+            $"HsrMoc_Data{Path.GetFileNameWithoutExtension(testDataFileName).Last()}_Golden.jpg");
+        await File.WriteAllBytesAsync(outputGoldenImagePath, goldenImage);
+
+        Assert.That(bytes, Is.Not.Empty);
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream));
+    }
+
+    private static GameProfileDto GetTestUserGameData()
+    {
+        return new GameProfileDto
+        {
+            GameUid = TestUid,
+            Nickname = TestNickName,
+            Level = 70
+        };
+    }
+
+    [Test]
+    [TestCase("Moc_TestData_1.json", "Moc_GoldenImage_1.jpg")]
+    [TestCase("Moc_TestData_2.json", "Moc_GoldenImage_2.jpg")]
+    [TestCase("Moc_TestData_3.json", "Moc_GoldenImage_3.jpg")]
+    [TestCase("Moc_TestData_4.json", "Moc_GoldenImage_4.jpg")]
+    [TestCase("Moc_TestData_5.json", "Moc_GoldenImage_5.jpg")]
+    [TestCase("Moc_TestData_6.json", "Moc_GoldenImage_6.jpg")]
+    public async
+    Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    {
+        var testData = await JsonSerializer.DeserializeAsync<HsrMemoryInformation>(
+            File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));
+        Assert.That(testData, Is.Not.Null);
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        var image = await m_Service.GetCardAsync(cardContext);
+
+        await using var fileStream = File.Create(
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", goldenImageFileName));
+        await image.CopyToAsync(fileStream);
+        await image.FlushAsync();
+
+        Assert.That(image, Is.Not.Null);
+    }
+}

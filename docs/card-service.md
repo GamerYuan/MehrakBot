@@ -4,8 +4,8 @@ This document explains how card renderers are implemented in `Mehrak.Application
 
 Reference implementations:
 
-- `Mehrak.Application/Services/Genshin/Character/GenshinCharacterCardService.cs`
-- `Mehrak.Application/Services/Genshin/CharList/GenshinCharListCardService.cs`
+- `Mehrak.Application/Genshin/Character/GenshinCharacterCardService.cs`
+- `Mehrak.Application/Genshin/CharList/GenshinCharListCardService.cs`
 
 ## What A Card Service Is
 
@@ -20,8 +20,8 @@ public interface ICardService<TData>
 
 Sources:
 
-- `Mehrak.Domain/Services/Abstractions/ICardService.cs`
-- `Mehrak.Domain/Models/Abstractions/ICardGenerationContext.cs`
+- `Mehrak.Domain/Card/ICardService.cs`
+- `Mehrak.Domain/User/Abstractions/ICardGenerationContext.cs`
 
 Input context includes:
 
@@ -83,9 +83,9 @@ If your card service implements `IAsyncInitializable`, register it for startup i
 
 Relevant pieces:
 
-- `Mehrak.Domain/Services/Abstractions/IAsyncInitializable.cs`
+- `Mehrak.Domain/Shared/Services/IAsyncInitializable.cs`
 - `Mehrak.Domain/ServiceCollectionExtensions.cs` (`RegisterAsyncInitializableFor`)
-- `Mehrak.Application/Services/Common/AsyncInitializationHostedService.cs`
+- `Mehrak.Application/Shared/Services/AsyncInitializationHostedService.cs`
 
 Registration pattern:
 

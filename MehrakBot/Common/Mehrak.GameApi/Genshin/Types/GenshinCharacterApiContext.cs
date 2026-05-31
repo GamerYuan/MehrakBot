@@ -1,4 +1,4 @@
-﻿using Mehrak.GameApi.Common.Types;
+﻿using Mehrak.GameApi.Shared.Types;
 
 namespace Mehrak.GameApi.Genshin.Types;
 

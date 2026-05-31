@@ -1,0 +1,20 @@
+﻿#region
+
+using System.ComponentModel.DataAnnotations;
+using Mehrak.Domain.Shared.Enums;
+using Microsoft.EntityFrameworkCore;
+
+#endregion
+
+namespace Mehrak.Infrastructure.CodeRedeem.Models;
+
+[Index(nameof(Game)), Index(nameof(Game), nameof(Code), IsUnique = true)]
+public class CodeRedeemModel
+{
+    [Key]
+    public int Id { get; set; }
+
+    public Game Game { get; set; }
+
+    public string Code { get; set => field = value.ToUpperInvariant(); } = string.Empty;
+}

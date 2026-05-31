@@ -1,6 +1,7 @@
 ﻿namespace Mehrak.Application.Tests;
 
-using Mehrak.Domain.Common;
+using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Image.Models;
 
 [SetUpFixture]
 public class TestSetup

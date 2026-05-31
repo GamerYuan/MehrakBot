@@ -1,0 +1,32 @@
+﻿#region
+
+using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Enums;
+
+#endregion
+
+namespace Mehrak.Bot.Shared.Services;
+
+internal class CharacterAutocompleteService : ICharacterAutocompleteService
+{
+    private readonly ICharacterCacheService m_CharacterCacheService;
+    private const int Limit = 25;
+
+    public CharacterAutocompleteService(ICharacterCacheService characterCacheService)
+    {
+        m_CharacterCacheService = characterCacheService;
+    }
+
+    public IReadOnlyList<string> FindCharacter(Game game, string query)
+    {
+        query = query.Trim();
+        var characterNames = m_CharacterCacheService.GetCharacters(game);
+        return
+        [
+            .. characterNames
+                .Where(x => x.Contains(query, StringComparison.InvariantCultureIgnoreCase))
+                .Take(Limit)
+        ];
+    }
+}

@@ -1,0 +1,153 @@
+﻿#region
+
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Mehrak.Domain.Shared.Abstractions;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
+using Microsoft.Extensions.Logging;
+
+#endregion
+
+namespace Mehrak.GameApi.DailyCheckIn;
+
+public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiContext>
+{
+    private readonly IHttpClientFactory m_HttpClientFactory;
+    private readonly ILogger<DailyCheckInApiService> m_Logger;
+
+    private static readonly Dictionary<Game, string> CheckInUrls = new()
+    {
+        { Game.Genshin, $"{HoYoLabDomains.GenshinApi}/event/sol/sign" },
+        { Game.HonkaiStarRail, $"{HoYoLabDomains.PublicApi}/event/luna/hkrpg/os/sign" },
+        { Game.ZenlessZoneZero, $"{HoYoLabDomains.PublicApi}/event/luna/zzz/os/sign" },
+        { Game.HonkaiImpact3, $"{HoYoLabDomains.PublicApi}/event/mani/sign" },
+        { Game.TearsOfThemis, $"{HoYoLabDomains.PublicApi}/event/luna/nxx/os/sign" }
+    };
+
+    private static readonly Dictionary<Game, string> CheckInActIds = new()
+    {
+        { Game.Genshin, "e202102251931481" },
+        { Game.HonkaiStarRail, "e202303301540311" },
+        { Game.ZenlessZoneZero, "e202406031448091" },
+        { Game.HonkaiImpact3, "e202110291205111" },
+        { Game.TearsOfThemis, "e202202281857121" }
+    };
+
+    public DailyCheckInApiService(IHttpClientFactory httpClientFactory, ILogger<DailyCheckInApiService> logger)
+    {
+        m_HttpClientFactory = httpClientFactory;
+        m_Logger = logger;
+    }
+
+    public async Task<Result<CheckInStatus>> GetAsync(CheckInApiContext context, CancellationToken cancellationToken = default)
+    {
+        if (!CheckInUrls.TryGetValue(context.Game, out var requestUri) ||
+            !CheckInActIds.TryGetValue(context.Game, out var actId))
+        {
+            m_Logger.LogError("Invalid check-in type: {Type}", context.Game);
+            return Result<CheckInStatus>.Failure(StatusCode.BadParameter, "Invalid check-in type");
+        }
+
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+
+            var httpClient = m_HttpClientFactory.CreateClient("Default");
+            HttpRequestMessage request = new(HttpMethod.Post, requestUri);
+            CheckInApiPayload requestBody = new() { ActId = actId };
+            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
+
+            if (context.Game == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
+
+            request.Content =
+                new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred during check-in", requestUri);
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
+
+            if (json == null)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred during check-in", requestUri);
+            }
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode,
+                context.UserId);
+
+            switch (json.Retcode)
+            {
+                case -5003:
+                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.UserId, context.LtUid, context.Game.ToString());
+                    return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
+
+                case 0:
+                    return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
+
+                case -10002:
+                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.UserId, context.LtUid, context.Game.ToString());
+                    return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile, requestUri: requestUri);
+
+                case -100:
+                    m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
+                    return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
+                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+
+                default:
+                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
+                    return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
+                        $"An unknown error occurred during check-in", requestUri);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<CheckInStatus>.FromCancellation(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.UserId);
+            return Result<CheckInStatus>.Failure(StatusCode.BotError,
+                "An error occurred during check-in");
+        }
+    }
+
+    private sealed class CheckInApiPayload
+    {
+        [JsonPropertyName("act_id")] public string ActId { get; set; } = string.Empty;
+    }
+}
+
+public class CheckInApiContext : IApiContext
+{
+    public ulong UserId { get; }
+    public ulong LtUid { get; }
+    public string LToken { get; }
+    public Game Game { get; }
+
+    public CheckInApiContext(ulong userId, ulong ltuid, string ltoken, Game game)
+    {
+        UserId = userId;
+        LtUid = ltuid;
+        LToken = ltoken;
+        Game = game;
+    }
+}

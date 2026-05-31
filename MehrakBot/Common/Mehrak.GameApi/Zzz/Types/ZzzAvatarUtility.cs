@@ -1,5 +1,5 @@
 ﻿using System.Text.RegularExpressions;
-using Mehrak.Domain.Common;
+using Mehrak.Domain.Image.Models;
 
 namespace Mehrak.GameApi.Zzz.Types;
 

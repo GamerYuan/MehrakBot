@@ -1,7 +1,7 @@
 ﻿#region
 
-using Mehrak.Domain.Enums;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.GameApi.Shared.Types;
 
 #endregion
 
