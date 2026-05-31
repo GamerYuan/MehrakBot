@@ -1,7 +1,3 @@
-#region
-
-#endregion
-
 namespace Mehrak.Domain.Shared.Common;
 
 

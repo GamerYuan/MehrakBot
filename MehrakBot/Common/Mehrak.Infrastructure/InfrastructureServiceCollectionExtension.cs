@@ -19,6 +19,7 @@ using Mehrak.Infrastructure.Shared.Storage;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -46,19 +47,18 @@ public static class InfrastructureServiceCollectionExtension
         services.AddDbContext<ReleaseNoteDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
 
-        using var serviceProvider = services.BuildServiceProvider();
-
-        var redisConfig = serviceProvider.GetRequiredService<IOptions<RedisConfig>>().Value;
-        var lazyConnection = new Lazy<IConnectionMultiplexer>(() =>
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
+            var redisConfig = sp.GetRequiredService<IOptions<RedisConfig>>().Value;
             return ConnectionMultiplexer.Connect(redisConfig.ConnectionString);
         });
-        services.AddSingleton(sp => lazyConnection.Value);
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.ConnectionMultiplexerFactory = () => Task.FromResult(lazyConnection.Value);
-            options.InstanceName = redisConfig.InstanceName;
-        });
+        services.AddStackExchangeRedisCache(_ => { });
+        services.AddOptions<RedisCacheOptions>()
+            .Configure<IConnectionMultiplexer, IOptions<RedisConfig>>((options, connection, redisConfig) =>
+            {
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(connection);
+                options.InstanceName = redisConfig.Value.InstanceName;
+            });
 
         services.AddTransient<IDbStatusService, DbStatusService>();
 

@@ -4,7 +4,6 @@
 
 #region
 
-using Mehrak.Application.Shared.Services;
 using Mehrak.Domain.Shared.Enums;
 
 #endregion
