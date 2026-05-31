@@ -16,7 +16,7 @@ internal sealed class RedisTestHelper : IAsyncDisposable
         if (m_Container != null)
             return;
 
-        m_Container = new RedisBuilder("redis:7.2-alpine")
+        m_Container = new RedisBuilder("redis:8.6")
             .Build();
 
         await m_Container.StartAsync();
