@@ -1,5 +1,6 @@
 ﻿namespace Mehrak.Application.Tests;
 
+using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Image.Models;
 
 [SetUpFixture]

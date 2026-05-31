@@ -1,5 +1,4 @@
 ﻿using Mehrak.Bot.Shared.Attributes;
-using Mehrak.Bot.Services.RateLimit;
 using Mehrak.Bot.Shared.Builders;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
