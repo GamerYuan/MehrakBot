@@ -1,12 +1,11 @@
 #region
 
 using System.Text.Json;
-using Mehrak.Application.Builders;
 using Mehrak.Application.Genshin;
-using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Common.Types;
 using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Builders;
 using Mehrak.Application.Shared.Services;
+using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;

@@ -12,7 +12,7 @@ using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Shared;
 using Mehrak.GameApi.Shared.Types;
-using Mehrak.Infrastructure.Models;
+using Mehrak.Infrastructure.Shared.Cache;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
