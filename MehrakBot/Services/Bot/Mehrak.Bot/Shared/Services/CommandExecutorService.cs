@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Bot.Auth;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Extensions;
 using Mehrak.Domain.Command.Models;

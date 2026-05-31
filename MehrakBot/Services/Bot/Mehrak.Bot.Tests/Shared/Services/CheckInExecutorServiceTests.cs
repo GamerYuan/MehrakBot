@@ -1,12 +1,14 @@
 ﻿#region
 
 using Grpc.Core;
+using Mehrak.Bot.Auth;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Services;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Image;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Context;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,7 +17,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Services;
+namespace Mehrak.Bot.Tests.Shared.Services;
 
 /// <summary>
 /// Unit tests for CommandExecutorService validating checkin command execution flow,
@@ -60,10 +62,10 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
+            .Returns(CreateUnaryCall(new CommandResult
             {
                 IsSuccess = true,
-                Data = new Mehrak.Domain.Protobuf.CommandResultData { IsContainer = false, IsEphemeral = false }
+                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
             }));
 
         m_Service = new CommandExecutorService(
@@ -267,7 +269,7 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
+            .Returns(CreateUnaryCall(new CommandResult
             {
                 IsSuccess = false,
                 ErrorMessage = errorMessage,
@@ -340,7 +342,7 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
+            .Returns(CreateUnaryCall(new CommandResult
             {
                 IsSuccess = false,
                 ErrorMessage = "Error",
@@ -422,10 +424,10 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new Mehrak.Domain.Protobuf.CommandResult
+            .Returns(CreateUnaryCall(new CommandResult
             {
                 IsSuccess = true,
-                Data = new Mehrak.Domain.Protobuf.CommandResultData { IsContainer = false, IsEphemeral = false }
+                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
             }))
             .Callback(() => callOrder.Add("Execute"));
 
@@ -470,9 +472,9 @@ public class CheckInExecutorServiceTests
         Assert.That(m_Service.Context, Is.EqualTo(mockContext.Object));
     }
 
-    private static AsyncUnaryCall<Mehrak.Domain.Protobuf.CommandResult> CreateUnaryCall(Mehrak.Domain.Protobuf.CommandResult result)
+    private static AsyncUnaryCall<CommandResult> CreateUnaryCall(CommandResult result)
     {
-        return new AsyncUnaryCall<Mehrak.Domain.Protobuf.CommandResult>(
+        return new AsyncUnaryCall<CommandResult>(
             Task.FromResult(result),
             Task.FromResult(new Metadata()),
             () => Status.DefaultSuccess,

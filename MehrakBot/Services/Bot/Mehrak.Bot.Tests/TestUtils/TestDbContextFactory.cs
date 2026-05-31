@@ -1,9 +1,8 @@
-﻿namespace Mehrak.Bot.Tests;
-
-using System;
-using Mehrak.Infrastructure.Context;
+﻿using Mehrak.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace Mehrak.Bot.Tests.TestUtils;
 
 internal sealed class TestDbContextFactory : IDisposable
 {

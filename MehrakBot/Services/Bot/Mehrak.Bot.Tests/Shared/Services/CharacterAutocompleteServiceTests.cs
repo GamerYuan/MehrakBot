@@ -7,7 +7,7 @@ using Moq;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Services;
+namespace Mehrak.Bot.Tests.Shared.Services;
 
 /// <summary>
 /// Unit tests for GenshinCharacterAutocompleteService validating character search,

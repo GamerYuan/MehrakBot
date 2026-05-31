@@ -2,8 +2,8 @@
 
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Auth;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Infrastructure.Context;
@@ -15,7 +15,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Authentication;
+namespace Mehrak.Bot.Tests.Auth;
 
 /// <summary>
 /// Integration tests for AuthenticationMiddlewareService that test the full authentication flow

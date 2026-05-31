@@ -2,6 +2,7 @@
 
 using Mehrak.Bot.Hsr;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Shared.Enums;
 using Moq;
 using NetCord;
@@ -11,7 +12,7 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Provider.Autocomplete.Hsr;
+namespace Mehrak.Bot.Tests.Hsr;
 
 /// <summary>
 /// Unit tests for HsrCharacterAutocompleteProvider validating autocomplete choices generation

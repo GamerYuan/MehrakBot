@@ -6,7 +6,7 @@ using Moq;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Services;
+namespace Mehrak.Bot.Tests.Shared.Services;
 
 /// <summary>
 /// Unit tests for ParamValidator and ParamValidator&lt;TParam&gt; validating parameter validation logic,

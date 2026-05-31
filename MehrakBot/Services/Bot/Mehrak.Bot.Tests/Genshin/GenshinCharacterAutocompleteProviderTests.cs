@@ -1,7 +1,8 @@
 ﻿#region
 
+using Mehrak.Bot.Genshin;
 using Mehrak.Bot.Shared.Abstractions;
-using Mehrak.Bot.Zzz;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Shared.Enums;
 using Moq;
 using NetCord;
@@ -11,32 +12,31 @@ using NetCord.Services.ApplicationCommands;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Provider.Autocomplete.Zzz;
+namespace Mehrak.Bot.Tests.Genshin;
 
 /// <summary>
-/// Unit tests for ZzzCharacterAutocompleteProvider validating autocomplete choices generation
-/// and character search functionality for Zenless Zone Zero.
+/// Unit tests for GenshinCharacterAutocompleteProvider validating autocomplete choices generation
+/// and character search functionality.
 /// </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-public class ZzzCharacterAutocompleteProviderTests
+public class GenshinCharacterAutocompleteProviderTests
 {
     private Mock<ICharacterAutocompleteService> m_MockAutocompleteService = null!;
-    private ZzzCharacterAutocompleteProvider m_Provider = null!;
-    private DiscordTestHelper? m_TestHelper;
+    private GenshinCharacterAutocompleteProvider m_Provider = null!;
 
     [SetUp]
     public void Setup()
     {
         m_MockAutocompleteService = new Mock<ICharacterAutocompleteService>();
-        m_Provider = new ZzzCharacterAutocompleteProvider(m_MockAutocompleteService.Object);
+        m_Provider = new GenshinCharacterAutocompleteProvider(m_MockAutocompleteService.Object);
     }
 
     [TearDown]
     public void TearDown()
     {
-        m_TestHelper?.Dispose();
+        m_MockAutocompleteService.Reset();
     }
 
     #region GetChoicesAsync Tests
@@ -45,12 +45,12 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMatchingCharacters_ReturnsChoices()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Ell");
+        var (option, context) = CreateTestInputs("Hu");
 
-        var expectedCharacters = new List<string> { "Ellen", "Ellen Joe" };
+        var expectedCharacters = new List<string> { "Hu Tao", "Huohuo" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Ell"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Hu"))
             .Returns(expectedCharacters);
 
         // Act
@@ -60,25 +60,22 @@ public class ZzzCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
-        {
-            Assert.That(choices[0].Name, Is.EqualTo("Ellen"));
-            Assert.That(choices[0].StringValue, Is.EqualTo("Ellen"));
-            Assert.That(choices[1].Name, Is.EqualTo("Ellen Joe"));
-            Assert.That(choices[1].StringValue, Is.EqualTo("Ellen Joe"));
-        });
+        Assert.That(choices[0].Name, Is.EqualTo("Hu Tao"));
+        Assert.That(choices[0].StringValue, Is.EqualTo("Hu Tao"));
+        Assert.That(choices[1].Name, Is.EqualTo("Huohuo"));
+        Assert.That(choices[1].StringValue, Is.EqualTo("Huohuo"));
     }
 
     [Test]
     public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Zhu Yuan");
+        var (option, context) = CreateTestInputs("Diluc");
 
-        var expectedCharacters = new List<string> { "Zhu Yuan" };
+        var expectedCharacters = new List<string> { "Diluc" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Zhu Yuan"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Diluc"))
             .Returns(expectedCharacters);
 
         // Act
@@ -88,11 +85,8 @@ public class ZzzCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.Multiple(() =>
-        {
-            Assert.That(choices[0].Name, Is.EqualTo("Zhu Yuan"));
-            Assert.That(choices[0].StringValue, Is.EqualTo("Zhu Yuan"));
-        });
+        Assert.That(choices[0].Name, Is.EqualTo("Diluc"));
+        Assert.That(choices[0].StringValue, Is.EqualTo("Diluc"));
     }
 
     [Test]
@@ -104,7 +98,7 @@ public class ZzzCharacterAutocompleteProviderTests
         var expectedCharacters = new List<string>();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "XYZ"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "XYZ"))
             .Returns(expectedCharacters);
 
         // Act
@@ -122,10 +116,10 @@ public class ZzzCharacterAutocompleteProviderTests
         // Arrange
         var (option, context) = CreateTestInputs("");
 
-        var expectedCharacters = new List<string> { "Anby", "Billy", "Nicole", "Nekomata" };
+        var expectedCharacters = new List<string> { "Diluc", "Jean", "Klee", "Venti" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, ""))
+            .Setup(x => x.FindCharacter(Game.Genshin, ""))
             .Returns(expectedCharacters);
 
         // Act
@@ -141,12 +135,12 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Nic");
+        var (option, context) = CreateTestInputs("Zho");
 
-        var expectedCharacters = new List<string> { "Nicole Demara" };
+        var expectedCharacters = new List<string> { "Zhongli" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Nic"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Zho"))
             .Returns(expectedCharacters);
 
         // Act
@@ -156,26 +150,26 @@ public class ZzzCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Nicole Demara"));
+        Assert.That(choices[0].Name, Is.EqualTo("Zhongli"));
     }
 
     [Test]
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("lycaon");
+        var (option, context) = CreateTestInputs("raiden");
 
-        var expectedCharacters = new List<string> { "Lycaon" };
+        var expectedCharacters = new List<string> { "Raiden Shogun" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "lycaon"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "raiden"))
             .Returns(expectedCharacters);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, "lycaon"), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "raiden"), Times.Once);
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
@@ -185,12 +179,12 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("S");
+        var (option, context) = CreateTestInputs("Tar");
 
-        var expectedCharacters = new List<string> { "Seth", "Soldier 11", "Soukaku" };
+        var expectedCharacters = new List<string> { "Tartaglia", "Childe" }; // Tartaglia's alias
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "S"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Tar"))
             .Returns(expectedCharacters);
 
         // Act
@@ -199,37 +193,37 @@ public class ZzzCharacterAutocompleteProviderTests
         // Assert
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(3));
+        Assert.That(choices, Has.Count.EqualTo(2));
     }
 
     [Test]
     public async Task GetChoicesAsync_CallsServiceWithCorrectQuery()
     {
         // Arrange
-        const string query = "Jane";
+        const string query = "Ayaka";
         var (option, context) = CreateTestInputs(query);
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, query))
-            .Returns(["Jane Doe"]);
+            .Setup(x => x.FindCharacter(Game.Genshin, query))
+            .Returns(["Kamisato Ayaka"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, query), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, query), Times.Once);
     }
 
     [Test]
     public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Grace");
+        var (option, context) = CreateTestInputs("Nahida");
 
-        var expectedCharacters = new List<string> { "Grace" };
+        var expectedCharacters = new List<string> { "Nahida" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Grace"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Nahida"))
             .Returns(expectedCharacters);
 
         // Act
@@ -238,19 +232,19 @@ public class ZzzCharacterAutocompleteProviderTests
         // Assert
         var choice = result!.First();
         Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
-        Assert.That(choice.Name, Is.EqualTo("Grace"));
+        Assert.That(choice.Name, Is.EqualTo("Nahida"));
     }
 
     [Test]
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Soldier");
+        var (option, context) = CreateTestInputs("Hu");
 
-        var expectedCharacters = new List<string> { "Soldier 11" }; // Name with space/number
+        var expectedCharacters = new List<string> { "Hu Tao" }; // Name with space
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Soldier"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Hu"))
             .Returns(expectedCharacters);
 
         // Act
@@ -261,8 +255,8 @@ public class ZzzCharacterAutocompleteProviderTests
         var choice = result!.First();
         Assert.Multiple(() =>
         {
-            Assert.That(choice.Name, Is.EqualTo("Soldier 11"));
-            Assert.That(choice.StringValue, Is.EqualTo("Soldier 11"));
+            Assert.That(choice.Name, Is.EqualTo("Hu Tao"));
+            Assert.That(choice.StringValue, Is.EqualTo("Hu Tao"));
         });
     }
 
@@ -273,7 +267,7 @@ public class ZzzCharacterAutocompleteProviderTests
         var (option, context) = CreateTestInputs("Test");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Test"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Test"))
             .Returns([]);
 
         // Act
@@ -293,11 +287,12 @@ public class ZzzCharacterAutocompleteProviderTests
 
         var expectedCharacters = new List<string>
         {
-            "Anby", "Anton", "Alexandrina"
+            "Albedo", "Alhaitham", "Aloy", "Amber", "Arataki Itto",
+            "Arlecchino", "Ayaka", "Ayato", "Azhdaha"
         };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "A"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "A"))
             .Returns(expectedCharacters);
 
         // Act
@@ -306,7 +301,7 @@ public class ZzzCharacterAutocompleteProviderTests
         // Assert
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(3));
+        Assert.That(choices, Has.Count.EqualTo(9));
         Assert.That(choices.Select(c => c.Name), Is.EquivalentTo(expectedCharacters));
     }
 
@@ -318,11 +313,11 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ChoicesHaveCorrectType()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Ben");
+        var (option, context) = CreateTestInputs("Ganyu");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Ben"))
-            .Returns(["Ben Bigger"]);
+            .Setup(x => x.FindCharacter(Game.Genshin, "Ganyu"))
+            .Returns(["Ganyu"]);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
@@ -340,10 +335,10 @@ public class ZzzCharacterAutocompleteProviderTests
         // Arrange
         var (option, context) = CreateTestInputs("K");
 
-        var expectedCharacters = new List<string> { "Koleda", "Karin" }; // Assuming Karin is a character or similar
+        var expectedCharacters = new List<string> { "Kaeya", "Kazuha", "Keqing", "Klee" };
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "K"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "K"))
             .Returns(expectedCharacters);
 
         // Act
@@ -351,8 +346,13 @@ public class ZzzCharacterAutocompleteProviderTests
 
         // Assert
         var choices = result!.ToList();
-        Assert.That(choices[0].Name, Is.EqualTo("Koleda"));
-        Assert.That(choices[1].Name, Is.EqualTo("Karin"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(choices[0].Name, Is.EqualTo("Kaeya"));
+            Assert.That(choices[1].Name, Is.EqualTo("Kazuha"));
+            Assert.That(choices[2].Name, Is.EqualTo("Keqing"));
+            Assert.That(choices[3].Name, Is.EqualTo("Klee"));
+        });
     }
 
     #endregion
@@ -363,12 +363,12 @@ public class ZzzCharacterAutocompleteProviderTests
     public async Task GetChoicesAsync_ServiceReturnsReadOnlyList_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Rina");
+        var (option, context) = CreateTestInputs("Xiao");
 
-        IReadOnlyList<string> expectedCharacters = new List<string> { "Rina" }.AsReadOnly();
+        IReadOnlyList<string> expectedCharacters = new List<string> { "Xiao" }.AsReadOnly();
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Rina"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "Xiao"))
             .Returns(expectedCharacters);
 
         // Act
@@ -378,24 +378,24 @@ public class ZzzCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Rina"));
+        Assert.That(choices[0].Name, Is.EqualTo("Xiao"));
     }
 
     [Test]
     public async Task GetChoicesAsync_ServiceCalledOnlyOnce()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("Corin");
+        var (option, context) = CreateTestInputs("Yelan");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Corin"))
-            .Returns(["Corin"]);
+            .Setup(x => x.FindCharacter(Game.Genshin, "Yelan"))
+            .Returns(["Yelan"]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, It.IsAny<string>()), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, It.IsAny<string>()), Times.Once);
     }
 
     #endregion
@@ -403,52 +403,50 @@ public class ZzzCharacterAutocompleteProviderTests
     #region Edge Cases
 
     [Test]
-    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesToService()
+    public async Task GetChoicesAsync_WithWhitespaceQuery_PassesTrimmedToService()
     {
         // Arrange
         var (option, context) = CreateTestInputs("   ");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "   "))
+            .Setup(x => x.FindCharacter(Game.Genshin, "   ".Trim()))
             .Returns([]);
 
         // Act
         await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, "   "), Times.Once);
+        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, "   ".Trim()), Times.Once);
     }
 
     [Test]
     public async Task GetChoicesAsync_WithNumericQuery_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("11");
+        var (option, context) = CreateTestInputs("123");
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "11"))
-            .Returns(["Soldier 11"]);
+            .Setup(x => x.FindCharacter(Game.Genshin, "123"))
+            .Returns([]);
 
         // Act
         var result = await m_Provider.GetChoicesAsync(option, context);
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Soldier 11"));
+        Assert.That(result!.ToList(), Is.Empty);
     }
 
     [Test]
     public async Task GetChoicesAsync_WithUnicodeCharacters_HandlesCorrectly()
     {
         // Arrange
-        var (option, context) = CreateTestInputs("雅");
+        var (option, context) = CreateTestInputs("神");
 
-        var expectedCharacters = new List<string> { "星见雅" }; // Miyabi
+        var expectedCharacters = new List<string> { "神里绫华" }; // Chinese character name
 
         m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "雅"))
+            .Setup(x => x.FindCharacter(Game.Genshin, "神"))
             .Returns(expectedCharacters);
 
         // Act
@@ -457,17 +455,17 @@ public class ZzzCharacterAutocompleteProviderTests
         // Assert
         Assert.That(result, Is.Not.Null);
         var choice = result!.First();
-        Assert.That(choice.Name, Is.EqualTo("星见雅"));
+        Assert.That(choice.Name, Is.EqualTo("神里绫华"));
     }
 
     #endregion
 
     #region Helpers
 
-    private (ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
+    private static (ApplicationCommandInteractionDataOption option, AutocompleteInteractionContext context)
         CreateTestInputs(string optionValue)
     {
-        m_TestHelper = new DiscordTestHelper();
+        DiscordTestHelper testHelper = new();
         JsonApplicationCommandInteractionDataOption jsonOption = new()
         {
             Value = optionValue
@@ -488,8 +486,8 @@ public class ZzzCharacterAutocompleteProviderTests
                 Id = 1
             },
             Entitlements = []
-        }, null, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), m_TestHelper.DiscordClient.Rest);
-        AutocompleteInteractionContext context = new(interaction, m_TestHelper.DiscordClient);
+        }, null, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), testHelper.DiscordClient.Rest);
+        AutocompleteInteractionContext context = new(interaction, testHelper.DiscordClient);
         return (option, context);
     }
 

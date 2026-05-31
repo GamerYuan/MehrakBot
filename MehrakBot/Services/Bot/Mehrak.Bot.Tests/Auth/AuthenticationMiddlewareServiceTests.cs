@@ -4,12 +4,12 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Auth;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
-using Mehrak.Domain.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Context;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.Extensions.Logging;
@@ -21,7 +21,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Authentication;
+namespace Mehrak.Bot.Tests.Auth;
 
 [Parallelizable(ParallelScope.Self)]
 public class AuthenticationMiddlewareServiceTests

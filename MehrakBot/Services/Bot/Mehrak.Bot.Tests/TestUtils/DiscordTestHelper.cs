@@ -1,6 +1,4 @@
-﻿#region
-
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -11,9 +9,7 @@ using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Rest.JsonModels;
 
-#endregion
-
-namespace Mehrak.Bot.Tests;
+namespace Mehrak.Bot.Tests.TestUtils;
 
 /// <summary>
 /// Helper class for Discord interaction testing

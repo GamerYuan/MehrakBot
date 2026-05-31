@@ -1,9 +1,10 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Bot.HylEmbed;
 using Mehrak.Bot.HylEmbed.Models;
-using Mehrak.Bot.Services;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -14,7 +15,7 @@ using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Services;
+namespace Mehrak.Bot.Tests.HylEmbed;
 
 /// <summary>
 /// Unit tests for HylEmbedService validating HoYoLAB post embed generation,

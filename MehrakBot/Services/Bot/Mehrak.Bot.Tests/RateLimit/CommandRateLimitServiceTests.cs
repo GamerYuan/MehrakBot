@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 
-namespace Mehrak.Bot.Tests.Services.RateLimit;
+namespace Mehrak.Bot.Tests.RateLimit;
 
 [TestFixture]
 public class CommandRateLimitServiceTests

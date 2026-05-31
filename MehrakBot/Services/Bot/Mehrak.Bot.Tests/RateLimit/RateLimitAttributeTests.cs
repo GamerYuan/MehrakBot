@@ -5,47 +5,47 @@ using NetCord;
 using NetCord.JsonModels;
 using NetCord.Services;
 
-namespace Mehrak.Bot.Tests.Services.RateLimit;
+namespace Mehrak.Bot.Tests.RateLimit;
 
 [TestFixture]
 public class RateLimitAttributeTests
 {
-    private Mock<IServiceProvider> _serviceProviderMock;
-    private Mock<ICommandRateLimitService> _rateLimitServiceMock;
-    private Mock<IUserContext> _userContextMock;
-    private Mock<User> _userMock;
-    private RateLimitAttribute<IUserContext> _attribute;
+    private Mock<IServiceProvider> m_ServiceProviderMock;
+    private Mock<ICommandRateLimitService> m_RateLimitServiceMock;
+    private Mock<IUserContext> m_UserContextMock;
+    private Mock<User> m_UserMock;
+    private RateLimitAttribute<IUserContext> m_Attribute;
 
     [SetUp]
     public void SetUp()
     {
-        _serviceProviderMock = new Mock<IServiceProvider>();
-        _rateLimitServiceMock = new Mock<ICommandRateLimitService>();
-        _userContextMock = new Mock<IUserContext>();
+        m_ServiceProviderMock = new Mock<IServiceProvider>();
+        m_RateLimitServiceMock = new Mock<ICommandRateLimitService>();
+        m_UserContextMock = new Mock<IUserContext>();
 
         // Create a JsonUser with the ID we want
         var jsonUser = new JsonUser { Id = 12345ul };
 
-        _userMock = new Mock<User>(MockBehavior.Loose, [jsonUser, null!]);
+        m_UserMock = new Mock<User>(MockBehavior.Loose, [jsonUser, null!]);
 
-        _attribute = new RateLimitAttribute<IUserContext>();
+        m_Attribute = new RateLimitAttribute<IUserContext>();
 
         // Setup service provider to return rate limit service
-        _serviceProviderMock
+        m_ServiceProviderMock
             .Setup(x => x.GetService(typeof(ICommandRateLimitService)))
-            .Returns(_rateLimitServiceMock.Object);
+            .Returns(m_RateLimitServiceMock.Object);
 
         // Setup user context
-        _userContextMock.Setup(x => x.User).Returns(_userMock.Object);
+        m_UserContextMock.Setup(x => x.User).Returns(m_UserMock.Object);
 
-        _userMock.Setup(x => x.Id).Returns(12345ul);
+        m_UserMock.Setup(x => x.Id).Returns(12345ul);
     }
 
     [Test]
     public async Task EnsureCanExecuteAsync_ServiceProviderIsNull_ReturnsFail()
     {
         // Act
-        var result = await _attribute.EnsureCanExecuteAsync(_userContextMock.Object, null);
+        var result = await m_Attribute.EnsureCanExecuteAsync(m_UserContextMock.Object, null);
 
         // Assert
         Assert.That(result, Is.InstanceOf<IFailResult>());
@@ -57,33 +57,33 @@ public class RateLimitAttributeTests
     public async Task EnsureCanExecuteAsync_RateLimitNotAllowed_ReturnsFail()
     {
         // Arrange
-        _rateLimitServiceMock
+        m_RateLimitServiceMock
             .Setup(x => x.IsAllowedAsync(It.IsAny<ulong>()))
             .ReturnsAsync(false);
 
         // Act
-        var result = await _attribute.EnsureCanExecuteAsync(_userContextMock.Object, _serviceProviderMock.Object);
+        var result = await m_Attribute.EnsureCanExecuteAsync(m_UserContextMock.Object, m_ServiceProviderMock.Object);
 
         // Assert
         Assert.That(result, Is.InstanceOf<IFailResult>());
         var failResult = (IFailResult)result;
         Assert.That(failResult.Message, Is.EqualTo("Used command too frequently! Please try again later"));
-        _rateLimitServiceMock.Verify(x => x.IsAllowedAsync(12345ul), Times.Once);
+        m_RateLimitServiceMock.Verify(x => x.IsAllowedAsync(12345ul), Times.Once);
     }
 
     [Test]
     public async Task EnsureCanExecuteAsync_RateLimitAllowed_ReturnsSuccess()
     {
         // Arrange
-        _rateLimitServiceMock
+        m_RateLimitServiceMock
             .Setup(x => x.IsAllowedAsync(It.IsAny<ulong>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _attribute.EnsureCanExecuteAsync(_userContextMock.Object, _serviceProviderMock.Object);
+        var result = await m_Attribute.EnsureCanExecuteAsync(m_UserContextMock.Object, m_ServiceProviderMock.Object);
 
         // Assert
         Assert.That(result, Is.Not.InstanceOf<IFailResult>());
-        _rateLimitServiceMock.Verify(x => x.IsAllowedAsync(12345ul), Times.Once);
+        m_RateLimitServiceMock.Verify(x => x.IsAllowedAsync(12345ul), Times.Once);
     }
 }

@@ -9,7 +9,7 @@ using static Mehrak.Domain.Command.Models.CommandText;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Extensions;
+namespace Mehrak.Bot.Tests.Shared.Extensions;
 
 /// <summary>
 /// Unit tests for CommandResultDataExtensions validating message conversion,

@@ -3,19 +3,19 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Mehrak.Bot.Authentication;
-using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Auth;
+using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
-using Mehrak.Infrastructure.Models;
 using Mehrak.Infrastructure.Shared;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord.Services;
 
 #endregion
 
-namespace Mehrak.Bot.Tests.Authentication;
+namespace Mehrak.Bot.Tests.Auth;
 
 /// <summary>
 /// Stress tests for AuthenticationMiddlewareService under high concurrency.
