@@ -26,7 +26,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
     public async Task<bool> UpdateImageAsync(IImageData data, IImageProcessor processor, CancellationToken cancellationToken = default)
     {
-        if (await m_ImageRepository.FileExistsAsync(data.Name))
+        if (await m_ImageRepository.FileExistsAsync(data.Name, cancellationToken))
         {
             return true;
         }
@@ -45,7 +45,7 @@ public class ImageUpdaterService : IImageUpdaterService
             var client = m_HttpClientFactory.CreateClient();
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
-            var response = await client.GetAsync(data.Url, timeoutCts.Token);
+            using var response = await client.GetAsync(data.Url, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
