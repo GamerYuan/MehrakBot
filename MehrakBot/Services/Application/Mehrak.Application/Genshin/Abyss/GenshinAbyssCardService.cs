@@ -13,6 +13,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -121,199 +122,232 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
 
         background.Mutate(ctx =>
         {
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(50, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, "Spiral Abyss", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(750, 80),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom
-            },
-                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
-                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
-                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
-                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
-                Color.White);
-
-            ctx.DrawText($"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Fonts.Normal,
-                Color.White,
-                new PointF(50, 110));
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(750, 110),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, context.GameProfile.GameUid!, Color.White);
-
-            ctx.DrawRoundedRectangleOverlay(700, 250, new PointF(50, 170),
-                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-
-            ctx.DrawText("Deepest Descent: ", Fonts.Normal, Color.White, new PointF(80, 200));
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 200),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, abyssData.MaxFloor!, Color.White);
-            ctx.DrawLine(Color.White, 2f, new PointF(80, 250), new PointF(720, 250));
-
-            ctx.DrawText("Battles Fought: ", Fonts.Normal, Color.White, new PointF(80, 280));
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 280),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Color.White);
-            ctx.DrawLine(Color.White, 2f, new PointF(80, 330), new PointF(720, 330));
-
-            ctx.DrawText("Total Abyss Stars: ", Fonts.Normal, Color.White, new PointF(80, 360));
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 360),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{abyssData.TotalStar}", Color.White);
-
-            ctx.DrawRoundedRectangleOverlay(700, 260, new PointF(50, 440),
-                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-            ctx.DrawText("Most Used Characters", Fonts.Normal, Color.White, new PointF(80, 460));
-
-            var revealRank = RosterImageBuilder.Build(
-                abyssData.RevealRank!.Select(x => revealRankImages.GetAlternateLookup<int>()[x.AvatarId]),
-                new RosterLayout(MaxSlots: 4));
-            disposables.Add(revealRank);
-            ctx.DrawImage(revealRank, new Point(75, 500), 1f);
-
-            for (var i = 0; i < 5; i++)
-            {
-                ctx.DrawRoundedRectangleOverlay(700, 150, new PointF(50, 720 + i * 170),
-                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-            }
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(200, 795),
-                VerticalAlignment = VerticalAlignment.Center
-            }, "Strongest Single Strike", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 795),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{abyssData.DamageRank![0].Value}", Color.White);
-            ctx.DrawImage(sideAvatarImages[abyssData.DamageRank![0].AvatarId], new Point(50, 700), 1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(200, 965),
-                VerticalAlignment = VerticalAlignment.Center
-            }, "Most Defeats", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 965),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{abyssData.DefeatRank![0].Value}", Color.White);
-            ctx.DrawImage(sideAvatarImages[abyssData.DefeatRank![0].AvatarId], new Point(50, 870), 1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(200, 1135),
-                VerticalAlignment = VerticalAlignment.Center
-            }, "Most Damage Taken", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 1135),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{abyssData.TakeDamageRank![0].Value}", Color.White);
-            ctx.DrawImage(sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId], new Point(50, 1040),
-                1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(200, 1305),
-                VerticalAlignment = VerticalAlignment.Center
-            }, "Elemental Skills Cast", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 1305),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{abyssData.NormalSkillRank![0].Value}", Color.White);
-            ctx.DrawImage(sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId], new Point(50, 1210),
-                1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(200, 1475),
-                VerticalAlignment = VerticalAlignment.Center
-            }, "Elemental Bursts Unleashed", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(720, 1475),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"{abyssData.EnergySkillRank![0].Value}", Color.White);
-            ctx.DrawImage(sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId], new Point(50, 1380),
-                1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
-            {
-                Origin = new Vector2(795, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, $"Floor {floor}", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1385, 52),
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{floorData.Star}/{floorData.MaxStar}", Color.White);
-
-            ctx.DrawImage(m_StarLit, new Point(1395, 47), 1f);
-            for (var i = 0; i < 3; i++)
-            {
-                var offset = i * 490 + 160;
-                ctx.DrawRoundedRectangleOverlay(670, 470, new PointF(785, offset - 60),
-                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                ctx.DrawText($"Chamber {i + 1}", Fonts.Normal, Color.White,
-                    new PointF(810, offset - 40));
-
-                if (i >= floorData.Levels!.Count)
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
-                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(1120, offset + 175),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    }, "No Clear Records", Color.White);
+                    Origin = new Vector2(50, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, "Spiral Abyss", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(750, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!))
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!))
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
+                    Brushes.Solid(Color.White), null);
 
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(50, 110)
+                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}",
+                    Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(750, 110),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, context.GameProfile.GameUid!, Brushes.Solid(Color.White), null);
+
+                canvas.DrawRoundedRectangleOverlay(700, 250, new PointF(50, 170),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(80, 200)
+                }, "Deepest Descent: ", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 200),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, abyssData.MaxFloor!, Brushes.Solid(Color.White), null);
+                canvas.Draw(Pens.Solid(Color.White, 2f),
+                    new PathBuilder().AddLine(new PointF(80, 250), new PointF(720, 250)).Build());
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(80, 280)
+                }, "Battles Fought: ", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 280),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{abyssData.TotalWinTimes}/{abyssData.TotalBattleTimes}", Brushes.Solid(Color.White), null);
+                canvas.Draw(Pens.Solid(Color.White, 2f),
+                    new PathBuilder().AddLine(new PointF(80, 330), new PointF(720, 330)).Build());
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(80, 360)
+                }, "Total Abyss Stars: ", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 360),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{abyssData.TotalStar}", Brushes.Solid(Color.White), null);
+
+                canvas.DrawRoundedRectangleOverlay(700, 260, new PointF(50, 440),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(80, 460)
+                }, "Most Used Characters", Brushes.Solid(Color.White), null);
+
+                var revealRank = RosterImageBuilder.Build(
+                    abyssData.RevealRank!.Select(x => revealRankImages.GetAlternateLookup<int>()[x.AvatarId]),
+                    new RosterLayout(MaxSlots: 4));
+                disposables.Add(revealRank);
+                canvas.DrawImage(revealRank, revealRank.Bounds,
+                    new RectangleF(75, 500, revealRank.Width, revealRank.Height), KnownResamplers.Bicubic);
+
+                for (var i = 0; i < 5; i++)
+                {
+                    canvas.DrawRoundedRectangleOverlay(700, 150, new PointF(50, 720 + i * 170),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                }
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 795),
+                    VerticalAlignment = VerticalAlignment.Center
+                }, "Strongest Single Strike", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 795),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.DamageRank![0].Value}", Brushes.Solid(Color.White), null);
+                var damageRankImage = sideAvatarImages[abyssData.DamageRank![0].AvatarId];
+                canvas.DrawImage(damageRankImage, damageRankImage.Bounds,
+                    new RectangleF(50, 700, damageRankImage.Width, damageRankImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 965),
+                    VerticalAlignment = VerticalAlignment.Center
+                }, "Most Defeats", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 965),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.DefeatRank![0].Value}", Brushes.Solid(Color.White), null);
+                var defeatRankImage = sideAvatarImages[abyssData.DefeatRank![0].AvatarId];
+                canvas.DrawImage(defeatRankImage, defeatRankImage.Bounds,
+                    new RectangleF(50, 870, defeatRankImage.Width, defeatRankImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 1135),
+                    VerticalAlignment = VerticalAlignment.Center
+                }, "Most Damage Taken", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 1135),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.TakeDamageRank![0].Value}", Brushes.Solid(Color.White), null);
+                var takeDamageRankImage = sideAvatarImages[abyssData.TakeDamageRank![0].AvatarId];
+                canvas.DrawImage(takeDamageRankImage, takeDamageRankImage.Bounds,
+                    new RectangleF(50, 1040, takeDamageRankImage.Width, takeDamageRankImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 1305),
+                    VerticalAlignment = VerticalAlignment.Center
+                }, "Elemental Skills Cast", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 1305),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.NormalSkillRank![0].Value}", Brushes.Solid(Color.White), null);
+                var normalSkillRankImage = sideAvatarImages[abyssData.NormalSkillRank![0].AvatarId];
+                canvas.DrawImage(normalSkillRankImage, normalSkillRankImage.Bounds,
+                    new RectangleF(50, 1210, normalSkillRankImage.Width, normalSkillRankImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 1475),
+                    VerticalAlignment = VerticalAlignment.Center
+                }, "Elemental Bursts Unleashed", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(720, 1475),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                }, $"{abyssData.EnergySkillRank![0].Value}", Brushes.Solid(Color.White), null);
+                var energySkillRankImage = sideAvatarImages[abyssData.EnergySkillRank![0].AvatarId];
+                canvas.DrawImage(energySkillRankImage, energySkillRankImage.Bounds,
+                    new RectangleF(50, 1380, energySkillRankImage.Width, energySkillRankImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new Vector2(795, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, $"Floor {floor}", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1385, 52),
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{floorData.Star}/{floorData.MaxStar}", Brushes.Solid(Color.White), null);
+
+                canvas.DrawImage(m_StarLit, m_StarLit.Bounds,
+                    new RectangleF(1395, 47, m_StarLit.Width, m_StarLit.Height), KnownResamplers.Bicubic);
+                for (var i = 0; i < 3; i++)
+                {
+                    var offset = i * 490 + 160;
+                    canvas.DrawRoundedRectangleOverlay(670, 470, new PointF(785, offset - 60),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(810, offset - 40)
+                    }, $"Chamber {i + 1}", Brushes.Solid(Color.White), null);
+
+                    if (i >= floorData.Levels!.Count)
+                    {
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new Vector2(1120, offset + 175),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, "No Clear Records", Brushes.Solid(Color.White), null);
+
+                        for (var j = 0; j < 3; j++)
+                        {
+                            var xOffset = 1310 + j * 40;
+                            canvas.DrawImage(m_StarUnlit, m_StarUnlit.Bounds,
+                                new RectangleF(xOffset, offset - 45, m_StarUnlit.Width, m_StarUnlit.Height), KnownResamplers.Bicubic);
+                        }
+
+                        continue;
+                    }
+
+                    var level = floorData.Levels![i];
                     for (var j = 0; j < 3; j++)
                     {
                         var xOffset = 1310 + j * 40;
-                        ctx.DrawImage(m_StarUnlit, new Point(xOffset, offset - 45), 1f);
+                        var starImage = j < floorData.Levels[i].Star ? m_StarLit : m_StarUnlit;
+                        canvas.DrawImage(starImage, starImage.Bounds,
+                            new RectangleF(xOffset, offset - 45, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
                     }
 
-                    continue;
+                    for (var j = 0; j < level.Battles!.Count; j++)
+                    {
+                        var battle = level.Battles![j];
+                        var rosterImage = RosterImageBuilder.Build(
+                            battle.Avatars!.Select(x => lookup[x.Id]),
+                            new RosterLayout(MaxSlots: 4));
+                        disposables.Add(rosterImage);
+                        var yOffset = offset + j * 200;
+                        canvas.DrawImage(rosterImage, rosterImage.Bounds,
+                            new RectangleF(795, yOffset, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
+                    }
                 }
-
-                var level = floorData.Levels![i];
-                for (var j = 0; j < 3; j++)
-                {
-                    var xOffset = 1310 + j * 40;
-                    ctx.DrawImage(j < floorData.Levels[i].Star ? m_StarLit : m_StarUnlit,
-                        new Point(xOffset, offset - 45), 1f);
-                }
-
-                for (var j = 0; j < level.Battles!.Count; j++)
-                {
-                    var battle = level.Battles![j];
-                    var rosterImage = RosterImageBuilder.Build(
-                        battle.Avatars!.Select(x => lookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    disposables.Add(rosterImage);
-                    var yOffset = offset + j * 200;
-                    ctx.DrawImage(rosterImage, new Point(795, yOffset), 1f);
-                }
-            }
+            });
         });
     }
 }

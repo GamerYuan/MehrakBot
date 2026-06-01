@@ -26,8 +26,8 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
     private Image m_StarUnlitSmall = null!;
     private Image m_BaseBuddyImage = null!;
 
-    private static readonly Color BackgroundColor = Color.FromRgb(30, 30, 30);
-    private static readonly Color LocalOverlayColor = Color.FromRgb(69, 69, 69);
+    private static readonly Color BackgroundColor = Color.FromPixel(new Rgb24(30, 30, 30));
+    private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgb24(69, 69, 69));
 
     public ZzzAssaultCardService(IImageRepository imageRepository,
         ILogger<ZzzAssaultCardService> logger,
@@ -122,72 +122,79 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
 
         background.Mutate(ctx =>
         {
-            ctx.Clear(BackgroundColor);
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(BackgroundColor), new Rectangle(0, 0, background.Width, background.Height)));
 
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(50, 70),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, "Deadly Assault", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(50, 100),
-                VerticalAlignment = VerticalAlignment.Bottom
-            },
-                $"{data.StartTime.Day}/{data.StartTime.Month}/{data.StartTime.Year} - " +
-                $"{data.EndTime.Day}/{data.EndTime.Month}/{data.EndTime.Year}",
-                Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new Vector2(50, 70),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, "Deadly Assault", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(50, 100),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
+                    $"{data.StartTime.Day}/{data.StartTime.Month}/{data.StartTime.Year} - " +
+                    $"{data.EndTime.Day}/{data.EndTime.Month}/{data.EndTime.Year}",
+                    Brushes.Solid(Color.White), null);
 
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1000, 70),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1000, 100),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            },
-                $"{context.GameProfile.GameUid}", Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1000, 70),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1000, 100),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
+                    $"{context.GameProfile.GameUid}", Brushes.Solid(Color.White), null);
 
-            var totalScoreText = $"Total Score: {data.TotalScore}";
-            var totalScoreBounds =
-                TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(Fonts.Title));
+                var totalScoreText = $"Total Score: {data.TotalScore}";
+                var totalScoreBounds =
+                    TextMeasurer.MeasureBounds(totalScoreText, new TextOptions(Fonts.Title));
 
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
-            {
-                Origin = new Vector2(50, 150),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, totalScoreText, Color.White);
-            ctx.DrawRoundedRectangleOverlay(90, 40, new PointF(60 + totalScoreBounds.Width, 110),
-                new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
-            ctx.DrawText(new RichTextOptions(Fonts.Small!)
-            {
-                Origin = new Vector2(105 + (int)totalScoreBounds.Width, 140),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Center
-            }, $"{(float)data.RankPercent / 100:N2}%", Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new Vector2(50, 150),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, totalScoreText, Brushes.Solid(Color.White), null);
+                canvas.DrawRoundedRectangleOverlay(90, 40, new PointF(60 + totalScoreBounds.Width, 110),
+                    new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
+                canvas.DrawText(new RichTextOptions(Fonts.Small!)
+                {
+                    Origin = new Vector2(105 + (int)totalScoreBounds.Width, 140),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                }, $"{(float)data.RankPercent / 100:N2}%", Brushes.Solid(Color.White), null);
 
-            ctx.DrawImage(m_StarLitImage, new Point(160 + (int)totalScoreBounds.Width, 100), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(210 + (int)totalScoreBounds.Width, 140),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, $"x{data.TotalStar}", Color.White);
+                canvas.DrawImage(m_StarLitImage, m_StarLitImage.Bounds,
+                    new RectangleF(160 + (int)totalScoreBounds.Width, 100, m_StarLitImage.Width, m_StarLitImage.Height),
+                    KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(210 + (int)totalScoreBounds.Width, 140),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, $"x{data.TotalStar}", Brushes.Solid(Color.White), null);
 
-            for (var i = 0; i < data.List.Count; i++)
-            {
-                var floor = data.List[i];
-                var yOffset = 180 + i * 270;
-                var floorImage = GetFloorImage(floor, lookup, bossImages[floor.Boss[0].Name],
-                    buffImages[floor.Buff[0].Name],
-                    floor.Buddy == null ? null : buddyImages[floor.Buddy.Id],
-                    disposables);
-                disposables.Add(floorImage);
-                ctx.DrawImage(floorImage, new Point(50, yOffset), 1f);
-            }
+                for (var i = 0; i < data.List.Count; i++)
+                {
+                    var floor = data.List[i];
+                    var yOffset = 180 + i * 270;
+                    var floorImage = GetFloorImage(floor, lookup, bossImages[floor.Boss[0].Name],
+                        buffImages[floor.Buff[0].Name],
+                        floor.Buddy == null ? null : buddyImages[floor.Buddy.Id],
+                        disposables);
+                    disposables.Add(floorImage);
+                    canvas.DrawImage(floorImage, floorImage.Bounds,
+                        new RectangleF(50, yOffset, floorImage.Width, floorImage.Height),
+                        KnownResamplers.Bicubic);
+                }
+            });
         });
     }
 
@@ -201,37 +208,47 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         Image<Rgba32> image = new(950, 260);
         image.Mutate(ctx =>
         {
-            ctx.Clear(LocalOverlayColor);
-            ctx.DrawText(new RichTextOptions(floor.Boss[0].Name.Length > 25 ? Fonts.Small! : Fonts.Normal)
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(LocalOverlayColor), new Rectangle(0, 0, image.Width, image.Height)));
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(200, 30),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 500
-            }, floor.Boss[0].Name, Color.White);
-            var scoreText = floor.Score.ToString();
-            var scoreBounds = TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal));
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(925, 15),
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, floor.Score.ToString(), Color.White);
-            for (var i = 2; i >= 0; i--)
-            {
-                var starImage = i < floor.Star ? m_StarLitSmall : m_StarUnlitSmall;
-                ctx.DrawImage(starImage, new Point(885 - (int)scoreBounds.Width - i * 35, 10), 1f);
-            }
+                canvas.DrawText(new RichTextOptions(floor.Boss[0].Name.Length > 25 ? Fonts.Small! : Fonts.Normal)
+                {
+                    Origin = new Vector2(200, 30),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 500
+                }, floor.Boss[0].Name, Brushes.Solid(Color.White), null);
+                var scoreText = floor.Score.ToString();
+                var scoreBounds = TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal));
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(925, 15),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, floor.Score.ToString(), Brushes.Solid(Color.White), null);
+                for (var i = 2; i >= 0; i--)
+                {
+                    var starImage = i < floor.Star ? m_StarLitSmall : m_StarUnlitSmall;
+                    canvas.DrawImage(starImage, starImage.Bounds,
+                        new RectangleF(885 - (int)scoreBounds.Width - i * 35, 10, starImage.Width, starImage.Height),
+                        KnownResamplers.Bicubic);
+                }
 
-            ctx.DrawImage(bossImage, new Point(25, 15), 1f);
-            var styledBuddy = GetStyledBuddyImage(buddyImage);
-            disposables.Add(styledBuddy);
-            using var rosterImage = RosterImageBuilder.Build(
-                floor.AvatarList.Select(x => avatarLookup[x.Id]),
-                new RosterLayout(MaxSlots: 4),
-                styledBuddy);
-            ctx.DrawImage(rosterImage, new Point(190, 60), 1f);
-            ctx.DrawImage(buffImage, new Point(850, 110), 1f);
-
+                canvas.DrawImage(bossImage, bossImage.Bounds,
+                    new RectangleF(25, 15, bossImage.Width, bossImage.Height),
+                    KnownResamplers.Bicubic);
+                var styledBuddy = GetStyledBuddyImage(buddyImage);
+                disposables.Add(styledBuddy);
+                using var rosterImage = RosterImageBuilder.Build(
+                    floor.AvatarList.Select(x => avatarLookup[x.Id]),
+                    new RosterLayout(MaxSlots: 4),
+                    styledBuddy);
+                canvas.DrawImage(rosterImage, rosterImage.Bounds,
+                    new RectangleF(190, 60, rosterImage.Width, rosterImage.Height),
+                    KnownResamplers.Bicubic);
+                canvas.DrawImage(buffImage, buffImage.Bounds,
+                    new RectangleF(850, 110, buffImage.Width, buffImage.Height),
+                    KnownResamplers.Bicubic);
+            });
             ctx.ApplyRoundedCorners(15);
         });
         return image;
@@ -243,9 +260,15 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         buddyBorder.Mutate(x =>
         {
             var outerPath = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
-            x.Clear(Color.FromRgb(24, 24, 24));
-            x.DrawImage(buddyImage ?? m_BaseBuddyImage, new Point(-45, 0), 1f);
-            x.Draw(Color.Black, 4f, outerPath);
+            x.Paint(canvas => canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(24, 24, 24))), new Rectangle(0, 0, buddyBorder.Width, buddyBorder.Height)));
+            x.Paint(canvas =>
+            {
+                var buddySrc = buddyImage ?? m_BaseBuddyImage;
+                canvas.DrawImage(buddySrc, buddySrc.Bounds,
+                    new RectangleF(-45, 0, buddySrc.Width, buddySrc.Height),
+                    KnownResamplers.Bicubic);
+                canvas.Draw(Pens.Solid(Color.Black, 4f), outerPath);
+            });
             x.ApplyRoundedCorners(15);
         });
         return buddyBorder;

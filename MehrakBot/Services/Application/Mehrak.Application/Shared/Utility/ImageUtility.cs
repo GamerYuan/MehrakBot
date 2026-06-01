@@ -67,6 +67,18 @@ public static class ImageUtility
         region.Restore();
     }
 
+    public static Image<Rgba32> CreateStarRatingImage(int starCount)
+    {
+        starCount = Math.Clamp(starCount, 1, 5);
+        const int starSize = 30;
+        var width = 5 * starSize;
+        var height = starSize;
+
+        var image = new Image<Rgba32>(width, height, Color.Transparent.ToPixel<Rgba32>());
+        image.Mutate(ctx => ctx.Paint(canvas => canvas.DrawStarRating(starCount, Point.Empty)));
+        return image;
+    }
+
     public static void DrawFourSidedStarRating(this DrawingCanvas canvas, int starCount, Point position, bool isHorizontal = true,
         bool drawShadow = true)
     {
@@ -125,6 +137,18 @@ public static class ImageUtility
             var starPolygon = new Polygon(starPoints);
             canvas.Fill(Brushes.Solid(StarColor), starPolygon);
         }
+    }
+
+    public static Image<Rgba32> CreateFourSidedStarRatingImage(int starCount, bool isHorizontal = true, bool drawShadow = true)
+    {
+        starCount = Math.Clamp(starCount, 1, 5);
+        const int starSize = 30;
+        var width = isHorizontal ? 5 * starSize : starSize;
+        var height = isHorizontal ? starSize : 5 * starSize;
+
+        var image = new Image<Rgba32>(width, height, Color.Transparent.ToPixel<Rgba32>());
+        image.Mutate(ctx => ctx.Paint(canvas => canvas.DrawFourSidedStarRating(starCount, Point.Empty, isHorizontal, drawShadow)));
+        return image;
     }
 
     [Obsolete("Use RoundedRectanglePolygon with DrawingCanvas API instead")]

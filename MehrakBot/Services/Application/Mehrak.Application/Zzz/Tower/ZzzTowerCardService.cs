@@ -9,6 +9,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -20,8 +21,8 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
     private Image m_MedalIcon = null!;
     private Image m_MvpIcon = null!;
 
-    private static readonly Color RankOverlayColor = Color.FromRgba(255, 255, 255, 69);
-    private static readonly Color LocalBackgroundColor = Color.FromRgba(69, 69, 69, 255);
+    private static readonly Color RankOverlayColor = Color.FromPixel(new Rgba32(255, 255, 255, 69));
+    private static readonly Color LocalBackgroundColor = Color.FromPixel(new Rgba32(69, 69, 69, 255));
     private const int DisplayEntryHeight = 200;
     private const int DisplayEntryWidth = 500;
 
@@ -107,93 +108,106 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
 
         background.Mutate(ctx =>
         {
-            ctx.Clear(LocalBackgroundColor);
+            ctx.Paint(canvas =>
+            {
+                canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Rectangle(0, 0, background.Width, background.Height));
+            });
 
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(50, 100),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, "Endless Tower: Glory", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(width - 50, 70),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(width - 50, 100),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.GameUid}", Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new Vector2(50, 100),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, "Endless Tower: Glory", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(width - 50, 70),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(width - 50, 100),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.GameUid}", Brushes.Solid(Color.White), null);
 
-            ctx.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(50, 200),
-                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-            ctx.DrawImage(m_MedalIcon, new Point(60, 200 + (200 - m_MedalIcon.Height) / 2), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(240, 250),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 120
-            }, "Highest Clear", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(530, 250),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, context.Data.LayerInfo.ClimbingTowerLayer.ToString(), Color.White);
+                canvas.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(50, 200),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                canvas.DrawImage(m_MedalIcon, m_MedalIcon.Bounds,
+                    new RectangleF(60, 200 + (200 - m_MedalIcon.Height) / 2, m_MedalIcon.Width, m_MedalIcon.Height),
+                    KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(240, 250),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 120
+                }, "Highest Clear", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(530, 250),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, context.Data.LayerInfo.ClimbingTowerLayer.ToString(), Brushes.Solid(Color.White), null);
 
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(240, 335),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 120
-            }, "Total Points", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(530, 335),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, FormatNumberWithSuffix(context.Data.LayerInfo.TotalScore), Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(240, 335),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 120
+                }, "Total Points", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(530, 335),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, FormatNumberWithSuffix(context.Data.LayerInfo.TotalScore), Brushes.Solid(Color.White), null);
 
-            ctx.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(600, 200),
-                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-            ctx.DrawImage(m_MvpIcon, new Point(610, 200 + (200 - m_MvpIcon.Height) / 2), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(790, 250),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 120
-            }, "Medals Obtained", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1080, 250),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, context.Data.MvpInfo.FloorMvpNum.ToString(), Color.White);
+                canvas.DrawRoundedRectangleOverlay(DisplayEntryWidth, DisplayEntryHeight, new PointF(600, 200),
+                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                canvas.DrawImage(m_MvpIcon, m_MvpIcon.Bounds,
+                    new RectangleF(610, 200 + (200 - m_MvpIcon.Height) / 2, m_MvpIcon.Width, m_MvpIcon.Height),
+                    KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(790, 250),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 120
+                }, "Medals Obtained", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1080, 250),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, context.Data.MvpInfo.FloorMvpNum.ToString(), Brushes.Solid(Color.White), null);
 
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(790, 335),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 120
-            }, "Ranking", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1080, 335),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{(float)context.Data.MvpInfo.RankPercent / 100:N2}%", Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(790, 335),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 120
+                }, "Ranking", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1080, 335),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{(float)context.Data.MvpInfo.RankPercent / 100:N2}%", Brushes.Solid(Color.White), null);
 
-            var yOffset = 420;
-            const int xOffset = 100 + DisplayEntryWidth;
+                var yOffset = 420;
+                const int xOffset = 100 + DisplayEntryWidth;
 
-            for (var i = 0; i < avatarImages.Count; i++)
-            {
-                var even = i % 2 == 0;
-                ctx.DrawImage(avatarImages[i], new Point(even ? 50 : xOffset, yOffset), 1f);
-                if (!even) yOffset += DisplayEntryHeight + 20;
-            }
+                for (var i = 0; i < avatarImages.Count; i++)
+                {
+                    var even = i % 2 == 0;
+                    var avatarImg = avatarImages[i];
+                    canvas.DrawImage(avatarImg, avatarImg.Bounds,
+                        new RectangleF(even ? 50 : xOffset, yOffset, avatarImg.Width, avatarImg.Height),
+                        KnownResamplers.Bicubic);
+                    if (!even) yOffset += DisplayEntryHeight + 20;
+                }
+            });
         });
     }
 
@@ -202,15 +216,23 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
         Image background = new Image<Rgba32>(DisplayEntryWidth, DisplayEntryHeight);
         background.Mutate(ctx =>
         {
-            ctx.Clear(OverlayColor);
-            using (var styledImage = avatar.GetStyledAvatarImage(""))
-                ctx.DrawImage(styledImage, new Point(20, 10), 1f);
+            ctx.Paint(canvas =>
+            {
+                canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, background.Width, background.Height));
+            });
+            ctx.Paint(canvas =>
+            {
+                using (var styledImage = avatar.GetStyledAvatarImage(""))
+                    canvas.DrawImage(styledImage, styledImage.Bounds,
+                        new RectangleF(20, 10, styledImage.Width, styledImage.Height),
+                        KnownResamplers.Bicubic);
 
-            ctx.DrawText(m_DisplayScoreOptions, data.Score.ToString(), Color.White);
+                canvas.DrawText(m_DisplayScoreOptions, data.Score.ToString(), Brushes.Solid(Color.White), null);
 
-            ctx.DrawRoundedRectangleOverlay(140, 50, new PointF(210, 50),
-                new RoundedRectangleOverlayStyle(RankOverlayColor, CornerRadius: 25));
-            ctx.DrawText(m_DisplayRankOptions, $"{(float)data.RankPercent / 100:N2}%", Color.White);
+                canvas.DrawRoundedRectangleOverlay(140, 50, new PointF(210, 50),
+                    new RoundedRectangleOverlayStyle(RankOverlayColor, CornerRadius: 25));
+                canvas.DrawText(m_DisplayRankOptions, $"{(float)data.RankPercent / 100:N2}%", Brushes.Solid(Color.White), null);
+            });
             ctx.ApplyRoundedCorners(15);
         });
 

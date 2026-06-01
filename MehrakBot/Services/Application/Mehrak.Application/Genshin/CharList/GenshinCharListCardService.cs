@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
@@ -18,11 +18,11 @@ namespace Mehrak.Application.Genshin.CharList;
 
 public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBasicCharacterData>>
 {
-    private static readonly Color GoldBackgroundColor = Color.FromRgb(183, 125, 76);
-    private static readonly Color PurpleBackgroundColor = Color.FromRgb(132, 104, 173);
-    private static readonly Color BlueBackgroundColor = Color.FromRgb(86, 130, 166);
-    private static readonly Color GreenBackgroundColor = Color.FromRgb(79, 135, 111);
-    private static readonly Color WhiteBackgroundColor = Color.FromRgb(128, 128, 130);
+    private static readonly Color GoldBackgroundColor = Color.FromPixel(new Rgb24(183, 125, 76));
+    private static readonly Color PurpleBackgroundColor = Color.FromPixel(new Rgb24(132, 104, 173));
+    private static readonly Color BlueBackgroundColor = Color.FromPixel(new Rgb24(86, 130, 166));
+    private static readonly Color GreenBackgroundColor = Color.FromPixel(new Rgb24(79, 135, 111));
+    private static readonly Color WhiteBackgroundColor = Color.FromPixel(new Rgb24(128, 128, 130));
 
     private static readonly Color[] RarityColors =
     [
@@ -33,7 +33,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         GoldBackgroundColor
     ];
 
-    private static readonly Color PurpleForegroundColor = Color.FromRgb(204, 173, 255);
+    private static readonly Color PurpleForegroundColor = Color.FromPixel(new Rgb24(204, 173, 255));
 
     private static readonly string[] Elements =
     [
@@ -42,13 +42,13 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
     private static readonly Dictionary<string, Color> ElementForeground = new()
     {
-        { "Pyro", Color.FromRgb(244, 163, 111) },
-        { "Hydro", Color.FromRgb(7, 229, 252) },
-        { "Cryo", Color.FromRgb(203, 253, 253) },
-        { "Electro", Color.FromRgb(222, 186, 255) },
-        { "Anemo", Color.FromRgb(163, 238, 202) },
-        { "Geo", Color.FromRgb(242, 213, 95) },
-        { "Dendro", Color.FromRgb(172, 230, 40) }
+        { "Pyro", Color.FromPixel(new Rgb24(244, 163, 111)) },
+        { "Hydro", Color.FromPixel(new Rgb24(7, 229, 252)) },
+        { "Cryo", Color.FromPixel(new Rgb24(203, 253, 253)) },
+        { "Electro", Color.FromPixel(new Rgb24(222, 186, 255)) },
+        { "Anemo", Color.FromPixel(new Rgb24(163, 238, 202)) },
+        { "Geo", Color.FromPixel(new Rgb24(242, 213, 95)) },
+        { "Dendro", Color.FromPixel(new Rgb24(172, 230, 40)) }
     };
 
     private readonly Dictionary<string, Image> m_ElementIcons = new(StringComparer.OrdinalIgnoreCase);
@@ -119,9 +119,9 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             NameColor: Color.White,
             LevelTextColor: Color.Black,
             LevelOverlayColor: Color.PeachPuff,
-            NormalConstColor: Color.FromRgba(69, 69, 69, 200),
+            NormalConstColor: Color.FromPixel(new Rgba32(69, 69, 69, 200)),
             GoldConstColor: Color.Gold,
-            GoldConstTextColor: Color.FromRgb(138, 101, 0),
+            GoldConstTextColor: Color.FromPixel(new Rgb24(138, 101, 0)),
             FooterTextColor: Color.White);
 
         var avatarDataTask = charData
@@ -169,17 +169,7 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             background.Mutate(ctx => ctx.Resize(outputWidth, outputHeight));
         background.Mutate(ctx =>
         {
-            ctx.Clear(Color.FromRgb(27, 27, 27));
-
-            renderer.RenderHeader(ctx, outputWidth,
-                $"{context.GameProfile.Nickname!}·AR {context.GameProfile.Level}", context.GameProfile.GameUid!);
-
-            foreach (var position in layout.ImagePositions)
-            {
-                var (character, moduleData) = avatarDataList[position.ImageIndex];
-                renderer.Render(ctx, moduleData, new Point(position.X, position.Y),
-                    ElementForeground.TryGetValue(character.Element ?? "", out var elementColor) ? elementColor : null);
-            }
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(27, 27, 27))), new Rectangle(0, 0, background.Width, background.Height)));
 
             var footerModules = new List<Image<Rgba32>>();
             foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
@@ -198,7 +188,20 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
                 footerModules.Add(module);
             }
 
-            CharacterModuleRenderer.RenderFooter(ctx, outputWidth, layout.OutputHeight, footerModules, disposables);
+            ctx.Paint(canvas =>
+            {
+                renderer.RenderHeader(canvas, outputWidth,
+                    $"{context.GameProfile.Nickname!}·AR {context.GameProfile.Level}", context.GameProfile.GameUid!);
+
+                foreach (var position in layout.ImagePositions)
+                {
+                    var (character, moduleData) = avatarDataList[position.ImageIndex];
+                    renderer.Render(canvas, moduleData, new Point(position.X, position.Y),
+                        ElementForeground.TryGetValue(character.Element ?? "", out var elementColor) ? elementColor : null);
+                }
+
+                CharacterModuleRenderer.RenderFooter(canvas, outputWidth, layout.OutputHeight, footerModules, disposables);
+            });
         });
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",

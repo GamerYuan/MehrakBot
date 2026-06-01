@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Numerics;
 using Mehrak.Application.Shared.Abstractions;
@@ -10,6 +10,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -111,133 +112,152 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
             ctx.Resize(0, height, KnownResamplers.Bicubic);
             ctx.Crop(new Rectangle((ctx.GetCurrentSize().Width - 1550) / 2, 0, 1550, height));
 
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(50, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, "Memory of Chaos", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(50, 110),
-                VerticalAlignment = VerticalAlignment.Bottom
-            },
-                $"{memoryData.StartTime.Day}/{memoryData.StartTime.Month}/{memoryData.StartTime.Year} - " +
-                $"{memoryData.EndTime.Day}/{memoryData.EndTime.Month}/{memoryData.EndTime.Year}",
-                Color.White);
-            ctx.DrawLine(Color.White, 3f, new PointF(415, 40), new PointF(415, 80));
-            RichTextOptions textOptions = new(Fonts.Title)
-            {
-                Origin = new Vector2(435, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            };
-            var bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
-            ctx.DrawText(textOptions, memoryData.StarNum.ToString(), Color.White);
-            ctx.DrawImage(m_StarLit, new Point((int)bounds.Right + 5, 30), 1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1500, 80),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom
-            },
-                $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1500, 110),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, context.GameProfile.GameUid!, Color.White);
-
-            var yOffset = 150;
-            foreach ((var floorNumber, var floorData) in floorDetails)
-            {
-                var xOffset = floorNumber % 2 * 750 + 50;
-
-                if (floorData == null || floorData.IsFast)
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
-                    if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
-                         !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
-                        (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
-                         !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
+                    Origin = new Vector2(50, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, "Memory of Chaos", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(50, 110),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
+                    $"{memoryData.StartTime.Day}/{memoryData.StartTime.Month}/{memoryData.StartTime.Year} - " +
+                    $"{memoryData.EndTime.Day}/{memoryData.EndTime.Month}/{memoryData.EndTime.Year}",
+                    Brushes.Solid(Color.White), null);
+                canvas.Draw(Pens.Solid(Color.White, 3f), new PathBuilder().AddLine(new PointF(415, 40), new PointF(415, 80)).Build());
+                RichTextOptions textOptions = new(Fonts.Title)
+                {
+                    Origin = new Vector2(435, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                };
+                var bounds = TextMeasurer.MeasureBounds(memoryData.StarNum.ToString(), textOptions);
+                canvas.DrawText(textOptions, memoryData.StarNum.ToString(), Brushes.Solid(Color.White), null);
+                canvas.DrawImage(m_StarLit, m_StarLit.Bounds,
+                    new RectangleF((int)bounds.Right + 5, 30, m_StarLit.Width, m_StarLit.Height),
+                    KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1500, 80),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
+                    $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1500, 110),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, context.GameProfile.GameUid!, Brushes.Solid(Color.White), null);
+
+                var yOffset = 150;
+                foreach ((var floorNumber, var floorData) in floorDetails)
+                {
+                    var xOffset = floorNumber % 2 * 750 + 50;
+
+                    if (floorData == null || floorData.IsFast)
                     {
-                        ctx.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
-                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
+                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
+                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
+                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            Origin = new PointF(xOffset + 350, yOffset + 280),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
-                    }
-                    else
-                    {
-                        ctx.DrawRoundedRectangleOverlay(700, 180, new PointF(xOffset, yOffset),
-                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                            canvas.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                            {
+                                Origin = new PointF(xOffset + 350, yOffset + 280),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
+                        }
+                        else
                         {
-                            Origin = new PointF(xOffset + 350, yOffset + 110),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
+                            canvas.DrawRoundedRectangleOverlay(700, 180, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                            {
+                                Origin = new PointF(xOffset + 350, yOffset + 110),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
+                        }
+
+                        var stageText =
+                            $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new PointF(xOffset + 20, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top
+                        }, floorData?.Name ?? stageText, Brushes.Solid(Color.White), null);
+
+                        for (var i = 0; i < 3; i++)
+                        {
+                            var starImage = i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit;
+                            canvas.DrawImage(starImage, starImage.Bounds,
+                                new RectangleF(xOffset + 530 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                                KnownResamplers.Bicubic);
+                        }
+
+                        if (floorNumber % 2 == 1)
+                        {
+                            var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
+                            yOffset += leftIsFull ? 520 : 200;
+                        }
+
+                        continue;
                     }
 
-                    var stageText =
-                        $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
-                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                    canvas.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 20, yOffset + 20),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Top
-                    }, floorData?.Name ?? stageText, Color.White);
+                    }, floorData.Name, Brushes.Solid(Color.White), null);
 
+                    var node1 = RosterImageBuilder.Build(
+                        floorData.Node1.Avatars.Select(x => lookup[x.Id]),
+                        new RosterLayout(MaxSlots: 4));
+                    var node2 = RosterImageBuilder.Build(
+                        floorData.Node2.Avatars.Select(x => lookup[x.Id]),
+                        new RosterLayout(MaxSlots: 4));
+                    disposables.Add(node1);
+                    disposables.Add(node2);
+                    canvas.DrawImage(node1, node1.Bounds,
+                        new RectangleF(xOffset + 25, yOffset + 65, node1.Width, node1.Height),
+                        KnownResamplers.Bicubic);
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 270),
+                        new PointF(xOffset + 680, yOffset + 270)).Build());
+                    canvas.DrawImage(node2, node2.Bounds,
+                        new RectangleF(xOffset + 25, yOffset + 295, node2.Width, node2.Height),
+                        KnownResamplers.Bicubic);
                     for (var i = 0; i < 3; i++)
-                        ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit,
-                            new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
-
-                    if (floorNumber % 2 == 1)
                     {
-                        var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
-                        yOffset += leftIsFull ? 520 : 200;
+                        var starImage = i < floorData.StarNum ? m_StarLit : m_StarUnlit;
+                        canvas.DrawImage(starImage, starImage.Bounds,
+                            new RectangleF(xOffset + 530 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                            KnownResamplers.Bicubic);
                     }
-
-                    continue;
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 520, yOffset + 10),
+                        new PointF(xOffset + 520, yOffset + 55)).Build());
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 470, yOffset + 20),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
+                    canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
+                        new RectangleF(xOffset + 470, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
+                        KnownResamplers.Bicubic);
+                    if (floorNumber % 2 == 1) yOffset += 520;
                 }
-
-                ctx.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 20, yOffset + 20),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, floorData.Name, Color.White);
-
-                var node1 = RosterImageBuilder.Build(
-                    floorData.Node1.Avatars.Select(x => lookup[x.Id]),
-                    new RosterLayout(MaxSlots: 4));
-                var node2 = RosterImageBuilder.Build(
-                    floorData.Node2.Avatars.Select(x => lookup[x.Id]),
-                    new RosterLayout(MaxSlots: 4));
-                disposables.Add(node1);
-                disposables.Add(node2);
-                ctx.DrawImage(node1, new Point(xOffset + 25, yOffset + 65), 1f);
-                ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 270),
-                    new PointF(xOffset + 680, yOffset + 270));
-                ctx.DrawImage(node2, new Point(xOffset + 25, yOffset + 295), 1f);
-                for (var i = 0; i < 3; i++)
-                    ctx.DrawImage(i < floorData.StarNum ? m_StarLit : m_StarUnlit,
-                        new Point(xOffset + 530 + i * 50, yOffset + 5), 1f);
-                ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 520, yOffset + 10),
-                    new PointF(xOffset + 520, yOffset + 55));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 470, yOffset + 20),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, floorData.RoundNum.ToString(), Color.White);
-                ctx.DrawImage(m_CycleIcon, new Point(xOffset + 470, yOffset + 10), 1f);
-                if (floorNumber % 2 == 1) yOffset += 520;
-            }
+            });
         });
     }
 

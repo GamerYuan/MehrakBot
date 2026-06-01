@@ -13,6 +13,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -95,82 +96,88 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
 
         background.Mutate(ctx =>
         {
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(50, 80),
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, "Stygian Onslaught", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(50, 130),
-                VerticalAlignment = VerticalAlignment.Bottom
-            },
-                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
-                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
-                $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
-                    .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
-                Color.White);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Title)
-            {
-                Origin = new Vector2(940, 130),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{stygianData.StygianBestRecord!.Second}s", Color.White);
-
-            ctx.DrawImage(
-                m_DifficultyLogo[
-                    GetMedalIndex(stygianData.StygianBestRecord.Difficulty, stygianData.StygianBestRecord.Second)],
-                new Point(960, 60), 1f);
-
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1650, 80),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1650, 130),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            },
-                $"{context.GameProfile.GameUid}", Color.White);
-
-            for (var i = 0; i < stygianData.Challenge!.Count; i++)
-            {
-                var challenge = stygianData.Challenge[i];
-                var rosterImage = RosterImageBuilder.Build(
-                    challenge.Teams.Select(x => lookup[x.AvatarId]),
-                    new RosterLayout(MaxSlots: 4));
-                disposables.Add(rosterImage);
-                var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
-                var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
-                disposables.Add(challengeImage);
-                var yOffset = 170 + i * 320;
-                ctx.DrawImage(challengeImage, new Point(50, yOffset), 1f);
-
-                for (var j = 0; j < challenge.BestAvatar.Count; j++)
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
-                    ctx.DrawRoundedRectangleOverlay(580, 145, new PointF(1070, yOffset + j * 155),
-                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                    var bestAvatar = challenge.BestAvatar[j];
-                    var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
-                    ctx.DrawImage(avatarImage, new Point(1070, yOffset + 5 + j * 155), 1f);
-                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                    Origin = new Vector2(50, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, "Stygian Onslaught", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(50, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom
+                },
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.StartTime))
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy} - " +
+                    $"{DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Schedule!.EndTime))
+                        .ToOffset(tzi.BaseUtcOffset):dd/MM/yyyy}",
+                    Brushes.Solid(Color.White), null);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new Vector2(940, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{stygianData.StygianBestRecord!.Second}s", Brushes.Solid(Color.White), null);
+
+                var medalImage =
+                    m_DifficultyLogo[
+                        GetMedalIndex(stygianData.StygianBestRecord.Difficulty, stygianData.StygianBestRecord.Second)];
+                canvas.DrawImage(medalImage, medalImage.Bounds,
+                    new RectangleF(960, 60, medalImage.Width, medalImage.Height), KnownResamplers.Bicubic);
+
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1650, 80),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level}", Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1650, 130),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                },
+                    $"{context.GameProfile.GameUid}", Brushes.Solid(Color.White), null);
+
+                for (var i = 0; i < stygianData.Challenge!.Count; i++)
+                {
+                    var challenge = stygianData.Challenge[i];
+                    var rosterImage = RosterImageBuilder.Build(
+                        challenge.Teams.Select(x => lookup[x.AvatarId]),
+                        new RosterLayout(MaxSlots: 4));
+                    disposables.Add(rosterImage);
+                    var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
+                    var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
+                    disposables.Add(challengeImage);
+                    var yOffset = 170 + i * 320;
+                    canvas.DrawImage(challengeImage, challengeImage.Bounds,
+                        new RectangleF(50, yOffset, challengeImage.Width, challengeImage.Height), KnownResamplers.Bicubic);
+
+                    for (var j = 0; j < challenge.BestAvatar.Count; j++)
                     {
-                        Origin = new Vector2(1180, yOffset + 70 + j * 155),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        WrappingLength = 275
-                    }, GetBestAvatarString(bestAvatar.Type), Color.White);
-                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(1600, yOffset + 70 + j * 155),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    }, bestAvatar.Dps, Color.White);
+                        canvas.DrawRoundedRectangleOverlay(580, 145, new PointF(1070, yOffset + j * 155),
+                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                        var bestAvatar = challenge.BestAvatar[j];
+                        var avatarImage = bestAvatarImages[bestAvatar.AvatarId];
+                        canvas.DrawImage(avatarImage, avatarImage.Bounds,
+                            new RectangleF(1070, yOffset + 5 + j * 155, avatarImage.Width, avatarImage.Height), KnownResamplers.Bicubic);
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new Vector2(1180, yOffset + 70 + j * 155),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            WrappingLength = 275
+                        }, GetBestAvatarString(bestAvatar.Type), Brushes.Solid(Color.White), null);
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new Vector2(1600, yOffset + 70 + j * 155),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            HorizontalAlignment = HorizontalAlignment.Right
+                        }, bestAvatar.Dps, Brushes.Solid(Color.White), null);
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -179,20 +186,25 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
         Image<Rgba32> challengeImage = new(1000, 300);
         challengeImage.Mutate(ctx =>
         {
-            ctx.Fill(OverlayColor);
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, challengeImage.Width, challengeImage.Height)));
             monsterImage.Mutate(x =>
             {
                 x.Resize(0, 600, KnownResamplers.Bicubic);
                 x.ApplyGradientFade(0.65f);
             });
-            ctx.DrawImage(monsterImage, new Point(-100, -125), 1f);
-            ctx.DrawImage(rosterImage, new Point(340, 100), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(970, 65),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Right
-            }, $"{data.Second}s", Color.White);
+                canvas.DrawImage(monsterImage, monsterImage.Bounds,
+                    new RectangleF(-100, -125, monsterImage.Width, monsterImage.Height), KnownResamplers.Bicubic);
+                canvas.DrawImage(rosterImage, rosterImage.Bounds,
+                    new RectangleF(340, 100, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(970, 65),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                }, $"{data.Second}s", Brushes.Solid(Color.White), null);
+            });
             ctx.ApplyRoundedCorners(15);
         });
 

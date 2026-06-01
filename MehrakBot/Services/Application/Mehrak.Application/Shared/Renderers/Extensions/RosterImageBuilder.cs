@@ -32,17 +32,22 @@ public static class RosterImageBuilder
 
         rosterImage.Mutate(ctx =>
         {
-            for (var i = 0; i < avatarList.Count; i++)
+            ctx.Paint(canvas =>
             {
-                var x = offset + i * (layout.AvatarWidth + layout.Spacing);
-                ctx.DrawImage(avatarList[i], new Point(x, 0), 1f);
-            }
+                for (var i = 0; i < avatarList.Count; i++)
+                {
+                    var x = offset + i * (layout.AvatarWidth + layout.Spacing);
+                    canvas.DrawImage(avatarList[i], avatarList[i].Bounds,
+                        new RectangleF(x, 0, avatarList[i].Width, avatarList[i].Height), KnownResamplers.Bicubic);
+                }
 
-            if (trailingImage != null)
-            {
-                var x = offset + avatarList.Count * (layout.AvatarWidth + layout.Spacing);
-                ctx.DrawImage(trailingImage, new Point(x, 0), 1f);
-            }
+                if (trailingImage != null)
+                {
+                    var x = offset + avatarList.Count * (layout.AvatarWidth + layout.Spacing);
+                    canvas.DrawImage(trailingImage, trailingImage.Bounds,
+                        new RectangleF(x, 0, trailingImage.Width, trailingImage.Height), KnownResamplers.Bicubic);
+                }
+            });
         });
 
         return rosterImage;

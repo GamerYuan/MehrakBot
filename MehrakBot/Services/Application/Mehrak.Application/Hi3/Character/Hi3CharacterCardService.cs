@@ -11,6 +11,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -34,7 +35,7 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     private Image m_StarUnlit = null!;
     private List<Image> m_CharacterRankIcons = [];
 
-    private static readonly Color LocalOverlayColor = Color.FromRgba(47, 87, 126, 196);
+    private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgba32(47, 87, 126, 196));
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
@@ -113,61 +114,74 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         {
             var offsetX = portraitConfig?.OffsetX ?? 0;
             var offsetY = portraitConfig?.OffsetY ?? 0;
-            ctx.DrawImage(characterImage,
-                new Point(350 - characterImage.Width / 2 + offsetX, 425 - characterImage.Height / 2 + offsetY), 1f);
 
-            var avatarNameOptions = new RichTextOptions(Fonts.Title)
+            ctx.Paint(canvas =>
             {
-                Origin = new PointF(70, 50),
-                WrappingLength = 600,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top
-            };
+                canvas.DrawImage(characterImage, characterImage.Bounds,
+                    new RectangleF(350 - characterImage.Width / 2 + offsetX, 425 - characterImage.Height / 2 + offsetY,
+                        characterImage.Width, characterImage.Height), KnownResamplers.Bicubic);
 
-            ctx.DrawTextWithShadow(characterInformation.Avatar.Name!, avatarNameOptions, Color.White);
+                var avatarNameOptions = new RichTextOptions(Fonts.Title)
+                {
+                    Origin = new PointF(70, 50),
+                    WrappingLength = 600,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
 
-            var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
-                avatarNameOptions);
+                canvas.DrawTextWithShadow(characterInformation.Avatar.Name!, avatarNameOptions, Color.White);
 
-            ctx.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Normal,
-                new PointF(70, bounds.Bottom + 20), Color.White);
-            ctx.DrawText(context.GameProfile.GameUid, Fonts.Small, Color.White, new PointF(70, 700));
+                var bounds = TextMeasurer.MeasureBounds(characterInformation.Avatar.Name!,
+                    avatarNameOptions);
 
-            ctx.DrawImage(m_CharacterRankIcons[characterInformation.Avatar.Star - 1],
-                new Point((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28), 1f);
+                canvas.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Normal,
+                    new PointF(70, bounds.Bottom + 20), Color.White);
+                canvas.DrawText(new RichTextOptions(Fonts.Small) { Origin = new PointF(70, 700) },
+                    context.GameProfile.GameUid, Brushes.Solid(Color.White), null);
 
-            ctx.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
-                new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
+                var rankIcon = m_CharacterRankIcons[characterInformation.Avatar.Star - 1];
+                canvas.DrawImage(rankIcon, rankIcon.Bounds,
+                    new RectangleF((int)bounds.Right + 10, (int)bounds.Top + (int)bounds.Height / 2 - 28,
+                        rankIcon.Width, rankIcon.Height), KnownResamplers.Bicubic);
 
-            ctx.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
-                new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
-            ctx.Fill(m_RarityColor[characterInformation.Weapon.Rarity], new RectangleF(750, 66, 132, 116));
-            ctx.DrawImage(weaponImage, new Point(750, 66), 1f);
+                canvas.DrawRoundedRectangleOverlay(600, 700, new PointF(720, 30),
+                    new RoundedRectangleOverlayStyle(LocalOverlayColor, CornerRadius: 15));
 
-            var starSize = 15;
-            var totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
-            var startX = (128 - totalWidth) / 2 + 745;
-            for (var i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
-            {
-                var starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
-                ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 168), 1f);
-            }
+                canvas.DrawRoundedRectangleOverlay(132, 148, new PointF(750, 50),
+                    new RoundedRectangleOverlayStyle(Color.White, CornerRadius: 10));
+                canvas.Fill(Brushes.Solid(m_RarityColor[characterInformation.Weapon.Rarity]), new Rectangle(750, 66, 132, 116));
+                canvas.DrawImage(weaponImage, weaponImage.Bounds,
+                    new RectangleF(750, 66, weaponImage.Width, weaponImage.Height), KnownResamplers.Bicubic);
 
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new PointF(900, 120),
-                VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = 400
-            }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Color.White);
+                var starSize = 15;
+                var totalWidth = characterInformation.Weapon.MaxRarity * (starSize + 2) - 2;
+                var startX = (128 - totalWidth) / 2 + 745;
+                for (var i = characterInformation.Weapon.MaxRarity - 1; i >= 0; i--)
+                {
+                    var starToDraw = i < characterInformation.Weapon.Rarity ? m_StarIcon : m_StarUnlit;
+                    canvas.DrawImage(starToDraw, starToDraw.Bounds,
+                        new RectangleF(startX + i * (starSize + 2), 168, starToDraw.Width, starToDraw.Height),
+                        KnownResamplers.Bicubic);
+                }
 
-            var yOffset = 0;
-            foreach (var entry in stigmataImages)
-            {
-                ctx.DrawImage(entry.Value, new Point(750, 240 + yOffset), 1f);
-                ctx.DrawText(entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
-                    Fonts.Normal, Color.White, new PointF(900, 305 + yOffset));
-                yOffset += 160;
-            }
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(900, 120),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    WrappingLength = 400
+                }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Brushes.Solid(Color.White), null);
+
+                var yOffset = 0;
+                foreach (var entry in stigmataImages)
+                {
+                    canvas.DrawImage(entry.Value, entry.Value.Bounds,
+                        new RectangleF(750, 240 + yOffset, entry.Value.Width, entry.Value.Height), KnownResamplers.Bicubic);
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(900, 305 + yOffset) },
+                        entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
+                        Brushes.Solid(Color.White), null);
+                    yOffset += 160;
+                }
+            });
         });
     }
 
@@ -201,21 +215,27 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         Image stigmataIcon = new Image<Rgba32>(132, 148);
         stigmataIcon.Mutate(ctx =>
         {
-            ctx.Fill(m_RarityColor[info.Rarity]);
-
-            ctx.DrawImage(stigmataImage, new Point(0, 16), 1f);
-
-            ctx.Fill(Color.White, new RectangleF(0, 0, 132, 16));
-            ctx.Fill(Color.White, new RectangleF(0, 132, 132, 16));
-
-            var starSize = 15;
-            var totalWidth = info.MaxRarity * (starSize + 2) - 2;
-            var startX = (128 - totalWidth) / 2 - 5;
-            for (var i = info.MaxRarity - 1; i >= 0; i--)
+            ctx.Paint(canvas =>
             {
-                var starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
-                ctx.DrawImage(starToDraw, new Point(startX + i * (starSize + 2), 118), 1f);
-            }
+                canvas.Fill(Brushes.Solid(m_RarityColor[info.Rarity]));
+
+                canvas.DrawImage(stigmataImage, stigmataImage.Bounds,
+                    new RectangleF(0, 16, stigmataImage.Width, stigmataImage.Height), KnownResamplers.Bicubic);
+
+                canvas.Fill(Brushes.Solid(Color.White), new Rectangle(0, 0, 132, 16));
+                canvas.Fill(Brushes.Solid(Color.White), new Rectangle(0, 132, 132, 16));
+
+                var starSize = 15;
+                var totalWidth = info.MaxRarity * (starSize + 2) - 2;
+                var startX = (128 - totalWidth) / 2 - 5;
+                for (var i = info.MaxRarity - 1; i >= 0; i--)
+                {
+                    var starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
+                    canvas.DrawImage(starToDraw, starToDraw.Bounds,
+                        new RectangleF(startX + i * (starSize + 2), 118, starToDraw.Width, starToDraw.Height),
+                        KnownResamplers.Bicubic);
+                }
+            });
 
             ctx.ApplyRoundedCorners(10);
         });

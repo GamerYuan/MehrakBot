@@ -176,11 +176,18 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             var icon = images[1];
             background.Mutate(ctx =>
             {
-                ctx.DrawImage(icon, new Point(0, 0), 1f);
+                ctx.Paint(canvas =>
+                {
+                    canvas.DrawImage(icon, icon.Bounds,
+                        new RectangleF(0, 0, icon.Width, icon.Height), KnownResamplers.Bicubic);
+                });
                 ctx.Resize(0, BossImageHeight);
                 var size = ctx.GetCurrentSize();
                 var border = ImageUtility.CreateRoundedRectanglePath(size.Width, BossImageHeight, 15);
-                ctx.Draw(Color.Black, 4f, border);
+                ctx.Paint(canvas =>
+                {
+                    canvas.Draw(Pens.Solid(Color.Black, 4f), border);
+                });
                 ctx.ApplyRoundedCorners(15);
             });
         });

@@ -5,6 +5,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -54,17 +55,21 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
         return $"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}";
     }
 
-    protected override void DrawNode1Extras(IImageProcessingContext ctx, int xOffset, int yOffset,
+    protected override void DrawNode1Extras(DrawingCanvas canvas, int xOffset, int yOffset,
         HsrEndFloorDetail floorData)
     {
         if (floorData.Node1!.BossDefeated)
-            ctx.DrawImage(BossCheckmark, new Point(xOffset + 650, yOffset + 83), 1f);
+            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
+                new RectangleF(xOffset + 650, yOffset + 83, BossCheckmark.Width, BossCheckmark.Height),
+                KnownResamplers.Bicubic);
     }
 
-    protected override void DrawNode2Extras(IImageProcessingContext ctx, int xOffset, int yOffset,
+    protected override void DrawNode2Extras(DrawingCanvas canvas, int xOffset, int yOffset,
         HsrEndFloorDetail floorData)
     {
         if (floorData.Node2!.BossDefeated)
-            ctx.DrawImage(BossCheckmark, new Point(xOffset + 650, yOffset + 348), 1f);
+            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
+                new RectangleF(xOffset + 650, yOffset + 348, BossCheckmark.Width, BossCheckmark.Height),
+                KnownResamplers.Bicubic);
     }
 }

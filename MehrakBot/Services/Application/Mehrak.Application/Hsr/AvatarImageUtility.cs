@@ -19,7 +19,7 @@ internal static class AvatarImageUtility
 
     private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
     private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
-    private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
+    private static readonly Color NormalConstColor = Color.FromPixel(new Rgba32(69, 69, 69, 200));
     private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
 
     static AvatarImageUtility()
@@ -40,34 +40,40 @@ internal static class AvatarImageUtility
         string text)
     {
         var avatarImage = new Image<Rgba32>(150, 180);
-        var rectangle = new RectangleF(0, 146, 150, 30);
+        var rectangle = new Rectangle(0, 146, 150, 30);
 
         avatarImage.Mutate(ctx =>
         {
-            ctx.Fill(rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
-            ctx.DrawImage(portrait, new Point(0, 0), 1f);
-            ctx.Fill(Color.Black, rectangle);
-            ctx.DrawText(new RichTextOptions(NormalFont)
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor), new Rectangle(0, 0, avatarImage.Width, avatarImage.Height)));
+
+            ctx.Paint(canvas =>
             {
-                Origin = new PointF(75, 174),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.White);
-            if (rank > 0)
-            {
-                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
-                    new RoundedRectangleOverlayStyle(
-                        rank == 6 ? Color.Gold : NormalConstColor,
-                        CornerRadius: 5));
-                ctx.DrawText(new RichTextOptions(NormalFont)
+                canvas.DrawImage(portrait, portrait.Bounds,
+                    new RectangleF(0, 0, portrait.Width, portrait.Height), KnownResamplers.Bicubic);
+                canvas.Fill(Brushes.Solid(Color.Black), rectangle);
+                canvas.DrawText(new RichTextOptions(NormalFont)
                 {
-                    Origin = new PointF(130, 126),
+                    Origin = new PointF(75, 174),
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    rank.ToString(),
-                    rank == 6 ? GoldConstTextColor : Color.White);
-            }
+                    VerticalAlignment = VerticalAlignment.Bottom
+                }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Brushes.Solid(Color.White), null);
+                if (rank > 0)
+                {
+                    canvas.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
+                        new RoundedRectangleOverlayStyle(
+                            rank == 6 ? Color.Gold : NormalConstColor,
+                            CornerRadius: 5));
+                    canvas.Restore(); // Restore before drawing text due to bug in ImageSharp.Drawing 3.0.0
+                    canvas.DrawText(new RichTextOptions(NormalFont)
+                    {
+                        Origin = new PointF(130, 126),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                        rank.ToString(),
+                        Brushes.Solid(rank == 6 ? GoldConstTextColor : Color.White), null);
+                }
+            });
 
             ctx.ApplyRoundedCorners(15);
         });

@@ -16,6 +16,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -62,10 +63,14 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             }
         }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken: cancellationToken);
 
-        m_RelicSlotTemplate = new Image<Rgba32>(970, 170);
+        m_RelicSlotTemplate = new Image<Rgba32>(970, 170, Color.Transparent.ToPixel<Rgba32>());
         m_RelicSlotTemplate.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 0.25f));
+            ctx.Paint(canvas =>
+            {
+                canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))),
+                    new Rectangle(0, 0, 970, 170));
+            });
             ctx.ApplyRoundedCorners(15);
         });
 
@@ -247,167 +252,208 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         background.Mutate(ctx =>
         {
             var backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
-            ctx.Fill(backgroundColor);
-            ctx.DrawImage(StaticBackground, PixelColorBlendingMode.Overlay, 1f);
-
-            var textColor = Color.White;
-
-            var offsetX = portraitConfig?.OffsetX ?? 0;
-            var offsetY = portraitConfig?.OffsetY ?? 0;
-            ctx.DrawImage(characterPortrait,
-                new Point((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY),
-                1f);
-
-            ctx.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
-
-            var ascLevel = context.GetParameter<int?>("ascension");
-
-            if (ascLevel != null)
+            ctx.Paint(canvas =>
             {
-                ctx.DrawTextWithShadow($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", Fonts.Normal,
-                    new PointF(70, 135), textColor);
-            }
-            else
-            {
-                ctx.DrawTextWithShadow($"Lv. {charInfo.Base.Level}", Fonts.Normal,
-                    new PointF(70, 135), textColor);
-            }
-
-            for (var i = 0; i < skillIcons.Length; i++)
-            {
-                var skill = skillIcons[i];
-                var offset = i * 150;
-                ctx.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 10, Color.DarkSlateGray,
-                    backgroundColor, 5f);
-                ctx.DrawCenteredTextInEllipse(
-                    skill.Data.Level.ToString()!,
-                    new PointF(120, 960 - offset),
-                    25,
-                    new EllipseTextStyle(
-                        Fonts.Medium,
-                        textColor,
-                        skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray));
-            }
-
-            ctx.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal,
-                new PointF(60, 1000), textColor);
-
-            ctx.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
-                new PointF(60, 1040), textColor);
-
-            for (var i = 0; i < constellationIcons.Length; i++)
-            {
-                var constellation = constellationIcons[i];
-                if (!constellation.Active)
-                    constellation.Image.Mutate(x => x.Brightness(0.5f));
-                var offset = i * 140;
-                ctx.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 5,
-                    Color.DarkSlateGray, backgroundColor, 5f);
-            }
-
-            ctx.DrawImage(weaponImage, new Point(1200, 40), 1f);
-            using var weaponStars = ImageUtility.GenerateStarRating(charInfo.Weapon.Rarity.GetValueOrDefault(1));
-            ctx.DrawImage(weaponStars, new Point(1220, 240), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
-            {
-                Origin = new Vector2(1450, 120),
-                VerticalAlignment = VerticalAlignment.Bottom,
-                WrappingLength = 650
-            }, charInfo.Weapon.Name, textColor);
-            ctx.DrawText('R' + charInfo.Weapon.AffixLevel!.Value.ToString(), Fonts.Normal, textColor,
-                new PointF(1450, 160));
-            ctx.DrawText($"Lv. {charInfo.Weapon.Level}", Fonts.Normal, textColor, new PointF(1550, 160));
-            var statSize =
-                TextMeasurer.MeasureSize(charInfo.Weapon.MainProperty.Final, new TextOptions(Fonts.Normal));
-            Image<Rgba32> statBackground = new(80 + (int)statSize.Width, 60);
-            statBackground.Mutate(x =>
-            {
-                x.Fill(new Rgba32(0, 0, 0, 0.45f));
-                x.ApplyRoundedCorners(10);
+                canvas.Fill(Brushes.Solid(backgroundColor), new Rectangle(0, 0, background.Width, background.Height));
             });
-            ctx.DrawImage(statBackground, new Point(1450, 230), 1f);
-            ctx.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value], new Point(1455, 236),
-                1f);
-            ctx.DrawText(charInfo.Weapon.MainProperty.Final, Fonts.Normal, textColor, new PointF(1514, 240));
-            if (charInfo.Weapon.SubProperty != null)
+
+            ctx.Paint(canvas =>
             {
-                var substatSize =
-                    TextMeasurer.MeasureSize(charInfo.Weapon.SubProperty.Final, new TextOptions(Fonts.Normal));
-                Image<Rgba32> substatBackground = new(80 + (int)substatSize.Width, 60);
-                substatBackground.Mutate(x =>
+                _ = canvas.SaveLayer(new GraphicsOptions { ColorBlendingMode = PixelColorBlendingMode.Overlay });
+                canvas.DrawImage(StaticBackground, StaticBackground.Bounds,
+                    new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
+                canvas.Restore();
+
+                var textColor = Color.White;
+
+                var offsetX = portraitConfig?.OffsetX ?? 0;
+                var offsetY = portraitConfig?.OffsetY ?? 0;
+                canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
+                    new RectangleF((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY,
+                        characterPortrait.Width, characterPortrait.Height),
+                    KnownResamplers.Bicubic);
+
+                canvas.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
+
+                var ascLevel = context.GetParameter<int?>("ascension");
+
+                if (ascLevel != null)
                 {
-                    x.Fill(new Rgba32(0, 0, 0, 0.45f));
+                    canvas.DrawTextWithShadow($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", Fonts.Normal,
+                        new PointF(70, 135), textColor);
+                }
+                else
+                {
+                    canvas.DrawTextWithShadow($"Lv. {charInfo.Base.Level}", Fonts.Normal,
+                        new PointF(70, 135), textColor);
+                }
+
+                for (var i = 0; i < skillIcons.Length; i++)
+                {
+                    var skill = skillIcons[i];
+                    var offset = i * 150;
+                    canvas.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 10, Color.DarkSlateGray,
+                        backgroundColor, 5f);
+                    canvas.DrawCenteredTextInEllipse(
+                        skill.Data.Level.ToString()!,
+                        new PointF(120, 960 - offset),
+                        25,
+                        new EllipseTextStyle(
+                            Fonts.Medium,
+                            textColor,
+                            skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray));
+                }
+
+                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal,
+                    new PointF(60, 1000), textColor);
+
+                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
+                    new PointF(60, 1040), textColor);
+
+                for (var i = 0; i < constellationIcons.Length; i++)
+                {
+                    var constellation = constellationIcons[i];
+                    if (!constellation.Active)
+                        constellation.Image.Mutate(x => x.Brightness(0.5f));
+                    var offset = i * 140;
+                    canvas.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 5,
+                        Color.DarkSlateGray, backgroundColor, 5f);
+                }
+
+                canvas.DrawImage(weaponImage, weaponImage.Bounds,
+                    new RectangleF(1200, 40, weaponImage.Width, weaponImage.Height), KnownResamplers.Bicubic);
+                using var weaponStars = ImageUtility.CreateStarRatingImage(charInfo.Weapon.Rarity.GetValueOrDefault(1));
+                canvas.DrawImage(weaponStars, weaponStars.Bounds,
+                    new RectangleF(1220, 240, weaponStars.Width, weaponStars.Height), KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(1450, 120),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    WrappingLength = 650
+                }, charInfo.Weapon.Name, Brushes.Solid(textColor), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(1450, 160)
+                }, 'R' + charInfo.Weapon.AffixLevel!.Value.ToString(), Brushes.Solid(textColor), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new PointF(1550, 160)
+                }, $"Lv. {charInfo.Weapon.Level}", Brushes.Solid(textColor), null);
+                var statSize =
+                    TextMeasurer.MeasureBounds(charInfo.Weapon.MainProperty.Final, new TextOptions(Fonts.Normal));
+                Image<Rgba32> statBackground = new(80 + (int)statSize.Width, 60, Color.Transparent.ToPixel<Rgba32>());
+                statBackground.Mutate(x =>
+                {
+                    x.Paint(canvas2 =>
+                    {
+                        canvas2.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f))),
+                            new Rectangle(0, 0, statBackground.Width, statBackground.Height));
+                    });
                     x.ApplyRoundedCorners(10);
                 });
-                ctx.DrawImage(substatBackground, new Point(1630, 230), 1f);
-                ctx.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value], new Point(1635, 236),
-                    1f);
-                ctx.DrawText(charInfo.Weapon.SubProperty.Final, Fonts.Normal, textColor, new PointF(1694, 240));
-            }
-
-            var spacing = 700 / stats.Length;
-
-            for (var i = 0; i < stats.Length; i++)
-            {
-                var stat = stats[i];
-                var y = 360 + spacing * i;
-                var isBase = StatMappingUtility.IsBaseStat(stat.PropertyType!.Value);
-
-                ctx.DrawStatLine(
-                    new StatLineData(
-                        StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
-                        stat.Final,
-                        isBase ? stat.Base : null,
-                        isBase && float.Parse(stat.Final.TrimEnd('%')) > float.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
-                    new StatLineStyle(
-                        m_StatImages.GetValueOrDefault(stat.PropertyType.Value),
-                        Fonts.Normal,
-                        textColor,
-                        Fonts.Small,
-                        Color.LightGray,
-                        Color.LightGreen),
-                    new PointF(1200, y),
-                    900);
-            }
-
-            for (var i = 0; i < relics.Length; i++)
-            {
-                var relic = relics[i];
-                ctx.DrawImage(relic, new Point(2200, 40 + i * 185), 1f);
-            }
-
-            if (activeSet.Count > 0)
-            {
-                var relicSetText = string.Join('\n', activeSet.Keys);
-                var relicSetValueText = string.Join('\n', activeSet.Values);
-
-                ctx.DrawText(new RichTextOptions(Fonts.Small)
+                canvas.DrawImage(statBackground, statBackground.Bounds,
+                    new RectangleF(1450, 230, statBackground.Width, statBackground.Height), KnownResamplers.Bicubic);
+                canvas.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value],
+                    m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Bounds,
+                    new RectangleF(1455, 236, m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Width,
+                        m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Height),
+                    KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(2750, 1020),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    TextAlignment = TextAlignment.End,
-                    LineSpacing = 1.5f,
-                    WrappingLength = 500
-                }, relicSetText, Color.White);
+                    Origin = new PointF(1514, 240)
+                }, charInfo.Weapon.MainProperty.Final, Brushes.Solid(textColor), null);
+                if (charInfo.Weapon.SubProperty != null)
+                {
+                    var substatSize =
+                        TextMeasurer.MeasureBounds(charInfo.Weapon.SubProperty.Final, new TextOptions(Fonts.Normal));
+                    Image<Rgba32> substatBackground = new(80 + (int)substatSize.Width, 60);
+                    substatBackground.Mutate(x =>
+                    {
+                        x.Paint(canvas2 =>
+                        {
+                            canvas2.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f))),
+                                new Rectangle(0, 0, substatBackground.Width, substatBackground.Height));
+                        });
+                        x.ApplyRoundedCorners(10);
+                    });
+                    canvas.DrawImage(substatBackground, substatBackground.Bounds,
+                        new RectangleF(1630, 230, substatBackground.Width, substatBackground.Height), KnownResamplers.Bicubic);
+                    canvas.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value],
+                        m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Bounds,
+                        new RectangleF(1635, 236, m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Width,
+                            m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Height),
+                        KnownResamplers.Bicubic);
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(1694, 240)
+                    }, charInfo.Weapon.SubProperty.Final, Brushes.Solid(textColor), null);
+                }
 
-                ctx.DrawText(new RichTextOptions(Fonts.Small)
+                var spacing = 700 / stats.Length;
+
+                for (var i = 0; i < stats.Length; i++)
                 {
-                    Origin = new Vector2(2800, 1020),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    LineSpacing = 1.5f
-                }, relicSetValueText, Color.White);
-            }
-            else
-            {
-                ctx.DrawText(new RichTextOptions(Fonts.Small)
+                    var stat = stats[i];
+                    var y = 360 + spacing * i;
+                    var isBase = StatMappingUtility.IsBaseStat(stat.PropertyType!.Value);
+
+                    canvas.DrawStatLine(
+                        new StatLineData(
+                            StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
+                            stat.Final,
+                            isBase ? stat.Base : null,
+                            isBase && float.Parse(stat.Final.TrimEnd('%')) > float.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
+                        new StatLineStyle(
+                            m_StatImages.GetValueOrDefault(stat.PropertyType.Value),
+                            Fonts.Normal,
+                            textColor,
+                            Fonts.Small,
+                            Color.LightGray,
+                            Color.LightGreen),
+                        new PointF(1200, y),
+                        900);
+                }
+
+                for (var i = 0; i < relics.Length; i++)
                 {
-                    Origin = new Vector2(2725, 1020),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, "No active set", Color.White);
-            }
+                    var relic = relics[i];
+                    canvas.DrawImage(relic, relic.Bounds,
+                        new RectangleF(2200, 40 + i * 185, relic.Width, relic.Height), KnownResamplers.Bicubic);
+                }
+
+                if (activeSet.Count > 0)
+                {
+                    var relicSetText = string.Join('\n', activeSet.Keys);
+                    var relicSetValueText = string.Join('\n', activeSet.Values);
+
+                    canvas.DrawText(new RichTextOptions(Fonts.Small)
+                    {
+                        Origin = new Vector2(2750, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        TextAlignment = TextAlignment.End,
+                        LineSpacing = 1.5f,
+                        WrappingLength = 500
+                    }, relicSetText, Brushes.Solid(Color.White), null);
+
+                    canvas.DrawText(new RichTextOptions(Fonts.Small)
+                    {
+                        Origin = new Vector2(2800, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        LineSpacing = 1.5f
+                    }, relicSetValueText, Brushes.Solid(Color.White), null);
+                }
+                else
+                {
+                    canvas.DrawText(new RichTextOptions(Fonts.Small)
+                    {
+                        Origin = new Vector2(2725, 1020),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    }, "No active set", Brushes.Solid(Color.White), null);
+                }
+            });
         });
     }
 
@@ -422,49 +468,64 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         var template = CreateRelicSlot();
         template.Mutate(ctx =>
         {
-            ctx.DrawImage(relicImage, new Point(-40, -40), 1f);
-            ctx.DrawImage(m_StatImages[relic.MainProperty.PropertyType!.Value], new Point(280, 20), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            ctx.Paint(canvas =>
             {
-                TextAlignment = TextAlignment.End,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new Vector2(320, 70)
-            }, relic.MainProperty.Value, Color.White);
-            ctx.DrawText(new RichTextOptions(Fonts.Small!)
-            {
-                TextAlignment = TextAlignment.End,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Origin = new Vector2(320, 130)
-            }, $"+{relic.Level!.Value}", Color.White);
-            using var stars = ImageUtility.GenerateStarRating(relic.Rarity.GetValueOrDefault(1));
-            stars.Mutate(x => x.Resize(0, 25));
-            ctx.DrawImage(stars, new Point(120, 130), 1f);
-
-            for (var i = 0; i < relic.SubPropertyList.Count; i++)
-            {
-                var subStat = relic.SubPropertyList[i];
-                var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                var xOffset = i % 2 * 290;
-                var yOffset = i / 2 * 80;
-                var color = Color.White;
-                if (subStat.PropertyType is 2 or 5 or 8)
+                canvas.DrawImage(relicImage, relicImage.Bounds,
+                    new RectangleF(-40, -40, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+                var statImg = m_StatImages[relic.MainProperty.PropertyType!.Value];
+                canvas.DrawImage(statImg, statImg.Bounds,
+                    new RectangleF(280, 20, statImg.Width, statImg.Height), KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    using var dim = subStatImage.Clone(x => x.Brightness(0.5f));
-                    ctx.DrawImage(dim, new Point(375 + xOffset, 26 + yOffset), 1f);
-                    color = Color.FromRgb(128, 128, 128);
-                }
-                else
+                    TextAlignment = TextAlignment.End,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Origin = new Vector2(320, 70)
+                }, relic.MainProperty.Value, Brushes.Solid(Color.White), null);
+                canvas.DrawText(new RichTextOptions(Fonts.Small!)
                 {
-                    ctx.DrawImage(subStatImage, new Point(375 + xOffset, 26 + yOffset), 1f);
+                    TextAlignment = TextAlignment.End,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Origin = new Vector2(320, 130)
+                }, $"+{relic.Level!.Value}", Brushes.Solid(Color.White), null);
+                using var stars = ImageUtility.CreateStarRatingImage(relic.Rarity.GetValueOrDefault(1));
+                stars.Mutate(x => x.Resize(0, 25));
+                canvas.DrawImage(stars, stars.Bounds,
+                    new RectangleF(120, 130, stars.Width, stars.Height), KnownResamplers.Bicubic);
+
+                for (var i = 0; i < relic.SubPropertyList.Count; i++)
+                {
+                    var subStat = relic.SubPropertyList[i];
+                    var subStatImage = m_StatImages[subStat.PropertyType!.Value];
+                    var xOffset = i % 2 * 290;
+                    var yOffset = i / 2 * 80;
+                    var color = Color.White;
+                    if (subStat.PropertyType is 2 or 5 or 8)
+                    {
+                        using var dim = subStatImage.Clone(x => x.Brightness(0.5f));
+                        canvas.DrawImage(dim, dim.Bounds,
+                            new RectangleF(375 + xOffset, 26 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
+                        color = Color.FromPixel(new Rgb24(128, 128, 128));
+                    }
+                    else
+                    {
+                        canvas.DrawImage(subStatImage, subStatImage.Bounds,
+                            new RectangleF(375 + xOffset, 26 + yOffset, subStatImage.Width, subStatImage.Height), KnownResamplers.Bicubic);
+                    }
+
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(439 + xOffset, 30 + yOffset)
+                    }, subStat.Value, Brushes.Solid(color), null);
+
+                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(575 + xOffset, 15 + yOffset)
+                    }, rolls, Brushes.Solid(color), null);
                 }
 
-                ctx.DrawText(subStat.Value, Fonts.Normal, color, new PointF(439 + xOffset, 30 + yOffset));
-
-                var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
-                ctx.DrawText(rolls, Fonts.Normal, color, new PointF(575 + xOffset, 15 + yOffset));
-            }
-
-            relicImage.Dispose();
+                relicImage.Dispose();
+            });
         });
 
         return template;
@@ -480,13 +541,17 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         var template = CreateRelicSlot();
         template.Mutate(ctx =>
         {
-            ctx.DrawImage(relicImage, new Point(25, 5), 1f);
-            ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            ctx.Paint(canvas =>
             {
-                Origin = new Vector2(525, 95),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center
-            }, "No Artifact", Color.White);
+                canvas.DrawImage(relicImage, relicImage.Bounds,
+                    new RectangleF(25, 5, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                {
+                    Origin = new Vector2(525, 95),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                }, "No Artifact", Brushes.Solid(Color.White), null);
+            });
         });
 
         return template;
