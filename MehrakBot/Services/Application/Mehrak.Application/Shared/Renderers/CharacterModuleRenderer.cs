@@ -248,15 +248,15 @@ public class CharacterModuleRenderer
         var height = AvatarSize.Height;
 
         using var region = canvas.CreateRegion(new Rectangle(position, AvatarSize));
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(position, AvatarSize), 10);
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, AvatarSize), 10);
         _ = region.Save(ClipOptions, clipPath);
 
         var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
             LevelOverlaySize.Width, LevelOverlaySize.Height);
         var levelTextY = height - LevelOverlaySize.Height / 2;
 
-        region.Fill(Brushes.Solid(m_Style.RarityColors[data.Rarity - 1]), new Rectangle(0, 0, width, height));
-        region.DrawImage(data.AvatarImage, data.AvatarImage.Bounds, new RectangleF(position, data.AvatarImage.Size), KnownResamplers.Bicubic);
+        region.Fill(Brushes.Solid(m_Style.RarityColors[data.Rarity - 1]));
+        region.DrawImage(data.AvatarImage, data.AvatarImage.Bounds, new RectangleF(Point.Empty, data.AvatarImage.Size), KnownResamplers.Bicubic);
 
         region.Fill(Brushes.Solid(m_Style.LevelOverlayColor), rectangle);
 
@@ -286,7 +286,7 @@ public class CharacterModuleRenderer
 
         if (m_Style.AvatarBorderColor.HasValue)
         {
-            var borderPath = new RoundedRectanglePolygon(new RectangleF(0, 0, width - 1, height - 1), 10);
+            var borderPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(width - 1, height - 1)), 10);
             region.Draw(Pens.Solid(m_Style.AvatarBorderColor.Value, 5), borderPath);
         }
         region.Restore();
@@ -305,7 +305,7 @@ public class CharacterModuleRenderer
         var height = WeaponSize.Height;
 
         using var region = canvas.CreateRegion(new Rectangle(position, WeaponSize));
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(position, WeaponSize), 10);
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, WeaponSize), 10);
         _ = region.Save(ClipOptions, clipPath);
 
         var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
@@ -314,7 +314,7 @@ public class CharacterModuleRenderer
 
         region.Fill(Brushes.Solid(m_Style.RarityColors[weapon.Rarity - 1]), new Rectangle(0, 0, width, height));
         region.DrawImage(weapon.WeaponImage, weapon.WeaponImage.Bounds,
-            new RectangleF(new Point(0, 0), weapon.WeaponImage.Size), KnownResamplers.Bicubic);
+            new RectangleF(Point.Empty, weapon.WeaponImage.Size), KnownResamplers.Bicubic);
 
         region.Fill(Brushes.Solid(m_Style.LevelOverlayColor), rectangle);
 
@@ -339,7 +339,7 @@ public class CharacterModuleRenderer
 
         if (m_Style.AvatarBorderColor.HasValue)
         {
-            var borderPath = new RoundedRectanglePolygon(new RectangleF(0, 0, width - 1, height - 1), 10);
+            var borderPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(width - 1, height - 1)), 10);
             region.Draw(Pens.Solid(m_Style.AvatarBorderColor.Value, 5), borderPath);
         }
         region.Restore();

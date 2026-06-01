@@ -26,6 +26,11 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
 {
     private Image<Rgba32>[] m_DifficultyLogo = [];
 
+    private static readonly DrawingOptions ClipOptions = new()
+    {
+        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
+    };
+
     public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger, IApplicationMetrics metrics)
         : base(
             "Genshin Stygian",
@@ -66,13 +71,7 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x,
-                x =>
-                {
-                    var styledImage = x.GetStyledAvatarImage();
-                    disposables.Add(styledImage);
-                    return styledImage;
-                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
         var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
             .DistinctBy(x => x.AvatarId)
             .ToAsyncEnumerable()
@@ -144,16 +143,18 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                 for (var i = 0; i < stygianData.Challenge!.Count; i++)
                 {
                     var challenge = stygianData.Challenge[i];
-                    var rosterImage = RosterImageBuilder.Build(
-                        challenge.Teams.Select(x => lookup[x.AvatarId]),
-                        new RosterLayout(MaxSlots: 4));
-                    disposables.Add(rosterImage);
-                    var monsterImageStream = monsterImages[challenge.Monster.MonsterId];
-                    var challengeImage = GetChallengeImage(challenge, rosterImage, monsterImageStream);
-                    disposables.Add(challengeImage);
                     var yOffset = 170 + i * 320;
-                    canvas.DrawImage(challengeImage, challengeImage.Bounds,
-                        new RectangleF(50, yOffset, challengeImage.Width, challengeImage.Height), KnownResamplers.Bicubic);
+                    var originalMonsterImage = monsterImages[challenge.Monster.MonsterId];
+                    var processedMonsterImage = originalMonsterImage.Clone(ctx =>
+                    {
+                        ctx.Resize(0, 600, KnownResamplers.Bicubic);
+                        ctx.ApplyGradientFade(0.65f);
+                        ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-100, -125)));
+                    });
+                    disposables.Add(processedMonsterImage);
+
+                    DrawChallengeImage(canvas, new Point(50, yOffset), challenge,
+                        challenge.Teams.Select(x => lookup[x.AvatarId]), processedMonsterImage);
 
                     for (var j = 0; j < challenge.BestAvatar.Count; j++)
                     {
@@ -181,34 +182,29 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
         });
     }
 
-    private Image<Rgba32> GetChallengeImage(Challenge data, Image rosterImage, Image monsterImage)
+    private void DrawChallengeImage(DrawingCanvas canvas, Point location, Challenge data, IEnumerable<GenshinAvatar> teamAvatars, Image monsterImage)
     {
-        Image<Rgba32> challengeImage = new(1000, 300);
-        challengeImage.Mutate(ctx =>
-        {
-            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, challengeImage.Width, challengeImage.Height)));
-            monsterImage.Mutate(x =>
-            {
-                x.Resize(0, 600, KnownResamplers.Bicubic);
-                x.ApplyGradientFade(0.65f);
-            });
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawImage(monsterImage, monsterImage.Bounds,
-                    new RectangleF(-100, -125, monsterImage.Width, monsterImage.Height), KnownResamplers.Bicubic);
-                canvas.DrawImage(rosterImage, rosterImage.Bounds,
-                    new RectangleF(340, 100, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(970, 65),
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"{data.Second}s", Brushes.Solid(Color.White), null);
-            });
-            ctx.ApplyRoundedCorners(15);
-        });
+        using var region = canvas.CreateRegion(new Rectangle(location, new Size(1000, 300)));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1000, 300)), 15));
 
-        return challengeImage;
+        region.Fill(Brushes.Solid(OverlayColor));
+        region.DrawImage(monsterImage, monsterImage.Bounds,
+            new RectangleF(0, 0, monsterImage.Width, monsterImage.Height), KnownResamplers.Bicubic);
+
+        region.Restore();
+
+        RosterImageBuilder.Build(
+            teamAvatars,
+            new RosterLayout(MaxSlots: 4),
+            new Point(340, 100),
+            (point, avatar) => avatar.DrawStyledAvatarImage(region, point));
+
+        region.DrawText(new RichTextOptions(Fonts.Normal)
+        {
+            Origin = new Vector2(970, 65),
+            VerticalAlignment = VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Right
+        }, $"{data.Second}s", Brushes.Solid(Color.White), null);
     }
 
     private static int GetMedalIndex(int difficulty, int clearTime)

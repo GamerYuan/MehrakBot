@@ -78,13 +78,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x,
-                x =>
-                {
-                    var styledImage = x.GetStyledAvatarImage();
-                    disposables.Add(styledImage);
-                    return styledImage;
-                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
         var buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
@@ -374,12 +368,11 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
                         levelIndex = roundData.RoundId;
                     }
 
-                    var roster = RosterImageBuilder.Build(
+                    RosterImageBuilder.Build(
                         roundData.Avatars.Select(x => alternateLookup[x.AvatarId]),
-                        new RosterLayout(MaxSlots: 4));
-                    disposables.Add(roster);
-                    canvas.DrawImage(roster, roster.Bounds,
-                        new RectangleF(xOffset, yOffset, roster.Width, roster.Height), KnownResamplers.Bicubic);
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset, yOffset),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
                     var medalStarImage = roundData.IsGetMedal ? m_TheaterStarLit : m_TheaterStarUnlit;
                     canvas.DrawImage(medalStarImage, medalStarImage.Bounds,
                         new RectangleF(xOffset + 600, yOffset - 55, medalStarImage.Width, medalStarImage.Height), KnownResamplers.Bicubic);

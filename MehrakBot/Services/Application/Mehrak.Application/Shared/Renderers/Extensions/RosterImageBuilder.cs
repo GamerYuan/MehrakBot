@@ -52,4 +52,20 @@ public static class RosterImageBuilder
 
         return rosterImage;
     }
+
+    public static void Build<TItem>(
+        IEnumerable<TItem> items,
+        RosterLayout layout,
+        Point canvasOrigin,
+        Action<Point, TItem> drawItem)
+    {
+        var itemList = items as IReadOnlyList<TItem> ?? [.. items];
+        var offset = (layout.MaxSlots - itemList.Count) * layout.AvatarWidth / 2 + 10;
+
+        for (var i = 0; i < itemList.Count; i++)
+        {
+            var x = offset + i * (layout.AvatarWidth + layout.Spacing);
+            drawItem(new Point(canvasOrigin.X + x, canvasOrigin.Y), itemList[i]);
+        }
+    }
 }

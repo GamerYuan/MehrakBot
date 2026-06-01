@@ -39,14 +39,42 @@ internal static class AvatarImageUtility
     public static void DrawStyledAvatarImage(this GenshinAvatar avatar, DrawingCanvas canvas, Point location, string text = "")
     {
         using var region = canvas.CreateRegion(new Rectangle(location, new Size(150, 180)));
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(location, new Size(150, 180)), 15);
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(150, 180)), 15);
         _ = region.Save(ClipOptions, clipPath);
         region.Fill(Brushes.Solid(avatar.Rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor));
 
         region.DrawImage(avatar.AvatarImage, avatar.AvatarImage.Bounds,
-            new RectangleF(location, new Size(150, 150)), KnownResamplers.Bicubic);
-        region.Fill(Brushes.Solid(Color.PeachPuff), new Rectangle(location.X, location.Y + 150, 150, 30));
-        region.Restore();
+            new RectangleF(0, 0, 150, 150), KnownResamplers.Bicubic);
+        region.Fill(Brushes.Solid(Color.PeachPuff), new Rectangle(0, 150, 150, 30));
+
+        switch (avatar.AvatarType)
+        {
+            case 2:
+                region.DrawRoundedRectangleOverlay(80, 35, new PointF(90, -10),
+                    new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgb24(225, 118, 128)), CornerRadius: 15));
+                region.Restore();
+                region.DrawText(new RichTextOptions(SmallFont)
+                {
+                    Origin = new PointF(98, 3),
+                    VerticalAlignment = VerticalAlignment.Top
+                }, "Trial", Brushes.Solid(Color.White), null);
+                break;
+
+            case 3:
+                region.DrawRoundedRectangleOverlay(130, 35, new PointF(50, -10),
+                    new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgb24(73, 128, 185)), CornerRadius: 15));
+                region.Restore();
+                region.DrawText(new RichTextOptions(SmallFont)
+                {
+                    Origin = new PointF(63, 3),
+                    VerticalAlignment = VerticalAlignment.Top
+                }, "Support", Brushes.Solid(Color.White), null);
+                break;
+
+            default:
+                region.Restore();
+                break;
+        }
 
         region.DrawText(new RichTextOptions(NormalFont)
         {
@@ -71,35 +99,6 @@ internal static class AvatarImageUtility
                 Brushes.Solid(avatar.Constellation == 6 ? GoldConstTextColor : Color.White), null);
         }
 
-        switch (avatar.AvatarType)
-        {
-            case 2:
-                region.DrawRoundedRectangleOverlay(80, 35, new PointF(90, -10),
-                    new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgb24(225, 118, 128)), CornerRadius: 15));
-                region.DrawText(new RichTextOptions(SmallFont)
-                {
-                    Origin = new PointF(98, 3),
-                    VerticalAlignment = VerticalAlignment.Top
-                }, "Trial", Brushes.Solid(Color.White), null);
-                break;
-
-            case 3:
-                region.DrawRoundedRectangleOverlay(130, 35, new PointF(50, -10),
-                    new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgb24(73, 128, 185)), CornerRadius: 15));
-                region.DrawText(new RichTextOptions(SmallFont)
-                {
-                    Origin = new PointF(63, 3),
-                    VerticalAlignment = VerticalAlignment.Top
-                }, "Support", Brushes.Solid(Color.White), null);
-                break;
-        }
-
-        region.DrawText(new RichTextOptions(NormalFont)
-        {
-            Origin = new PointF(location.X + 75, location.Y + 180),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Bottom
-        }, $"Lv. {avatar.Level}", Brushes.Solid(Color.Black), null);
     }
 
     [Obsolete]

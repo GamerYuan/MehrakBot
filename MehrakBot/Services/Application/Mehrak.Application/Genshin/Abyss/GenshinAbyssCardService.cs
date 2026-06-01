@@ -67,7 +67,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
 
         var floorData = abyssData.Floors!.First(x => x.Index == floor);
 
-        var portraitImages = await floorData.Levels!
+        var portraitAvatars = await floorData.Levels!
             .SelectMany(y => y.Battles!)
             .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
             .Select(
@@ -79,15 +79,9 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                     disposables.Add(avatar);
                     return avatar;
                 })
-            .ToDictionaryAsync(x => x,
-                x =>
-                {
-                    var styledImage = x.GetStyledAvatarImage();
-                    disposables.Add(styledImage);
-                    return styledImage;
-                }, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
-        var lookup = portraitImages.GetAlternateLookup<int>();
+        var lookup = portraitAvatars.GetAlternateLookup<int>();
 
         var sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
             .Concat(abyssData.EnergySkillRank!)
@@ -98,7 +92,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 
-        var revealRankImages = await abyssData.RevealRank!
+        var revealRankAvatars = await abyssData.RevealRank!
             .ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
@@ -110,12 +104,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
             })
             .ToDictionaryAsync(
                 x => x.GenshinAvatar,
-                x =>
-                {
-                    var styledImage = x.GenshinAvatar.GetStyledAvatarImage(x.RevealRankAvatar.Value.ToString()!);
-                    disposables.Add(styledImage);
-                    return styledImage;
-                },
+                x => (x.GenshinAvatar, Text: x.RevealRankAvatar.Value.ToString()!),
                 GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
 
         var tzi = server.GetTimeZoneInfo();
@@ -196,12 +185,11 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                     Origin = new PointF(80, 460)
                 }, "Most Used Characters", Brushes.Solid(Color.White), null);
 
-                var revealRank = RosterImageBuilder.Build(
-                    abyssData.RevealRank!.Select(x => revealRankImages.GetAlternateLookup<int>()[x.AvatarId]),
-                    new RosterLayout(MaxSlots: 4));
-                disposables.Add(revealRank);
-                canvas.DrawImage(revealRank, revealRank.Bounds,
-                    new RectangleF(75, 500, revealRank.Width, revealRank.Height), KnownResamplers.Bicubic);
+                RosterImageBuilder.Build(
+                    abyssData.RevealRank!.Select(x => revealRankAvatars.GetAlternateLookup<int>()[x.AvatarId]),
+                    new RosterLayout(MaxSlots: 4),
+                    new Point(75, 500),
+                    (point, item) => item.GenshinAvatar.DrawStyledAvatarImage(canvas, point, item.Text));
 
                 for (var i = 0; i < 5; i++)
                 {
@@ -338,13 +326,12 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                     for (var j = 0; j < level.Battles!.Count; j++)
                     {
                         var battle = level.Battles![j];
-                        var rosterImage = RosterImageBuilder.Build(
-                            battle.Avatars!.Select(x => lookup[x.Id]),
-                            new RosterLayout(MaxSlots: 4));
-                        disposables.Add(rosterImage);
                         var yOffset = offset + j * 200;
-                        canvas.DrawImage(rosterImage, rosterImage.Bounds,
-                            new RectangleF(795, yOffset, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
+                        RosterImageBuilder.Build(
+                            battle.Avatars!.Select(x => lookup[x.Id]),
+                            new RosterLayout(MaxSlots: 4),
+                            new Point(795, yOffset),
+                            (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
                     }
                 }
             });
