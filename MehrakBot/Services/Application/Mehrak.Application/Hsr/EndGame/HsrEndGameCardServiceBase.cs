@@ -93,12 +93,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x, x =>
-            {
-                var styledImage = x.GetStyledAvatarImage();
-                disposables.Add(styledImage);
-                return styledImage;
-            }, HsrAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
 
         var buffImages = await gameModeData.AllFloorDetail
             .Where(x => x is { Node1: not null, Node2: not null })
@@ -111,7 +106,6 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 async (x, token) => await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 
-        var lookup = avatarImages.GetAlternateLookup<int>();
         var floorDetails = GetFloorDetails(gameModeData);
         var height = 180 + floorDetails.Chunk(2)
             .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620);
@@ -199,14 +193,6 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Brushes.Solid(Color.White), null);
 
-                    var node1 = RosterImageBuilder.Build(
-                        floorData.Node1!.Avatars.Select(x => lookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    var node2 = RosterImageBuilder.Build(
-                        floorData.Node2!.Avatars.Select(x => lookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    disposables.Add(node1);
-                    disposables.Add(node2);
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65)).Build());
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
@@ -217,13 +203,16 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     {
                         Origin = new PointF(xOffset + 855, yOffset + 85),
                         HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"Score: {floorData.Node1.Score}", Brushes.Solid(Color.White), null);
+                    }, $"Score: {floorData.Node1!.Score}", Brushes.Solid(Color.White), null);
 
                     DrawNode1Extras(canvas, xOffset, yOffset, floorData);
 
-                    canvas.DrawImage(node1, node1.Bounds,
-                        new RectangleF(xOffset + 55, yOffset + 130, node1.Width, node1.Height),
-                        KnownResamplers.Bicubic);
+                    RosterImageBuilder.Draw(
+                        floorData.Node1!.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 55, yOffset + 130),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
+
                     canvas.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new PointF(xOffset + 780, yOffset + 220), 55,
                         20f, Color.Black, Color.White);
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + 335),
@@ -236,13 +225,15 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     {
                         Origin = new PointF(xOffset + 855, yOffset + 350),
                         HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"Score: {floorData.Node2.Score}", Brushes.Solid(Color.White), null);
+                    }, $"Score: {floorData.Node2!.Score}", Brushes.Solid(Color.White), null);
 
                     DrawNode2Extras(canvas, xOffset, yOffset, floorData);
 
-                    canvas.DrawImage(node2, node2.Bounds,
-                        new RectangleF(xOffset + 55, yOffset + 395, node2.Width, node2.Height),
-                        KnownResamplers.Bicubic);
+                    RosterImageBuilder.Draw(
+                        floorData.Node2!.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 55, yOffset + 395),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
                     canvas.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new PointF(xOffset + 780, yOffset + 485), 55,
                         20f, Color.Black, Color.White);
                     for (var i = 0; i < 3; i++)
