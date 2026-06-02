@@ -86,14 +86,8 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x, x =>
-            {
-                var styledImage = x.GetStyledAvatarImage();
-                disposables.Add(styledImage);
-                return styledImage;
-            }, HsrAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
 
-        var lookup = avatarImages.GetAlternateLookup<int>();
         List<(int FloorNumber, FloorDetail? Data)> floorDetails =
         [
             .. Enumerable.Range(0, 12)
@@ -221,22 +215,19 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         VerticalAlignment = VerticalAlignment.Top
                     }, floorData.Name, Brushes.Solid(Color.White), null);
 
-                    var node1 = RosterImageBuilder.Build(
-                        floorData.Node1.Avatars.Select(x => lookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    var node2 = RosterImageBuilder.Build(
-                        floorData.Node2.Avatars.Select(x => lookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    disposables.Add(node1);
-                    disposables.Add(node2);
-                    canvas.DrawImage(node1, node1.Bounds,
-                        new RectangleF(xOffset + 25, yOffset + 65, node1.Width, node1.Height),
-                        KnownResamplers.Bicubic);
+                    RosterImageBuilder.Draw(
+                        floorData.Node1.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 25, yOffset + 65),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 270),
                         new PointF(xOffset + 680, yOffset + 270)).Build());
-                    canvas.DrawImage(node2, node2.Bounds,
-                        new RectangleF(xOffset + 25, yOffset + 295, node2.Width, node2.Height),
-                        KnownResamplers.Bicubic);
+                    RosterImageBuilder.Draw(
+                        floorData.Node2.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 25, yOffset + 295),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
+
                     for (var i = 0; i < 3; i++)
                     {
                         var starImage = i < floorData.StarNum ? m_StarLit : m_StarUnlit;
