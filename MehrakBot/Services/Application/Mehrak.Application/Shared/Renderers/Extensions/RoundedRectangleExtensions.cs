@@ -27,13 +27,11 @@ public static class RoundedRectangleExtensions
     {
         var roundedRect = new RoundedRectanglePolygon(new RectangleF(location, new Size(width, height)), style.CornerRadius);
 
-        _ = canvas.SaveLayer();
         canvas.Fill(Brushes.Solid(style.FillColor), roundedRect);
 
         if (style.BorderColor.HasValue && style.BorderWidth > 0)
         {
             canvas.Draw(Pens.Solid(style.BorderColor.Value, style.BorderWidth), roundedRect);
         }
-        canvas.Restore();
     }
 }

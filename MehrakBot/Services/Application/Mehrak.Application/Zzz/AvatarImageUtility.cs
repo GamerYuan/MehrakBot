@@ -40,8 +40,7 @@ internal static class AvatarImageUtility
             new RectangleF(0, 0, avatar.AvatarImage.Width, avatar.AvatarImage.Height), KnownResamplers.Bicubic);
         region.Fill(Brushes.Solid(Color.Black), new Rectangle(0, 145, 150, 35));
         region.Restore();
-
-        region.Draw(Pens.Solid(Color.Black, 4), clipPath);
+        region.Draw(Pens.Solid(Color.Black, 3f), clipPath);
 
         region.DrawText(new RichTextOptions(NormalFont)
         {
