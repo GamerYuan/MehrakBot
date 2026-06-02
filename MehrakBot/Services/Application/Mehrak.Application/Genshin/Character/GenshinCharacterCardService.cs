@@ -34,8 +34,6 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
     private Image[] m_StarRatingImagesSmall = null!;
     private Image<Rgba32>[] m_RelicTemplateImages = null!;
 
-    private static readonly DrawingOptions ClipOptions = new() { ShapeOptions = new ShapeOptions { BooleanOperation = BooleanOperation.Intersection } };
-
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
     public GenshinCharacterCardService(IImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)

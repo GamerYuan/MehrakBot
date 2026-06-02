@@ -11,6 +11,8 @@ using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Abstractions;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -69,6 +71,14 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
     private readonly string m_CardTypeName;
 
     protected Image<Rgba32>? StaticBackground;
+
+    protected static readonly DrawingOptions ClipOptions = new()
+    {
+        ShapeOptions = new ShapeOptions()
+        {
+            BooleanOperation = BooleanOperation.Intersection,
+        }
+    };
 
     protected CardServiceBase(
         string cardTypeName,

@@ -26,11 +26,6 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
 {
     private Image<Rgba32>[] m_DifficultyLogo = [];
 
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
-    };
-
     public GenshinStygianCardService(IImageRepository imageRepository, ILogger<GenshinStygianCardService> logger, IApplicationMetrics metrics)
         : base(
             "Genshin Stygian",
