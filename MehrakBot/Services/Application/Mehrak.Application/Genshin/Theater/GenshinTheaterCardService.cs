@@ -368,7 +368,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
                         levelIndex = roundData.RoundId;
                     }
 
-                    RosterImageBuilder.Build(
+                    RosterImageBuilder.Draw(
                         roundData.Avatars.Select(x => alternateLookup[x.AvatarId]),
                         new RosterLayout(MaxSlots: 4),
                         new Point(xOffset, yOffset),

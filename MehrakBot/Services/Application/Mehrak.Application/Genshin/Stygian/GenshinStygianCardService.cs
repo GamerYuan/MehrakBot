@@ -188,7 +188,7 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
 
         region.Restore();
 
-        RosterImageBuilder.Build(
+        RosterImageBuilder.Draw(
             teamAvatars,
             new RosterLayout(MaxSlots: 4),
             new Point(340, 100),

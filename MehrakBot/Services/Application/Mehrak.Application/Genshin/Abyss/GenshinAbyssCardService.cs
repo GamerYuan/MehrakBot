@@ -185,7 +185,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                     Origin = new PointF(80, 460)
                 }, "Most Used Characters", Brushes.Solid(Color.White), null);
 
-                RosterImageBuilder.Build(
+                RosterImageBuilder.Draw(
                     abyssData.RevealRank!.Select(x => revealRankAvatars.GetAlternateLookup<int>()[x.AvatarId]),
                     new RosterLayout(MaxSlots: 4),
                     new Point(75, 500),
@@ -327,7 +327,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                     {
                         var battle = level.Battles![j];
                         var yOffset = offset + j * 200;
-                        RosterImageBuilder.Build(
+                        RosterImageBuilder.Draw(
                             battle.Avatars!.Select(x => lookup[x.Id]),
                             new RosterLayout(MaxSlots: 4),
                             new Point(795, yOffset),

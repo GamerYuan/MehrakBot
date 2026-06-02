@@ -17,6 +17,7 @@ public record RosterLayout(
 
 public static class RosterImageBuilder
 {
+    [Obsolete]
     public static Image<Rgba32> Build(
         IEnumerable<Image> avatars,
         RosterLayout layout,
@@ -53,7 +54,7 @@ public static class RosterImageBuilder
         return rosterImage;
     }
 
-    public static void Build<TItem>(
+    public static void Draw<TItem>(
         IEnumerable<TItem> items,
         RosterLayout layout,
         Point canvasOrigin,
