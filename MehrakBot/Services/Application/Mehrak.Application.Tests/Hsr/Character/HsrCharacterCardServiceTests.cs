@@ -16,7 +16,7 @@ using Moq;
 
 #endregion
 
-namespace Mehrak.Application.Tests.Services.Hsr.Character;
+namespace Mehrak.Application.Tests.Hsr.Character;
 
 [Parallelizable(ParallelScope.Fixtures), FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public class HsrCharacterCardServiceTests
@@ -69,8 +69,8 @@ public class HsrCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle")]
-    public async Task GenerateGoldenImage_WithUnknownSet(string testDataFileName,
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle_UnknownSet")]
+    public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
         string goldenImageFileName, string testName)
     {
         var (_, characterCardService) = await SetupTest();
@@ -205,10 +205,11 @@ public class HsrCharacterCardServiceTests
         Assert.That(generatedImageStream, Is.Not.Null);
     }
 
+    [Explicit]
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle")]
-    public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
-    string goldenImageFileName, string testName)
+    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg")]
+    public async Task GenerateGoldenImage_WithUnknownSet(string testDataFileName,
+        string goldenImageFileName)
     {
         var (_, characterCardService) = await SetupTest();
 
