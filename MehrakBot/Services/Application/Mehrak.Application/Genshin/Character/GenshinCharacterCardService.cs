@@ -28,7 +28,13 @@ namespace Mehrak.Application.Genshin.Character;
 internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInformation>
 {
     private Dictionary<int, Image> m_StatImages = null!;
+    private Dictionary<int, Image> m_DimmedStatImages = null!;
     private Image<Rgba32> m_RelicSlotTemplate = null!;
+    private Image[] m_StarRatingImages = null!;
+    private Image[] m_StarRatingImagesSmall = null!;
+    private Image<Rgba32>[] m_RelicTemplateImages = null!;
+
+    private static readonly DrawingOptions ClipOptions = new() { ShapeOptions = new ShapeOptions { BooleanOperation = BooleanOperation.Intersection } };
 
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
@@ -63,15 +69,40 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             }
         }).ToDictionaryAsync(kvp => kvp.Key, kvp => kvp.Value, cancellationToken: cancellationToken);
 
+        m_DimmedStatImages = m_StatImages.ToDictionary(kvp => kvp.Key, kvp =>
+        {
+            var dimmed = kvp.Value.Clone(x => x.Brightness(0.5f));
+            return dimmed;
+        });
+
+        m_StarRatingImages = new Image[6];
+        m_StarRatingImagesSmall = new Image[6];
+        for (var r = 1; r <= 5; r++)
+        {
+            m_StarRatingImages[r] = ImageUtility.CreateStarRatingImage(r);
+            m_StarRatingImagesSmall[r] = ImageUtility.CreateStarRatingImage(r);
+            m_StarRatingImagesSmall[r].Mutate(x => x.Resize(0, 25));
+        }
+
+        m_RelicTemplateImages = new Image<Rgba32>[6];
+        for (var i = 1; i <= 5; i++)
+        {
+            var path = string.Format(FileNameFormat.Genshin.RelicTemplateName, i);
+            m_RelicTemplateImages[i] = await Image.LoadAsync<Rgba32>(
+                await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
+            m_RelicTemplateImages[i].Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
+        }
+
         m_RelicSlotTemplate = new Image<Rgba32>(970, 170, Color.Transparent.ToPixel<Rgba32>());
         m_RelicSlotTemplate.Mutate(ctx =>
         {
             ctx.Paint(canvas =>
             {
+                _ = canvas.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
                 canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))),
                     new Rectangle(0, 0, 970, 170));
+                canvas.Restore();
             });
-            ctx.ApplyRoundedCorners(15);
         });
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
@@ -133,21 +164,17 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 }).Reverse()
         ];
 
-        Task<Image<Rgba32>>[] relicImageTasks =
+        Task<(Relic? Data, Image<Rgba32>? Image)>[] relicImageTasks =
         [
             .. Enumerable.Range(0, 5).Select(async i =>
             {
                 var relic = charInfo.Relics.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
-                    var relicImage = await CreateRelicSlotImageAsync(relic, disposables, cancellationToken);
-                    return relicImage;
+                    var relicImage = await LoadImageFromRepositoryAsync<Rgba32>(relic.ToImageName(), disposables, cancellationToken);
+                    return (Data: relic, Image: relicImage);
                 }
-                else
-                {
-                    var templateRelicImage = await CreateTemplateRelicSlotImageAsync(i + 1, cancellationToken);
-                    return templateRelicImage;
-                }
+                return (Data: (Relic?)null, Image: (Image<Rgba32>?)null);
             })
         ];
 
@@ -198,8 +225,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
         (Skill Data, Image Image)[] skillIcons = [.. await Task.WhenAll(skillTasks)];
 
-        Image<Rgba32>[] relics = [.. await Task.WhenAll(relicImageTasks)];
-        disposables.AddRange(relics);
+        (Relic? Data, Image<Rgba32>? Image)[] relicSlots = [.. await Task.WhenAll(relicImageTasks)];
 
         Logger.LogDebug("Processing {Count} relic images", charInfo.Relics.Count);
         Dictionary<RelicSet, int> relicActivation = [];
@@ -322,7 +348,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
                 canvas.DrawImage(weaponImage, weaponImage.Bounds,
                     new RectangleF(1200, 40, weaponImage.Width, weaponImage.Height), KnownResamplers.Bicubic);
-                using var weaponStars = ImageUtility.CreateStarRatingImage(charInfo.Weapon.Rarity.GetValueOrDefault(1));
+                var weaponStars = m_StarRatingImages[charInfo.Weapon.Rarity.GetValueOrDefault(1)];
                 canvas.DrawImage(weaponStars, weaponStars.Bounds,
                     new RectangleF(1220, 240, weaponStars.Width, weaponStars.Height), KnownResamplers.Bicubic);
                 canvas.DrawText(new RichTextOptions(Fonts.Normal)
@@ -341,23 +367,18 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 }, $"Lv. {charInfo.Weapon.Level}", Brushes.Solid(textColor), null);
                 var statSize =
                     TextMeasurer.MeasureBounds(charInfo.Weapon.MainProperty.Final, new TextOptions(Fonts.Normal));
-                Image<Rgba32> statBackground = new(80 + (int)statSize.Width, 60, Color.Transparent.ToPixel<Rgba32>());
-                statBackground.Mutate(x =>
+                canvas.DrawRoundedRectangleOverlay(80 + (int)statSize.Width, 60, new PointF(1450, 230),
+                    new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f)), CornerRadius: 10));
+
+                var statImage = m_StatImages.GetValueOrDefault(charInfo.Weapon.MainProperty.PropertyType!.Value);
+                if (statImage != null)
                 {
-                    x.Paint(canvas2 =>
-                    {
-                        canvas2.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f))),
-                            new Rectangle(0, 0, statBackground.Width, statBackground.Height));
-                    });
-                    x.ApplyRoundedCorners(10);
-                });
-                canvas.DrawImage(statBackground, statBackground.Bounds,
-                    new RectangleF(1450, 230, statBackground.Width, statBackground.Height), KnownResamplers.Bicubic);
-                canvas.DrawImage(m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value],
-                    m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Bounds,
-                    new RectangleF(1455, 236, m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Width,
-                        m_StatImages[charInfo.Weapon.MainProperty.PropertyType!.Value].Height),
-                    KnownResamplers.Bicubic);
+                    canvas.DrawImage(statImage,
+                        statImage.Bounds,
+                        new RectangleF(1455, 236, statImage.Width,
+                            statImage.Height),
+                        KnownResamplers.Bicubic);
+                }
                 canvas.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new PointF(1514, 240)
@@ -366,23 +387,17 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 {
                     var substatSize =
                         TextMeasurer.MeasureBounds(charInfo.Weapon.SubProperty.Final, new TextOptions(Fonts.Normal));
-                    Image<Rgba32> substatBackground = new(80 + (int)substatSize.Width, 60);
-                    substatBackground.Mutate(x =>
+                    canvas.DrawRoundedRectangleOverlay(80 + (int)substatSize.Width, 60, new PointF(1630, 230),
+                        new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f)), CornerRadius: 10));
+                    var substatImage = m_StatImages.GetValueOrDefault(charInfo.Weapon.SubProperty.PropertyType!.Value);
+                    if (substatImage != null)
                     {
-                        x.Paint(canvas2 =>
-                        {
-                            canvas2.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.45f))),
-                                new Rectangle(0, 0, substatBackground.Width, substatBackground.Height));
-                        });
-                        x.ApplyRoundedCorners(10);
-                    });
-                    canvas.DrawImage(substatBackground, substatBackground.Bounds,
-                        new RectangleF(1630, 230, substatBackground.Width, substatBackground.Height), KnownResamplers.Bicubic);
-                    canvas.DrawImage(m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value],
-                        m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Bounds,
-                        new RectangleF(1635, 236, m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Width,
-                            m_StatImages[charInfo.Weapon.SubProperty.PropertyType!.Value].Height),
-                        KnownResamplers.Bicubic);
+                        canvas.DrawImage(substatImage,
+                            substatImage.Bounds,
+                            new RectangleF(1635, 236, substatImage.Width,
+                                substatImage.Height),
+                            KnownResamplers.Bicubic);
+                    }
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
                         Origin = new PointF(1694, 240)
@@ -414,11 +429,17 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                         900);
                 }
 
-                for (var i = 0; i < relics.Length; i++)
+                for (var i = 0; i < relicSlots.Length; i++)
                 {
-                    var relic = relics[i];
-                    canvas.DrawImage(relic, relic.Bounds,
-                        new RectangleF(2200, 40 + i * 185, relic.Width, relic.Height), KnownResamplers.Bicubic);
+                    var slot = relicSlots[i];
+                    if (slot.Data != null)
+                    {
+                        DrawRelicSlotImage(canvas, slot.Data, slot.Image!, new Point(2200, 40 + i * 185));
+                    }
+                    else
+                    {
+                        DrawTemplateRelicSlotImage(canvas, new Point(2200, 40 + i * 185), i + 1);
+                    }
                 }
 
                 if (activeSet.Count > 0)
@@ -457,109 +478,97 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         });
     }
 
-    private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic, DisposableBag disposables, CancellationToken cancellationToken)
+    private void DrawRelicSlotImage(DrawingCanvas canvas, Relic relic, Image relicImage, Point position)
     {
-        var path = relic.ToImageName();
+        relicImage.Mutate(x => x.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-40, -40))));
 
-        var relicImage = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
-        disposables.Add(relicImage);
+        using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 970, 170));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
+        region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))), new Rectangle(0, 0, 970, 170));
+        region.DrawImage(relicImage, relicImage.Bounds,
+            new RectangleF(0, 0, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+        region.Restore();
 
-        var template = CreateRelicSlot();
-        template.Mutate(ctx =>
+        var statImg = m_StatImages.GetValueOrDefault(relic.MainProperty.PropertyType!.Value);
+        if (statImg != null)
         {
-            ctx.Paint(canvas =>
+            region.DrawImage(statImg, statImg.Bounds,
+                new RectangleF(280, 20, statImg.Width, statImg.Height), KnownResamplers.Bicubic);
+        }
+
+        region.DrawText(new RichTextOptions(Fonts.Normal)
+        {
+            TextAlignment = TextAlignment.End,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Origin = new Vector2(320, 70)
+        }, relic.MainProperty.Value, Brushes.Solid(Color.White), null);
+        region.DrawText(new RichTextOptions(Fonts.Small!)
+        {
+            TextAlignment = TextAlignment.End,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Origin = new Vector2(320, 130)
+        }, $"+{relic.Level!.Value}", Brushes.Solid(Color.White), null);
+        var stars = m_StarRatingImagesSmall[relic.Rarity.GetValueOrDefault(1)];
+        region.DrawImage(stars, stars.Bounds,
+            new RectangleF(120, 130, stars.Width, stars.Height), KnownResamplers.Bicubic);
+
+        for (var i = 0; i < relic.SubPropertyList.Count; i++)
+        {
+            var subStat = relic.SubPropertyList[i];
+            var xOffset = i % 2 * 290;
+            var yOffset = i / 2 * 80;
+            var color = Color.White;
+            if (subStat.PropertyType is 2 or 5 or 8)
             {
-                canvas.DrawImage(relicImage, relicImage.Bounds,
-                    new RectangleF(-40, -40, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
-                var statImg = m_StatImages[relic.MainProperty.PropertyType!.Value];
-                canvas.DrawImage(statImg, statImg.Bounds,
-                    new RectangleF(280, 20, statImg.Width, statImg.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                var dim = m_DimmedStatImages.GetValueOrDefault(subStat.PropertyType!.Value);
+                if (dim != null)
                 {
-                    TextAlignment = TextAlignment.End,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Origin = new Vector2(320, 70)
-                }, relic.MainProperty.Value, Brushes.Solid(Color.White), null);
-                canvas.DrawText(new RichTextOptions(Fonts.Small!)
-                {
-                    TextAlignment = TextAlignment.End,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Origin = new Vector2(320, 130)
-                }, $"+{relic.Level!.Value}", Brushes.Solid(Color.White), null);
-                using var stars = ImageUtility.CreateStarRatingImage(relic.Rarity.GetValueOrDefault(1));
-                stars.Mutate(x => x.Resize(0, 25));
-                canvas.DrawImage(stars, stars.Bounds,
-                    new RectangleF(120, 130, stars.Width, stars.Height), KnownResamplers.Bicubic);
-
-                for (var i = 0; i < relic.SubPropertyList.Count; i++)
-                {
-                    var subStat = relic.SubPropertyList[i];
-                    var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    var xOffset = i % 2 * 290;
-                    var yOffset = i / 2 * 80;
-                    var color = Color.White;
-                    if (subStat.PropertyType is 2 or 5 or 8)
-                    {
-                        using var dim = subStatImage.Clone(x => x.Brightness(0.5f));
-                        canvas.DrawImage(dim, dim.Bounds,
-                            new RectangleF(375 + xOffset, 26 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
-                        color = Color.FromPixel(new Rgb24(128, 128, 128));
-                    }
-                    else
-                    {
-                        canvas.DrawImage(subStatImage, subStatImage.Bounds,
-                            new RectangleF(375 + xOffset, 26 + yOffset, subStatImage.Width, subStatImage.Height), KnownResamplers.Bicubic);
-                    }
-
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(439 + xOffset, 30 + yOffset)
-                    }, subStat.Value, Brushes.Solid(color), null);
-
-                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(575 + xOffset, 15 + yOffset)
-                    }, rolls, Brushes.Solid(color), null);
+                    region.DrawImage(dim, dim.Bounds,
+                        new RectangleF(375 + xOffset, 26 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
                 }
-
-                relicImage.Dispose();
-            });
-        });
-
-        return template;
-    }
-
-    private async Task<Image<Rgba32>> CreateTemplateRelicSlotImageAsync(int position, CancellationToken cancellationToken)
-    {
-        var path = string.Format(FileNameFormat.Genshin.RelicTemplateName, position);
-
-        var relicImage = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
-        relicImage.Mutate(x => x.Resize(new Size(0, 150), KnownResamplers.Bicubic, true));
-        var template = CreateRelicSlot();
-        template.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
+                color = Color.FromPixel(new Rgb24(128, 128, 128));
+            }
+            else
             {
-                canvas.DrawImage(relicImage, relicImage.Bounds,
-                    new RectangleF(25, 5, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                var subStatImage = m_StatImages.GetValueOrDefault(subStat.PropertyType!.Value);
+                if (subStatImage != null)
                 {
-                    Origin = new Vector2(525, 95),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, "No Artifact", Brushes.Solid(Color.White), null);
-            });
-        });
+                    region.DrawImage(subStatImage, subStatImage.Bounds,
+                        new RectangleF(375 + xOffset, 26 + yOffset, subStatImage.Width, subStatImage.Height), KnownResamplers.Bicubic);
+                }
+            }
 
-        return template;
+            region.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new PointF(439 + xOffset, 30 + yOffset)
+            }, subStat.Value, Brushes.Solid(color), null);
+
+            var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0) + 1));
+            region.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new PointF(575 + xOffset, 15 + yOffset)
+            }, rolls, Brushes.Solid(color), null);
+        }
     }
 
-    private Image<Rgba32> CreateRelicSlot()
+    private void DrawTemplateRelicSlotImage(DrawingCanvas canvas, Point position, int slotIndex)
     {
-        return m_RelicSlotTemplate.Clone();
+        using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 970, 170));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
+        region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))), new Rectangle(0, 0, 970, 170));
+
+        var relicImage = m_RelicTemplateImages[slotIndex];
+        region.DrawImage(relicImage, relicImage.Bounds,
+            new RectangleF(25, 5, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+
+        region.Restore();
+
+        region.DrawText(new RichTextOptions(Fonts.Normal)
+        {
+            Origin = new Vector2(525, 95),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        }, "No Artifact", Brushes.Solid(Color.White), null);
     }
 
     private Color GetBackgroundColor(string element)
