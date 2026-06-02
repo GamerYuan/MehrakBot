@@ -29,6 +29,8 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
     private Image m_BossStarUnlit = null!;
     private Image m_CycleIcon = null!;
 
+
+
     public HsrAnomalyCardService(IImageRepository imageRepository,
         ILogger<HsrAnomalyCardService> logger,
         IApplicationMetrics metrics)
@@ -101,14 +103,7 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x,
-                x =>
-                {
-                    var styledImage = x.GetStyledAvatarImage();
-                    disposables.Add(styledImage);
-                    return styledImage;
-                },
-                HsrAvatarIdComparer.Instance);
+            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
 
         var bossImage = await LoadImageFromRepositoryAsync(
             bestRecord.BossInfo.ToImageName(), disposables, cancellationToken);
@@ -118,8 +113,6 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
             : null;
         var medalImage = await LoadImageFromRepositoryAsync<Rgba32>(
             anomalyData.ToMedalName(), disposables, cancellationToken);
-
-        var lookup = avatarImages.GetAlternateLookup<int>();
 
         background.Mutate(ctx =>
         {
@@ -173,144 +166,116 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
                     Brushes.Solid(Color.White), null);
 
                 var yOffset = 150;
-                var bossClear = GetBossImage(bestRecord.BossRecord, bestRecord.BossInfo, bossImage, buffImage, lookup);
-                disposables.Add(bossClear);
-                canvas.DrawImage(bossClear, bossClear.Bounds,
-                    new RectangleF(100, yOffset, bossClear.Width, bossClear.Height), KnownResamplers.Bicubic);
+                DrawBossImage(canvas, new Point(100, yOffset), bestRecord.BossRecord, bestRecord.BossInfo, bossImage, buffImage, avatarImages);
 
                 foreach (var mobRecord in bestRecord.MobRecords.OrderBy(x => x.MazeId))
                 {
                     yOffset += 350;
                     var mobInfo = bestRecord.MobInfo.First(x => x.MazeId == mobRecord.MazeId);
-                    var mobClear = GetMobImage(mobRecord, mobInfo, lookup);
-                    disposables.Add(mobClear);
-                    canvas.DrawImage(mobClear, mobClear.Bounds,
-                        new RectangleF(225, yOffset, mobClear.Width, mobClear.Height), KnownResamplers.Bicubic);
+                    DrawMobImage(canvas, new Point(225, yOffset), mobRecord, mobInfo, avatarImages);
                 }
             });
         });
     }
 
-    private Image<Rgba32> GetBossImage(BossRecord? record, BossInfo bossInfo,
-        Image bossImage, Image? buffImage,
-        Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> avatarLookup)
+    private void DrawBossImage(DrawingCanvas canvas, Point position,
+        BossRecord? record, BossInfo bossInfo, Image bossImage, Image? buffImage,
+        Dictionary<int, HsrAvatar> avatarLookup)
     {
-        Image<Rgba32> image = new(1150, 300);
-        image.Mutate(ctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(1150, 300)));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1150, 300)), 15));
+        region.Fill(Brushes.Solid(OverlayColor));
+        region.DrawImage(bossImage, bossImage.Bounds, new RectangleF(0, 0, bossImage.Width, bossImage.Height), KnownResamplers.Bicubic);
+        region.Restore();
+
+        region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            ctx.Paint(canvas =>
+            Origin = new Vector2(300, 43),
+            VerticalAlignment = VerticalAlignment.Center,
+        }, $"{bossInfo.Name}", Brushes.Solid(Color.White), null);
+        for (var i = 0; i < 3; i++)
+        {
+            var starImage = i < record?.StarNum ? m_BossStarLit : m_BossStarUnlit;
+            region.DrawImage(starImage, starImage.Bounds,
+                new RectangleF(975 + i * 50, 15, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
+        }
+
+        if (record != null)
+        {
+            RosterImageBuilder.Draw(
+                record.Avatars.Select(x => avatarLookup[x.Id]),
+                new RosterLayout(MaxSlots: 4),
+                new Point(330, 90),
+                (point, avatar) => avatar.DrawStyledAvatarImage(region, point));
+
+            region.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, image.Width, image.Height));
-            });
+                Origin = new Vector2(900, 30),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top
+            }, record.RoundNum.ToString(), Brushes.Solid(Color.White), null);
+            region.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
+                new RectangleF(900, 20, m_CycleIcon.Width, m_CycleIcon.Height), KnownResamplers.Bicubic);
 
-            ctx.Paint(canvas =>
+            region.DrawCenteredIcon(buffImage!, new PointF(1055, 170), 55, 0, Color.Black, Color.White);
+        }
+        else
+        {
+            region.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                canvas.DrawImage(bossImage, bossImage.Bounds,
-                    new RectangleF(0, 0, bossImage.Width, bossImage.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(300, 43),
-                    VerticalAlignment = VerticalAlignment.Center,
-                }, $"{bossInfo.Name}", Brushes.Solid(Color.White), null);
-                for (var i = 0; i < 3; i++)
-                {
-                    var starImage = i < record?.StarNum ? m_BossStarLit : m_BossStarUnlit;
-                    canvas.DrawImage(starImage, starImage.Bounds,
-                        new RectangleF(975 + i * 50, 15, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
-                }
-
-                if (record != null)
-                {
-                    using var rosterImage = RosterImageBuilder.Build(
-                        record.Avatars.Select(x => avatarLookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    canvas.DrawImage(rosterImage, rosterImage.Bounds,
-                        new RectangleF(330, 90, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
-
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(900, 30),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, record.RoundNum.ToString(), Brushes.Solid(Color.White), null);
-                    canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                        new RectangleF(900, 20, m_CycleIcon.Width, m_CycleIcon.Height), KnownResamplers.Bicubic);
-
-                    canvas.DrawCenteredIcon(buffImage!, new PointF(1055, 170), 55, 0, Color.Black, Color.White);
-                }
-                else
-                {
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(550, 170),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }, "No Clear Records", Brushes.Solid(Color.White), null);
-                }
-            });
-
-            ctx.ApplyRoundedCorners(15);
-        });
-        return image;
+                Origin = new Vector2(550, 170),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            }, "No Clear Records", Brushes.Solid(Color.White), null);
+        }
     }
 
-    private Image<Rgba32> GetMobImage(MobRecord record, MobInfo floorInfo,
-        Dictionary<HsrAvatar, Image<Rgba32>>.AlternateLookup<int> avatarLookup)
+    private void DrawMobImage(DrawingCanvas canvas, Point position, MobRecord record, MobInfo floorInfo,
+        Dictionary<int, HsrAvatar> avatarLookup)
     {
-        Image<Rgba32> image = new(900, 300);
-        image.Mutate(ctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(900, 300)));
+        region.Fill(Brushes.Solid(OverlayColor), new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(900, 300)), 15));
+
+        var text = $"{floorInfo.Name} : {floorInfo.MonsterName}";
+        region.DrawText(new RichTextOptions(text.Length > 50 ? Fonts.Small! : Fonts.Normal)
         {
-            ctx.Paint(canvas =>
+            Origin = new Vector2(30, 43),
+            VerticalAlignment = VerticalAlignment.Center,
+            WrappingLength = 600
+        }, text, Brushes.Solid(Color.White), null);
+
+        for (var i = 0; i < 3; i++)
+        {
+            var starImage = i < record.StarNum ? m_StarLit : m_StarUnlit;
+            region.DrawImage(starImage, starImage.Bounds,
+                new RectangleF(725 + i * 50, 15, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
+        }
+
+        if (record.Avatars.Count == 0)
+        {
+            region.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, image.Width, image.Height));
-            });
-
-            ctx.Paint(canvas =>
+                Origin = new Vector2(450, 170),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            }, record.IsFast ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
+        }
+        else
+        {
+            RosterImageBuilder.Draw(
+                record.Avatars.Select(x => avatarLookup[x.Id]),
+                new RosterLayout(MaxSlots: 4),
+                new Point(125, 90),
+                (point, avatar) => avatar.DrawStyledAvatarImage(region, point));
+            region.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                var text = $"{floorInfo.Name} : {floorInfo.MonsterName}";
-                canvas.DrawText(new RichTextOptions(text.Length > 50 ? Fonts.Small! : Fonts.Normal)
-                {
-                    Origin = new Vector2(30, 43),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    WrappingLength = 600
-                }, text, Brushes.Solid(Color.White), null);
-
-                for (var i = 0; i < 3; i++)
-                {
-                    var starImage = i < record.StarNum ? m_StarLit : m_StarUnlit;
-                    canvas.DrawImage(starImage, starImage.Bounds,
-                        new RectangleF(725 + i * 50, 15, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
-                }
-
-                if (record.Avatars.Count == 0)
-                {
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(450, 170),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }, record.IsFast ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
-                }
-                else
-                {
-                    using var rosterImage = RosterImageBuilder.Build(
-                        record.Avatars.Select(x => avatarLookup[x.Id]),
-                        new RosterLayout(MaxSlots: 4));
-                    canvas.DrawImage(rosterImage, rosterImage.Bounds,
-                        new RectangleF(125, 90, rosterImage.Width, rosterImage.Height), KnownResamplers.Bicubic);
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new Vector2(650, 30),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, record.RoundNum.ToString(), Brushes.Solid(Color.White), null);
-                    canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                        new RectangleF(650, 20, m_CycleIcon.Width, m_CycleIcon.Height), KnownResamplers.Bicubic);
-                }
-            });
-
-            ctx.ApplyRoundedCorners(15);
-        });
-        return image;
+                Origin = new Vector2(650, 30),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top
+            }, record.RoundNum.ToString(), Brushes.Solid(Color.White), null);
+            region.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
+                new RectangleF(650, 20, m_CycleIcon.Width, m_CycleIcon.Height), KnownResamplers.Bicubic);
+        }
     }
 }
+
