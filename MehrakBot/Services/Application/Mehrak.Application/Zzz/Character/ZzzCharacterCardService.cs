@@ -25,6 +25,7 @@ namespace Mehrak.Application.Zzz.Character;
 internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 {
     private Dictionary<string, Image> m_StatImages = [];
+    private Dictionary<string, Image> m_DimmedStatImages = [];
     private Dictionary<int, Image> m_SkillImages = [];
     private Dictionary<string, Image> m_AttributeImages = [];
     private Dictionary<int, Image> m_ProfessionImages = [];
@@ -33,12 +34,13 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     private readonly Font m_ExtraLargeFont;
 
-    private readonly Image m_WeaponTemplate;
-    private readonly Image m_DiskBackground;
-    private readonly Image<Rgba32> m_DiskTemplate;
-
     private static readonly Color LocalBackgroundColor = Color.FromPixel(new Rgb24(69, 69, 69));
     private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgb24(36, 36, 36));
+
+    private static readonly DrawingOptions RotateOptions = new()
+    {
+        Transform = new(Matrix3x2.CreateRotation(10 * MathF.PI / 180f))
+    };
 
     public ZzzCharacterCardService(IImageRepository imageRepository,
         ILogger<ZzzCharacterCardService> logger,
@@ -51,24 +53,11 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             LoadFonts("Assets/Fonts/zzz.ttf", titleSize: 64, normalSize: 40, mediumSize: 36, smallSize: 28, tinySize: 20))
     {
         m_ExtraLargeFont = new FontCollection().Add("Assets/Fonts/anton.ttf").CreateFont(400);
-
-        m_WeaponTemplate = new Image<Rgba32>(100, 100);
-
-        m_DiskBackground = new Image<Rgba32>(800, 170);
-        m_DiskBackground.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(LocalOverlayColor), new Rectangle(0, 0, m_DiskBackground.Width, m_DiskBackground.Height));
-            });
-            ctx.ApplyRoundedCorners(30);
-        });
-        m_DiskTemplate = CreateDiskTemplateImage();
     }
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        var files = await ImageRepository.ListFilesAsync("zzz/stats_");
+        var files = await ImageRepository.ListFilesAsync("zzz/stats_", cancellationToken);
         List<Task<(string x, Image)>> tasks =
         [
             .. files.Select(async file =>
@@ -86,7 +75,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
         List<Task<(string x, Image)>> attributeTasks =
         [
-            .. (await ImageRepository.ListFilesAsync("zzz/attribute_")).Select(async file =>
+            .. (await ImageRepository.ListFilesAsync("zzz/attribute_", cancellationToken)).Select(async file =>
                 (file.Replace("zzz/attribute_", "").Replace(".png", "").TrimStart(),
                     await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(file, cancellationToken), cancellationToken)))
         ];
@@ -114,6 +103,9 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         ];
 
         m_StatImages = (await Task.WhenAll(tasks)).ToDictionary(StringComparer.OrdinalIgnoreCase);
+        m_DimmedStatImages = m_StatImages.ToDictionary(kv => kv.Key,
+            kv => kv.Value.Clone(ctx => ctx.Brightness(0.5f)),
+            StringComparer.OrdinalIgnoreCase);
         m_SkillImages = (await Task.WhenAll(skillTasks)).ToDictionary();
         m_AttributeImages = (await Task.WhenAll(attributeTasks)).ToDictionary();
         m_ProfessionImages = (await Task.WhenAll(professionTasks)).ToDictionary();
@@ -137,19 +129,22 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
         var portraitTask = LoadImageFromRepositoryAsync(
             character.ToImageName(), disposables, cancellationToken);
-        var weaponTask = character.Weapon == null
-            ? Task.FromResult(CreateTemplateWeaponImage(disposables))
-            : LoadImageFromRepositoryAsync(
-                character.Weapon.ToImageName(), disposables, cancellationToken);
-        var diskImage = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-            .Select(async (i, token) =>
+        var weaponTask = character.Weapon != null
+            ? LoadImageFromRepositoryAsync(character.Weapon.ToImageName(), disposables, cancellationToken)
+            : Task.FromResult<Image>(new Image<Rgba32>(1, 1));
+        Task<(DiskDrive? Data, Image<Rgba32>? Image)>[] diskTasks =
+        [
+            .. Enumerable.Range(1, 6).Select(async i =>
             {
                 var disk = character.Equip.FirstOrDefault(x => x.EquipmentType == i);
-                if (disk == null)
-                    return m_DiskTemplate.CloneAs<Rgba32>();
-                else
-                    return await CreateDiskImageAsync(disk, token);
-            }).ToListAsync(cancellationToken: cancellationToken);
+                if (disk != null)
+                {
+                    var diskImage = await LoadImageFromRepositoryAsync<Rgba32>(disk.ToImageName(), disposables, cancellationToken);
+                    return (Data: disk, Image: diskImage);
+                }
+                return (Data: (DiskDrive?)null, Image: (Image<Rgba32>?)null);
+            })
+        ];
 
         var accentColor = Color.ParseHex(character.VerticalPaintingColor);
 
@@ -174,7 +169,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         });
 
         var weaponImage = await weaponTask;
-        disposables.AddRange(diskImage);
+        (DiskDrive? Data, Image<Rgba32>? Image)[] diskSlots = [.. await Task.WhenAll(diskTasks)];
 
         background.Mutate(ctx =>
         {
@@ -228,27 +223,21 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
                 foreach (var rank in character.Ranks)
                 {
-                    using var rankImage = CreateRankTemplateImage(rank.Id, rank.IsUnlocked, accentColor);
                     var yOffset = 130 * (rank.Id - 1);
-                    canvas.DrawImage(rankImage, rankImage.Bounds,
-                        new RectangleF(890 - (int)MathF.Round(yOffset * 0.1763f), yOffset,
-                            rankImage.Width, rankImage.Height), KnownResamplers.Bicubic);
+                    DrawRankTemplateImage(canvas,
+                        new Point(902 - (int)MathF.Round(yOffset * 0.1763f), yOffset),
+                        rank.Id, rank.IsUnlocked, accentColor);
                 }
 
-                using var professionImage =
-                    CreateRotatedIconImage(m_ProfessionImages[character.AvatarProfession], accentColor);
-                canvas.DrawImage(professionImage, professionImage.Bounds,
-                    new RectangleF(890 - (int)MathF.Round(1030 * 0.1763f), 1030,
-                        professionImage.Width, professionImage.Height), KnownResamplers.Bicubic);
+                DrawRotatedIconImage(canvas,
+                    new Point(932 - (int)MathF.Round(1050 * 0.1763f), 1047),
+                    m_ProfessionImages[character.AvatarProfession], accentColor);
 
-                using var elementImage =
-                    CreateRotatedIconImage(
-                        m_AttributeImages[
-                            StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
-                        accentColor);
-                canvas.DrawImage(elementImage, elementImage.Bounds,
-                    new RectangleF(890 - (int)MathF.Round(900 * 0.1763f), 900,
-                        elementImage.Width, elementImage.Height), KnownResamplers.Bicubic);
+                DrawRotatedIconImage(canvas,
+                    new Point(932 - (int)MathF.Round(920 * 0.1763f), 917),
+                    m_AttributeImages[
+                        StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
+                    accentColor);
 
                 foreach (var skill in character.Skills)
                 {
@@ -298,14 +287,14 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                         m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)];
                     canvas.DrawImage(mainPropImg, mainPropImg.Bounds,
                         new RectangleF(980, 930, mainPropImg.Width, mainPropImg.Height), KnownResamplers.Bicubic);
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1030, 945) },
+                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1030, 935) },
                         character.Weapon.MainProperties[0].Base, Brushes.Solid(Color.White), null);
 
                     var subPropImg =
                         m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)];
                     canvas.DrawImage(subPropImg, subPropImg.Bounds,
                         new RectangleF(1175, 930, subPropImg.Width, subPropImg.Height), KnownResamplers.Bicubic);
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1225, 955) },
+                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1225, 935) },
                         character.Weapon.Properties[0].Base, Brushes.Solid(Color.White), null);
                 }
                 else
@@ -369,144 +358,141 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                         HorizontalAlignment = HorizontalAlignment.Right
                     }, "No Active Set", Brushes.Solid(Color.White), null);
 
-                for (var i = 0; i < diskImage.Count; i++)
+                for (var i = 0; i < diskSlots.Length; i++)
                 {
-                    var offset = i * 186;
-                    canvas.DrawImage(diskImage[i], diskImage[i].Bounds,
-                        new RectangleF(2150, 50 + offset, diskImage[i].Width, diskImage[i].Height),
-                        KnownResamplers.Bicubic);
-                }
-            });
-        });
-    }
-
-    private Image CreateTemplateWeaponImage(DisposableBag disposables)
-    {
-        var template = m_WeaponTemplate.Clone(ctx => { });
-        disposables.Add(template);
-        return template;
-    }
-
-    private Image<Rgba32> CreateDiskTemplateImage()
-    {
-        var diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
-        diskTemplate.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(425, 78),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, "Not Equipped", Brushes.Solid(Color.White), null);
-            });
-        });
-        return diskTemplate;
-    }
-
-    private async ValueTask<Image> CreateDiskImageAsync(DiskDrive disk, CancellationToken token = default)
-    {
-        using var diskImage = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
-            disk.ToImageName(), token), token);
-        var diskTemplate = m_DiskBackground.CloneAs<Rgba32>();
-        diskTemplate.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawImage(diskImage, diskImage.Bounds,
-                    new RectangleF(10, 15, diskImage.Width, diskImage.Height), KnownResamplers.Bicubic);
-                var rarityImg = m_RarityImages[disk.Rarity[0]];
-                canvas.DrawImage(rarityImg, rarityImg.Bounds,
-                    new RectangleF(20, 115, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
-                var mainStatImg = m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)];
-                canvas.DrawImage(mainStatImg, mainStatImg.Bounds,
-                    new RectangleF(215, 20, mainStatImg.Width, mainStatImg.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(265, 70),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, disk.MainProperties[0]!.Base!, Brushes.Solid(Color.White), null);
-                canvas.DrawText(new RichTextOptions(Fonts.Small)
-                {
-                    Origin = new PointF(265, 120),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"Lv.{disk.Level}", Brushes.Solid(Color.White), null);
-
-                for (var i = 0; i < disk.Properties!.Count; i++)
-                {
-                    var subStat = disk.Properties[i];
-                    var subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
-                    var xOffset = i % 2 * 260;
-                    var yOffset = i / 2 * 85;
-                    var color = Color.White;
-                    if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
+                    var slot = diskSlots[i];
+                    if (slot.Data != null)
                     {
-                        var dim = subStatImage.CloneAs<Rgba32>();
-                        dim.Mutate(x => x.Brightness(0.5f));
-                        canvas.DrawImage(dim, dim.Bounds,
-                            new RectangleF(280 + xOffset, 20 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
-                        color = Color.FromPixel(new Rgb24(128, 128, 128));
+                        DrawDiskImage(canvas, new Point(2150, 50 + i * 186), slot.Data, slot.Image!);
                     }
                     else
                     {
-                        canvas.DrawImage(subStatImage, subStatImage.Bounds,
-                            new RectangleF(280 + xOffset, 20 + yOffset, subStatImage.Width, subStatImage.Height),
-                            KnownResamplers.Bicubic);
+                        DrawDiskTemplateImage(canvas, new Point(2150, 50 + i * 186));
                     }
-
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(335 + xOffset, 23 + yOffset) },
-                        subStat.Base!, Brushes.Solid(color), null);
-                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(460 + xOffset, 8 + yOffset) },
-                        rolls, Brushes.Solid(color), null);
                 }
             });
         });
-        return diskTemplate;
     }
 
-    private Image<Rgba32> CreateRankTemplateImage(int rank, bool activated, Color accentColor)
+    private void DrawDiskTemplateImage(DrawingCanvas canvas, Point position)
     {
-        Image<Rgba32> image = new(120, 150, Color.Transparent.ToPixel<Rgba32>());
-        image.Mutate(ctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(800, 170)));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(800, 170)), 30);
+        _ = region.Save(ClipOptions, clipPath);
+        region.Fill(Brushes.Solid(LocalOverlayColor));
+        region.Restore();
+        region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            if (!activated) ctx.Brightness(2f);
-
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawRoundedRectangleOverlay(90, 120, new PointF(15, 15),
-                    new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
-                canvas.DrawText(new RichTextOptions(Fonts.Title)
-                {
-                    Origin = new Vector2(60, 75),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }, rank.ToString("D2"), Brushes.Solid(Color.White), null);
-            });
-
-            if (!activated) ctx.Brightness(0.5f);
-            ctx.Rotate(10, KnownResamplers.Bicubic);
-        });
-        return image;
+            Origin = new Vector2(425, 78),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        }, "Not Equipped", Brushes.Solid(Color.White), null);
     }
 
-    private static Image<Rgba32> CreateRotatedIconImage(Image icon, Color accentColor)
+    private void DrawDiskImage(DrawingCanvas canvas, Point position, DiskDrive disk, Image diskImage)
     {
-        Image<Rgba32> image = new(120, 150, Color.Transparent.ToPixel<Rgba32>());
-        image.Mutate(ctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(800, 170)));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(800, 170)), 30);
+        _ = region.Save(ClipOptions, clipPath);
+        region.Fill(Brushes.Solid(LocalOverlayColor));
+        region.DrawImage(diskImage, diskImage.Bounds,
+            new RectangleF(10, 15, diskImage.Width, diskImage.Height), KnownResamplers.Bicubic);
+
+        region.Restore();
+
+        var rarityImg = m_RarityImages[disk.Rarity[0]];
+        region.DrawImage(rarityImg, rarityImg.Bounds,
+            new RectangleF(20, 115, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
+        var mainStatImg = m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)];
+        region.DrawImage(mainStatImg, mainStatImg.Bounds,
+            new RectangleF(215, 20, mainStatImg.Width, mainStatImg.Height), KnownResamplers.Bicubic);
+        region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            ctx.Paint(canvas =>
+            Origin = new PointF(265, 70),
+            HorizontalAlignment = HorizontalAlignment.Right
+        }, disk.MainProperties[0]!.Base!, Brushes.Solid(Color.White), null);
+        region.DrawText(new RichTextOptions(Fonts.Small)
+        {
+            Origin = new PointF(265, 120),
+            HorizontalAlignment = HorizontalAlignment.Right
+        }, $"Lv.{disk.Level}", Brushes.Solid(Color.White), null);
+
+        for (var i = 0; i < disk.Properties!.Count; i++)
+        {
+            var subStat = disk.Properties[i];
+            var xOffset = i % 2 * 260;
+            var yOffset = i / 2 * 85;
+            var color = Color.White;
+            if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
             {
-                canvas.DrawRoundedRectangleOverlay(90, 120, new PointF(15, 15),
-                    new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
-                canvas.DrawImage(icon, icon.Bounds,
-                    new RectangleF(60 - icon.Width / 2, 75 - icon.Height / 2, icon.Width, icon.Height),
+                var dim = m_DimmedStatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
+                region.DrawImage(dim, dim.Bounds,
+                    new RectangleF(280 + xOffset, 20 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
+                color = Color.FromPixel(new Rgb24(128, 128, 128));
+            }
+            else
+            {
+                var subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
+                region.DrawImage(subStatImage, subStatImage.Bounds,
+                    new RectangleF(280 + xOffset, 20 + yOffset, subStatImage.Width, subStatImage.Height),
                     KnownResamplers.Bicubic);
-            });
+            }
 
-            ctx.Rotate(10, KnownResamplers.Bicubic);
-        });
-        return image;
+            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(335 + xOffset, 23 + yOffset) },
+                subStat.Base!, Brushes.Solid(color), null);
+            var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
+            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(460 + xOffset, 8 + yOffset) },
+                rolls, Brushes.Solid(color), null);
+        }
+    }
+
+    private void DrawRankTemplateImage(DrawingCanvas canvas, Point location, int rank, bool activated, Color accentColor)
+    {
+        using var region = canvas.CreateRegion(new Rectangle(location, new Size(150, 180)));
+        _ = region.Save(RotateOptions);
+        _ = region.SaveLayer();
+
+        if (activated)
+        {
+            region.DrawRoundedRectangleOverlay(90, 120, new PointF(30, 15),
+                new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
+
+            region.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(75, 75),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, rank.ToString("D2"), Brushes.Solid(Color.White), null);
+        }
+        else
+        {
+            var dimmedOverlay = (LocalOverlayColor.ToScaledVector4() * 0.5f).AsVector3();
+            var dimmedAccent = (accentColor.ToScaledVector4() * 0.5f).AsVector3();
+            region.DrawRoundedRectangleOverlay(90, 120, new PointF(30, 15),
+                new RoundedRectangleOverlayStyle(Color.FromPixel(new Rgba32(dimmedOverlay)),
+                Color.FromPixel(new Rgba32(dimmedAccent)), 4f, 10));
+
+            region.DrawText(new RichTextOptions(Fonts.Title)
+            {
+                Origin = new Vector2(75, 75),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, rank.ToString("D2"), Brushes.Solid(Color.FromPixel(new Rgb24(128, 128, 128))), null);
+        }
+
+        region.Restore();
+        region.Restore();
+    }
+
+    private static void DrawRotatedIconImage(DrawingCanvas canvas, Point location, Image icon, Color accentColor)
+    {
+        using var region = canvas.CreateRegion(new Rectangle(location, new Size(90, 120)));
+        _ = region.Save(RotateOptions);
+        region.DrawRoundedRectangleOverlay(90, 120, PointF.Empty,
+            new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
+        region.DrawImage(icon, icon.Bounds,
+            new RectangleF(45 - icon.Width / 2, 60 - icon.Height / 2, icon.Width, icon.Height),
+            KnownResamplers.Bicubic);
+        region.Restore();
     }
 }
