@@ -29,8 +29,10 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private Dictionary<int, Image> m_StatImages = null!;
-    private Dictionary<int, Image> m_TemplateRelicSlots = null!;
-    private Image<Rgba32> m_RelicSlotTemplate = null!;
+    private Dictionary<int, Image> m_DimmedStatImages = null!;
+    private Image<Rgba32>[] m_RelicTemplateImages = new Image<Rgba32>[7];
+    private Image<Rgba32>[] m_EquipStarImages = new Image<Rgba32>[5];
+    private Image<Rgba32>[] m_RelicStarImages = new Image<Rgba32>[5];
 
     private const string StatsPath = FileNameFormat.Hsr.StatsName;
 
@@ -57,24 +59,24 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
             return new KeyValuePair<int, Image>(x, image);
         }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
 
+        m_DimmedStatImages = m_StatImages.ToDictionary(x => x.Key, x => x.Value.Clone(ctx => ctx.Brightness(0.5f)));
+
         StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BackgroundName, cancellationToken),
             cancellationToken);
 
-        m_RelicSlotTemplate = new Image<Rgba32>(750, 150);
-        m_RelicSlotTemplate.Mutate(x =>
+        for (var i = 1; i <= 6; i++)
         {
-            x.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(255, 255, 255, 0.1f))),
-                    new Rectangle(0, 0, m_RelicSlotTemplate.Width, m_RelicSlotTemplate.Height));
-            });
-            x.ApplyRoundedCorners(30);
-        });
+            var path = string.Format(FileNameFormat.Hsr.RelicTemplateName, i);
+            m_RelicTemplateImages[i] = await Image.LoadAsync<Rgba32>(
+                await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
+        }
 
-        m_TemplateRelicSlots = await Enumerable.Range(1, 6).ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x),
-                async (x, token) => await CreateTemplateRelicSlotImageAsync(x, token), cancellationToken: cancellationToken);
+        for (var i = 1; i <= 5; i++)
+        {
+            m_EquipStarImages[i - 1] = ImageUtility.CreateFourSidedStarRatingImage(i, false);
+            m_RelicStarImages[i - 1] = ImageUtility.CreateFourSidedStarRatingImage(i, true);
+        }
 
         Logger.LogInformation("Resources initialized successfully with {Count} icons.", m_StatImages.Count);
     }
@@ -131,43 +133,31 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
             })
         ];
 
-        Task<Image>[] relicImageTasks =
+        Task<(Relic? Data, Image<Rgba32>? Image)>[] relicImageTasks =
         [
             .. Enumerable.Range(0, 4).Select(async i =>
             {
                 var relic = characterInformation.Relics!.FirstOrDefault(x => x.Pos == i + 1);
                 if (relic != null)
                 {
-                    var relicImage = await CreateRelicSlotImageAsync(relic, cancellationToken);
-                    disposables.Add(relicImage);
-                    return relicImage;
+                    var relicImage = await LoadImageFromRepositoryAsync<Rgba32>(relic.ToImageName(), disposables, cancellationToken);
+                    return (Data: relic, Image: relicImage);
                 }
-                else
-                {
-                    var templateRelicImage = m_TemplateRelicSlots[i + 1].Clone(_ => {});
-                    disposables.Add(templateRelicImage);
-                    return templateRelicImage;
-                }
+                return (Data: (Relic?)null, Image: (Image<Rgba32>?)null);
             })
         ];
 
-        Task<Image>[] ornamentImageTasks =
+        Task<(Relic? Data, Image<Rgba32>? Image)>[] ornamentImageTasks =
         [
             .. Enumerable.Range(0, 2).Select(async i =>
             {
                 var ornament = characterInformation.Ornaments!.FirstOrDefault(x => x.Pos == i + 5);
                 if (ornament != null)
                 {
-                    var ornamentImage = await CreateRelicSlotImageAsync(ornament, cancellationToken);
-                    disposables.Add(ornamentImage);
-                    return ornamentImage;
+                    var ornamentImage = await LoadImageFromRepositoryAsync<Rgba32>(ornament.ToImageName(), disposables, cancellationToken);
+                    return (Data: ornament, Image: ornamentImage);
                 }
-                else
-                {
-                    var templateOrnamentImage = m_TemplateRelicSlots[i + 5].Clone(_ => {});
-                    disposables.Add(templateOrnamentImage);
-                    return templateOrnamentImage;
-                }
+                return (Data: (Relic?)null, Image: (Image<Rgba32>?)null);
             })
         ];
 
@@ -251,48 +241,29 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 .. stats.Concat(characterInformation.Properties!)
                     .DistinctBy(x => x.PropertyType!.Value).Take(7).OrderBy(x => x.PropertyType!.Value)
             ];
-        Image[] relicImages = [.. await Task.WhenAll(relicImageTasks)];
-        Image[] ornamentImages = [.. await Task.WhenAll(ornamentImageTasks)];
+        (Relic? Data, Image<Rgba32>? Image)[] relicSlots = [.. await Task.WhenAll(relicImageTasks)];
+        (Relic? Data, Image<Rgba32>? Image)[] ornamentSlots = [.. await Task.WhenAll(ornamentImageTasks)];
         (Skill Data, Image Image)[] servantImages = [.. await Task.WhenAll(servantTask)];
 
         background.Mutate(ctx =>
         {
-            var offsetX = portraitConfig?.OffsetX ?? 0;
-            var offsetY = portraitConfig?.OffsetY ?? 0;
             ctx.Paint(canvas =>
             {
+                var offsetX = portraitConfig?.OffsetX ?? 0;
+                var offsetY = portraitConfig?.OffsetY ?? 0;
+
                 canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
                     new RectangleF(400 - characterPortrait.Width / 2 + offsetX, 700 - characterPortrait.Height / 2 + offsetY,
                         characterPortrait.Width, characterPortrait.Height),
                     KnownResamplers.Bicubic);
-            });
-        });
+                canvas.Apply(
+                    CreateLeftRoundedRectanglePath(background.Width - 800, background.Height, 100).Translate(800, 0),
+                    region =>
+                    {
+                        region.GaussianBlur(30);
+                        region.Brightness(0.35f);
+                    });
 
-        var clone = background.CloneAs<Rgba32>();
-        disposables.Add(clone);
-        clone.Mutate(ctx =>
-        {
-            ctx.Crop(new Rectangle(800, 0, 2200, 1200));
-            ctx.GaussianBlur(30);
-        });
-
-        Image<Rgba32> overlay = new(2500, 1200);
-        disposables.Add(overlay);
-        overlay.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawImage(clone, clone.Bounds,
-                    new RectangleF(0, 0, clone.Width, clone.Height), KnownResamplers.Bicubic);
-            });
-            ctx.ApplyRoundedCorners(100);
-            ctx.Brightness(0.35f);
-        });
-
-        background.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
                 canvas.DrawTextWithShadow(characterInformation.Name!, new RichTextOptions(Fonts.Title)
                 {
                     Origin = new PointF(70, 50),
@@ -312,8 +283,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 
                 canvas.DrawTextWithShadow($"Lv. {characterInformation.Level}", Fonts.Normal,
                     new PointF(70, bounds.Bottom + 20), Color.White);
-                canvas.DrawImage(overlay, overlay.Bounds,
-                    new RectangleF(800, 0, overlay.Width, overlay.Height), KnownResamplers.Bicubic);
+
                 canvas.DrawText(new RichTextOptions(Fonts.Small)
                 {
                     Origin = new PointF(70, 1150)
@@ -415,8 +385,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                     {
                         Origin = new PointF(1080, 670)
                     }, $"Lv. {characterInformation.Equip.Level}", Brushes.Solid(Color.White), null);
-                    using var stars = ImageUtility.CreateFourSidedStarRatingImage(characterInformation.Equip.Rarity,
-                        false);
+                    var stars = m_EquipStarImages[characterInformation.Equip.Rarity - 1];
                     canvas.DrawImage(stars, stars.Bounds,
                         new RectangleF(990, 730, stars.Width, stars.Height), KnownResamplers.Bicubic);
                 }
@@ -459,12 +428,17 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                         740);
                 }
 
-                for (var i = 0; i < relicImages.Length; i++)
+                for (var i = 0; i < relicSlots.Length; i++)
                 {
-                    var offset = i * 170;
-                    canvas.DrawImage(relicImages[i], relicImages[i].Bounds,
-                        new RectangleF(2200, 50 + offset, relicImages[i].Width, relicImages[i].Height),
-                        KnownResamplers.Bicubic);
+                    var slot = relicSlots[i];
+                    if (slot.Data != null)
+                    {
+                        DrawRelicSlotImage(canvas, slot.Data, slot.Image!, new Point(2200, 50 + i * 170));
+                    }
+                    else
+                    {
+                        DrawTemplateRelicSlotImage(canvas, new Point(2200, 50 + i * 170), i + 1);
+                    }
                 }
 
                 var k = 0;
@@ -483,15 +457,18 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                     k++;
                 }
 
-                for (var i = 0; i < ornamentImages.Length; i++)
+                for (var i = 0; i < ornamentSlots.Length; i++)
                 {
+                    var slot = ornamentSlots[ornamentSlots.Length - 1 - i];
                     var offset = i * 170;
-                    canvas.DrawImage(ornamentImages[ornamentImages.Length - 1 - i],
-                        ornamentImages[ornamentImages.Length - 1 - i].Bounds,
-                        new RectangleF(2200, 1000 - offset,
-                            ornamentImages[ornamentImages.Length - 1 - i].Width,
-                            ornamentImages[ornamentImages.Length - 1 - i].Height),
-                        KnownResamplers.Bicubic);
+                    if (slot.Data != null)
+                    {
+                        DrawRelicSlotImage(canvas, slot.Data, slot.Image!, new Point(2200, 1000 - offset));
+                    }
+                    else
+                    {
+                        DrawTemplateRelicSlotImage(canvas, new Point(2200, 1000 - offset), ornamentSlots.Length + 4 - i);
+                    }
                 }
 
                 k = 0;
@@ -517,95 +494,82 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         });
     }
 
-    private async Task<Image<Rgba32>> CreateRelicSlotImageAsync(Relic relic, CancellationToken cancellationToken = default)
+    private void DrawRelicSlotImage(DrawingCanvas canvas, Relic relic, Image<Rgba32> relicImage, Point position)
     {
-        await using var stream = await ImageRepository.DownloadFileToStreamAsync(relic.ToImageName(), cancellationToken);
-        using var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
-        var relicSlotImage = m_RelicSlotTemplate.Clone();
-        relicSlotImage.Mutate(ctx =>
+        using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 750, 150));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
+        region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(255, 255, 255, 0.1f))), new Rectangle(0, 0, 750, 150));
+        region.DrawImage(relicImage, relicImage.Bounds,
+            new RectangleF(10, 0, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+        region.Restore();
+
+        var stars = m_RelicStarImages[relic.Rarity - 1];
+        region.DrawImage(stars, stars.Bounds,
+            new RectangleF(20, 115, stars.Width, stars.Height), KnownResamplers.Bicubic);
+        var statImg = m_StatImages[relic.MainProperty!.PropertyType!.Value];
+        region.DrawImage(statImg, statImg.Bounds,
+            new RectangleF(125, 10, statImg.Width, statImg.Height), KnownResamplers.Bicubic);
+        region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            ctx.Paint(canvas =>
+            Origin = new PointF(230, 60),
+            HorizontalAlignment = HorizontalAlignment.Right
+        }, relic.MainProperty!.Value!, Brushes.Solid(Color.White), null);
+        region.DrawText(new RichTextOptions(Fonts.Small)
+        {
+            Origin = new PointF(180, 20)
+        }, $"+{relic.Level}", Brushes.Solid(Color.White), null);
+
+        for (var i = 0; i < relic.Properties!.Count; i++)
+        {
+            var subStat = relic.Properties[i];
+            var subStatImage = m_StatImages[subStat.PropertyType!.Value];
+            var xOffset = i % 2 * 245;
+            var yOffset = i / 2 * 70;
+            var color = Color.White;
+            if (subStat.PropertyType is 27 or 29 or 31)
             {
-                canvas.DrawImage(relicImage, relicImage.Bounds,
-                    new RectangleF(10, 0, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
-                using var stars = ImageUtility.CreateFourSidedStarRatingImage(relic.Rarity);
-                canvas.DrawImage(stars, stars.Bounds,
-                    new RectangleF(20, 115, stars.Width, stars.Height), KnownResamplers.Bicubic);
-                var statImg = m_StatImages[relic.MainProperty!.PropertyType!.Value];
-                canvas.DrawImage(statImg, statImg.Bounds,
-                    new RectangleF(125, 10, statImg.Width, statImg.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(230, 60),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, relic.MainProperty!.Value!, Brushes.Solid(Color.White), null);
-                canvas.DrawText(new RichTextOptions(Fonts.Small)
-                {
-                    Origin = new PointF(180, 20)
-                }, $"+{relic.Level}", Brushes.Solid(Color.White), null);
+                var dim = m_DimmedStatImages[subStat.PropertyType!.Value];
+                region.DrawImage(dim, dim.Bounds,
+                    new RectangleF(260 + xOffset, 15 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
+                color = Color.FromPixel(new Rgb24(128, 128, 128));
+            }
+            else
+            {
+                region.DrawImage(subStatImage, subStatImage.Bounds,
+                    new RectangleF(260 + xOffset, 15 + yOffset, subStatImage.Width, subStatImage.Height),
+                    KnownResamplers.Bicubic);
+            }
 
-                for (var i = 0; i < relic.Properties!.Count; i++)
-                {
-                    var subStat = relic.Properties[i];
-                    var subStatImage = m_StatImages[subStat.PropertyType!.Value];
-                    var xOffset = i % 2 * 245;
-                    var yOffset = i / 2 * 70;
-                    var color = Color.White;
-                    if (subStat.PropertyType is 27 or 29 or 31)
-                    {
-                        using var dim = subStatImage.Clone(x => x.Brightness(0.5f));
-                        canvas.DrawImage(dim, dim.Bounds,
-                            new RectangleF(260 + xOffset, 15 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
-                        color = Color.FromPixel(new Rgb24(128, 128, 128));
-                    }
-                    else
-                    {
-                        canvas.DrawImage(subStatImage, subStatImage.Bounds,
-                            new RectangleF(260 + xOffset, 15 + yOffset, subStatImage.Width, subStatImage.Height),
-                            KnownResamplers.Bicubic);
-                    }
-
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(310 + xOffset, 20 + yOffset)
-                    }, subStat.Value!, Brushes.Solid(color), null);
-                    var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(435 + xOffset, 10 + yOffset)
-                    }, rolls, Brushes.Solid(color), null);
-                }
-            });
-        });
-        return relicSlotImage;
+            region.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new PointF(310 + xOffset, 20 + yOffset)
+            }, subStat.Value!, Brushes.Solid(color), null);
+            var rolls = string.Concat(Enumerable.Repeat('.', subStat.Times.GetValueOrDefault(0)));
+            region.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new PointF(435 + xOffset, 10 + yOffset)
+            }, rolls, Brushes.Solid(color), null);
+        }
     }
 
-    private async Task<Image> CreateTemplateRelicSlotImageAsync(int slot, CancellationToken cancellationToken = default)
+    private void DrawTemplateRelicSlotImage(DrawingCanvas canvas, Point position, int slotIndex)
     {
-        var path = string.Format(FileNameFormat.Hsr.RelicTemplateName, slot);
-        Logger.LogDebug("Loading template relic image from {Path}", path);
+        using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 750, 150));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
+        region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(255, 255, 255, 0.1f))), new Rectangle(0, 0, 750, 150));
 
-        await using var stream = await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken);
-        var relicImage = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
-        var template = m_RelicSlotTemplate.Clone();
-        template.Mutate(ctx =>
+        var relicImage = m_RelicTemplateImages[slotIndex];
+        region.DrawImage(relicImage, relicImage.Bounds,
+            new RectangleF(25, 10, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
+
+        region.Restore();
+
+        region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            ctx.Paint(canvas =>
-            {
-                canvas.DrawImage(relicImage, relicImage.Bounds,
-                    new RectangleF(25, 10, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
-                canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new Vector2(425, 75),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }, "No Relic", Brushes.Solid(Color.White), null);
-            });
-
-            relicImage.Dispose();
-        });
-
-        return template;
+            Origin = new Vector2(425, 75),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        }, "No Relic", Brushes.Solid(Color.White), null);
     }
 
     private static List<List<Skill>> BuildSkillTree(List<Skill> skills)
@@ -664,6 +628,45 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         }
 
         return chain;
+    }
+
+    private static Polygon CreateLeftRoundedRectanglePath(int width, int height, float radius)
+    {
+        float left = 0;
+        float top = 0;
+        float right = width;
+        float bottom = height;
+
+        var radiusX = radius;
+        var radiusY = radius;
+
+        if (radiusX <= 0 || radiusY <= 0)
+        {
+            return new Polygon(new LinearLineSegment(
+                new PointF(left, top),
+                new PointF(right, top),
+                new PointF(right, bottom),
+                new PointF(left, bottom)));
+        }
+
+        var radiusScale = MathF.Min(width / (radiusX + radiusX), height / (radiusY + radiusY));
+        if (radiusScale < 1F)
+        {
+            radiusX *= radiusScale;
+            radiusY *= radiusScale;
+        }
+
+        SizeF cornerRadius = new(radiusX, radiusY);
+        PointF topLeftCenter = new(left + radiusX, top + radiusY);
+        PointF bottomLeftCenter = new(left + radiusX, bottom - radiusY);
+
+        return new Polygon(
+            new ArcLineSegment(topLeftCenter, cornerRadius, 0F, 180F, 90F),
+            new LinearLineSegment(new PointF(left + radiusX, top), new PointF(right, top)),
+            new LinearLineSegment(new PointF(right, top), new PointF(right, bottom)),
+            new LinearLineSegment(new PointF(right, bottom), new PointF(left + radiusX, bottom)),
+            new ArcLineSegment(bottomLeftCenter, cornerRadius, 0F, 90F, 90F),
+            new LinearLineSegment(new PointF(left, bottom - radiusY), new PointF(left, top + radiusY)));
     }
 
     private static Color GetAccentColor(string element)
