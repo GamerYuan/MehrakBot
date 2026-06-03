@@ -1,4 +1,5 @@
 ﻿using Mehrak.Application.Genshin;
+using Mehrak.Application.Tests.TestUtils;
 using OpenCvSharp;
 
 namespace Mehrak.Application.Tests.Genshin.Types;
@@ -100,7 +101,7 @@ internal class GenshinWeaponImageProcessorTests
         File.WriteAllBytes(outputGoldenImagePath, golden);
 
         Assert.That(bytes, Is.Not.Empty);
-        Assert.That(bytes, Is.EqualTo(golden));
+        Assert.That(bytes, IsImage.IdenticalTo(golden));
     }
 
     #endregion
