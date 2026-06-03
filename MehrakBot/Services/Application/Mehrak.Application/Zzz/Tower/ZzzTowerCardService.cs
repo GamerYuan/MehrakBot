@@ -93,13 +93,13 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
             .Select(async (x, token) =>
             {
                 await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                using var avatar = new ZzzAvatar(x.AvatarId, charMap[x.AvatarId].Level, x.Rarity[0], charMap[x.AvatarId].Rank,
-                    await Image.LoadAsync(stream, token));
-                var styledImage = GetStyledDisplayEntry(x, avatar);
-                disposables.Add(styledImage);
-                return styledImage;
+                var image = await Image.LoadAsync<Rgba32>(stream, token);
+                var (level, rarity) = charMap.GetValueOrDefault(x.AvatarId, (0, 0));
+                var avatar = new ZzzAvatar(x.AvatarId, level, x.Rarity[0], rarity, image);
+                disposables.Add(avatar);
+                return (x, avatar);
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         const int width = 2 * DisplayEntryWidth + 150;
         var height = 500 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;
@@ -201,42 +201,29 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
                 for (var i = 0; i < avatarImages.Count; i++)
                 {
                     var even = i % 2 == 0;
-                    var avatarImg = avatarImages[i];
-                    canvas.DrawImage(avatarImg, avatarImg.Bounds,
-                        new RectangleF(even ? 50 : xOffset, yOffset, avatarImg.Width, avatarImg.Height),
-                        KnownResamplers.Bicubic);
+                    var (towerAvatar, avatar) = avatarImages[i];
+                    DrawStyledDisplayEntry(canvas, new Point(even ? 50 : xOffset, yOffset),
+                        towerAvatar, avatar);
                     if (!even) yOffset += DisplayEntryHeight + 20;
                 }
             });
         });
     }
 
-    private Image GetStyledDisplayEntry(ZzzTowerAvatar data, ZzzAvatar avatar)
+    private void DrawStyledDisplayEntry(DrawingCanvas canvas, Point position, ZzzTowerAvatar data, ZzzAvatar avatar)
     {
-        Image background = new Image<Rgba32>(DisplayEntryWidth, DisplayEntryHeight);
-        background.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(OverlayColor), new Rectangle(0, 0, background.Width, background.Height));
-            });
-            ctx.Paint(canvas =>
-            {
-                using (var styledImage = avatar.GetStyledAvatarImage(""))
-                    canvas.DrawImage(styledImage, styledImage.Bounds,
-                        new RectangleF(20, 10, styledImage.Width, styledImage.Height),
-                        KnownResamplers.Bicubic);
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(DisplayEntryWidth, DisplayEntryHeight)));
+        region.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, DisplayEntryWidth, DisplayEntryHeight, 15));
+        region.Fill(Brushes.Solid(OverlayColor));
+        region.Restore();
 
-                canvas.DrawText(m_DisplayScoreOptions, data.Score.ToString(), Brushes.Solid(Color.White), null);
+        avatar.DrawStyledAvatarImage(region, new Point(20, 10), "");
 
-                canvas.DrawRoundedRectangleOverlay(140, 50, new PointF(210, 50),
-                    new RoundedRectangleOverlayStyle(RankOverlayColor, CornerRadius: 25));
-                canvas.DrawText(m_DisplayRankOptions, $"{(float)data.RankPercent / 100:N2}%", Brushes.Solid(Color.White), null);
-            });
-            ctx.ApplyRoundedCorners(15);
-        });
+        region.DrawText(m_DisplayScoreOptions, data.Score.ToString(), Brushes.Solid(Color.White), null);
 
-        return background;
+        region.DrawRoundedRectangleOverlay(140, 50, new PointF(210, 50),
+            new RoundedRectangleOverlayStyle(RankOverlayColor, CornerRadius: 25));
+        region.DrawText(m_DisplayRankOptions, $"{(float)data.RankPercent / 100:N2}%", Brushes.Solid(Color.White), null);
     }
 
     private static string FormatNumberWithSuffix(double num)
