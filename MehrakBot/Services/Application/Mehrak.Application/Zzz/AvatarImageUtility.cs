@@ -1,8 +1,6 @@
 ﻿#region
 
 using Mehrak.Application.Shared.Renderers.Extensions;
-using Mehrak.Application.Shared.Utility;
-using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
@@ -66,28 +64,16 @@ internal static class AvatarImageUtility
         }
     }
 
-    public static void DrawStyledBuddyImage(this ZzzBuddyData buddy, DrawingCanvas canvas, Point location, Image buddyImage, Image starImage)
+    public static void DrawStyledBuddyImage(DrawingCanvas canvas, Point position, Image buddyImage)
     {
-        using var region = canvas.CreateRegion(new Rectangle(location, new Size(150, 180)));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(150, 180)), 15);
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(150, 180)));
         _ = region.Save(ClipOptions, clipPath);
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(24, 24, 24))));
-
         region.DrawImage(buddyImage, buddyImage.Bounds,
-            new RectangleF(-45, -20, buddyImage.Width, buddyImage.Height), KnownResamplers.Bicubic);
-        region.Fill(Brushes.Solid(Color.Black), new Rectangle(0, 145, 150, 35));
+            new RectangleF(0, 0, buddyImage.Width, buddyImage.Height),
+            KnownResamplers.Bicubic);
         region.Restore();
-
-        region.Draw(Pens.Solid(Color.Black, 4), clipPath);
-
-        region.DrawText(new RichTextOptions(NormalFont)
-        {
-            Origin = new PointF(75, 160),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        }, $"Lv. {buddy.Level}", Brushes.Solid(Color.White), null);
-
-        region.DrawImage(starImage, starImage.Bounds,
-            new RectangleF(65, 120, starImage.Width, starImage.Height), KnownResamplers.Bicubic);
+        region.Draw(Pens.Solid(Color.Black, 3f), clipPath);
     }
 }

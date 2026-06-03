@@ -5,6 +5,7 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
+using Mehrak.Application.Zzz;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.User.Abstractions;
@@ -245,8 +246,8 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
                         avatar.DrawStyledAvatarImage(region, point);
                         break;
                     default:
-                        var buddyImg = item as Image;
-                        DrawStyledBuddyImage(region, point, buddyImg);
+                        var buddyImg = item as Image ?? m_BaseBuddyImage;
+                        AvatarImageUtility.DrawStyledBuddyImage(region, point, buddyImg);
                         break;
                 }
             });
@@ -256,17 +257,5 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             KnownResamplers.Bicubic);
     }
 
-    private void DrawStyledBuddyImage(DrawingCanvas canvas, Point position, Image? buddyImage)
-    {
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(150, 180)), 15);
-        using var region = canvas.CreateRegion(new Rectangle(position, new Size(150, 180)));
-        _ = region.Save(ClipOptions, clipPath);
-        region.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(24, 24, 24))));
-        var buddySrc = buddyImage ?? m_BaseBuddyImage;
-        region.DrawImage(buddySrc, buddySrc.Bounds,
-            new RectangleF(0, 0, buddySrc.Width, buddySrc.Height),
-            KnownResamplers.Bicubic);
-        region.Restore();
-        region.Draw(Pens.Solid(Color.Black, 3f), clipPath);
-    }
+
 }
