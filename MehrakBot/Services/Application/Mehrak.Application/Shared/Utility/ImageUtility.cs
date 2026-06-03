@@ -129,14 +129,15 @@ public static class ImageUtility
                     (float)starSize / 4 * shadowExpansion, // Larger inner radius
                     4);
                 var shadowPolygon = new Polygon(shadowPoints);
-                canvas.Fill(Brushes.Solid(ShadowColor), shadowPolygon);
+                region.Fill(Brushes.Solid(ShadowColor), shadowPolygon);
             }
 
             // Then create the actual star on top
             var starPoints = CreateStarPoints(centerX, centerY, (float)starSize / 2, (float)starSize / 4, 4);
             var starPolygon = new Polygon(starPoints);
-            canvas.Fill(Brushes.Solid(StarColor), starPolygon);
+            region.Fill(Brushes.Solid(StarColor), starPolygon);
         }
+        region.Restore();
     }
 
     public static Image<Rgba32> CreateFourSidedStarRatingImage(int starCount, bool isHorizontal = true, bool drawShadow = true)

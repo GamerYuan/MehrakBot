@@ -93,11 +93,14 @@ public static class DropShadowTextExtensions
         var blurR = (int)Math.Ceiling(blurRadius);
 
         var bounds = TextMeasurer.MeasureBounds(text, new RichTextOptions(font) { Origin = PointF.Empty });
+        var pad = blurR + 4;
 
         _ = canvas.SaveLayer();
         canvas.DrawText(new RichTextOptions(font) { Origin = shadowOrigin }, text, Brushes.Solid(shadowColor), null);
         canvas.Apply(
-            new Rectangle(new Point((int)shadowOrigin.X, (int)shadowOrigin.Y), new Size((int)bounds.Width, (int)bounds.Height)),
+            new Rectangle(
+                new Point((int)(shadowOrigin.X + bounds.X) - pad, (int)(shadowOrigin.Y + bounds.Y) - pad),
+                new Size((int)bounds.Width + 2 * pad, (int)bounds.Height + 2 * pad)),
             ctx => ctx.BoxBlur(blurR));
         canvas.Restore();
     }

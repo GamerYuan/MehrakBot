@@ -204,6 +204,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                     canvas.Draw(Pens.Solid(Color.Black, 4f), border);
                 });
             });
+            images[0] = image;
         });
 
         return processor;

@@ -119,49 +119,28 @@ public class ImageRepository : IImageRepository
 
         try
         {
-            var lastSlash = fileName.LastIndexOf('/');
-            var dirPrefix = lastSlash >= 0 ? fileName[..(lastSlash + 1)] : string.Empty;
-
-            await CacheDirectoryContentsAsync(dirPrefix, cancellationToken).ConfigureAwait(false);
-
-            if (m_ExistsCache.TryGetValue(fileName, out exists))
+            var headReq = new GetObjectMetadataRequest
             {
-                return exists;
-            }
+                BucketName = m_Bucket,
+                Key = fileName
+            };
 
+            var response = await m_S3.GetObjectMetadataAsync(headReq, cancellationToken).ConfigureAwait(false);
+            exists = (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
+            m_ExistsCache.Set(fileName, exists, CreateExistsCacheOptions());
+            return exists;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            exists = false;
             m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
             return false;
         }
         catch (AmazonS3Exception ex)
         {
-            m_Logger.LogError(ex, "ListObjectsV2 failed for file {FileName} in bucket {Bucket}", fileName, m_Bucket);
+            m_Logger.LogError(ex, "GetObjectMetadata failed for file {FileName} in bucket {Bucket}", fileName, m_Bucket);
             return false;
         }
-    }
-
-    private async Task CacheDirectoryContentsAsync(string prefix, CancellationToken cancellationToken)
-    {
-        string? continuationToken = null;
-
-        do
-        {
-            var listReq = new ListObjectsV2Request
-            {
-                BucketName = m_Bucket,
-                Prefix = prefix,
-                ContinuationToken = continuationToken,
-                MaxKeys = 1000
-            };
-
-            var response = await m_S3.ListObjectsV2Async(listReq, cancellationToken).ConfigureAwait(false);
-
-            foreach (var obj in response.S3Objects ?? [])
-            {
-                m_ExistsCache.Set(obj.Key, true, CreateExistsCacheOptions());
-            }
-
-            continuationToken = response.IsTruncated ?? false ? response.NextContinuationToken : null;
-        } while (continuationToken != null);
     }
 
     public async Task<List<string>> ListFilesAsync(string prefix = "", CancellationToken cancellationToken = default)

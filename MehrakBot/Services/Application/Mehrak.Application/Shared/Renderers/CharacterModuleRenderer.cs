@@ -222,7 +222,7 @@ public class CharacterModuleRenderer
 
         var scaledSpacing = spacing * scale;
         var scaledFooterPadding = footerPadding * scale;
-        var totalScaledWidth = footerModules.Sum(m => m.Width) + (footerModules.Count - 1) * scaledSpacing + scaledFooterPadding * 2;
+        var totalScaledWidth = footerModules.Sum(m => m.Width * scale) + (footerModules.Count - 1) * scaledSpacing + scaledFooterPadding * 2;
         var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
         var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
 
@@ -237,7 +237,7 @@ public class CharacterModuleRenderer
             canvas.DrawImage(footerModules[i], footerModules[i].Bounds,
                 new RectangleF(new Point((int)currentX, (int)moduleStartY),
                     new Size((int)(footerModules[i].Width * scale), (int)(moduleH * scale))), KnownResamplers.Bicubic);
-            currentX += footerModules[i].Width + scaledSpacing;
+            currentX += footerModules[i].Width * scale + scaledSpacing;
         }
         canvas.Restore();
     }
