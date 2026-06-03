@@ -84,6 +84,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
                 await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
                 var image = await Image.LoadAsync(stream, token);
                 ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
+                disposables.Add(avatar);
                 return avatar;
             })
             .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);

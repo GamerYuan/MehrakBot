@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Globalization;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Mehrak.Application.Renderers.Extensions;
@@ -249,7 +250,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         // 3. Other stats
         StatProperty[] bonusStats =
         [
-            .. charInfo.SelectedProperties.Where(x => float.Parse(x.Final.TrimEnd('%')) >
+            .. charInfo.SelectedProperties.Where(x => float.Parse(x.Final.TrimEnd('%'), CultureInfo.InvariantCulture) >
                                                           StatMappingUtility.GetDefaultValue(x.PropertyType!.Value,
                                                               Game.Genshin))
                     .OrderBy(x => x.PropertyType)
@@ -260,7 +261,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             stats =
             [
                 .. charInfo.BaseProperties.Take(4)
-                        .Where(x => float.Parse(x.Final.TrimEnd('%')) >
+                        .Where(x => float.Parse(x.Final.TrimEnd('%'), CultureInfo.InvariantCulture) >
                                     StatMappingUtility.GetDefaultValue(x.PropertyType!.Value, Game.Genshin))
                         .Concat(bonusStats)
                         .DistinctBy(x => x.PropertyType)
@@ -415,7 +416,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                             StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
                             stat.Final,
                             isBase ? stat.Base : null,
-                            isBase && float.Parse(stat.Final.TrimEnd('%')) > float.Parse(stat.Base.TrimEnd('%')) ? $"+{stat.Add}" : null),
+                            isBase && float.Parse(stat.Final.TrimEnd('%'), CultureInfo.InvariantCulture) > float.Parse(stat.Base.TrimEnd('%'), CultureInfo.InvariantCulture) ? $"+{stat.Add}" : null),
                         new StatLineStyle(
                             m_StatImages.GetValueOrDefault(stat.PropertyType.Value),
                             Fonts.Normal,
