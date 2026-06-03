@@ -90,25 +90,17 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         var weaponImage = await LoadImageFromRepositoryAsync(
             characterInformation.Weapon.ToImageName(), disposables, cancellationToken);
 
-        var stigmataImages = await characterInformation.Stigmatas
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (stigmata, token) => ValueTask.FromResult(stigmata),
-                async (stigmata, token) =>
-                {
-                    if (stigmata.Id == 0)
-                    {
-                        var empty = m_StigmataSlot.Clone(ctx => { });
-                        disposables.Add(empty);
-                        return empty;
-                    }
+        var stigmataTasks = characterInformation.Stigmatas
+            .Select(async (stigmata) =>
+            {
+                if (stigmata.Id == 0)
+                    return (Stigmata: default(Hi3Stigmata?), Image: default(Image));
 
-                    await using var stream = await ImageRepository.DownloadFileToStreamAsync(stigmata.ToImageName(), token);
-                    using var img = await Image.LoadAsync(stream, token);
-                    var stigmataIcon = GetStigmataIcon(img, stigmata);
-                    disposables.Add(stigmataIcon);
-                    return stigmataIcon;
-                }, cancellationToken: cancellationToken);
+                var image = await LoadImageFromRepositoryAsync(stigmata.ToImageName(), disposables, cancellationToken);
+                return (Stigmata: (Hi3Stigmata?)stigmata, Image: image);
+            })
+            .ToArray();
+        var stigmataImages = await Task.WhenAll(stigmataTasks);
 
         background.Mutate(ctx =>
         {
@@ -172,12 +164,20 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
                 }, $"{characterInformation.Weapon.Name}\nLv. {characterInformation.Weapon.Level}", Brushes.Solid(Color.White), null);
 
                 var yOffset = 0;
-                foreach (var entry in stigmataImages)
+                foreach (var (stigmata, image) in stigmataImages)
                 {
-                    canvas.DrawImage(entry.Value, entry.Value.Bounds,
-                        new RectangleF(750, 240 + yOffset, entry.Value.Width, entry.Value.Height), KnownResamplers.Bicubic);
+                    if (stigmata != null)
+                    {
+                        DrawStigmataIcon(canvas, new Point(750, 240 + yOffset), image!, stigmata);
+                    }
+                    else
+                    {
+                        canvas.DrawImage(m_StigmataSlot, m_StigmataSlot.Bounds,
+                            new RectangleF(750, 240 + yOffset, m_StigmataSlot.Width, m_StigmataSlot.Height), KnownResamplers.Bicubic);
+                    }
+
                     canvas.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(900, 305 + yOffset) },
-                        entry.Key.Id == 0 ? "Unequipped" : entry.Key.Name,
+                        stigmata == null ? "Unequipped" : stigmata.Name,
                         Brushes.Solid(Color.White), null);
                     yOffset += 160;
                 }
@@ -210,36 +210,26 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
         throw new CommandException("No splash art image found for character");
     }
 
-    private Image GetStigmataIcon(Image stigmataImage, Hi3Stigmata info)
+    private void DrawStigmataIcon(DrawingCanvas canvas, Point location, Image stigmataImage, Hi3Stigmata info)
     {
-        Image stigmataIcon = new Image<Rgba32>(132, 148);
-        stigmataIcon.Mutate(ctx =>
-        {
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(m_RarityColor[info.Rarity]));
-
-                canvas.DrawImage(stigmataImage, stigmataImage.Bounds,
+        using var region = canvas.CreateRegion(new Rectangle(location, new Size(132, 148)));
+        region.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, 132, 148, 10));
+        region.Fill(Brushes.Solid(m_RarityColor[info.Rarity]));
+        region.Fill(Brushes.Solid(Color.White), new Rectangle(0, 0, 132, 16));
+        region.Fill(Brushes.Solid(Color.White), new Rectangle(0, 132, 132, 16));
+        region.Restore();
+        region.DrawImage(stigmataImage, stigmataImage.Bounds,
                     new RectangleF(0, 16, stigmataImage.Width, stigmataImage.Height), KnownResamplers.Bicubic);
 
-                canvas.Fill(Brushes.Solid(Color.White), new Rectangle(0, 0, 132, 16));
-                canvas.Fill(Brushes.Solid(Color.White), new Rectangle(0, 132, 132, 16));
-
-                var starSize = 15;
-                var totalWidth = info.MaxRarity * (starSize + 2) - 2;
-                var startX = (128 - totalWidth) / 2 - 5;
-                for (var i = info.MaxRarity - 1; i >= 0; i--)
-                {
-                    var starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
-                    canvas.DrawImage(starToDraw, starToDraw.Bounds,
-                        new RectangleF(startX + i * (starSize + 2), 118, starToDraw.Width, starToDraw.Height),
-                        KnownResamplers.Bicubic);
-                }
-            });
-
-            ctx.ApplyRoundedCorners(10);
-        });
-        stigmataImage.Dispose();
-        return stigmataIcon;
+        var starSize = 15;
+        var totalWidth = info.MaxRarity * (starSize + 2) - 2;
+        var startX = (128 - totalWidth) / 2 - 5;
+        for (var i = info.MaxRarity - 1; i >= 0; i--)
+        {
+            var starToDraw = i < info.Rarity ? m_StarIcon : m_StarUnlit;
+            region.DrawImage(starToDraw, starToDraw.Bounds,
+                new RectangleF(startX + i * (starSize + 2), 118, starToDraw.Width, starToDraw.Height),
+                KnownResamplers.Bicubic);
+        }
     }
 }
