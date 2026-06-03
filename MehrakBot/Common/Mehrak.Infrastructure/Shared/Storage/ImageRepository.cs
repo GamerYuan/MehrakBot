@@ -119,26 +119,21 @@ public class ImageRepository : IImageRepository
 
         try
         {
-            var headReq = new GetObjectMetadataRequest
+            var listReq = new ListObjectsV2Request
             {
                 BucketName = m_Bucket,
-                Key = fileName
+                Prefix = fileName,
+                MaxKeys = 1
             };
 
-            var response = await m_S3.GetObjectMetadataAsync(headReq, cancellationToken).ConfigureAwait(false);
-            exists = (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
+            var response = await m_S3.ListObjectsV2Async(listReq, cancellationToken).ConfigureAwait(false);
+            exists = response.KeyCount > 0 && response.S3Objects.Any(o => o.Key == fileName);
             m_ExistsCache.Set(fileName, exists, CreateExistsCacheOptions());
             return exists;
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            exists = false;
-            m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
-            return false;
-        }
         catch (AmazonS3Exception ex)
         {
-            m_Logger.LogError(ex, "GetObjectMetadata failed for file {FileName} in bucket {Bucket}", fileName, m_Bucket);
+            m_Logger.LogError(ex, "ListObjectsV2 failed for file {FileName} in bucket {Bucket}", fileName, m_Bucket);
             return false;
         }
     }
