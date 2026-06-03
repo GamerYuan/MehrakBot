@@ -131,7 +131,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             character.ToImageName(), disposables, cancellationToken);
         var weaponTask = character.Weapon != null
             ? LoadImageFromRepositoryAsync(character.Weapon.ToImageName(), disposables, cancellationToken)
-            : Task.FromResult<Image>(new Image<Rgba32>(1, 1));
+            : Task.FromResult<Image>(null!);
         Task<(DiskDrive? Data, Image<Rgba32>? Image)>[] diskTasks =
         [
             .. Enumerable.Range(1, 6).Select(async i =>
