@@ -175,13 +175,13 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             true);
     }
 
-    private static IMultiImageProcessor GetBossImageProcessor()
+    private static MultiImageProcessorBase GetBossImageProcessor()
     {
         var processor = new MultiImageProcessorBase();
         processor.SetOperation(images =>
         {
             const int BossImageHeight = 230;
-            var background = images[0];
+            using var background = images[0];
             var icon = images[1];
             var image = new Image<Rgba32>(background.Width, background.Height);
             image.Mutate(ctx =>
