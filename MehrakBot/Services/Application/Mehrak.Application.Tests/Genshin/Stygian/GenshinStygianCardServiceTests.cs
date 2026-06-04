@@ -90,44 +90,29 @@ public class GenshinStygianCardServiceTests
         };
     }
 
-    // [Test]
-    // public async Task GenerateGoldenImage()
-    // {
-    //     var testData1 = await JsonSerializer.DeserializeAsync<StygianData>(
-    //         File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    //         "Genshin", "Stygian_TestData_1.json")));
-    //     var testData2 = await JsonSerializer.DeserializeAsync<StygianData>(
-    //      File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    //         "Genshin", "Stygian_TestData_2.json")));
-    //     var testData3 = await JsonSerializer.DeserializeAsync<StygianData>(
-    //     File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData",
-    //      "Genshin", "Stygian_TestData_3.json")));
-    //
-    //     var userGameData = GetTestUserGameData();
-    //
-    //   var image1 = await m_Service.GetCardAsync(
-    //    new TestCardGenerationContext<StygianData>(TestUserId, testData1!, Server.Asia, userGameData));
-    //     var image2 = await m_Service.GetCardAsync(
-    //       new TestCardGenerationContext<StygianData>(TestUserId, testData2!, Server.Asia, userGameData));
-    //     var image3 = await m_Service.GetCardAsync(
-    //       new TestCardGenerationContext<StygianData>(TestUserId, testData3!, Server.Asia, userGameData));
-    //
-    //     Assert.Multiple(() =>
-    //{
-    //         Assert.That(image1, Is.Not.Null);
-    //         Assert.That(image2, Is.Not.Null);
-    //         Assert.That(image3, Is.Not.Null);
-    //  });
-    //
-    //     await using var fileStream1 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    //      "TestAssets", "Stygian_GoldenImage_1.jpg"));
-    //     await using var fileStream2 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    //         "TestAssets", "Stygian_GoldenImage_2.jpg"));
-    //  await using var fileStream3 = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
-    //         "TestAssets", "Stygian_GoldenImage_3.jpg"));
-    //
-    //     await image1.CopyToAsync(fileStream1);
-    //     await image2.CopyToAsync(fileStream2);
-    //     await image3.CopyToAsync(fileStream3);
-    // }
+    [Explicit]
+    [Test]
+    [TestCase("Stygian_TestData_1.json")]
+    [TestCase("Stygian_TestData_2.json")]
+    [TestCase("Stygian_TestData_3.json")]
+    public async Task GenerateGoldenImage(string testDataFileName)
+    {
+        var testData =
+            await JsonSerializer.DeserializeAsync<StygianData>(
+                File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
+        Assert.That(testData, Is.Not.Null, "Test data should not be null");
+
+        var userGameData = GetTestUserGameData();
+
+        var cardContext = new BaseCardGenerationContext<StygianData>(TestUserId, testData!, userGameData);
+        cardContext.SetParameter("server", Server.Asia);
+
+        await using var stream = await m_Service.GetCardAsync(cardContext);
+
+        using var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+
+        await stream.CopyToAsync(fileStream);
+        await fileStream.FlushAsync();
+    }
 }

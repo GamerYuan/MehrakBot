@@ -41,10 +41,10 @@ public class HsrCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage.jpg", "Stelle")]
-    [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Stelle_NoEquip_NoRelic_GoldenImage.jpg", "StelleNoEquipNoRelic")]
-    [TestCase("Stelle_Remembrance_TestData.json", "Stelle_Remembrance_GoldenImage.jpg", "StelleRemembrance")]
-    [TestCase("Yaoguang_Elation_TestData.json", "Yaoguang_Elation_GoldenImage.jpg", "YaoguangElation")]
+    [TestCase("Stelle_TestData.json", "Character_Stelle_GoldenImage.jpg", "HsrCharacter_Stelle")]
+    [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Character_Stelle_NoEquip_NoRelic_GoldenImage.jpg", "HsrCharacter_Stelle_NoEquip_NoRelic")]
+    [TestCase("Stelle_Remembrance_TestData.json", "Character_Stelle_Remembrance_GoldenImage.jpg", "HsrCharacter_Stelle_Remembrance")]
+    [TestCase("Yaoguang_Elation_TestData.json", "Character_Yaoguang_Elation_GoldenImage.jpg", "HsrCharacter_Yaoguang_Elation")]
     public async Task GenerateCharacterCardAsync_ShouldMatchGoldenImage(string testDataFileName,
         string goldenImageFileName, string testName)
     {
@@ -69,7 +69,7 @@ public class HsrCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg", "Stelle_UnknownSet")]
+    [TestCase("Stelle_TestData.json", "Character_Stelle_GoldenImage_UnknownSet.jpg", "HsrCharacter_Stelle_UnknownSet")]
     public async Task GenerateCharacterCardAsync_WithUnknownSet_ShouldMatchGoldenImage(string testDataFileName,
         string goldenImageFileName, string testName)
     {
@@ -174,10 +174,10 @@ public class HsrCharacterCardServiceTests
 
     [Explicit]
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage.jpg")]
-    [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Stelle_NoEquip_NoRelic_GoldenImage.jpg")]
-    [TestCase("Stelle_Remembrance_TestData.json", "Stelle_Remembrance_GoldenImage.jpg")]
-    [TestCase("Yaoguang_Elation_TestData.json", "Yaoguang_Elation_GoldenImage.jpg")]
+    [TestCase("Stelle_TestData.json", "Character_Stelle_GoldenImage.jpg")]
+    [TestCase("Stelle_NoEquip_NoRelic_TestData.json", "Character_Stelle_NoEquip_NoRelic_GoldenImage.jpg")]
+    [TestCase("Stelle_Remembrance_TestData.json", "Character_Stelle_Remembrance_GoldenImage.jpg")]
+    [TestCase("Yaoguang_Elation_TestData.json", "Character_Yaoguang_Elation_GoldenImage.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var (relicContext, characterCardService) = await SetupTest();
@@ -207,7 +207,7 @@ public class HsrCharacterCardServiceTests
 
     [Explicit]
     [Test]
-    [TestCase("Stelle_TestData.json", "Stelle_GoldenImage_UnknownSet.jpg")]
+    [TestCase("Stelle_TestData.json", "Character_Stelle_GoldenImage_UnknownSet.jpg")]
     public async Task GenerateGoldenImage_WithUnknownSet(string testDataFileName,
         string goldenImageFileName)
     {
