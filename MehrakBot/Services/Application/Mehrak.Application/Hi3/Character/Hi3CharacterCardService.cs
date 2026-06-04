@@ -128,8 +128,22 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
                 canvas.DrawTextWithShadow($"Lv. {characterInformation.Avatar.Level}", Fonts.Normal,
                     new PointF(70, bounds.Bottom + 20), Color.White);
-                canvas.DrawText(new RichTextOptions(Fonts.Small) { Origin = new PointF(70, 700) },
-                    context.GameProfile.GameUid, Brushes.Solid(Color.White), null);
+
+                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 660), Color.White);
+                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 700), Color.White);
+
+                canvas.DrawAttribution(
+                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                    new RichTextOptions(Fonts.Tiny)
+                    {
+                        Origin = new PointF(700, 730),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        TextAlignment = TextAlignment.End,
+                    }
+                );
 
                 var rankIcon = m_CharacterRankIcons[characterInformation.Avatar.Star - 1];
                 canvas.DrawImage(rankIcon, rankIcon.Bounds,

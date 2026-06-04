@@ -218,6 +218,19 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1100), Color.White);
                 canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1140), Color.White);
 
+                canvas.DrawAttribution(
+                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                    new RichTextOptions(Fonts.Tiny)
+                    {
+                        Origin = new PointF(670, 1180),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        TextAlignment = TextAlignment.End,
+                    }
+                );
+
                 canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Polygon(new LinearLineSegment(new PointF(900, 0), new PointF(688, 1200),
                     new PointF(3000, 1200), new PointF(3000, 0))));
 

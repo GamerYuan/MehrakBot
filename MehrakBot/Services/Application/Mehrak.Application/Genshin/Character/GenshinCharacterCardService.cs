@@ -335,6 +335,18 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
                     new PointF(60, 1040), textColor);
 
+                canvas.DrawAttribution(
+                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                    new RichTextOptions(Fonts.Tiny)
+                    {
+                        Origin = new PointF(960, 1070),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        TextAlignment = TextAlignment.End,
+                    });
+
                 for (var i = 0; i < constellationIcons.Length; i++)
                 {
                     var constellation = constellationIcons[i];

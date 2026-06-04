@@ -147,6 +147,14 @@ public class CharacterModuleRenderer
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         }, $"UID: {uid}", Brushes.Solid(Color.White), null);
+
+        canvas.DrawAttribution(new AttributionStyle(TextColor: Color.White), new RichTextOptions(m_Style.Fonts.Tiny)
+        {
+            Origin = new Vector2(30 + headerWidth, 15 + headerHeight),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            TextAlignment = TextAlignment.End
+        });
     }
 
     public Image<Rgba32> RenderFooterModule(string text, int count, Color borderColor, Image? icon = null)

@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Drawing.Processing;
 namespace Mehrak.Application.Shared.Renderers;
 
 public record AttributionStyle(
-    PointF Position,
     Color? TextColor = null,
     Color? OutlineColor = null,
     float OutlineWidth = 1f,
@@ -40,7 +39,7 @@ public static class AttributionRenderer
                 Transform = new(
                     Matrix3x2.CreateRotation(
                         MathF.PI * style.RotationDegrees / 180f,
-                        style.Position
+                        textOptions.Origin
                     )
                 ),
             };
