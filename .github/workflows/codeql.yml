@@ -43,6 +43,12 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
+      - name: Setup SixLabors License
+        if: matrix.language == 'csharp'
+        env:
+          SIXLABORS_LICENSE: ${{ secrets.SIXLABORS_LICENSE }}
+        run: printf '%s' "$SIXLABORS_LICENSE" > MehrakBot/sixlabors.lic
+
       # Manual build for C#
       - name: Build with dotnet (manual build for C#)
         working-directory: ./MehrakBot

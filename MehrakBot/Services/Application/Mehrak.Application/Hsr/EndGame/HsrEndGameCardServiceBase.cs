@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Numerics;
 using Mehrak.Application.Renderers.Extensions;
@@ -11,6 +11,7 @@ using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hsr.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -92,12 +93,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x, x =>
-            {
-                var styledImage = x.GetStyledAvatarImage();
-                disposables.Add(styledImage);
-                return styledImage;
-            }, HsrAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
 
         var buffImages = await gameModeData.AllFloorDetail
             .Where(x => x is { Node1: not null, Node2: not null })
@@ -110,7 +106,6 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 async (x, token) => await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 
-        var lookup = avatarImages.GetAlternateLookup<int>();
         var floorDetails = GetFloorDetails(gameModeData);
         var height = 180 + floorDetails.Chunk(2)
             .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620);
@@ -125,187 +120,208 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 Sampler = KnownResamplers.Bicubic
             });
 
-            DrawHeader(ctx, gameModeData, context);
-
-            var yOffset = 150;
-            foreach ((var floorNumber, var floorData) in floorDetails)
+            ctx.Paint(canvas =>
             {
-                var xOffset = floorNumber % 2 * 950 + 50;
+                DrawHeader(canvas, gameModeData, context);
 
-                if (floorData == null || floorData.IsFast)
+                var yOffset = 150;
+                foreach ((var floorNumber, var floorData) in floorDetails)
                 {
-                    if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
-                         !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
-                        (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
-                         !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
+                    var xOffset = floorNumber % 2 * 950 + 50;
+
+                    if (floorData == null || floorData.IsFast)
                     {
-                        ctx.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
-                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
+                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
+                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
+                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
                         {
-                            Origin = new PointF(xOffset + 450, yOffset + 280),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
-                    }
-                    else
-                    {
-                        ctx.DrawRoundedRectangleOverlay(900, 180, new PointF(xOffset, yOffset),
-                            new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                            canvas.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                            {
+                                Origin = new PointF(xOffset + 450, yOffset + 280),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
+                        }
+                        else
                         {
-                            Origin = new PointF(xOffset + 450, yOffset + 110),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center
-                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Color.White);
+                            canvas.DrawRoundedRectangleOverlay(900, 180, new PointF(xOffset, yOffset),
+                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                            {
+                                Origin = new PointF(xOffset + 450, yOffset + 110),
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center
+                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
+                        }
+
+                        var stageText = GetStageText(gameModeData, floorNumber);
+
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new PointF(xOffset + 20, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top
+                        },
+                            floorData?.Name ?? stageText,
+                            Brushes.Solid(Color.White), null);
+
+                        for (var i = 0; i < 3; i++)
+                        {
+                            var starImage = i < (floorData?.StarNum ?? 0) ? StarLit : StarUnlit;
+                            canvas.DrawImage(starImage, starImage.Bounds,
+                                new RectangleF(xOffset + 730 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                                KnownResamplers.Bicubic);
+                        }
+
+                        if (floorNumber % 2 == 1)
+                        {
+                            var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
+                            yOffset += leftIsFull ? 620 : 200;
+                        }
+                        continue;
                     }
 
-                    var stageText = GetStageText(gameModeData, floorNumber);
-
-                    ctx.DrawText(new RichTextOptions(Fonts.Normal)
+                    canvas.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 20, yOffset + 20),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Top
-                    },
-                        floorData?.Name ?? stageText,
-                        Color.White);
+                    }, floorData.Name, Brushes.Solid(Color.White), null);
 
-                    for (var i = 0; i < 3; i++)
-                        ctx.DrawImage(i < (floorData?.StarNum ?? 0) ? StarLit : StarUnlit,
-                            new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
-
-                    if (floorNumber % 2 == 1)
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 65),
+                        new PointF(xOffset + 880, yOffset + 65)).Build());
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
-                        var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
-                        yOffset += leftIsFull ? 620 : 200;
+                        Origin = new PointF(xOffset + 45, yOffset + 85)
+                    }, "Node 1", Brushes.Solid(Color.White), null);
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 855, yOffset + 85),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"Score: {floorData.Node1!.Score}", Brushes.Solid(Color.White), null);
+
+                    DrawNode1Extras(canvas, xOffset, yOffset, floorData);
+
+                    RosterImageBuilder.Draw(
+                        floorData.Node1!.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 55, yOffset + 130),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
+
+                    canvas.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new PointF(xOffset + 780, yOffset + 220), 55,
+                        20f, Color.Black, Color.White);
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + 335),
+                        new PointF(xOffset + 860, yOffset + 335)).Build());
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 45, yOffset + 350)
+                    }, "Node 2", Brushes.Solid(Color.White), null);
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 855, yOffset + 350),
+                        HorizontalAlignment = HorizontalAlignment.Right
+                    }, $"Score: {floorData.Node2!.Score}", Brushes.Solid(Color.White), null);
+
+                    DrawNode2Extras(canvas, xOffset, yOffset, floorData);
+
+                    RosterImageBuilder.Draw(
+                        floorData.Node2!.Avatars.Select(x => avatarImages[x.Id]),
+                        new RosterLayout(MaxSlots: 4),
+                        new Point(xOffset + 55, yOffset + 395),
+                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
+                    canvas.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new PointF(xOffset + 780, yOffset + 485), 55,
+                        20f, Color.Black, Color.White);
+                    for (var i = 0; i < 3; i++)
+                    {
+                        var starImage = i < floorData.StarNum ? StarLit : StarUnlit;
+                        canvas.DrawImage(starImage, starImage.Bounds,
+                            new RectangleF(xOffset + 730 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                            KnownResamplers.Bicubic);
                     }
-                    continue;
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 720, yOffset + 10),
+                        new PointF(xOffset + 720, yOffset + 55)).Build());
+                    var scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
+                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 710, yOffset + 20),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, scoreText,
+                        Brushes.Solid(Color.White), null);
+
+                    DrawScoreExtras(canvas, xOffset, yOffset, scoreText, floorData, gameModeData);
+
+                    if (floorNumber % 2 == 1) yOffset += 620;
                 }
-
-                ctx.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
-                    new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 20, yOffset + 20),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, floorData.Name, Color.White);
-
-                var node1 = RosterImageBuilder.Build(
-                    floorData.Node1!.Avatars.Select(x => lookup[x.Id]),
-                    new RosterLayout(MaxSlots: 4));
-                var node2 = RosterImageBuilder.Build(
-                    floorData.Node2!.Avatars.Select(x => lookup[x.Id]),
-                    new RosterLayout(MaxSlots: 4));
-                disposables.Add(node1);
-                disposables.Add(node2);
-                ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 20, yOffset + 65),
-                    new PointF(xOffset + 880, yOffset + 65));
-                ctx.DrawText("Node 1", Fonts.Normal, Color.White, new PointF(xOffset + 45, yOffset + 85));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 855, yOffset + 85),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"Score: {floorData.Node1.Score}", Color.White);
-
-                DrawNode1Extras(ctx, xOffset, yOffset, floorData);
-
-                ctx.DrawImage(node1, new Point(xOffset + 55, yOffset + 130), 1f);
-                ctx.DrawCenteredIcon(buffImages[floorData.Node1.Buff.Id], new Point(xOffset + 780, yOffset + 220), 55,
-                    20f, Color.Black, Color.White);
-                ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 40, yOffset + 335),
-                    new PointF(xOffset + 860, yOffset + 335));
-                ctx.DrawText("Node 2", Fonts.Normal, Color.White, new PointF(xOffset + 45, yOffset + 350));
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 855, yOffset + 350),
-                    HorizontalAlignment = HorizontalAlignment.Right
-                }, $"Score: {floorData.Node2.Score}", Color.White);
-
-                DrawNode2Extras(ctx, xOffset, yOffset, floorData);
-
-                ctx.DrawImage(node2, new Point(xOffset + 55, yOffset + 395), 1f);
-                ctx.DrawCenteredIcon(buffImages[floorData.Node2.Buff.Id], new Point(xOffset + 780, yOffset + 485), 55,
-                    20f, Color.Black, Color.White);
-                for (var i = 0; i < 3; i++)
-                    ctx.DrawImage(i < floorData.StarNum ? StarLit : StarUnlit,
-                        new Point(xOffset + 730 + i * 50, yOffset + 5), 1f);
-                ctx.DrawLine(Color.White, 2f, new PointF(xOffset + 720, yOffset + 10),
-                    new PointF(xOffset + 720, yOffset + 55));
-                var scoreText = $"Score: {int.Parse(floorData.Node1.Score) + int.Parse(floorData.Node2.Score)}";
-                ctx.DrawText(new RichTextOptions(Fonts.Normal)
-                {
-                    Origin = new PointF(xOffset + 710, yOffset + 20),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Top
-                }, scoreText,
-                    Color.White);
-
-                DrawScoreExtras(ctx, xOffset, yOffset, scoreText, floorData, gameModeData);
-
-                if (floorNumber % 2 == 1) yOffset += 620;
-            }
+            });
         });
     }
 
-    private void DrawHeader(IImageProcessingContext ctx, HsrEndInformation gameModeData,
+    private void DrawHeader(DrawingCanvas canvas, HsrEndInformation gameModeData,
         ICardGenerationContext<HsrEndInformation> context)
     {
         var group = gameModeData.Groups[0];
         var modeString = GetModeString();
-        ctx.DrawText(new RichTextOptions(Fonts.Title)
+        canvas.DrawText(new RichTextOptions(Fonts.Title)
         {
             Origin = new Vector2(50, 80),
             VerticalAlignment = VerticalAlignment.Bottom
-        }, modeString, Color.White);
+        }, modeString, Brushes.Solid(Color.White), null);
         var modeTextBounds = TextMeasurer.MeasureBounds(modeString,
             new TextOptions(Fonts.Title) { Origin = new Vector2(50, 80) });
-        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+        canvas.DrawText(new RichTextOptions(Fonts.Normal)
         {
             Origin = new Vector2(50, 120),
             VerticalAlignment = VerticalAlignment.Bottom
         },
             $"{group.BeginTime.Day}/{group.BeginTime.Month}/{group.BeginTime.Year} - " +
             $"{group.EndTime.Day}/{group.EndTime.Month}/{group.EndTime.Year}",
-            Color.White);
-        ctx.DrawLine(Color.White, 3f, new PointF(modeTextBounds.Right + 15, 40),
-            new PointF(modeTextBounds.Right + 15, 80));
+            Brushes.Solid(Color.White), null);
+        canvas.Draw(Pens.Solid(Color.White, 3f), new PathBuilder().AddLine(new PointF(modeTextBounds.Right + 15, 40),
+            new PointF(modeTextBounds.Right + 15, 80)).Build());
         RichTextOptions textOptions = new(Fonts.Title)
         {
             Origin = new Vector2(modeTextBounds.Right + 30, 80),
             VerticalAlignment = VerticalAlignment.Bottom
         };
         var bounds = TextMeasurer.MeasureBounds(gameModeData.StarNum.ToString(), textOptions);
-        ctx.DrawText(textOptions, gameModeData.StarNum.ToString(), Color.White);
-        ctx.DrawImage(StarLit, new Point((int)bounds.Right + 5, 30), 1f);
+        canvas.DrawText(textOptions, gameModeData.StarNum.ToString(), Brushes.Solid(Color.White), null);
+        var starLit = StarLit;
+        canvas.DrawImage(starLit, starLit.Bounds,
+            new RectangleF((int)bounds.Right + 5, 30, starLit.Width, starLit.Height),
+            KnownResamplers.Bicubic);
 
-        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+        canvas.DrawText(new RichTextOptions(Fonts.Normal)
         {
             Origin = new Vector2(1900, 80),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom
         },
-            $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Color.White);
-        ctx.DrawText(new RichTextOptions(Fonts.Normal)
+            $"{context.GameProfile.Nickname} • TB {context.GameProfile.Level}", Brushes.Solid(Color.White), null);
+        canvas.DrawText(new RichTextOptions(Fonts.Normal)
         {
             Origin = new Vector2(1900, 120),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom
-        }, context.GameProfile.GameUid!, Color.White);
+        }, context.GameProfile.GameUid!, Brushes.Solid(Color.White), null);
     }
 
     protected abstract string GetModeString();
 
-    protected virtual void DrawNode1Extras(IImageProcessingContext ctx, int xOffset, int yOffset,
+    protected virtual void DrawNode1Extras(DrawingCanvas canvas, int xOffset, int yOffset,
         HsrEndFloorDetail floorData)
     { }
 
-    protected virtual void DrawNode2Extras(IImageProcessingContext ctx, int xOffset, int yOffset,
+    protected virtual void DrawNode2Extras(DrawingCanvas canvas, int xOffset, int yOffset,
         HsrEndFloorDetail floorData)
     { }
 
-    protected virtual void DrawScoreExtras(IImageProcessingContext ctx, int xOffset, int yOffset,
+    protected virtual void DrawScoreExtras(DrawingCanvas canvas, int xOffset, int yOffset,
         string scoreText, HsrEndFloorDetail floorData, HsrEndInformation gameModeData)
     { }
 

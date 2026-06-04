@@ -21,7 +21,9 @@ using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.User;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 #endregion
@@ -34,6 +36,13 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<ZzzAssaultData, BaseHoYoApiContext> m_ApiService;
 
+    private static readonly DrawingOptions ClipOptions = new()
+    {
+        ShapeOptions = new ShapeOptions
+        {
+            BooleanOperation = BooleanOperation.Intersection
+        }
+    };
 
     protected override string CommandName => "Assault";
     protected override string CardName => "Deadly Assault";
@@ -166,23 +175,36 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             true);
     }
 
-    private static IMultiImageProcessor GetBossImageProcessor()
+    private static MultiImageProcessorBase GetBossImageProcessor()
     {
         var processor = new MultiImageProcessorBase();
         processor.SetOperation(images =>
         {
             const int BossImageHeight = 230;
-            var background = images[0];
+            using var background = images[0];
             var icon = images[1];
-            background.Mutate(ctx =>
+            var image = new Image<Rgba32>(background.Width, background.Height);
+            image.Mutate(ctx =>
             {
-                ctx.DrawImage(icon, new Point(0, 0), 1f);
+                ctx.Paint(canvas =>
+                {
+                    _ = canvas.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, background.Width, background.Height, 15));
+                    canvas.DrawImage(background, background.Bounds,
+                        new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
+                    canvas.DrawImage(icon, icon.Bounds,
+                        new RectangleF(0, 0, icon.Width, icon.Height), KnownResamplers.Bicubic);
+                    canvas.Restore();
+                });
                 ctx.Resize(0, BossImageHeight);
+
                 var size = ctx.GetCurrentSize();
-                var border = ImageUtility.CreateRoundedRectanglePath(size.Width, BossImageHeight, 15);
-                ctx.Draw(Color.Black, 4f, border);
-                ctx.ApplyRoundedCorners(15);
+                var border = new RoundedRectanglePolygon(0, 0, size.Width, BossImageHeight, 15);
+                ctx.Paint(canvas =>
+                {
+                    canvas.Draw(Pens.Solid(Color.Black, 4f), border);
+                });
             });
+            images[0] = image;
         });
 
         return processor;

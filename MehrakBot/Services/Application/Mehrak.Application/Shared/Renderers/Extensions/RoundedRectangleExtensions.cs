@@ -18,23 +18,20 @@ public record RoundedRectangleOverlayStyle(
 
 public static class RoundedRectangleExtensions
 {
-    public static IImageProcessingContext DrawRoundedRectangleOverlay(
-        this IImageProcessingContext ctx,
+    public static void DrawRoundedRectangleOverlay(
+        this DrawingCanvas canvas,
         int width,
         int height,
         PointF location,
         RoundedRectangleOverlayStyle style)
     {
-        var path = ImageUtility.CreateRoundedRectanglePath(width, height, style.CornerRadius)
-            .Translate(location);
+        var roundedRect = new RoundedRectanglePolygon(new RectangleF(location, new Size(width, height)), style.CornerRadius);
 
-        ctx.Fill(style.FillColor, path);
+        canvas.Fill(Brushes.Solid(style.FillColor), roundedRect);
 
         if (style.BorderColor.HasValue && style.BorderWidth > 0)
         {
-            ctx.Draw(style.BorderColor.Value, style.BorderWidth, path);
+            canvas.Draw(Pens.Solid(style.BorderColor.Value, style.BorderWidth), roundedRect);
         }
-
-        return ctx;
     }
 }

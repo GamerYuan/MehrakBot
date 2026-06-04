@@ -36,7 +36,6 @@ public class HsrMemoryCardServiceTests
         await m_Service.InitializeAsync();
     }
 
-    [Explicit]
     [Test]
     [TestCase("Moc_TestData_1.json")]
     [TestCase("Moc_TestData_2.json")]
@@ -94,6 +93,7 @@ public class HsrMemoryCardServiceTests
         };
     }
 
+    [Explicit]
     [Test]
     [TestCase("Moc_TestData_1.json", "Moc_GoldenImage_1.jpg")]
     [TestCase("Moc_TestData_2.json", "Moc_GoldenImage_2.jpg")]

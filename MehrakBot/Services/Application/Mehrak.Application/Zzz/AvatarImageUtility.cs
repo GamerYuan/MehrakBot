@@ -1,10 +1,10 @@
-﻿#region
+#region
 
+using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
-using Mehrak.Application.Shared.Utility;
-using Mehrak.GameApi.Zzz.Types;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -15,79 +15,55 @@ namespace Mehrak.Application.Zzz;
 
 internal static class AvatarImageUtility
 {
-    private static readonly Font NormalFont =
-        new FontCollection().Add("Assets/Fonts/zzz.ttf").CreateFont(24, FontStyle.Bold);
+    private static readonly AvatarImageStyle Style;
 
-    private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
-    private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
-    private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
-    private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
-
-    public static Image<Rgba32> GetStyledAvatarImage(this ZzzAvatar avatar, string text = "")
+    private static readonly DrawingOptions ClipOptions = new()
     {
-        Image<Rgba32> avatarImage = new(150, 180);
-        RectangleF rectangle = new(0, 145, 150, 35);
+        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
+    };
 
-        avatarImage.Mutate(ctx =>
-        {
-            ctx.Fill(avatar.Rarity == 'A' ? PurpleBackgroundColor : GoldBackgroundColor);
-            ctx.DrawImage(avatar.AvatarImage, new Point(0, 0), 1f);
-            ctx.Fill(Color.Black, rectangle);
-            ctx.DrawText(new RichTextOptions(NormalFont)
-            {
-                Origin = new PointF(75, 160),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, string.IsNullOrEmpty(text) ? $"Lv. {avatar.Level}" : text, Color.White);
-            if (avatar.Rank > 0)
-            {
-                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 110),
-                    new RoundedRectangleOverlayStyle(
-                        avatar.Rank == 6 ? Color.Gold : NormalConstColor,
-                        CornerRadius: 5));
-                ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 125),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    avatar.Rank.ToString(),
-                    avatar.Rank == 6 ? GoldConstTextColor : Color.White);
-            }
+    static AvatarImageUtility()
+    {
+        var collection = new FontCollection();
+        var fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
 
-            var border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
-            ctx.Draw(Color.Black, 4, border);
-
-            ctx.ApplyRoundedCorners(15);
-        });
-
-        return avatarImage;
+        Style = new AvatarImageStyle(
+            NormalFont: fontFamily.CreateFont(24, FontStyle.Bold),
+            GoldBackgroundColor: Color.FromPixel(new Rgb24(188, 143, 96)),
+            PurpleBackgroundColor: Color.FromPixel(new Rgb24(118, 81, 179)),
+            NormalConstColor: Color.FromPixel(new Rgba32(69, 69, 69, 200)),
+            GoldConstTextColor: Color.ParseHex("8A6500"),
+            OverlayHeight: 35,
+            DrawBorder: true,
+            BorderWidth: 3f,
+            BadgeOffsetY: 70,
+            BadgeTextOffsetY: 55);
     }
 
-    public static Image<Rgba32> GetStyledBuddyImage(this ZzzBuddyData buddy, Image buddyImage, Image starImage)
+    public static void DrawStyledAvatarImage(this ZzzAvatar avatar, DrawingCanvas canvas, Point location, string text = "")
     {
-        Image<Rgba32> background = new(150, 180);
-        RectangleF rectangle = new(0, 145, 150, 35);
-
-        background.Mutate(ctx =>
-        {
-            var border = ImageUtility.CreateRoundedRectanglePath(150, 180, 15);
-            ctx.Clear(Color.FromRgb(24, 24, 24));
-
-            ctx.DrawImage(buddyImage, new Point(-45, -20), 1f);
-
-            ctx.Fill(Color.Black, rectangle);
-            ctx.DrawText(new RichTextOptions(NormalFont)
-            {
-                Origin = new PointF(75, 160),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }, $"Lv. {buddy.Level}", Color.White);
-
-            ctx.Draw(Color.Black, 4, border);
-            ctx.DrawImage(starImage, new Point(65, 120), 1f);
-            ctx.ApplyRoundedCorners(15);
-        });
-        return background;
+        AvatarImageRenderer.DrawStyledAvatar(canvas, avatar.AvatarImage, location,
+            MapRarity(avatar.Rarity), avatar.Level, Style, avatar.Rank, text);
     }
+
+    public static void DrawStyledBuddyImage(DrawingCanvas canvas, Point position, Image buddyImage)
+    {
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(150, 180)), 15);
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(150, 180)));
+        _ = region.Save(ClipOptions, clipPath);
+        region.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(24, 24, 24))));
+        region.DrawImage(buddyImage, buddyImage.Bounds,
+            new RectangleF(0, 0, buddyImage.Width, buddyImage.Height),
+            KnownResamplers.Bicubic);
+        region.Restore();
+        region.Draw(Pens.Solid(Color.Black, 3f), clipPath);
+    }
+
+    private static int MapRarity(char rarity) => rarity switch
+    {
+        'S' => 5,
+        'A' => 4,
+        'B' => 3,
+        _ => 1
+    };
 }

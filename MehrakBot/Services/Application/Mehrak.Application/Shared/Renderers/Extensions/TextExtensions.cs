@@ -11,7 +11,8 @@ namespace Mehrak.Application.Shared.Renderers.Extensions;
 
 public static class TextExtensions
 {
-    public static void DrawFauxItalicText(this IImageProcessingContext context,
+    public static void DrawFauxItalicText(
+        this DrawingCanvas canvas,
         string text,
         Font font,
         Color color,
@@ -24,20 +25,22 @@ public static class TextExtensions
             .AppendSkewDegrees(-skewAngle, 0) // Skew along X axis
             .AppendTranslation(new PointF(location.X, location.Y)); // Move back
 
-        var textSize = TextMeasurer.MeasureSize(text, new RichTextOptions(font)
+        var textSize = TextMeasurer.MeasureBounds(text, new RichTextOptions(font)
         {
             Origin = location
         });
 
         DrawingOptions drawingOptions = new()
         {
-            Transform = transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height))
+            Transform = new(transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height)))
         };
-
-        context.DrawText(drawingOptions, text, font, color, location);
+        _ = canvas.Save(drawingOptions);
+        canvas.DrawText(new RichTextOptions(font) { Origin = location }, text, Brushes.Solid(color), null);
+        canvas.Restore();
     }
 
-    public static void DrawFauxItalicText(this IImageProcessingContext context,
+    public static void DrawFauxItalicText(
+        this DrawingCanvas canvas,
         RichTextOptions option,
         string text,
         Color color,
@@ -48,13 +51,15 @@ public static class TextExtensions
             .AppendSkewDegrees(-skewAngle, 0)
             .AppendTranslation(new PointF(option.Origin.X, option.Origin.Y));
 
-        var textSize = TextMeasurer.MeasureSize(text, option);
+        var textSize = TextMeasurer.MeasureBounds(text, option);
 
         DrawingOptions drawingOptions = new()
         {
-            Transform = transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height))
+            Transform = new(transformBuilder.BuildMatrix(new Size((int)textSize.Width, (int)textSize.Height)))
         };
 
-        context.DrawText(drawingOptions, option, text, new SolidBrush(color), new SolidPen(Color.Transparent));
+        _ = canvas.Save(drawingOptions);
+        canvas.DrawText(option, text, Brushes.Solid(color), null);
+        canvas.Restore();
     }
 }

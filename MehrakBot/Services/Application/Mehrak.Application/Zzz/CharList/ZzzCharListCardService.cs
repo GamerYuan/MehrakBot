@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Utility;
@@ -21,25 +21,25 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
     private static readonly Dictionary<string, Color> ElementForeground = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Physical", Color.FromRgb(255, 226, 0) },
-        { "Fire", Color.FromRgb(254, 83, 26) },
-        { "Ice", Color.FromRgb(126, 233, 232) },
-        { "Electric", Color.FromRgb(0, 145, 217) },
-        { "Ether", Color.FromRgb(122, 78, 204) },
+        { "Physical", Color.FromPixel(new Rgb24(255, 226, 0)) },
+        { "Fire", Color.FromPixel(new Rgb24(254, 83, 26)) },
+        { "Ice", Color.FromPixel(new Rgb24(126, 233, 232)) },
+        { "Electric", Color.FromPixel(new Rgb24(0, 145, 217)) },
+        { "Ether", Color.FromPixel(new Rgb24(122, 78, 204)) },
     };
 
     private static readonly char[] RarityOrder = ['S', 'A'];
 
-    private static readonly Color GoldBackgroundColor = Color.FromRgb(183, 125, 76);
-    private static readonly Color PurpleBackgroundColor = Color.FromRgb(132, 104, 173);
+    private static readonly Color GoldBackgroundColor = Color.FromPixel(new Rgb24(183, 125, 76));
+    private static readonly Color PurpleBackgroundColor = Color.FromPixel(new Rgb24(132, 104, 173));
 
     private static readonly TextInfo TextInfo = new CultureInfo("en-US", false).TextInfo;
 
     private static readonly Color[] RarityColors =
     [
-        Color.FromRgb(128, 128, 130),
-        Color.FromRgb(79, 135, 111),
-        Color.FromRgb(86, 130, 166),
+        Color.FromPixel(new Rgb24(128, 128, 130)),
+        Color.FromPixel(new Rgb24(79, 135, 111)),
+        Color.FromPixel(new Rgb24(86, 130, 166)),
         PurpleBackgroundColor,
         GoldBackgroundColor,
     ];
@@ -114,9 +114,9 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             NameColor: Color.White,
             LevelTextColor: Color.White,
             LevelOverlayColor: Color.Black,
-            NormalConstColor: Color.FromRgba(69, 69, 69, 200),
+            NormalConstColor: Color.FromPixel(new Rgba32(69, 69, 69, 200)),
             GoldConstColor: Color.Gold,
-            GoldConstTextColor: Color.FromRgb(138, 101, 0),
+            GoldConstTextColor: Color.FromPixel(new Rgb24(138, 101, 0)),
             FooterTextColor: Color.White,
             PlaceholderWeaponIcon: null,
             DrawWeapon: false,
@@ -206,25 +206,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
         background.Mutate(ctx =>
         {
-            ctx.Clear(Color.FromRgb(27, 27, 27));
-
-            renderer.RenderHeader(ctx, outputWidth,
-                $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", context.GameProfile.GameUid!);
-
-            for (var i = 0; i < charModules.Count + buddyModules.Count; i++)
-            {
-                var pos = layout.ImagePositions[i];
-                if (i < charModules.Count)
-                {
-                    (var character, var moduleData) = charModules[i];
-                    renderer.Render(ctx, moduleData, new Point(pos.X, pos.Y),
-                        ElementForeground.TryGetValue(StatUtils.GetElementNameFromId(character.ElementType, 0), out var fgColor) ? fgColor : null);
-                }
-                else
-                {
-                    renderer.Render(ctx, buddyModules[i - charModules.Count], new Point(pos.X, pos.Y), Color.LightGray);
-                }
-            }
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(27, 27, 27))), new Rectangle(0, 0, background.Width, background.Height)));
 
             var footerModules = new List<Image<Rgba32>>();
 
@@ -250,7 +232,28 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 footerModules.Add(module);
             }
 
-            CharacterModuleRenderer.RenderFooter(ctx, outputWidth, layout.OutputHeight, footerModules, disposables);
+            ctx.Paint(canvas =>
+            {
+                renderer.RenderHeader(canvas, outputWidth,
+                    $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", context.GameProfile.GameUid!);
+
+                for (var i = 0; i < charModules.Count + buddyModules.Count; i++)
+                {
+                    var pos = layout.ImagePositions[i];
+                    if (i < charModules.Count)
+                    {
+                        (var character, var moduleData) = charModules[i];
+                        renderer.Render(canvas, moduleData, new Point(pos.X, pos.Y),
+                            ElementForeground.TryGetValue(StatUtils.GetElementNameFromId(character.ElementType, 0), out var fgColor) ? fgColor : null);
+                    }
+                    else
+                    {
+                        renderer.Render(canvas, buddyModules[i - charModules.Count], new Point(pos.X, pos.Y), Color.LightGray);
+                    }
+                }
+
+                CharacterModuleRenderer.RenderFooter(canvas, outputWidth, layout.OutputHeight, footerModules, disposables);
+            });
         });
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",

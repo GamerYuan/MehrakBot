@@ -17,36 +17,19 @@ public record RosterLayout(
 
 public static class RosterImageBuilder
 {
-    public static Image<Rgba32> Build(
-        IEnumerable<Image> avatars,
+    public static void Draw<TItem>(
+        IEnumerable<TItem> items,
         RosterLayout layout,
-        Image? trailingImage = null)
+        Point canvasOrigin,
+        Action<Point, TItem> drawItem)
     {
-        var avatarList = avatars as IReadOnlyList<Image> ?? [.. avatars];
-        var totalSlots = avatarList.Count + (trailingImage != null ? 1 : 0);
-        var canvasWidth = layout.MaxSlots * layout.AvatarWidth + (layout.MaxSlots - 1) * layout.Spacing + 20;
+        var itemList = items as IReadOnlyList<TItem> ?? [.. items];
+        var offset = (layout.MaxSlots - itemList.Count) * layout.AvatarWidth / 2 + 10;
 
-        var offset = (layout.MaxSlots - totalSlots) * layout.AvatarWidth / 2 + 10;
-
-        Image<Rgba32> rosterImage = new(canvasWidth, layout.CanvasHeight);
-
-        rosterImage.Mutate(ctx =>
+        for (var i = 0; i < itemList.Count; i++)
         {
-            ctx.Clear(Color.Transparent);
-
-            for (var i = 0; i < avatarList.Count; i++)
-            {
-                var x = offset + i * (layout.AvatarWidth + layout.Spacing);
-                ctx.DrawImage(avatarList[i], new Point(x, 0), 1f);
-            }
-
-            if (trailingImage != null)
-            {
-                var x = offset + avatarList.Count * (layout.AvatarWidth + layout.Spacing);
-                ctx.DrawImage(trailingImage, new Point(x, 0), 1f);
-            }
-        });
-
-        return rosterImage;
+            var x = offset + i * (layout.AvatarWidth + layout.Spacing);
+            drawItem(new Point(canvasOrigin.X + x, canvasOrigin.Y), itemList[i]);
+        }
     }
 }

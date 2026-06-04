@@ -22,36 +22,37 @@ public static class DropShadowTextExtensions
     /// Draws text with an optional drop shadow. If BlurRadius > 0, the shadow is rendered
     /// to a temporary image and blurred before compositing.
     /// </summary>
-    public static IImageProcessingContext DrawTextWithShadow(
-        this IImageProcessingContext ctx,
+    public static void DrawTextWithShadow(
+        this DrawingCanvas canvas,
         string text,
         Font font,
         PointF origin,
         Color textColor,
         DropShadowTextStyle? style = null)
     {
+        _ = canvas.SaveLayer();
         style ??= new DropShadowTextStyle();
         var shadowColor = style.ShadowColor ?? Color.Black;
         var shadowOrigin = new PointF(origin.X + style.ShadowOffsetX, origin.Y + style.ShadowOffsetY);
 
         if (style.BlurRadius > 0)
         {
-            DrawBlurredShadow(ctx, text, font, shadowOrigin, shadowColor, style.BlurRadius);
+            DrawBlurredShadow(canvas, text, font, shadowOrigin, shadowColor, style.BlurRadius);
         }
         else
         {
-            ctx.DrawText(text, font, shadowColor, shadowOrigin);
+            canvas.DrawText(new RichTextOptions(font) { Origin = shadowOrigin }, text, Brushes.Solid(shadowColor), null);
         }
 
-        ctx.DrawText(text, font, textColor, origin);
-        return ctx;
+        canvas.DrawText(new RichTextOptions(font) { Origin = origin }, text, Brushes.Solid(textColor), null);
+        canvas.Restore();
     }
 
     /// <summary>
     /// Draws text with RichTextOptions and an optional drop shadow.
     /// </summary>
-    public static IImageProcessingContext DrawTextWithShadow(
-        this IImageProcessingContext ctx,
+    public static void DrawTextWithShadow(
+        this DrawingCanvas canvas,
         string text,
         RichTextOptions options,
         Color textColor,
@@ -60,9 +61,10 @@ public static class DropShadowTextExtensions
         style ??= new DropShadowTextStyle();
         var shadowColor = style.ShadowColor ?? Color.Black;
 
+        _ = canvas.SaveLayer();
         if (style.BlurRadius > 0)
         {
-            DrawBlurredShadow(ctx, text, options, shadowColor, style);
+            DrawBlurredShadow(canvas, text, options, shadowColor, style);
         }
         else
         {
@@ -73,15 +75,15 @@ public static class DropShadowTextExtensions
                 HorizontalAlignment = options.HorizontalAlignment,
                 VerticalAlignment = options.VerticalAlignment
             };
-            ctx.DrawText(shadowOptions, text, shadowColor);
+            canvas.DrawText(shadowOptions, text, Brushes.Solid(shadowColor), null);
         }
 
-        ctx.DrawText(options, text, textColor);
-        return ctx;
+        canvas.DrawText(options, text, Brushes.Solid(textColor), null);
+        canvas.Restore();
     }
 
     private static void DrawBlurredShadow(
-        IImageProcessingContext ctx,
+        DrawingCanvas canvas,
         string text,
         Font font,
         PointF shadowOrigin,
@@ -89,27 +91,22 @@ public static class DropShadowTextExtensions
         float blurRadius)
     {
         var blurR = (int)Math.Ceiling(blurRadius);
-        var pad = blurR + 4;
 
         var bounds = TextMeasurer.MeasureBounds(text, new RichTextOptions(font) { Origin = PointF.Empty });
-        var w = (int)Math.Ceiling(bounds.Width) + pad * 2;
-        var h = (int)Math.Ceiling(bounds.Height) + pad * 2;
+        var pad = blurR + 4;
 
-        using var shadowImg = new Image<Rgba32>(Math.Max(1, w), Math.Max(1, h));
-        shadowImg.Mutate(x =>
-        {
-            x.DrawText(text, font, shadowColor, new PointF(pad - bounds.Left, pad - bounds.Top));
-            x.BoxBlur(blurR);
-        });
-
-
-        ctx.DrawImage(shadowImg,
-            new Point((int)Math.Floor(shadowOrigin.X + bounds.Left - pad),
-            (int)Math.Floor(shadowOrigin.Y + bounds.Top - pad)), 1f);
+        _ = canvas.SaveLayer();
+        canvas.DrawText(new RichTextOptions(font) { Origin = shadowOrigin }, text, Brushes.Solid(shadowColor), null);
+        canvas.Apply(
+            new Rectangle(
+                new Point((int)(shadowOrigin.X + bounds.X) - pad, (int)(shadowOrigin.Y + bounds.Y) - pad),
+                new Size((int)bounds.Width + 2 * pad, (int)bounds.Height + 2 * pad)),
+            ctx => ctx.BoxBlur(blurR));
+        canvas.Restore();
     }
 
     private static void DrawBlurredShadow(
-        IImageProcessingContext ctx,
+        DrawingCanvas canvas,
         string text,
         RichTextOptions options,
         Color shadowColor,
@@ -127,25 +124,13 @@ public static class DropShadowTextExtensions
         };
 
         var bounds = TextMeasurer.MeasureBounds(text, shadowOptions);
-        var w = (int)Math.Ceiling(bounds.Width) + pad * 2;
-        var h = (int)Math.Ceiling(bounds.Height) + pad * 2;
-        var imgX = (int)Math.Floor(bounds.Left - pad);
-        var imgY = (int)Math.Floor(bounds.Top - pad);
 
-        using var shadowImg = new Image<Rgba32>(Math.Max(1, w), Math.Max(1, h));
-        shadowImg.Mutate(x =>
-        {
-            var drawOptions = new RichTextOptions(options.Font)
-            {
-                Origin = new PointF(shadowOptions.Origin.X - imgX, shadowOptions.Origin.Y - imgY),
-                WrappingLength = options.WrappingLength,
-                HorizontalAlignment = options.HorizontalAlignment,
-                VerticalAlignment = options.VerticalAlignment
-            };
-            x.DrawText(drawOptions, text, shadowColor);
-            x.BoxBlur(blurR);
-        });
-
-        ctx.DrawImage(shadowImg, new Point(imgX, imgY), 1f);
+        _ = canvas.SaveLayer();
+        canvas.DrawText(shadowOptions, text, Brushes.Solid(shadowColor), null);
+        canvas.Apply(
+            new Rectangle(new Point((int)shadowOptions.Origin.X - pad, (int)shadowOptions.Origin.Y - pad),
+                new Size((int)bounds.Width + 2 * pad, (int)bounds.Height + 2 * pad)),
+            ctx => ctx.BoxBlur(blurR));
+        canvas.Restore();
     }
 }

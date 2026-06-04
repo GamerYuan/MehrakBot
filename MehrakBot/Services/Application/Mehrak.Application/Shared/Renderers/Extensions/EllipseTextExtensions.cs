@@ -4,7 +4,6 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Processing;
 
 #endregion
 
@@ -25,8 +24,8 @@ public static class EllipseTextExtensions
     /// visually centered inside it. If ShrinkToFit is true, the font will be
     /// reduced until the text fits within the ellipse diameter.
     /// </summary>
-    public static IImageProcessingContext DrawCenteredTextInEllipse(
-        this IImageProcessingContext ctx,
+    public static void DrawCenteredTextInEllipse(
+        this DrawingCanvas canvas,
         string text,
         PointF center,
         float radius,
@@ -35,13 +34,13 @@ public static class EllipseTextExtensions
         if (radius <= 0)
             throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be positive.");
 
+        _ = canvas.SaveLayer();
         var ellipse = new EllipsePolygon(center, radius);
-
-        ctx.Fill(style.Background, ellipse);
+        canvas.Fill(Brushes.Solid(style.Background), ellipse);
 
         if (style.Outline != null && style.OutlineWidth > 0)
         {
-            ctx.Draw(style.Outline.Value, style.OutlineWidth, ellipse);
+            canvas.Draw(Pens.Solid(style.Outline.Value, style.OutlineWidth), ellipse);
         }
 
         var actualFont = style.ShrinkToFit
@@ -55,24 +54,23 @@ public static class EllipseTextExtensions
 
         var drawY = (center.Y - radius * 0.05f) - (bounds.Height / 2f);
 
-        ctx.DrawText(new RichTextOptions(actualFont)
+        canvas.DrawText(new RichTextOptions(actualFont)
         {
             Origin = new PointF(center.X, drawY),
             HorizontalAlignment = HorizontalAlignment.Center
-        }, text, style.TextColor);
-
-        return ctx;
+        }, text, Brushes.Solid(style.TextColor), null);
+        canvas.Restore();
     }
 
     private static Font GetFittingFont(string text, Font font, float maxWidth)
     {
         var currentFont = font;
-        var size = TextMeasurer.MeasureSize(text, new RichTextOptions(currentFont));
+        var size = TextMeasurer.MeasureBounds(text, new RichTextOptions(currentFont));
 
         while (size.Width > maxWidth && currentFont.Size > 8)
         {
             currentFont = currentFont.Family.CreateFont(currentFont.Size - 1);
-            size = TextMeasurer.MeasureSize(text, new RichTextOptions(currentFont));
+            size = TextMeasurer.MeasureBounds(text, new RichTextOptions(currentFont));
         }
 
         return currentFont;

@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
@@ -21,8 +21,8 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 {
     private static readonly Color GoldBackgroundColor = Color.ParseHex("BC8F60");
     private static readonly Color PurpleBackgroundColor = Color.ParseHex("7651B3");
-    private static readonly Color BlueBackgroundColor = Color.FromRgb(90, 131, 187);
-    private static readonly Color WhiteBackgroundColor = Color.FromRgb(128, 128, 130);
+    private static readonly Color BlueBackgroundColor = Color.FromPixel(new Rgb24(90, 131, 187));
+    private static readonly Color WhiteBackgroundColor = Color.FromPixel(new Rgb24(128, 128, 130));
 
     private static readonly Color[] RarityColors =
     [
@@ -37,13 +37,13 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
     private static readonly Dictionary<string, Color> ElementBackground = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Fire", Color.FromRgb(255, 46, 46) },
-        { "Ice", Color.FromRgb(38, 146, 211) },
-        { "Lightning", Color.FromRgb(184, 77, 211) },
-        { "Wind", Color.FromRgb(62, 177, 119) },
-        { "Quantum", Color.FromRgb(136, 128, 255) },
-        { "Imaginary", Color.FromRgb(245, 222, 53) },
-        { "Physical", Color.FromRgb(191, 195, 190) }
+        { "Fire", Color.FromPixel(new Rgb24(255, 46, 46)) },
+        { "Ice", Color.FromPixel(new Rgb24(38, 146, 211)) },
+        { "Lightning", Color.FromPixel(new Rgb24(184, 77, 211)) },
+        { "Wind", Color.FromPixel(new Rgb24(62, 177, 119)) },
+        { "Quantum", Color.FromPixel(new Rgb24(136, 128, 255)) },
+        { "Imaginary", Color.FromPixel(new Rgb24(245, 222, 53)) },
+        { "Physical", Color.FromPixel(new Rgb24(191, 195, 190)) }
     };
 
     private readonly Dictionary<string, Image> m_ElementIcons = new(StringComparer.OrdinalIgnoreCase);
@@ -106,9 +106,9 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             NameColor: Color.White,
             LevelTextColor: Color.White,
             LevelOverlayColor: Color.Black,
-            NormalConstColor: Color.FromRgba(69, 69, 69, 200),
+            NormalConstColor: Color.FromPixel(new Rgba32(69, 69, 69, 200)),
             GoldConstColor: Color.Gold,
-            GoldConstTextColor: Color.FromRgb(138, 101, 0),
+            GoldConstTextColor: Color.FromPixel(new Rgb24(138, 101, 0)),
             FooterTextColor: Color.White,
             PlaceholderWeaponIcon: m_WeaponPlaceholder);
 
@@ -157,17 +157,7 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             background.Mutate(ctx => ctx.Resize(outputWidth, outputHeight));
         background.Mutate(ctx =>
         {
-            ctx.Clear(Color.FromRgb(27, 27, 27));
-
-            renderer.RenderHeader(ctx, outputWidth,
-                $"{context.GameProfile.Nickname!} · TB {context.GameProfile.Level}", context.GameProfile.GameUid!);
-
-            foreach (var position in layout.ImagePositions)
-            {
-                var (character, moduleData) = avatarDataList[position.ImageIndex];
-                renderer.Render(ctx, moduleData, new Point(position.X, position.Y),
-                    ElementBackground.GetValueOrDefault(character.Element ?? "", Color.FromRgb(120, 120, 120)));
-            }
+            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(27, 27, 27))), new Rectangle(0, 0, background.Width, background.Height)));
 
             var footerModules = new List<Image<Rgba32>>();
             foreach (var entry in charCountByRarity.OrderByDescending(x => x.Rarity))
@@ -186,7 +176,20 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
                 footerModules.Add(module);
             }
 
-            CharacterModuleRenderer.RenderFooter(ctx, outputWidth, layout.OutputHeight, footerModules, disposables);
+            ctx.Paint(canvas =>
+            {
+                renderer.RenderHeader(canvas, outputWidth,
+                    $"{context.GameProfile.Nickname!} · TB {context.GameProfile.Level}", context.GameProfile.GameUid!);
+
+                foreach (var position in layout.ImagePositions)
+                {
+                    var (character, moduleData) = avatarDataList[position.ImageIndex];
+                    renderer.Render(canvas, moduleData, new Point(position.X, position.Y),
+                        ElementBackground.GetValueOrDefault(character.Element ?? "", Color.FromPixel(new Rgb24(120, 120, 120))));
+                }
+
+                CharacterModuleRenderer.RenderFooter(canvas, outputWidth, layout.OutputHeight, footerModules, disposables);
+            });
         });
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",

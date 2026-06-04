@@ -1,12 +1,12 @@
-﻿#region
+#region
 
+using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
-using Mehrak.Application.Shared.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 #endregion
 
@@ -14,87 +14,61 @@ namespace Mehrak.Application.Genshin;
 
 internal static class AvatarImageUtility
 {
-    private static readonly Font NormalFont;
-    private static readonly Font SmallFont;
+    private static readonly AvatarImageStyle Style;
 
-    private static readonly Color GoldBackgroundColor = new Rgb24(183, 125, 76);
-    private static readonly Color PurpleBackgroundColor = new Rgb24(132, 104, 173);
-    private static readonly Color NormalConstColor = new Rgba32(69, 69, 69, 200);
-    private static readonly Color GoldConstTextColor = Color.ParseHex("8A6500");
+    private static readonly DrawingOptions ClipOptions = new()
+    {
+        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
+    };
 
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
         var fontFamily = collection.Add("Assets/Fonts/genshin.ttf");
-        NormalFont = fontFamily.CreateFont(24, FontStyle.Bold);
-        SmallFont = fontFamily.CreateFont(18, FontStyle.Regular);
+
+        Style = new AvatarImageStyle(
+            NormalFont: fontFamily.CreateFont(24, FontStyle.Bold),
+            SmallFont: fontFamily.CreateFont(18, FontStyle.Regular),
+            GoldBackgroundColor: Color.FromPixel(new Rgb24(183, 125, 76)),
+            PurpleBackgroundColor: Color.FromPixel(new Rgb24(132, 104, 173)),
+            NormalConstColor: Color.FromPixel(new Rgba32(69, 69, 69, 200)),
+            GoldConstTextColor: Color.ParseHex("8A6500"),
+            OverlayColor: Color.PeachPuff,
+            LevelTextColor: Color.Black,
+            BadgeOffsetY: 65,
+            BadgeTextOffsetY: 50,
+            PostImageDrawer: DrawAvatarTypeBadge);
     }
 
-    public static Image<Rgba32> GetStyledAvatarImage(this GenshinAvatar avatar, string text = "")
+    public static void DrawStyledAvatarImage(this GenshinAvatar avatar, DrawingCanvas canvas, Point location, string text = "")
     {
-        return GetStyledAvatarImageHelper(avatar.Rarity, avatar.Level, avatar.AvatarImage, avatar.Constellation,
-            avatar.AvatarType, text);
+        AvatarImageRenderer.DrawStyledAvatar(canvas, avatar.AvatarImage, location,
+            avatar.Rarity, avatar.Level, Style, avatar.Constellation, text,
+            avatar.AvatarType);
     }
 
-    private static Image<Rgba32> GetStyledAvatarImageHelper(int rarity, int level, Image portrait, int constellation,
-        int avatarType, string text)
+    private static void DrawAvatarTypeBadge(DrawingCanvas region, Point _, Size size, IPath clipPath, int avatarType)
     {
-        var avatarImage = new Image<Rgba32>(150, 180);
-        var rectangle = new RectangleF(0, 150, 150, 30);
+        if (avatarType is not (2 or 3))
+            return;
 
-        avatarImage.Mutate(ctx =>
+        var (badgeWidth, badgeColor, badgeText, textX) = avatarType switch
         {
-            ctx.Fill(rarity == 4 ? PurpleBackgroundColor : GoldBackgroundColor);
-            ctx.DrawImage(portrait, new Point(0, 0), 1f);
-            ctx.Fill(Color.PeachPuff, rectangle);
-            ctx.DrawText(new RichTextOptions(NormalFont)
-            {
-                Origin = new PointF(75, 180),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Bottom
-            }, string.IsNullOrEmpty(text) ? $"Lv. {level}" : text, Color.Black);
-            if (constellation > 0)
-            {
-                ctx.DrawRoundedRectangleOverlay(30, 30, new PointF(115, 115),
-                    new RoundedRectangleOverlayStyle(
-                        constellation == 6 ? Color.Gold : NormalConstColor,
-                        CornerRadius: 5));
-                ctx.DrawText(new RichTextOptions(NormalFont)
-                {
-                    Origin = new PointF(130, 130),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                    constellation.ToString(),
-                    constellation == 6 ? GoldConstTextColor : Color.White);
-            }
+            2 => (80, Color.FromPixel(new Rgb24(225, 118, 128)), "Trial", 98f),
+            3 => (130, Color.FromPixel(new Rgb24(73, 128, 185)), "Support", 63f),
+            _ => default // unreachable
+        };
 
-            switch (avatarType)
-            {
-                case 2:
-                    ctx.DrawRoundedRectangleOverlay(80, 35, new PointF(90, -10),
-                        new RoundedRectangleOverlayStyle(Color.FromRgb(225, 118, 128), CornerRadius: 15));
-                    ctx.DrawText(new RichTextOptions(SmallFont)
-                    {
-                        Origin = new PointF(98, 3),
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, "Trial", Color.White);
-                    break;
+        region.DrawRoundedRectangleOverlay(badgeWidth, 35, new PointF(size.Width - badgeWidth + 30, -10),
+            new RoundedRectangleOverlayStyle(badgeColor, CornerRadius: 15));
 
-                case 3:
-                    ctx.DrawRoundedRectangleOverlay(130, 35, new PointF(50, -10),
-                        new RoundedRectangleOverlayStyle(Color.FromRgb(73, 128, 185), CornerRadius: 15));
-                    ctx.DrawText(new RichTextOptions(SmallFont)
-                    {
-                        Origin = new PointF(63, 3),
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, "Support", Color.White);
-                    break;
-            }
-
-            ctx.ApplyRoundedCorners(15);
-        });
-
-        return avatarImage;
+        // Restore clip to draw text above the avatar bounds, then re-save
+        region.Restore();
+        region.DrawText(new RichTextOptions(Style.SmallFont!)
+        {
+            Origin = new PointF(textX, 3),
+            VerticalAlignment = VerticalAlignment.Top
+        }, badgeText, Brushes.Solid(Color.White), null);
+        region.Save(ClipOptions, clipPath);
     }
 }
