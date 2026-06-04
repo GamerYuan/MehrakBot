@@ -141,21 +141,20 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
                 async (x, token) => await LoadImageFromRepositoryAsync(
                     x.ToMonsterImageName(), disposables, token), cancellationToken: cancellationToken);
 
+        var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
+
         background.Mutate(ctx =>
         {
             ctx.Resize(new ResizeOptions
             {
                 CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
-                Size = new Size(1000, 1050),
+                Size = new Size(1000, 1080),
                 Mode = ResizeMode.Crop,
                 Sampler = KnownResamplers.Bicubic
             });
-        });
 
-        var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
+            var imageSize = ctx.GetCurrentSize();
 
-        background.Mutate(ctx =>
-        {
             ctx.Paint(canvas =>
             {
                 canvas.DrawText(new RichTextOptions(Fonts.Title)
@@ -213,6 +212,19 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
                         floor.Buddy == null ? null : buddyImages[floor.Buddy.Id]);
                     i++;
                 }
+
+                canvas.DrawAttribution(
+                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                    new RichTextOptions(Fonts.Tiny)
+                    {
+                        Origin = new PointF(imageSize.Width - 20, imageSize.Height - 20),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        TextAlignment = TextAlignment.End,
+                    }
+                );
             });
         });
     }

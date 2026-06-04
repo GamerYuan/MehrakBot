@@ -173,6 +173,19 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                             HorizontalAlignment = HorizontalAlignment.Right
                         }, bestAvatar.Dps, Brushes.Solid(Color.White), null);
                     }
+
+                    canvas.DrawAttribution(
+                        new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                            new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                                ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                        new RichTextOptions(Fonts.Tiny)
+                        {
+                            Origin = new PointF(background.Width - 20, background.Height - 20),
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            VerticalAlignment = VerticalAlignment.Bottom,
+                            TextAlignment = TextAlignment.End,
+                        }
+                    );
                 }
             });
         });

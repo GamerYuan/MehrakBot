@@ -74,7 +74,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         CancellationToken cancellationToken = default)
     {
         var data = context.Data;
-        var height = data.List.Count * 270 + 200;
+        var height = data.List.Count * 270 + 230;
 
         var avatarImages = await data.List.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
@@ -117,14 +117,14 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
                 async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
                 cancellationToken: cancellationToken);
 
-        background.Mutate(ctx => ctx.Resize(1050, height));
-
         background.Mutate(ctx =>
         {
-            ctx.Paint(canvas => canvas.Fill(Brushes.Solid(BackgroundColor), new Rectangle(0, 0, background.Width, background.Height)));
+            ctx.Resize(1050, height);
+            var imageSize = ctx.GetCurrentSize();
 
             ctx.Paint(canvas =>
             {
+                canvas.Clear(Brushes.Solid(BackgroundColor));
                 canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
                     Origin = new Vector2(50, 70),
@@ -188,6 +188,19 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
                         buffImages[floor.Buff[0].Name],
                         floor.Buddy == null ? null : buddyImages[floor.Buddy.Id]);
                 }
+
+                canvas.DrawAttribution(
+                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
+                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
+                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
+                    new RichTextOptions(Fonts.Tiny)
+                    {
+                        Origin = new PointF(imageSize.Width - 20, imageSize.Height - 20),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Bottom,
+                        TextAlignment = TextAlignment.End,
+                    }
+                );
             });
         });
     }
