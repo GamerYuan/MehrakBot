@@ -50,6 +50,7 @@ public static class DropShadowTextExtensions
         Color textColor,
         DropShadowTextStyle? style = null)
     {
+        _ = canvas.SaveLayer();
         style ??= new DropShadowTextStyle();
         var shadowColor = style.ShadowColor ?? Color.Black;
 
@@ -59,7 +60,7 @@ public static class DropShadowTextExtensions
         };
         canvas.DrawText(shadowOptions, text, Brushes.Solid(shadowColor), null);
 
-
         canvas.DrawText(options, text, Brushes.Solid(textColor), null);
+        canvas.Restore();
     }
 }
