@@ -37,10 +37,10 @@ public class GenshinCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Aether_TestData.json", "GoldenImage.jpg", "GenshinCharacter")]
-    [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg", "GenshinCharacter_NotAscended")]
-    [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg", "GenshinCharacterWithSet")]
-    [TestCase("Aether_ConstActive_TestData.json", "GoldenImage_ConstActive.jpg", "GenshinCharacter_ConstActive")]
+    [TestCase("Aether_TestData.json", "Character_GoldenImage.jpg", "GenshinCharacter")]
+    [TestCase("Aether_NotAscended_TestData.json", "Character_GoldenImage_NotAscended.jpg", "GenshinCharacter_NotAscended")]
+    [TestCase("Aether_WithSet_TestData.json", "Character_GoldenImage_WithSet.jpg", "GenshinCharacterWithSet")]
+    [TestCase("Aether_ConstActive_TestData.json", "Character_GoldenImage_ConstActive.jpg", "GenshinCharacter_ConstActive")]
     public async Task GenerateCharacterCard_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
         string outputPrefix)
     {
@@ -81,7 +81,7 @@ public class GenshinCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Aether_TestData.json", "GoldenImage_NoAsc.jpg", "GenshinCharacter_NoAsc")]
+    [TestCase("Aether_TestData.json", "Character_GoldenImage_NoAsc.jpg", "GenshinCharacter_NoAsc")]
     public async Task GenerateCharacterCard_NoAsc_MatchesGoldenImage(string testDataFileName, string goldenImageFileName,
         string outputPrefix)
     {
@@ -133,10 +133,10 @@ public class GenshinCharacterCardServiceTests
     // To be used to generate golden image should the generation algorithm be updated
     [Explicit]
     [Test]
-    [TestCase("Aether_TestData.json", "GoldenImage.jpg")]
-    [TestCase("Aether_NotAscended_TestData.json", "GoldenImage_NotAscended.jpg")]
-    [TestCase("Aether_WithSet_TestData.json", "GoldenImage_WithSet.jpg")]
-    [TestCase("Aether_ConstActive_TestData.json", "GoldenImage_ConstActive.jpg")]
+    [TestCase("Aether_TestData.json", "Character_GoldenImage.jpg")]
+    [TestCase("Aether_NotAscended_TestData.json", "Character_GoldenImage_NotAscended.jpg")]
+    [TestCase("Aether_WithSet_TestData.json", "Character_GoldenImage_WithSet.jpg")]
+    [TestCase("Aether_ConstActive_TestData.json", "Character_GoldenImage_ConstActive.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =
@@ -163,7 +163,7 @@ public class GenshinCharacterCardServiceTests
 
     [Explicit]
     [Test]
-    [TestCase("Aether_TestData.json", "GoldenImage_NoAsc.jpg")]
+    [TestCase("Aether_TestData.json", "Character_GoldenImage_NoAsc.jpg")]
     public async Task GenerateGoldenImage_NoAsc(string testDataFileName, string goldenImageFileName)
     {
         var characterDetail =

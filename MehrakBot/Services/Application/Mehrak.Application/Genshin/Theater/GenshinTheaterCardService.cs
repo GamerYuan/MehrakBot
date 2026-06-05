@@ -106,7 +106,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
 
         var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 
-        var height = 590 +
+        var height = 620 +
                      (maxRound + 1) / 2 * 300;
         // 1900 x height
         if (height > background.Height)
@@ -415,6 +415,15 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
                         }, "Fastest Act", Brushes.Solid(Color.Gold), null);
                     }
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(rectangle.Width - 20, rectangle.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

@@ -102,19 +102,17 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
             .ToListAsync(cancellationToken);
 
         const int width = 2 * DisplayEntryWidth + 150;
-        var height = 500 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;
+        var height = 540 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;
 
-        background.Mutate(ctx => ctx.Resize(width, height));
 
         background.Mutate(ctx =>
         {
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Rectangle(0, 0, background.Width, background.Height));
-            });
+            ctx.Resize(width, height);
+            var imageSize = ctx.GetCurrentSize();
 
             ctx.Paint(canvas =>
             {
+                canvas.Clear(Brushes.Solid(LocalBackgroundColor));
                 canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
                     Origin = new Vector2(50, 100),
@@ -206,6 +204,15 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
                         towerAvatar, avatar);
                     if (!even) yOffset += DisplayEntryHeight + 20;
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(imageSize.Width - 20, imageSize.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

@@ -335,6 +335,14 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
                     new PointF(60, 1040), textColor);
 
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(960, 1070),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                });
+
                 for (var i = 0; i < constellationIcons.Length; i++)
                 {
                     var constellation = constellationIcons[i];

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Numerics;
 using Mehrak.Application.Shared.Abstractions;
@@ -98,13 +98,19 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     return (FloorNumber: floorIndex, Data: floorData);
                 })
         ];
-        var height = 180 + floorDetails.Chunk(2)
+        var height = 210 + floorDetails.Chunk(2)
             .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520);
 
         background.Mutate(ctx =>
         {
-            ctx.Resize(0, height, KnownResamplers.Bicubic);
-            ctx.Crop(new Rectangle((ctx.GetCurrentSize().Width - 1550) / 2, 0, 1550, height));
+            ctx.Resize(new ResizeOptions
+            {
+                CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
+                Size = new Size(1550, height),
+                Mode = ResizeMode.Crop,
+                Sampler = KnownResamplers.Bicubic
+            });
+            var imageSize = ctx.GetCurrentSize();
 
             ctx.Paint(canvas =>
             {
@@ -248,6 +254,15 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         KnownResamplers.Bicubic);
                     if (floorNumber % 2 == 1) yOffset += 520;
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(imageSize.Width - 20, imageSize.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

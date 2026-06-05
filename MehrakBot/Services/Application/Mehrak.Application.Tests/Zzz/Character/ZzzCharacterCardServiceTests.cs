@@ -37,9 +37,9 @@ public class ZzzCharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg", "Jane")]
-    [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg", "Miyabi")]
-    [TestCase("Yixuan_TestData.json", "Yixuan_GoldenImage.jpg", "Yixuan")]
+    [TestCase("Jane_TestData.json", "Character_Jane_GoldenImage.jpg", "ZzzCharacter_Jane")]
+    [TestCase("Miyabi_TestData.json", "Character_Miyabi_GoldenImage.jpg", "ZzzCharacter_Miyabi")]
+    [TestCase("Yixuan_TestData.json", "Character_Yixuan_GoldenImage.jpg", "ZzzCharacter_Yixuan")]
     public async Task GenerateCharacterCardAsync_TestData_ShouldMatchGoldenImage(string testDataFileName,
         string goldenImageFileName, string testName)
     {
@@ -92,9 +92,9 @@ public class ZzzCharacterCardServiceTests
 
     [Explicit]
     [Test]
-    [TestCase("Jane_TestData.json", "Jane_GoldenImage.jpg")]
-    [TestCase("Miyabi_TestData.json", "Miyabi_GoldenImage.jpg")]
-    [TestCase("Yixuan_TestData.json", "Yixuan_GoldenImage.jpg")]
+    [TestCase("Jane_TestData.json", "Character_Jane_GoldenImage.jpg")]
+    [TestCase("Miyabi_TestData.json", "Character_Miyabi_GoldenImage.jpg")]
+    [TestCase("Yixuan_TestData.json", "Character_Yixuan_GoldenImage.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string
         goldenImageFileName)
     {

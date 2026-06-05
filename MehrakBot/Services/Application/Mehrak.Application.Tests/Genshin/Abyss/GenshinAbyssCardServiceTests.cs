@@ -108,7 +108,7 @@ public class GenshinAbyssCardServiceTests
         };
     }
 
-    /*
+    [Explicit]
     [Test]
     [TestCase("Abyss_TestData_1.json")]
     [TestCase("Abyss_TestData_2.json")]
@@ -120,17 +120,20 @@ public class GenshinAbyssCardServiceTests
                 File.OpenRead(Path.Combine(TestDataPath, "Genshin", testDataFileName)));
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
-        GameProfileDto profile = GetTestUserGameData();
+        var profile = GetTestUserGameData();
 
-        Stream stream =
-            await m_Service.GetCardAsync(new(TestUserId, 12, testData, Domain.Enums.Server.Asia, profile, GetConstMap()));
+        var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(TestUserId, testData, profile);
+        cardContext.SetParameter("floor", 12);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("constMap", GetConstMap());
 
-        var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+        await using var stream = await m_Service.GetCardAsync(cardContext);
+
+        using var fileStream = File.Create(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
             "TestAssets", testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
 
         await stream.CopyToAsync(fileStream);
         await fileStream.FlushAsync();
-        await fileStream.DisposeAsync();
     }
-    */
+
 }

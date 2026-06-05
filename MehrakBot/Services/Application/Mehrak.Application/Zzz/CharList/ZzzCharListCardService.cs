@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Utility;

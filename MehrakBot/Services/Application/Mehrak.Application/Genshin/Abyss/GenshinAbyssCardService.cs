@@ -334,6 +334,15 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
                             (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
                     }
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(background.Width - 20, background.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

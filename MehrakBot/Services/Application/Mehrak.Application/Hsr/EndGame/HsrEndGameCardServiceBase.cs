@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Numerics;
 using Mehrak.Application.Renderers.Extensions;
@@ -107,7 +107,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 cancellationToken: cancellationToken);
 
         var floorDetails = GetFloorDetails(gameModeData);
-        var height = 180 + floorDetails.Chunk(2)
+        var height = 210 + floorDetails.Chunk(2)
             .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 620);
 
         background.Mutate(ctx =>
@@ -119,6 +119,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 Mode = ResizeMode.Crop,
                 Sampler = KnownResamplers.Bicubic
             });
+            var imageSize = ctx.GetCurrentSize();
 
             ctx.Paint(canvas =>
             {
@@ -258,6 +259,14 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     if (floorNumber % 2 == 1) yOffset += 620;
                 }
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(imageSize.Width - 20, imageSize.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

@@ -38,7 +38,8 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, ct) =>
-                await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x)), ct))
+                await Image.LoadAsync<Rgba32>(
+                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x), ct), ct))
             .ToArrayAsync(cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
@@ -173,6 +174,15 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                         }, bestAvatar.Dps, Brushes.Solid(Color.White), null);
                     }
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(background.Width - 20, background.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                }
+                );
             });
         });
     }

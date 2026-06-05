@@ -37,8 +37,8 @@ internal class Hi3CharacterCardServiceTests
     }
 
     [Test]
-    [TestCase("Character_TestData_1.json", "Character_GoldenImage_1.jpg", "Character_1")]
-    [TestCase("Character_TestData_2.json", "Character_GoldenImage_2.jpg", "Character_2")]
+    [TestCase("Character_TestData_1.json", "Character_GoldenImage_1.jpg", "Hi3Character_1")]
+    [TestCase("Character_TestData_2.json", "Character_GoldenImage_2.jpg", "Hi3Character_2")]
     public async Task GenerateCharacterCardAsync_ShouldMatchGoldenImage(string testDataFileName,
        string goldenImageFileName, string testName)
     {
