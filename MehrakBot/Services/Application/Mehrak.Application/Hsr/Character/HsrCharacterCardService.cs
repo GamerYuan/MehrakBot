@@ -287,17 +287,13 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                 canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1110), Color.White);
                 canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1150), Color.White);
 
-                canvas.DrawAttribution(
-                    new AttributionStyle(TextColor: Color.White, ShadowStyle:
-                        new DropShadowTextStyle(ShadowOffsetX: 2, ShadowOffsetY: 2,
-                            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))),
-                    new RichTextOptions(Fonts.Tiny)
-                    {
-                        Origin = new PointF(790, 1180),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        TextAlignment = TextAlignment.End,
-                    });
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(790, 1180),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End,
+                });
 
                 for (var i = 0; i < ranks.Length; i++)
                 {

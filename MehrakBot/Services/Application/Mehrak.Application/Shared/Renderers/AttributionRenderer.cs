@@ -4,6 +4,7 @@ using System.Numerics;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
 
 #endregion
 
@@ -20,15 +21,24 @@ public record AttributionStyle(
 
 public static class AttributionRenderer
 {
+    public static readonly AttributionStyle Default = new(
+        TextColor: Color.White,
+        ShadowStyle: new DropShadowTextStyle(
+            ShadowOffsetX: 2,
+            ShadowOffsetY: 2,
+            ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))
+    );
+
     private static readonly string[] Lines = ["MehrakBot", "mehrak.yuan-dev.com"];
     private static readonly string Text = string.Join("\n", Lines);
 
     public static void DrawAttribution(
         this DrawingCanvas canvas,
-        AttributionStyle style,
-        RichTextOptions textOptions
+        RichTextOptions textOptions,
+        AttributionStyle? style = null
     )
     {
+        style ??= Default;
         var needsRotation = Math.Abs(style.RotationDegrees) > 0.001f;
         var needsOpacity = style.Opacity is > 0f and < 1f;
 

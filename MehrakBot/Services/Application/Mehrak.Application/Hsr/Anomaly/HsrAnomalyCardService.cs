@@ -175,13 +175,13 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
                     DrawMobImage(canvas, new Point(225, yOffset), mobRecord, mobInfo, avatarImages);
                 }
 
-                canvas.DrawAttribution(new AttributionStyle(TextColor: Color.White), new RichTextOptions(Fonts.Tiny)
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
                 {
                     Origin = new Vector2(background.Width - 30, background.Height - 30),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End
-                });
+                }, new AttributionStyle(TextColor: Color.White));
             });
         });
     }
