@@ -18,8 +18,7 @@ public record DropShadowTextStyle(
 public static class DropShadowTextExtensions
 {
     /// <summary>
-    /// Draws text with an optional drop shadow. If BlurRadius > 0, the shadow is rendered
-    /// to a temporary image and blurred before compositing.
+    /// Draws text with an optional drop shadow.
     /// </summary>
     public static void DrawTextWithShadow(
         this DrawingCanvas canvas,
