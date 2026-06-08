@@ -273,7 +273,9 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
                 DrawWeaponModule(canvas, new Point(1220, 50), character.Weapon, weaponImage);
 
-                var offsetInterval = 890 / (character.Properties.Count - 1);
+                var offsetInterval = character.Properties.Count > 1
+                    ? 890 / (character.Properties.Count - 1)
+                    : 0;
                 var statsYOffset = 0;
 
                 for (var i = 0; i < character.Properties.Count; i++)
