@@ -16,6 +16,7 @@ namespace Mehrak.Application.Hsr.EndGame;
 internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
 {
     private Image m_AsBackground = null!;
+    private Image m_BossCheckmark = null!;
 
     public HsrApocalypticShadowCardService(IImageRepository imageRepository,
         ILogger<HsrApocalypticShadowCardService> logger,
@@ -29,6 +30,11 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
         m_AsBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ASBackgroundName, cancellationToken),
             cancellationToken);
+
+        m_BossCheckmark = await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BossCheckName, cancellationToken),
+            cancellationToken);
+        m_BossCheckmark.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(0, -2))));
     }
 
     protected override Image GetModeBackgroundImage() => m_AsBackground;
@@ -55,21 +61,11 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
         return $"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}";
     }
 
-    protected override void DrawNode1Extras(DrawingCanvas canvas, int xOffset, int yOffset,
-        HsrEndFloorDetail floorData)
+    protected override void DrawNodeExtras(DrawingCanvas region, HsrEndNodeInformation nodeData)
     {
-        if (floorData.Node1!.BossDefeated)
-            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
-                new RectangleF(xOffset + 650, yOffset + 83, BossCheckmark.Width, BossCheckmark.Height),
-                KnownResamplers.Bicubic);
-    }
-
-    protected override void DrawNode2Extras(DrawingCanvas canvas, int xOffset, int yOffset,
-        HsrEndFloorDetail floorData)
-    {
-        if (floorData.Node2!.BossDefeated)
-            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
-                new RectangleF(xOffset + 650, yOffset + 348, BossCheckmark.Width, BossCheckmark.Height),
+        if (nodeData.BossDefeated)
+            region.DrawImage(m_BossCheckmark, m_BossCheckmark.Bounds,
+                new RectangleF(605, 0, m_BossCheckmark.Width, m_BossCheckmark.Height),
                 KnownResamplers.Bicubic);
     }
 }
