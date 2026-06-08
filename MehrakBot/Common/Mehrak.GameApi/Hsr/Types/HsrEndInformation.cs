@@ -20,9 +20,15 @@ public class HsrEndFloorDetail
 
     [JsonPropertyName("node_2")] public HsrEndNodeInformation? Node2 { get; set; }
 
+    [JsonPropertyName("node_3")] public HsrEndNodeInformation? Node3 { get; set; }
+
     [JsonPropertyName("maze_id")] public int MazeId { get; set; }
 
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
+
+    [JsonPropertyName("is_tierce")] public bool IsTierce { get; set; }
 }
 
 public class HsrEndAvatar
@@ -116,6 +122,8 @@ public class HsrEndInformation
     [JsonPropertyName("all_floor_detail")] public required List<HsrEndFloorDetail> AllFloorDetail { get; set; }
 
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
 }
 
 public class ScheduleTime
