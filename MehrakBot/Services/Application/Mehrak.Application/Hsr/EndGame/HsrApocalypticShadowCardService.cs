@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -60,9 +61,22 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
         ];
     }
 
-    protected override string GetStageText(HsrEndInformation gameModeData, int floorNumber)
+    protected override string GetStageText(HsrEndInformation gameModeData, HsrEndFloorDetail? floorData, int floorNumber)
     {
-        return $"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}";
+        var strBuilder = new StringBuilder();
+        strBuilder.Append($"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}");
+        if (floorNumber == 3)
+        {
+            if (floorData?.IsTierce == true)
+            {
+                strBuilder.Append(" Starward Mode");
+            }
+            else
+            {
+                strBuilder.Append(" Regular Mode");
+            }
+        }
+        return strBuilder.ToString();
     }
 
     protected override void DrawNodeExtras(DrawingCanvas region, HsrEndNodeInformation nodeData)

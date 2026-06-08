@@ -52,7 +52,7 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
         ];
     }
 
-    protected override string GetStageText(HsrEndInformation gameModeData, int floorNumber)
+    protected override string GetStageText(HsrEndInformation gameModeData, HsrEndFloorDetail? floorData, int floorNumber)
     {
         return $"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
     }

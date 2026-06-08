@@ -62,7 +62,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     protected abstract List<(int FloorNumber, HsrEndFloorDetail? Data)> GetFloorDetails(
         HsrEndInformation gameModeData);
 
-    protected abstract string GetStageText(HsrEndInformation gameModeData, int floorNumber);
+    protected abstract string GetStageText(HsrEndInformation gameModeData, HsrEndFloorDetail? floorData, int floorNumber);
 
     protected override Image<Rgba32> CreateBackground()
     {
@@ -102,9 +102,12 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 cancellationToken: cancellationToken);
 
         var floorDetails = GetFloorDetails(gameModeData);
-        var height = 210 + floorDetails.Chunk(2)
-            .Sum(((int FloorNumber, HsrEndFloorDetail? Data)[] x) =>
-                x.Max(((int FloorNumber, HsrEndFloorDetail? Data) y) => GetBlobHeight(y.Data)));
+        var pairBlobHeights = Enumerable.Range(0, 2)
+            .Select(pairIndex => Math.Max(
+                GetBlobHeight(floorDetails[pairIndex * 2].Data),
+                GetBlobHeight(floorDetails[pairIndex * 2 + 1].Data)))
+            .ToArray();
+        var height = 250 + pairBlobHeights.Sum();
 
         background.Mutate(ctx =>
         {
@@ -125,45 +128,29 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                 foreach ((var floorNumber, var floorData) in floorDetails)
                 {
                     var xOffset = floorNumber % 2 * 950 + 50;
+                    var blobHeight = pairBlobHeights[floorNumber / 2];
+                    canvas.DrawRoundedRectangleOverlay(900, blobHeight, new PointF(xOffset, yOffset),
+                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
+
+                    var stageText = GetStageText(gameModeData, floorData, floorNumber);
+
+                    var bounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
+                    canvas.DrawText(new RichTextOptions(bounds.Width >= 450 ? Fonts.Small : Fonts.Normal)
+                    {
+                        Origin = new PointF(xOffset + 20, yOffset + 34),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        WrappingLength = 450
+                    }, stageText, Brushes.Solid(Color.White), null);
 
                     if (floorData == null || floorData.IsFast)
                     {
-                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
-                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
-                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
-                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
-                        {
-                            canvas.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
-                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                            {
-                                Origin = new PointF(xOffset + 450, yOffset + 280),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
-                        }
-                        else
-                        {
-                            canvas.DrawRoundedRectangleOverlay(900, 180, new PointF(xOffset, yOffset),
-                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                            {
-                                Origin = new PointF(xOffset + 450, yOffset + 110),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
-                        }
-
-                        var stageText = GetStageText(gameModeData, floorNumber);
-
                         canvas.DrawText(new RichTextOptions(Fonts.Normal)
                         {
-                            Origin = new PointF(xOffset + 20, yOffset + 20),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        },
-                            floorData?.Name ?? stageText,
-                            Brushes.Solid(Color.White), null);
+                            Origin = new PointF(xOffset + 450, yOffset + blobHeight / 2),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
 
                         for (var i = 0; i < 3; i++)
                         {
@@ -175,29 +162,40 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                         if (floorNumber % 2 == 1)
                         {
-                            yOffset += GetBlobHeight(floorNumber - 1 >= 0 ? floorDetails[floorNumber - 1].Data : null);
+                            yOffset += blobHeight + 20;
                         }
                         continue;
                     }
 
-                    canvas.DrawRoundedRectangleOverlay(900, 600, new PointF(xOffset, yOffset),
-                        new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(xOffset + 20, yOffset + 20),
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, floorData.Name, Brushes.Solid(Color.White), null);
+                    var contentEndY = floorData.IsTierce ? 870 : 600;
+                    var extraRoom = blobHeight - contentEndY;
+                    var separator2Y = extraRoom > 0 && !floorData.IsTierce ? blobHeight / 2 : 335;
+                    var separator3Y = 605;
+
+                    var node1Y = 65 + Math.Max(0, (separator2Y - 65 - 250) / 2);
+
+                    var section2End = floorData.IsTierce ? separator3Y : blobHeight;
+                    var node2Y = separator2Y + Math.Max(0, (section2End - separator2Y - 250) / 2);
+
+                    var node3Y = separator3Y + Math.Max(15, (blobHeight - separator3Y - 250) / 2);
 
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65)).Build());
 
-                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + 85), "Node 1", floorData.Node1, avatarImages, buffImages, DrawNodeExtras);
+                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node1Y), "Node 1", floorData.Node1, avatarImages, buffImages, DrawNodeExtras);
 
-                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + 335),
-                        new PointF(xOffset + 860, yOffset + 335)).Build());
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + separator2Y),
+                        new PointF(xOffset + 860, yOffset + separator2Y)).Build());
 
-                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + 350), "Node 2", floorData.Node2, avatarImages, buffImages, DrawNodeExtras);
+                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node2Y), "Node 2", floorData.Node2, avatarImages, buffImages, DrawNodeExtras);
+
+                    if (floorData.IsTierce)
+                    {
+                        canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + separator3Y),
+                            new PointF(xOffset + 860, yOffset + separator3Y)).Build());
+
+                        DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node3Y), "Node 3", floorData.Node3, avatarImages, buffImages, DrawNodeExtras);
+                    }
 
                     for (var i = 0; i < 3; i++)
                     {
@@ -212,15 +210,14 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     var scoreText = $"Score: {floorData.TotalScore}";
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
-                        Origin = new PointF(xOffset + 710, yOffset + 20),
+                        Origin = new PointF(xOffset + 710, yOffset + 34),
                         HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, scoreText,
-                        Brushes.Solid(Color.White), null);
+                        VerticalAlignment = VerticalAlignment.Center
+                    }, scoreText, Brushes.Solid(Color.White), null);
 
                     DrawScoreExtras(canvas, xOffset, yOffset, scoreText, floorData, gameModeData);
 
-                    if (floorNumber % 2 == 1) yOffset += 620;
+                    if (floorNumber % 2 == 1) yOffset += blobHeight + 20;
                 }
                 canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
                 {
@@ -246,21 +243,22 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     {
         using var region = canvas.CreateRegion(new Rectangle(point, new Size(810, 250)));
 
+        region.DrawText(new RichTextOptions(Fonts.Normal)
+        {
+            Origin = new PointF(0, 0)
+        }, nodeName, Brushes.Solid(Color.White), null);
+
         if (nodeData == null)
         {
             region.DrawText(new RichTextOptions(Fonts.Normal)
             {
-                Origin = new PointF(405, 125),
+                Origin = new PointF(400, 125),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             }, "No Clear Record", Brushes.Solid(Color.White), null);
             return;
         }
 
-        region.DrawText(new RichTextOptions(Fonts.Normal)
-        {
-            Origin = new PointF(0, 0)
-        }, nodeName, Brushes.Solid(Color.White), null);
         region.DrawText(new RichTextOptions(Fonts.Normal)
         {
             Origin = new PointF(810, 0),
@@ -339,9 +337,9 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
     private static int GetBlobHeight(HsrEndFloorDetail? data)
     {
-        if (data == null || data.IsFast) return 200;
-        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 870;
-        return 620;
+        if (data == null || data.IsFast) return 180;
+        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 850;
+        return 600;
     }
 
     private static bool IsSmallBlob(HsrEndFloorDetail? data)
