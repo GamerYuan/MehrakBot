@@ -198,7 +198,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
                 canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Polygon(
                     new LinearLineSegment(new PointF(600, 1400), new PointF(700, 0), new PointF(2600, 0), new PointF(2600, 1400))));
-                canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(36, 36, 36))), new Polygon(
+                canvas.Fill(Brushes.Solid(LocalOverlayColor), new Polygon(
                     new LinearLineSegment(new PointF(600, 1400), new PointF(700, 0), new PointF(810, 0), new PointF(710, 1400))));
 
 
