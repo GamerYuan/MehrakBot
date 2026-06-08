@@ -34,12 +34,15 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     private readonly Font m_ExtraLargeFont;
 
-    private static readonly Color LocalBackgroundColor = Color.FromPixel(new Rgb24(69, 69, 69));
-    private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgb24(36, 36, 36));
+    private static readonly Color LocalBackgroundColor = Color.FromPixel(new Rgb24(25, 25, 25));
+    private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgb24(40, 40, 40));
+
+    private const float MaskGradient = 100f / 1400f;
+
 
     private static readonly DrawingOptions RotateOptions = new()
     {
-        Transform = new(Matrix3x2.CreateRotation(10 * MathF.PI / 180f))
+        Transform = new(Matrix3x2.CreateRotation(MathF.Atan(MaskGradient)))
     };
 
     public ZzzCharacterCardService(IImageRepository imageRepository,
@@ -115,7 +118,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     protected override Image<Rgba32> CreateBackground()
     {
-        return new Image<Rgba32>(3000, 1200);
+        return new Image<Rgba32>(2600, 1400);
     }
 
     public override async Task RenderCardAsync(
@@ -175,11 +178,8 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         {
             ctx.Paint(canvas =>
             {
-                canvas.Fill(Brushes.Solid(accentColor), new Rectangle(0, 0, background.Width, background.Height));
-            });
+                canvas.Clear(Brushes.Solid(accentColor));
 
-            ctx.Paint(canvas =>
-            {
                 canvas.DrawFauxItalicText(new RichTextOptions(m_ExtraLargeFont)
                 {
                     Origin = new Vector2(-500, 0),
@@ -196,9 +196,15 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                     new RectangleF(350 - portraitImage.Width / 2 + offsetX, 650 - portraitImage.Height / 4 + offsetY,
                         portraitImage.Width, portraitImage.Height), KnownResamplers.Bicubic);
 
+                canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Polygon(
+                    new LinearLineSegment(new PointF(600, 1400), new PointF(700, 0), new PointF(2600, 0), new PointF(2600, 1400))));
+                canvas.Fill(Brushes.Solid(LocalOverlayColor), new Polygon(
+                    new LinearLineSegment(new PointF(600, 1400), new PointF(700, 0), new PointF(810, 0), new PointF(710, 1400))));
+
+
                 canvas.DrawTextWithShadow(character.Name!, new RichTextOptions(Fonts.Title)
                 {
-                    Origin = new PointF(70, 50),
+                    Origin = new PointF(50, 50),
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
@@ -206,44 +212,40 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
                 var bounds = TextMeasurer.MeasureBounds(character.Name!, new RichTextOptions(Fonts.Title)
                 {
-                    Origin = new PointF(70, 50),
+                    Origin = new PointF(50, 50),
                     WrappingLength = 700,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top
                 });
 
                 canvas.DrawTextWithShadow($"Lv. {character.Level}", Fonts.Normal,
-                    new PointF(70, bounds.Bottom + 10), Color.White);
+                    new PointF(50, bounds.Bottom + 10), Color.White);
 
-                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1100), Color.White);
-                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1140), Color.White);
+                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(50, 1300), Color.White);
+                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(50, 1340), Color.White);
 
                 canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
                 {
-                    Origin = new PointF(670, 1180),
+                    Origin = new PointF(570, 1380),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                }
-                );
-
-                canvas.Fill(Brushes.Solid(LocalBackgroundColor), new Polygon(new LinearLineSegment(new PointF(900, 0), new PointF(688, 1200),
-                    new PointF(3000, 1200), new PointF(3000, 0))));
+                });
 
                 foreach (var rank in character.Ranks)
                 {
-                    var yOffset = 130 * (rank.Id - 1);
+                    var yOffset = 10 + 130 * (rank.Id - 1);
                     DrawRankTemplateImage(canvas,
-                        new Point(902 - (int)MathF.Round(yOffset * 0.1763f), yOffset),
+                        new Point(710 - (int)MathF.Round(yOffset * MaskGradient), yOffset),
                         rank.Id, rank.IsUnlocked, accentColor);
                 }
 
                 DrawRotatedIconImage(canvas,
-                    new Point(932 - (int)MathF.Round(1050 * 0.1763f), 1047),
+                    new Point(710 - (int)MathF.Round(1240 * MaskGradient), 1240),
                     m_ProfessionImages[character.AvatarProfession], accentColor);
 
                 DrawRotatedIconImage(canvas,
-                    new Point(932 - (int)MathF.Round(920 * 0.1763f), 917),
+                    new Point(710 - (int)MathF.Round(1110 * MaskGradient), 1110),
                     m_AttributeImages[
                         StatUtils.GetElementNameFromId(character.ElementType, character.SubElementType)],
                     accentColor);
@@ -255,11 +257,11 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                     var xOffset = skillIndex % 3 * 120;
                     var skillImg = m_SkillImages[skill.SkillType];
                     canvas.DrawImage(skillImg, skillImg.Bounds,
-                        new RectangleF(1030 + xOffset, 70 + yOffset, skillImg.Width, skillImg.Height),
+                        new RectangleF(830 + xOffset, 80 + yOffset, skillImg.Width, skillImg.Height),
                         KnownResamplers.Bicubic);
                     canvas.DrawCenteredTextInEllipse(
                         skill.Level.ToString(),
-                        new PointF(1110 + xOffset, 150 + yOffset),
+                        new PointF(910 + xOffset, 160 + yOffset),
                         25,
                         new EllipseTextStyle(
                             Fonts.Small,
@@ -269,64 +271,20 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                             4f));
                 }
 
-                canvas.DrawRoundedRectangleOverlay(450, 330, new PointF(950, 690),
-                    new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 30));
+                DrawWeaponModule(canvas, new Point(1220, 50), character.Weapon, weaponImage);
 
-                if (character.Weapon != null)
-                {
-                    canvas.DrawImage(weaponImage, weaponImage.Bounds,
-                        new RectangleF(970, 710, weaponImage.Width, weaponImage.Height), KnownResamplers.Bicubic);
-                    var rarityImg = m_RarityImages[character.Weapon.Rarity[0]];
-                    canvas.DrawImage(rarityImg, rarityImg.Bounds,
-                        new RectangleF(970, 720, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
-                    var weaponStarImg = m_WeaponStarImages[character.Weapon.Star];
-                    canvas.DrawImage(weaponStarImg, weaponStarImg.Bounds,
-                        new RectangleF(970, 820, weaponStarImg.Width, weaponStarImg.Height), KnownResamplers.Bicubic);
-
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(980, 880) },
-                        $"Lv.{character.Weapon.Level}", Brushes.Solid(Color.White), null);
-
-                    canvas.DrawText(new RichTextOptions(character.Weapon.Name.Length > 40 ? Fonts.Small : Fonts.Medium)
-                    {
-                        Origin = new Vector2(1120, 730),
-                        WrappingLength = 280,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, character.Weapon.Name, Brushes.Solid(Color.White), null);
-                    var mainPropImg =
-                        m_StatImages[StatUtils.GetStatAssetName(character.Weapon.MainProperties[0].PropertyName)];
-                    canvas.DrawImage(mainPropImg, mainPropImg.Bounds,
-                        new RectangleF(980, 930, mainPropImg.Width, mainPropImg.Height), KnownResamplers.Bicubic);
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1030, 935) },
-                        character.Weapon.MainProperties[0].Base, Brushes.Solid(Color.White), null);
-
-                    var subPropImg =
-                        m_StatImages[StatUtils.GetStatAssetName(character.Weapon.Properties[0].PropertyName)];
-                    canvas.DrawImage(subPropImg, subPropImg.Bounds,
-                        new RectangleF(1175, 930, subPropImg.Width, subPropImg.Height), KnownResamplers.Bicubic);
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(1225, 935) },
-                        character.Weapon.Properties[0].Base, Brushes.Solid(Color.White), null);
-                }
-                else
-                {
-                    canvas.DrawText(new RichTextOptions(Fonts.Medium!)
-                    {
-                        Origin = new Vector2(1175, 848),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextAlignment = TextAlignment.Center,
-                        WrappingLength = 350
-                    }, "No W-Engine Equipped", Brushes.Solid(Color.White), null);
-                }
-
-                canvas.DrawRoundedRectangleOverlay(700, 970, new PointF(1420, 50),
-                    new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 30));
-
-                var offsetInterval = 880 / (character.Properties.Count - 1);
+                var offsetInterval = character.Properties.Count > 1
+                    ? 890 / (character.Properties.Count - 1)
+                    : 0;
                 var statsYOffset = 0;
 
                 for (var i = 0; i < character.Properties.Count; i++)
                 {
                     var stat = character.Properties[i];
+
+                    var originX = 850 - statsYOffset * MaskGradient;
+                    var originY = 410 + statsYOffset;
+                    var width = 800 + statsYOffset * MaskGradient;
 
                     canvas.DrawStatLine(
                         new StatLineData(
@@ -341,58 +299,120 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                             Fonts.Tiny!,
                             Color.LightSlateGrey,
                             Color.LightGreen),
-                        new PointF(1440, 75 + statsYOffset),
-                        660);
+                        new PointF(originX, originY),
+                        width);
 
                     statsYOffset += offsetInterval;
                 }
 
                 EquipSuit[] activeSets =
                     [.. character.Equip.Select(x => x.EquipSuit).DistinctBy(x => x.SuitId).Where(x => x.Own >= 2)];
+
                 for (var i = 0; i < activeSets.Length; i++)
                 {
                     var yOffset = i * 50;
                     var set = activeSets[i];
                     canvas.DrawText(new RichTextOptions(Fonts.Small)
                     {
-                        Origin = new Vector2(2100, 1050 + yOffset),
+                        Origin = new Vector2(2225, 1275 + yOffset),
                         HorizontalAlignment = HorizontalAlignment.Right
-                    }, $"{set.Name}\tx{set.Own}", Brushes.Solid(Color.White), null);
+                    }, set.Name, Brushes.Solid(Color.White), null);
+                    canvas.DrawText(new RichTextOptions(Fonts.Small)
+                    {
+                        Origin = new Vector2(2250, 1275 + yOffset),
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    }, $"x{set.Own}", Brushes.Solid(Color.White), null);
                 }
 
                 if (activeSets.Length == 0)
                     canvas.DrawText(new RichTextOptions(Fonts.Small)
                     {
-                        Origin = new Vector2(2100, 1050),
-                        HorizontalAlignment = HorizontalAlignment.Right
+                        Origin = new Vector2(2125, 1325),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        TextAlignment = TextAlignment.Center
                     }, "No Active Set", Brushes.Solid(Color.White), null);
 
                 for (var i = 0; i < diskSlots.Length; i++)
                 {
                     var slot = diskSlots[i];
+                    var yPos = 50 + i * 200;
                     if (slot.Data != null)
                     {
-                        DrawDiskImage(canvas, new Point(2150, 50 + i * 186), slot.Data, slot.Image!);
+                        DrawDiskImage(canvas, new Point(1700, yPos), slot.Data, slot.Image!);
                     }
                     else
                     {
-                        DrawDiskTemplateImage(canvas, new Point(2150, 50 + i * 186));
+                        DrawDiskTemplateImage(canvas, new Point(1700, yPos));
                     }
                 }
             });
         });
     }
 
+    private void DrawWeaponModule(DrawingCanvas canvas, Point position, Weapon? weapon, Image? weaponImage)
+    {
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(450, 330)));
+        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(450, 330)), 30));
+        region.Fill(Brushes.Solid(LocalOverlayColor));
+        region.Restore();
+
+        if (weapon != null && weaponImage != null)
+        {
+            region.DrawImage(weaponImage, weaponImage.Bounds,
+                new RectangleF(20, 20, weaponImage.Width, weaponImage.Height), KnownResamplers.Bicubic);
+            var rarityImg = m_RarityImages[weapon.Rarity[0]];
+            region.DrawImage(rarityImg, rarityImg.Bounds,
+                new RectangleF(20, 30, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
+            var weaponStarImg = m_WeaponStarImages[weapon.Star];
+            region.DrawImage(weaponStarImg, weaponStarImg.Bounds,
+                new RectangleF(20, 130, weaponStarImg.Width, weaponStarImg.Height), KnownResamplers.Bicubic);
+
+            region.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(30, 190) },
+                $"Lv.{weapon.Level}", Brushes.Solid(Color.White), null);
+
+            region.DrawText(new RichTextOptions(weapon.Name.Length > 40 ? Fonts.Small : Fonts.Medium)
+            {
+                Origin = new Vector2(170, 40),
+                WrappingLength = 280,
+                VerticalAlignment = VerticalAlignment.Top
+            }, weapon.Name, Brushes.Solid(Color.White), null);
+            var mainPropImg =
+                m_StatImages[StatUtils.GetStatAssetName(weapon.MainProperties[0].PropertyName)];
+            region.DrawImage(mainPropImg, mainPropImg.Bounds,
+                new RectangleF(30, 245, mainPropImg.Width, mainPropImg.Height), KnownResamplers.Bicubic);
+            region.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(80, 250) },
+                weapon.MainProperties[0].Base, Brushes.Solid(Color.White), null);
+
+            var subPropImg =
+                m_StatImages[StatUtils.GetStatAssetName(weapon.Properties[0].PropertyName)];
+            region.DrawImage(subPropImg, subPropImg.Bounds,
+                new RectangleF(225, 245, subPropImg.Width, subPropImg.Height), KnownResamplers.Bicubic);
+            region.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(275, 250) },
+                weapon.Properties[0].Base, Brushes.Solid(Color.White), null);
+        }
+        else
+        {
+            region.DrawText(new RichTextOptions(Fonts.Medium!)
+            {
+                Origin = new Vector2(225, 158),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextAlignment = TextAlignment.Center,
+                WrappingLength = 350
+            }, "No W-Engine Equipped", Brushes.Solid(Color.White), null);
+        }
+    }
+
     private void DrawDiskTemplateImage(DrawingCanvas canvas, Point position)
     {
-        using var region = canvas.CreateRegion(new Rectangle(position, new Size(800, 170)));
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(800, 170)), 30);
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(850, 190)));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(850, 190)), 30);
         _ = region.Save(ClipOptions, clipPath);
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.Restore();
         region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            Origin = new Vector2(425, 78),
+            Origin = new Vector2(425, 93),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center
         }, "Not Equipped", Brushes.Solid(Color.White), null);
@@ -400,63 +420,64 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
     private void DrawDiskImage(DrawingCanvas canvas, Point position, DiskDrive disk, Image diskImage)
     {
-        using var region = canvas.CreateRegion(new Rectangle(position, new Size(800, 170)));
-        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(800, 170)), 30);
+        using var region = canvas.CreateRegion(new Rectangle(position, new Size(850, 190)));
+        var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(850, 190)), 30);
         _ = region.Save(ClipOptions, clipPath);
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.DrawImage(diskImage, diskImage.Bounds,
-            new RectangleF(10, 15, diskImage.Width, diskImage.Height), KnownResamplers.Bicubic);
+            new RectangleF(10, 25, diskImage.Width, diskImage.Height), KnownResamplers.Bicubic);
 
         region.Restore();
 
         var rarityImg = m_RarityImages[disk.Rarity[0]];
         region.DrawImage(rarityImg, rarityImg.Bounds,
-            new RectangleF(20, 115, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
+            new RectangleF(20, 125, rarityImg.Width, rarityImg.Height), KnownResamplers.Bicubic);
         var mainStatImg = m_StatImages[StatUtils.GetStatAssetName(disk.MainProperties[0].PropertyName)];
         region.DrawImage(mainStatImg, mainStatImg.Bounds,
-            new RectangleF(215, 20, mainStatImg.Width, mainStatImg.Height), KnownResamplers.Bicubic);
+            new RectangleF(215, 30, mainStatImg.Width, mainStatImg.Height), KnownResamplers.Bicubic);
         region.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            Origin = new PointF(265, 70),
+            Origin = new PointF(265, 80),
             HorizontalAlignment = HorizontalAlignment.Right
         }, disk.MainProperties[0]!.Base!, Brushes.Solid(Color.White), null);
         region.DrawText(new RichTextOptions(Fonts.Small)
         {
-            Origin = new PointF(265, 120),
+            Origin = new PointF(265, 130),
             HorizontalAlignment = HorizontalAlignment.Right
         }, $"Lv.{disk.Level}", Brushes.Solid(Color.White), null);
 
         for (var i = 0; i < disk.Properties!.Count; i++)
         {
             var subStat = disk.Properties[i];
-            var xOffset = i % 2 * 260;
-            var yOffset = i / 2 * 85;
+            var xOffset = i % 2 * 270;
+            var yOffset = i / 2 * 80;
             var color = Color.White;
             if (subStat is { PropertyName: "ATK" or "DEF" or "HP" } && !subStat.Base.EndsWith('%'))
             {
                 var dim = m_DimmedStatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
                 region.DrawImage(dim, dim.Bounds,
-                    new RectangleF(280 + xOffset, 20 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
+                    new RectangleF(280 + xOffset, 25 + yOffset, dim.Width, dim.Height), KnownResamplers.Bicubic);
                 color = Color.FromPixel(new Rgb24(128, 128, 128));
             }
             else
             {
                 var subStatImage = m_StatImages[StatUtils.GetStatAssetName(subStat.PropertyName)];
                 region.DrawImage(subStatImage, subStatImage.Bounds,
-                    new RectangleF(280 + xOffset, 20 + yOffset, subStatImage.Width, subStatImage.Height),
+                    new RectangleF(280 + xOffset, 30 + yOffset, subStatImage.Width, subStatImage.Height),
                     KnownResamplers.Bicubic);
             }
 
-            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(335 + xOffset, 23 + yOffset) },
+            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(345 + xOffset, 33 + yOffset) },
                 subStat.Base!, Brushes.Solid(color), null);
             var rolls = string.Concat(Enumerable.Repeat('.', subStat.Level));
-            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(460 + xOffset, 8 + yOffset) },
+            region.DrawText(new RichTextOptions(Fonts.Normal) { Origin = new PointF(475 + xOffset, 18 + yOffset) },
                 rolls, Brushes.Solid(color), null);
         }
     }
 
     private void DrawRankTemplateImage(DrawingCanvas canvas, Point location, int rank, bool activated, Color accentColor)
     {
+        location = new Point(location.X - 30, location.Y);
         using var region = canvas.CreateRegion(new Rectangle(location, new Size(150, 180)));
         _ = region.Save(RotateOptions);
         _ = region.SaveLayer();
