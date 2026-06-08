@@ -103,7 +103,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
         var floorDetails = GetFloorDetails(gameModeData);
         var height = 210 + floorDetails.Chunk(2)
-            .Sum(x => x.Max(y => GetBlobHeight(y.Data)));
+            .Sum(((int FloorNumber, HsrEndFloorDetail? Data)[] x) =>
+                x.Max(((int FloorNumber, HsrEndFloorDetail? Data) y) => GetBlobHeight(y.Data)));
 
         background.Mutate(ctx =>
         {
@@ -208,7 +209,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 720, yOffset + 10),
                         new PointF(xOffset + 720, yOffset + 55)).Build());
-                    var scoreText = $"Score: {int.Parse(floorData.Node1?.Score ?? "0") + int.Parse(floorData.Node2?.Score ?? "0")}";
+                    var scoreText = $"Score: {floorData.TotalScore}";
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 710, yOffset + 20),
@@ -339,7 +340,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     private static int GetBlobHeight(HsrEndFloorDetail? data)
     {
         if (data == null || data.IsFast) return 200;
-        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 920;
+        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 870;
         return 620;
     }
 
