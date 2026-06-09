@@ -47,7 +47,11 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
                 .Select(floorIndex =>
                 {
                     var floorData = gameModeData.AllFloorDetail
-                        .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                        .Where(x => x.MazeId.ToString().EndsWith((floorIndex + 1).ToString()))
+                        .OrderByDescending(x => x.StarNum + x.ExtraStarNum)
+                        .ThenByDescending(x => x.TotalScore)
+                        .ThenByDescending(x => x.IsTierce)
+                        .FirstOrDefault();
                     return (FloorNumber: floorIndex, Data: floorData);
                 })
         ];
