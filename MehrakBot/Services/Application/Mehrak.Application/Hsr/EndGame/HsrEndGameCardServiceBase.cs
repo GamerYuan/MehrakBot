@@ -366,7 +366,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     private static int GetBlobHeight(HsrEndFloorDetail? data)
     {
         if (data == null || data.IsFast) return 180;
-        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 870;
+        if (data.IsTierce) return 870;
         return 600;
     }
 }
