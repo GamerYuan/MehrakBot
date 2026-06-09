@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -46,15 +47,33 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
                 .Select(floorIndex =>
                 {
                     var floorData = gameModeData.AllFloorDetail
-                        .FirstOrDefault(x => HsrUtility.GetFloorNumber(x.Name) - 1 == floorIndex);
+                        .Where(x => x.MazeId.ToString().EndsWith((floorIndex + 1).ToString()))
+                        .OrderByDescending(x => x.StarNum + x.ExtraStarNum)
+                        .ThenByDescending(x => x.TotalScore)
+                        .ThenByDescending(x => x.IsTierce)
+                        .FirstOrDefault();
                     return (FloorNumber: floorIndex, Data: floorData);
                 })
         ];
     }
 
-    protected override string GetStageText(HsrEndInformation gameModeData, int floorNumber)
+    protected override string GetStageText(HsrEndInformation gameModeData, HsrEndFloorDetail? floorData, int floorNumber)
     {
-        return $"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
+        var strBuilder = new StringBuilder();
+
+        strBuilder.Append($"{gameModeData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})");
+        if (floorNumber == 3)
+        {
+            if (floorData?.IsTierce == true)
+            {
+                strBuilder.Append(" Starward Mode");
+            }
+            else
+            {
+                strBuilder.Append(" Regular Mode");
+            }
+        }
+        return strBuilder.ToString();
     }
 
     protected override void DrawScoreExtras(DrawingCanvas canvas, int xOffset, int yOffset,
@@ -67,7 +86,7 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
 
         canvas.DrawText(new RichTextOptions(Fonts.Normal)
         {
-            Origin = new PointF(xOffset + 650 - (int)size.Width, yOffset + 20),
+            Origin = new PointF(xOffset + 655 - (int)size.Width, yOffset + 20),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top
         }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);

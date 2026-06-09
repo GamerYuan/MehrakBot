@@ -20,9 +20,18 @@ public class HsrEndFloorDetail
 
     [JsonPropertyName("node_2")] public HsrEndNodeInformation? Node2 { get; set; }
 
+    [JsonPropertyName("node_3")] public HsrEndNodeInformation? Node3 { get; set; }
+
     [JsonPropertyName("maze_id")] public int MazeId { get; set; }
 
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
+
+    [JsonPropertyName("is_tierce")] public bool IsTierce { get; set; }
+
+    [JsonIgnore]
+    public int TotalScore => (Node1?.Score ?? 0) + (Node2?.Score ?? 0) + (Node3?.Score ?? 0);
 }
 
 public class HsrEndAvatar
@@ -92,7 +101,7 @@ public class HsrEndNodeInformation
 
     [JsonPropertyName("buff")] public required HsrEndBuff Buff { get; set; }
 
-    [JsonPropertyName("score")] public required string Score { get; set; }
+    [JsonPropertyName("score")] public int Score { get; set; }
 
     /// <summary>
     /// Only used for Apocalyptic Shadow
@@ -116,6 +125,8 @@ public class HsrEndInformation
     [JsonPropertyName("all_floor_detail")] public required List<HsrEndFloorDetail> AllFloorDetail { get; set; }
 
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
 }
 
 public class ScheduleTime

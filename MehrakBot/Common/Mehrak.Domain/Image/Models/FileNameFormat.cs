@@ -58,6 +58,7 @@ public static class FileNameFormat
         public const string LightconeTemplateName = "hsr/lightcone_template.png";
         public const string RelicTemplateName = "hsr/relic_template_{0}.png";
         public const string BackgroundName = "hsr/bg.png";
+        public const string ExtraStarName = "hsr/starward_star.png";
     }
 
     public static class Zzz

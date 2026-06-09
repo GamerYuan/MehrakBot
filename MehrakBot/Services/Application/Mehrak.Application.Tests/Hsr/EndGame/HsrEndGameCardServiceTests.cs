@@ -24,6 +24,10 @@ public class HsrPureFictionCardServiceTests
     private const string TestNickName = "Test";
     private const string TestUid = "800000000";
     private const ulong TestUserId = 1;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
     private static readonly string TestDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
 
@@ -42,11 +46,13 @@ public class HsrPureFictionCardServiceTests
     [TestCase("Pf_TestData_2.json")]
     [TestCase("Pf_TestData_3.json")]
     [TestCase("Pf_TestData_4.json")]
+    [TestCase("Pf_TestData_5.json")]
+    [TestCase("Pf_TestData_6.json")]
     public async Task GetCardAsync_PureFictionTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
             await JsonSerializer.DeserializeAsync<HsrEndInformation>(
-                File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)));
+                File.OpenRead(Path.Combine(TestDataPath, "Hsr", testDataFileName)), JsonOptions);
         Assert.That(testData, Is.Not.Null, "Test data should not be null");
 
         var goldenImage =
@@ -86,10 +92,12 @@ public class HsrPureFictionCardServiceTests
     [TestCase("Pf_TestData_2.json", "Pf_GoldenImage_2.jpg")]
     [TestCase("Pf_TestData_3.json", "Pf_GoldenImage_3.jpg")]
     [TestCase("Pf_TestData_4.json", "Pf_GoldenImage_4.jpg")]
+    [TestCase("Pf_TestData_5.json", "Pf_GoldenImage_5.jpg")]
+    [TestCase("Pf_TestData_6.json", "Pf_GoldenImage_6.jpg")]
     public async Task GeneratePureFictionGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(
-               File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));
+               File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)), JsonOptions);
         Assert.That(testData, Is.Not.Null);
 
         var userGameData = GetTestUserGameData();
@@ -149,6 +157,8 @@ public class HsrApocalypticShadowCardServiceTests
     [TestCase("As_TestData_2.json")]
     [TestCase("As_TestData_3.json")]
     [TestCase("As_TestData_4.json")]
+    [TestCase("As_TestData_5.json")]
+    [TestCase("As_TestData_6.json")]
     public async Task GetCardAsync_ApocalypticShadowTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -193,6 +203,8 @@ public class HsrApocalypticShadowCardServiceTests
     [TestCase("As_TestData_2.json", "As_GoldenImage_2.jpg")]
     [TestCase("As_TestData_3.json", "As_GoldenImage_3.jpg")]
     [TestCase("As_TestData_4.json", "As_GoldenImage_4.jpg")]
+    [TestCase("As_TestData_5.json", "As_GoldenImage_5.jpg")]
+    [TestCase("As_TestData_6.json", "As_GoldenImage_6.jpg")]
     public async Task GenerateApocalypticShadowGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var testData = await JsonSerializer.DeserializeAsync<HsrEndInformation>(

@@ -1,0 +1,490 @@
+﻿{
+  "groups": [
+    {
+      "schedule_id": 3018,
+      "begin_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2026,
+        "month": 7,
+        "day": 20,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "New",
+      "name_mi18n": "Gale of Forgetting",
+      "upper_boss": {
+        "id": 406401204,
+        "name_mi18n": "Arbiter of the Lost Abyss",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u0a0ae/dcda8f05c05abb87ea74737334d937b5.png"
+      },
+      "lower_boss": {
+        "id": 100401404,
+        "name_mi18n": "Annihilator of Desolation Mistral",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u0a0ae/50a52a7175589ddcc09b2640b5774f7f.png"
+      },
+      "tierce_boss": {
+        "id": 403401304,
+        "name_mi18n": "Flame Reaver of Doomsday Led Astray",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u0a0ae/f56b520a4f35f96c07127231a3bd0548.png"
+      }
+    },
+    {
+      "schedule_id": 3017,
+      "begin_time": {
+        "year": 2026,
+        "month": 4,
+        "day": 27,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "End",
+      "name_mi18n": "Idol of the Locusts",
+      "upper_boss": {
+        "id": 501401404,
+        "name_mi18n": "Super Idol: Center of Attention",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u0a0ae/eb458e94ee9f053173327981bbebdd4c.png"
+      },
+      "lower_boss": {
+        "id": 802501104,
+        "name_mi18n": "Sky-Shrouding Stardevourer Swarm",
+        "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u0a0ae/f2e2fd5880642f27bf25b6a71d975ce1.png"
+      },
+      "tierce_boss": null
+    }
+  ],
+  "star_num": 9,
+  "max_floor": "Gale of Forgetting: Difficulty 4",
+  "battle_num": 4,
+  "has_data": true,
+  "all_floor_detail": [
+    {
+      "name": "Gale of Forgetting: Difficulty 4Starward Mode",
+      "star_num": "0",
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 16,
+          "minute": 37
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "3586",
+        "boss_defeated": true
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 16,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "1003",
+        "boss_defeated": false
+      },
+      "maze_id": 30184,
+      "is_fast": false,
+      "last_update_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 16,
+        "minute": 44
+      },
+      "node_3": null,
+      "extra_star_num": "0",
+      "is_tierce": true
+    },
+    {
+      "name": "Gale of Forgetting: Difficulty 4Regular Mode",
+      "star_num": "0",
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 16,
+          "minute": 4
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "3585",
+        "boss_defeated": true
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 16,
+          "minute": 7
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "73",
+        "boss_defeated": false
+      },
+      "maze_id": 30184,
+      "is_fast": false,
+      "last_update_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 16,
+        "minute": 7
+      },
+      "node_3": null,
+      "extra_star_num": "0",
+      "is_tierce": false
+    },
+    {
+      "name": "Gale of Forgetting: Difficulty 3",
+      "star_num": "3",
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 15,
+          "minute": 52
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "3793",
+        "boss_defeated": true
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 6,
+          "day": 8,
+          "hour": 15,
+          "minute": 56
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 0
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ],
+        "buff": {
+          "id": 3031341,
+          "name_mi18n": "Bold Leader",
+          "desc_mi18n": "The DMG dealt by the character in position 1 in the lineup increases by 60%. For every 4 Skill Points consumed, 1 Skill Point is recovered.",
+          "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/3870e661b3b2c939aa19780e075b8960.png"
+        },
+        "score": "3629",
+        "boss_defeated": true
+      },
+      "maze_id": 30183,
+      "is_fast": false,
+      "last_update_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 15,
+        "minute": 56
+      },
+      "node_3": null,
+      "extra_star_num": "0",
+      "is_tierce": false
+    },
+    {
+      "name": "Gale of Forgetting: Difficulty 2",
+      "star_num": "3",
+      "node_1": {
+        "challenge_time": null,
+        "avatars": [],
+        "buff": null,
+        "score": "0",
+        "boss_defeated": false
+      },
+      "node_2": {
+        "challenge_time": null,
+        "avatars": [],
+        "buff": null,
+        "score": "0",
+        "boss_defeated": false
+      },
+      "maze_id": 30182,
+      "is_fast": true,
+      "last_update_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 15,
+        "minute": 56
+      },
+      "node_3": null,
+      "extra_star_num": "0",
+      "is_tierce": false
+    },
+    {
+      "name": "Gale of Forgetting: Difficulty 1",
+      "star_num": "3",
+      "node_1": {
+        "challenge_time": null,
+        "avatars": [],
+        "buff": null,
+        "score": "0",
+        "boss_defeated": false
+      },
+      "node_2": {
+        "challenge_time": null,
+        "avatars": [],
+        "buff": null,
+        "score": "0",
+        "boss_defeated": false
+      },
+      "maze_id": 30181,
+      "is_fast": true,
+      "last_update_time": {
+        "year": 2026,
+        "month": 6,
+        "day": 8,
+        "hour": 15,
+        "minute": 56
+      },
+      "node_3": null,
+      "extra_star_num": "0",
+      "is_tierce": false
+    }
+  ],
+  "max_floor_id": 30184,
+  "extra_star_num": 0
+}

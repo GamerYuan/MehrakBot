@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -16,6 +17,7 @@ namespace Mehrak.Application.Hsr.EndGame;
 internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
 {
     private Image m_AsBackground = null!;
+    private Image m_BossCheckmark = null!;
 
     public HsrApocalypticShadowCardService(IImageRepository imageRepository,
         ILogger<HsrApocalypticShadowCardService> logger,
@@ -29,6 +31,11 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
         m_AsBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ASBackgroundName, cancellationToken),
             cancellationToken);
+
+        m_BossCheckmark = await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BossCheckName, cancellationToken),
+            cancellationToken);
+        m_BossCheckmark.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(0, -2))));
     }
 
     protected override Image GetModeBackgroundImage() => m_AsBackground;
@@ -44,32 +51,39 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
                 .Select(floorIndex =>
                 {
                     var floorData = gameModeData.AllFloorDetail
-                        .FirstOrDefault(x => x.Name.EndsWith((floorIndex + 1).ToString()));
+                        .Where(x => x.MazeId.ToString().EndsWith((floorIndex + 1).ToString()))
+                        .OrderByDescending(x => x.StarNum + x.ExtraStarNum)
+                        .ThenByDescending(x => x.TotalScore)
+                        .ThenByDescending(x => x.IsTierce)
+                        .FirstOrDefault();
                     return (FloorNumber: floorIndex, Data: floorData);
                 })
         ];
     }
 
-    protected override string GetStageText(HsrEndInformation gameModeData, int floorNumber)
+    protected override string GetStageText(HsrEndInformation gameModeData, HsrEndFloorDetail? floorData, int floorNumber)
     {
-        return $"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}";
+        var strBuilder = new StringBuilder();
+        strBuilder.Append($"{gameModeData.Groups[0].Name}: Difficulty {floorNumber + 1}");
+        if (floorNumber == 3)
+        {
+            if (floorData?.IsTierce == true)
+            {
+                strBuilder.Append(" Starward Mode");
+            }
+            else
+            {
+                strBuilder.Append(" Regular Mode");
+            }
+        }
+        return strBuilder.ToString();
     }
 
-    protected override void DrawNode1Extras(DrawingCanvas canvas, int xOffset, int yOffset,
-        HsrEndFloorDetail floorData)
+    protected override void DrawNodeExtras(DrawingCanvas region, HsrEndNodeInformation nodeData)
     {
-        if (floorData.Node1!.BossDefeated)
-            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
-                new RectangleF(xOffset + 650, yOffset + 83, BossCheckmark.Width, BossCheckmark.Height),
-                KnownResamplers.Bicubic);
-    }
-
-    protected override void DrawNode2Extras(DrawingCanvas canvas, int xOffset, int yOffset,
-        HsrEndFloorDetail floorData)
-    {
-        if (floorData.Node2!.BossDefeated)
-            canvas.DrawImage(BossCheckmark, BossCheckmark.Bounds,
-                new RectangleF(xOffset + 650, yOffset + 348, BossCheckmark.Width, BossCheckmark.Height),
+        if (nodeData.BossDefeated)
+            region.DrawImage(m_BossCheckmark, m_BossCheckmark.Bounds,
+                new RectangleF(605, 0, m_BossCheckmark.Width, m_BossCheckmark.Height),
                 KnownResamplers.Bicubic);
     }
 }
