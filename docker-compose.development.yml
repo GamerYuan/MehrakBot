@@ -282,7 +282,7 @@ networks:
 
 secrets:
   sixlabors-license:
-    file: ./MehrakBot/Services/Application/Mehrak.Application/sixlabors.lic
+    file: ./MehrakBot/sixlabors.lic
 
 volumes:
   pgdata:

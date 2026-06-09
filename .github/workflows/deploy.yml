@@ -61,8 +61,6 @@ jobs:
             --set '*.args.BASE_IMAGE_TAG='"$BASE_IMAGE_TAG" \
             --set '*.cache-from=type=gha' \
             --set '*.cache-to=type=gha,mode=max' \
-            --set '*.secret[sixlabors-license].id=sixlabors-license' \
-            --set '*.secret[sixlabors-license].src='"$GITHUB_WORKSPACE"'/MehrakBot/sixlabors.lic' \
             --load
 
       - name: Cleanup SixLabors License
