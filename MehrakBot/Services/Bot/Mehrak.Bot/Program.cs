@@ -6,7 +6,6 @@ using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
-using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -107,7 +106,6 @@ public class Program
             builder.Logging.AddSerilog(dispose: true);
 
             // Database Services
-            builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
             builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
             builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));

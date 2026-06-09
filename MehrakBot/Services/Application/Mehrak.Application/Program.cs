@@ -5,7 +5,6 @@ using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Shared.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
-using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Shared.Config;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -68,7 +67,6 @@ public class Program
 
         Log.Information("Starting Mehrak Application Service");
 
-        builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
