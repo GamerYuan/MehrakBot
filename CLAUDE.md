@@ -75,7 +75,7 @@ Discord User → Bot Module → CommandExecutorService → gRPC → GrpcApplicat
 
 **Card rendering:** `ICardService<TData>` returns a `Stream` from `GetCardAsync(ICardGenerationContext<TData>)`. Services that preload assets also implement `IAsyncInitializable`. All `Image` objects must be tracked and disposed in `finally`. Generated cards use deterministic SHA256 filenames for caching.
 
-**Configuration:** `IOptions<T>` pattern with `appsettings.json` + environment-specific overrides. Config classes: `CharacterCacheConfig`, `S3StorageConfig`, `RedisConfig`, `PgConfig`, `CommandDispatcherConfig`, `RateLimiterConfig`.
+**Configuration:** `IOptions<T>` pattern with `appsettings.json` + environment-specific overrides. Config classes: `S3StorageConfig`, `RedisConfig`, `PgConfig`, `CommandDispatcherConfig`, `RateLimiterConfig`.
 
 **Observability:** Serilog (Console, File, OpenTelemetry sinks), OpenTelemetry traces/metrics via OTLP, Prometheus via `prometheus-net`, ClickHouse for analytics.
 
