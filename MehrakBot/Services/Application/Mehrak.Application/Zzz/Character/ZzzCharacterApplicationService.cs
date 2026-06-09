@@ -19,6 +19,7 @@ using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Wiki;
+using Mehrak.GameApi.Zzz;
 using Mehrak.GameApi.Zzz.Types;
 using Mehrak.Infrastructure.User;
 
@@ -37,6 +38,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> m_CharacterEntryPageService;
 
 
     protected override string CommandName => "ZZZ Character";
@@ -54,6 +56,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> characterEntryPageService,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -66,6 +69,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_WikiApi = wikiApi;
         m_MetricsService = metricsService;
         m_PortraitConfigService = portraitConfigService;
+        m_CharacterEntryPageService = characterEntryPageService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -164,8 +168,40 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
         {
-            var entryPage = characterData.AvatarWiki[charInfo.Id.ToString()].Split('/')[^1];
-            charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
+            if (!characterData.AvatarWiki.TryGetValue(charInfo.Id.ToString(), out var avatarWikiUrl))
+            {
+                Logger.LogWarning("Character '{Character}' (Id={Id}) not found in wiki data",
+                    charInfo.FullName, charInfo.Id);
+            }
+            else
+            {
+                var entryPage = string.Empty;
+
+                if (avatarWikiUrl.Contains("/aggregate/"))
+                {
+                    var entryPageResult = await m_CharacterEntryPageService.GetAsync(
+                        new ZzzCharacterEntryPageApiContext(context.UserId), cancellationToken);
+                    if (entryPageResult.IsSuccess)
+                    {
+                        var entry = entryPageResult.Data.List.FirstOrDefault(x => x.Name == charInfo.FullName);
+                        if (entry != null)
+                            entryPage = entry.EntryPageId;
+                        else
+                            Logger.LogWarning("Character '{Character}' not found in ZZZ entry page list", charInfo.FullName);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Failed to get ZZZ entry page list: {Message}", entryPageResult.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    entryPage = avatarWikiUrl.Split('/')[^1];
+                }
+
+                if (!string.IsNullOrEmpty(entryPage))
+                    charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
+            }
         }
 
         if (charInfo.Weapon != null)
