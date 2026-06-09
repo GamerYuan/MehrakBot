@@ -24,6 +24,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 {
     protected Image StarLit = null!;
     protected Image StarUnlit = null!;
+    protected Image ExtraStar = null!;
     protected Image CycleIcon = null!;
 
     protected HsrEndGameCardServiceBase(
@@ -52,6 +53,10 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
         CycleIcon = await Image.LoadAsync(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
+            cancellationToken);
+
+        ExtraStar = await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ExtraStarName, cancellationToken),
             cancellationToken);
     }
 
@@ -171,6 +176,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     var extraRoom = blobHeight - contentEndY;
                     var separator2Y = extraRoom > 0 && !floorData.IsTierce ? blobHeight / 2 : 335;
                     var separator3Y = 605;
+                    var starShift = floorData.ExtraStarNum > 0 ? floorData.ExtraStarNum * 50 : 0;
 
                     var node1Y = 65 + Math.Max(0, (separator2Y - 65 - 250) / 2);
 
@@ -182,40 +188,57 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65)).Build());
 
-                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node1Y), "Node 1", floorData.Node1, avatarImages, buffImages, DrawNodeExtras);
+                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node1Y), "Node 1", floorData.Node1,
+                        avatarImages, buffImages, DrawNodeExtras);
 
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + separator2Y),
                         new PointF(xOffset + 860, yOffset + separator2Y)).Build());
 
-                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node2Y), "Node 2", floorData.Node2, avatarImages, buffImages, DrawNodeExtras);
+                    DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node2Y), "Node 2", floorData.Node2,
+                        avatarImages, buffImages, DrawNodeExtras);
 
                     if (floorData.IsTierce)
                     {
                         canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 40, yOffset + separator3Y),
                             new PointF(xOffset + 860, yOffset + separator3Y)).Build());
 
-                        DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node3Y), "Node 3", floorData.Node3, avatarImages, buffImages, DrawNodeExtras);
+                        DrawNodeInformation(canvas, new Point(xOffset + 45, yOffset + node3Y), "Node 3", floorData.Node3,
+                            avatarImages, buffImages, DrawNodeExtras);
                     }
 
-                    for (var i = 0; i < 3; i++)
+                    var starX = xOffset + 830;
+
+                    if (floorData.ExtraStarNum > 0)
+                    {
+                        for (var i = 0; i < floorData.ExtraStarNum; i++)
+                        {
+                            canvas.DrawImage(ExtraStar, ExtraStar.Bounds,
+                                new RectangleF(starX, yOffset + 5, ExtraStar.Width, ExtraStar.Height),
+                                KnownResamplers.Bicubic);
+                            starX -= 50;
+                        }
+                    }
+
+                    for (var i = 2; i >= 0; i--)
                     {
                         var starImage = i < floorData.StarNum ? StarLit : StarUnlit;
                         canvas.DrawImage(starImage, starImage.Bounds,
-                            new RectangleF(xOffset + 730 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                            new RectangleF(starX, yOffset + 5, starImage.Width, starImage.Height),
                             KnownResamplers.Bicubic);
+                        starX -= 50;
                     }
 
-                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 720, yOffset + 10),
-                        new PointF(xOffset + 720, yOffset + 55)).Build());
+                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 720 - starShift, yOffset + 10),
+                        new PointF(xOffset + 720 - starShift, yOffset + 55)).Build());
                     var scoreText = $"Score: {floorData.TotalScore}";
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
-                        Origin = new PointF(xOffset + 710, yOffset + 34),
+                        Origin = new PointF(xOffset + 710 - starShift, yOffset + 34),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Center
                     }, scoreText, Brushes.Solid(Color.White), null);
 
-                    DrawScoreExtras(canvas, xOffset, yOffset, scoreText, floorData, gameModeData);
+                    DrawScoreExtras(canvas, xOffset - starShift, yOffset, scoreText, floorData, gameModeData);
 
                     if (floorNumber % 2 == 1) yOffset += blobHeight + 20;
                 }
@@ -238,8 +261,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         HsrEndNodeInformation? nodeData,
         Dictionary<int, HsrAvatar> avatarImages,
         Dictionary<int, Image<Rgba32>> buffImages,
-        Action<DrawingCanvas, HsrEndNodeInformation> drawExtras
-    )
+        Action<DrawingCanvas, HsrEndNodeInformation> drawExtras)
     {
         using var region = canvas.CreateRegion(new Rectangle(point, new Size(810, 250)));
 
@@ -306,10 +328,18 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         };
         var bounds = TextMeasurer.MeasureBounds(gameModeData.StarNum.ToString(), textOptions);
         canvas.DrawText(textOptions, gameModeData.StarNum.ToString(), Brushes.Solid(Color.White), null);
-        var starLit = StarLit;
-        canvas.DrawImage(starLit, starLit.Bounds,
-            new RectangleF((int)bounds.Right + 5, 30, starLit.Width, starLit.Height),
+        canvas.DrawImage(StarLit, StarLit.Bounds,
+            new RectangleF((int)bounds.Right + 5, 30, StarLit.Width, StarLit.Height),
             KnownResamplers.Bicubic);
+        if (gameModeData.ExtraStarNum > 0)
+        {
+            textOptions = new(textOptions) { Origin = new Vector2(bounds.Right + StarLit.Width + 10, 80) };
+            bounds = TextMeasurer.MeasureBounds(gameModeData.ExtraStarNum.ToString(), textOptions);
+            canvas.DrawText(textOptions, gameModeData.ExtraStarNum.ToString(), Brushes.Solid(Color.White), null);
+            canvas.DrawImage(ExtraStar, ExtraStar.Bounds,
+                new RectangleF((int)bounds.Right + 5, 30, ExtraStar.Width, ExtraStar.Height),
+                KnownResamplers.Bicubic);
+        }
 
         canvas.DrawText(new RichTextOptions(Fonts.Normal)
         {
