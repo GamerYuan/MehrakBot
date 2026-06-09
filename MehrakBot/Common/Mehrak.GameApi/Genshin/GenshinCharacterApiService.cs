@@ -4,11 +4,13 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Cache;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -34,7 +36,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(GenshinCharacterApiContext context)
+    public async Task<Result<IEnumerable<GenshinBasicCharacterData>>> GetAllCharactersAsync(GenshinCharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -45,16 +47,16 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var cacheKey = $"genshin_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, timeoutCts.Token);
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Success(cachedEntry);
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/list";
 
@@ -77,12 +79,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -91,7 +88,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "Failed to retrieve character list data", requestUri);
             }
 
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>();
+            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(timeoutCts.Token);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -117,14 +114,15 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<GenshinBasicCharacterData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {
@@ -135,7 +133,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         }
     }
 
-    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(GenshinCharacterApiContext context)
+    public async Task<Result<GenshinCharacterDetail>> GetCharacterDetailAsync(GenshinCharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid) || context.CharacterIds.Count == 0)
         {
@@ -146,6 +144,9 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
@@ -167,12 +168,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -182,7 +178,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>();
+                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(timeoutCts.Token);
 
             if (json == null || json.Data == null || json.Data.List.Count == 0)
             {
@@ -208,8 +204,11 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinCharacterDetail>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

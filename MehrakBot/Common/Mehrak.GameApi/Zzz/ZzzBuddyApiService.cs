@@ -1,8 +1,9 @@
 ﻿using System.Text.Json;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Cache;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +27,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
         m_Logger = logger;
     }
 
-    public async Task<Result<IEnumerable<ZzzBuddyData>>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<IEnumerable<ZzzBuddyData>>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -37,16 +38,16 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var cacheKey = $"zzz_buddies_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, timeoutCts.Token);
 
             if (cachedEntry != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<ZzzBuddyData>>.Success(cachedEntry)!;
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}?server={context.Region}&role_id={context.GameUid}";
@@ -62,12 +63,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("X-Rpc-Language", "en-us");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await httpClient.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await httpClient.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -78,7 +74,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBuddyResponse>>(
-                    await response.Content.ReadAsStreamAsync());
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.List.Count == 0)
             {
@@ -104,15 +100,16 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
                 json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            await m_Cache.SetAsync(cacheEntry);
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
+            await m_Cache.SetAsync(cacheEntry, cancellationToken);
 
             return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<ZzzBuddyData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

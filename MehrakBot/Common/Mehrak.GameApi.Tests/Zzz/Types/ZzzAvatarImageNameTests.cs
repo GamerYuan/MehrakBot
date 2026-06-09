@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Common;
+﻿using Mehrak.Domain.Image.Models;
 using Mehrak.GameApi.Zzz.Types;
 
 namespace Mehrak.GameApi.Tests.Zzz.Types;

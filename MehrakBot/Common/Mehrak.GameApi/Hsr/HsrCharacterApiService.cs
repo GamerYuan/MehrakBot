@@ -1,12 +1,13 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Cache;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hsr.Types;
-using Mehrak.GameApi.Utilities;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -31,7 +32,7 @@ public class
         m_Cache = cache;
     }
 
-    public async Task<Result<IEnumerable<HsrBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context)
+    public async Task<Result<IEnumerable<HsrBasicCharacterData>>> GetAllCharactersAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.Region) || string.IsNullOrEmpty(context.GameUid))
         {
@@ -42,17 +43,17 @@ public class
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var cacheKey = $"hsr_characters_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, timeoutCts.Token);
 
             // Try to get data from cache first
             if (cachedData != null)
             {
-                m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedFromCache, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
-
-            m_Logger.LogDebug(LogMessages.CacheMiss, cacheKey, context.UserId);
 
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
@@ -74,12 +75,7 @@ public class
                 }
             };
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -90,7 +86,7 @@ public class
 
             var json =
                 await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
-                    await response.Content.ReadAsStreamAsync());
+                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null || json.Data.AvatarList.Count == 0)
             {
@@ -116,16 +112,17 @@ public class
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
-
             HsrBasicCharacterData[] result = [json.Data];
 
             await m_Cache.SetAsync(
                 new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)));
-            m_Logger.LogInformation(LogMessages.SuccessfullyCachedData, context.UserId, CacheExpirationMinutes);
+                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
 
             return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<IEnumerable<HsrBasicCharacterData>>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {
@@ -139,7 +136,7 @@ public class
     /// <summary>
     /// Stub! DO NOT USE!
     /// </summary>
-    public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context)
+    public Task<Result<HsrCharacterInformation>> GetCharacterDetailAsync(CharacterApiContext context, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

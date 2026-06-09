@@ -1,12 +1,13 @@
 ﻿#region
 
 using System.Globalization;
-using Mehrak.Bot.Modules;
-using Mehrak.Bot.Services;
-using Mehrak.Bot.Services.RateLimit;
+using Mehrak.Bot.Shared.Modules;
+using Mehrak.Bot.Shared.Services;
+using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
-using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Character;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

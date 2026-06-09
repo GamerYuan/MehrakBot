@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 
@@ -22,7 +22,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzTowerData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzTowerData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -33,6 +33,9 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}";
 
@@ -42,10 +45,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
             using HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            using var response = await client.SendAsync(request);
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            using var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -54,7 +54,7 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
 
             if (json?["data"] == null)
             {
@@ -83,8 +83,11 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             var towerData = json["data"]!["climbing_tower_s3"].Deserialize<ZzzTowerData>();
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzTowerData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

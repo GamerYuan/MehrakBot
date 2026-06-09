@@ -1,17 +1,25 @@
 ﻿#region
 
 using System.Text.Json.Nodes;
-using Mehrak.Domain.Enums;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
+using Mehrak.GameApi.CodeRedeem;
+using Mehrak.GameApi.DailyCheckIn;
+using Mehrak.GameApi.GameRecord;
+using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Genshin;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.GameApi.Hi3;
 using Mehrak.GameApi.Hi3.Types;
 using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
+using Mehrak.GameApi.Wiki;
 using Mehrak.GameApi.Zzz;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +68,9 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>, ZzzRealTimeNotesApiService>();
         services.AddSingleton<IApiService<IEnumerable<ZzzBuddyData>, BaseHoYoApiContext>, ZzzBuddyApiService>();
         services.AddSingleton<IApiService<ZzzTowerData, BaseHoYoApiContext>, ZzzTowerApiService>();
+        services
+            .AddSingleton<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>,
+                ZzzCharacterEntryPageApiService>();
 
         // HI3 services
         services.AddSingleton<

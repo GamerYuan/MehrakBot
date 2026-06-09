@@ -1,12 +1,12 @@
 ﻿using System.Globalization;
 using Mehrak.Application;
-using Mehrak.Application.Models;
-using Mehrak.Application.Services;
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Common;
+using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Models;
+using Mehrak.Application.Shared.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
-using Mehrak.Infrastructure.Config;
+using Mehrak.Infrastructure.Character;
+using Mehrak.Infrastructure.Shared.Config;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;

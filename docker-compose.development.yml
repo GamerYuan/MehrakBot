@@ -77,6 +77,8 @@ services:
         ASPNETCORE_ENVIRONMENT: Development
         BASE_IMAGE_TAG: ${BASE_IMAGE_TAG:-opencv-4.12.0-ocvsharp-4.11.0.20250507}
         VERSION: ${VERSION:-0.0.0}
+      secrets:
+        - sixlabors-license
     depends_on:
       postgres:
         condition: service_healthy
@@ -277,6 +279,10 @@ networks:
     driver: bridge
   seaweed-network:
     driver: bridge
+
+secrets:
+  sixlabors-license:
+    file: ./MehrakBot/Services/Application/Mehrak.Application/sixlabors.lic
 
 volumes:
   pgdata:

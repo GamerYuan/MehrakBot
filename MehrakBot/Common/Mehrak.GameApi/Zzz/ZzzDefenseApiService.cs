@@ -1,10 +1,10 @@
 ﻿#region
 
 using System.Net.Http.Json;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +25,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzDefenseDataV2>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<ZzzDefenseDataV2>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -36,6 +36,9 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
 
@@ -45,12 +48,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -60,7 +58,7 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
             }
 
             var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>();
+                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>(timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -86,8 +84,11 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ZzzDefenseDataV2>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

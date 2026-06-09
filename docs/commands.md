@@ -11,15 +11,15 @@ In this project, command modules are classes that inherit from `ApplicationComma
 
 Examples:
 
-- `Mehrak.Bot/Modules/GenshinCommandModule.cs`
-- `Mehrak.Bot/Modules/HsrCommandModule.cs`
-- `Mehrak.Bot/Modules/Common/DailyCheckInCommandModule.cs`
+- `Mehrak.Bot/Genshin/GenshinCommandModule.cs`
+- `Mehrak.Bot/Hsr/HsrCommandModule.cs`
+- `Mehrak.Bot/DailyCheckIn/DailyCheckInCommandModule.cs`
 
 Each module is responsible for:
 
 - Defining command metadata via attributes (`[SlashCommand]`, `[SubSlashCommand]`, parameter attributes)
 - Converting Discord input into a normalized internal parameter dictionary
-- Choosing an internal command key from `Mehrak.Domain.Common.CommandName`
+- Choosing an internal command key from `Mehrak.Domain.Shared.Common.CommandName`
 - Delegating execution to `CommandExecutorService` using `ICommandExecutorBuilder`
 
 The module does not execute game/business logic directly. It only validates user input at the bot boundary and dispatches work to `Mehrak.Application` through gRPC.
@@ -61,7 +61,7 @@ So command modules in the bot assembly are discovered automatically. No manual m
 
 Every command dispatched from bot to application uses a string key from:
 
-- `Mehrak.Domain/Common/CommandName.cs`
+- `Mehrak.Domain/Shared/Common/CommandName.cs`
 
 Example keys:
 
@@ -83,7 +83,7 @@ Use this checklist when adding a new subcommand under existing roots like `/gens
 
 ### 1. Add internal command key
 
-Update `Mehrak.Domain/Common/CommandName.cs` with a new constant in the correct nested class.
+Update `Mehrak.Domain/Shared/Common/CommandName.cs` with a new constant in the correct nested class.
 
 Example:
 
@@ -120,8 +120,8 @@ If this command renders images, add an `ICardService<T>` and wire it similarly t
 
 Add keyed registration in the proper extension class, for example:
 
-- `Mehrak.Application/Services/Genshin/GenshinApplicationServiceExtensions.cs`
-- `Mehrak.Application/Services/Hsr/HsrApplicationServiceExtensions.cs`
+- `Mehrak.Application/Genshin/GenshinApplicationServiceExtensions.cs`
+- `Mehrak.Application/Hsr/HsrApplicationServiceExtensions.cs`
 - or `Mehrak.Application/ApplicationServiceCollectionExtension.cs` (common commands)
 
 Example:
@@ -159,13 +159,14 @@ Use this checklist when creating a new root command like `/mygame`.
 
 ### 1. Create module class
 
-Add new module in `Mehrak.Bot/Modules`:
+Add new module in `Mehrak.Bot/{FeatureName}`:
 
 - Inherit `ApplicationCommandModule<ApplicationCommandContext>`
 - Add `[SlashCommand("mygame", "...")]`
 - Optionally add `[RateLimit<ApplicationCommandContext>]`
 - Inject `ICommandExecutorBuilder` and logger
 - Add subcommands that dispatch using `WithCommandName(...)`
+- Add rate limit if required with the `[RateLimit<ApplicationCommandContext>]` attribute on the class/method level
 
 ### 2. Add command name constants
 
@@ -173,7 +174,7 @@ Define a nested class in `CommandName.cs` (or extend existing) with all command 
 
 ### 3. Implement and register application handlers
 
-Create `IApplicationService` handlers in `Mehrak.Application/Services/<Area>` and register all keys with `AddKeyedTransient<IApplicationService, ...>(key)`.
+Create `IApplicationService` handlers in `Mehrak.Application/{FeatureName}/{Area}` and register all keys with `AddKeyedTransient<IApplicationService, ...>(key)`.
 
 ### 4. Register supporting services
 

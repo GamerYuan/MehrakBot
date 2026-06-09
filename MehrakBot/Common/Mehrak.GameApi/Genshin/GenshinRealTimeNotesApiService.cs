@@ -2,11 +2,11 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Genshin.Types;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -32,7 +32,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinRealTimeNotesData>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<GenshinRealTimeNotesData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -43,6 +43,9 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
 
@@ -52,12 +55,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -67,7 +65,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<GenshinRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync(), JsonSerializerOptions);
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonSerializerOptions, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -76,7 +74,6 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
                     "Failed to parse JSON response from real-time notes API", requestUri);
             }
 
-            // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
             if (json.Retcode == 10001)
@@ -93,8 +90,11 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<GenshinRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<GenshinRealTimeNotesData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

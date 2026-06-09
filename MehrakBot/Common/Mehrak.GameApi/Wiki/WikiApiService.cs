@@ -1,0 +1,121 @@
+﻿#region
+
+using System.Text.Json.Nodes;
+using Mehrak.Domain.Shared.Abstractions;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.Shared;
+using Microsoft.Extensions.Logging;
+
+#endregion
+
+namespace Mehrak.GameApi.Wiki;
+
+public class WikiApiService : IApiService<JsonNode, WikiApiContext>
+{
+    private readonly IHttpClientFactory m_HttpClientFactory;
+    private readonly ILogger<WikiApiService> m_Logger;
+
+    public WikiApiService(IHttpClientFactory httpClientFactory, ILogger<WikiApiService> logger)
+    {
+        m_HttpClientFactory = httpClientFactory;
+        m_Logger = logger;
+    }
+
+    public async Task<Result<JsonNode>> GetAsync(WikiApiContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
+            var endpoint = GetEndpoint(context.Game);
+            var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
+
+            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+
+            var client = m_HttpClientFactory.CreateClient("Default");
+            HttpRequestMessage request = new()
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri(requestUri)
+            };
+            request.Headers.Add("X-Rpc-Language", context.Locale.ToLocaleString());
+
+            if (context.Game == Game.ZenlessZoneZero)
+                request.Headers.Add("X-Rpc-Wiki_app", "zzz");
+            else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+
+            var response = await client.SendAsync(request, timeoutCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while accessing HoYoWiki API", requestUri);
+            }
+
+            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
+
+            if (json == null)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while accessing HoYoWiki API", requestUri);
+            }
+
+            var retcode = json["retcode"]?.GetValue<int>() ?? -1;
+
+            // Info-level API retcode after parse
+            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode, context.UserId);
+
+            if (retcode != 0)
+            {
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.UserId, requestUri, json);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while accessing HoYoWiki API", requestUri);
+            }
+
+            return Result<JsonNode>.Success(json, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<JsonNode>.FromCancellation(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}", context.UserId);
+            return Result<JsonNode>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.");
+        }
+    }
+
+    private static string GetEndpoint(Game game)
+    {
+        return game switch
+        {
+            Game.Genshin => "/genshin/wapi/entry_page",
+            Game.HonkaiStarRail => "/hsr/wapi/entry_page",
+            Game.ZenlessZoneZero => "/zzz/wapi/entry_page",
+            _ => throw new NotSupportedException($"Game {game} is not supported.")
+        };
+    }
+}
+
+public class WikiApiContext : IApiContext
+{
+    public ulong UserId { get; }
+    public Game Game { get; }
+    public string EntryPage { get; }
+    public WikiLocales Locale { get; }
+
+    public WikiApiContext(ulong userId, Game game, string entryPage, WikiLocales locale = WikiLocales.EN)
+    {
+        UserId = userId;
+        Game = game;
+        EntryPage = entryPage;
+        Locale = locale;
+    }
+}
+

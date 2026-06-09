@@ -1,12 +1,11 @@
 ﻿#region
 
 using System.Text.Json;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Services.Abstractions;
-using Mehrak.GameApi.Common;
-using Mehrak.GameApi.Common.Types;
+using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hsr.Types;
-using Mehrak.GameApi.Utilities;
+using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 #endregion
@@ -25,7 +24,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
         m_Logger = logger;
     }
 
-    public async Task<Result<HsrMemoryInformation>> GetAsync(BaseHoYoApiContext context)
+    public async Task<Result<HsrMemoryInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
@@ -36,6 +35,9 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
 
         try
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1&need_all=true";
 
@@ -49,12 +51,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
             request.Headers.Add("X-Rpc-Language", "en-us");
             request.Headers.Add("X-Rpc-Client_type", "5");
 
-            // Info-level outbound request (no headers)
-            m_Logger.LogInformation(LogMessages.OutboundHttpRequest, request.Method, requestUri);
-            var response = await client.SendAsync(request);
-
-            // Info-level inbound response (status only)
-            m_Logger.LogInformation(LogMessages.InboundHttpResponse, (int)response.StatusCode, requestUri);
+            var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -64,7 +61,7 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
             }
 
             var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrMemoryInformation>>(
-                await response.Content.ReadAsStreamAsync());
+                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
             if (json?.Data == null)
             {
@@ -90,8 +87,11 @@ internal class HsrMemoryApiService : IApiService<HsrMemoryInformation, BaseHoYoA
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            m_Logger.LogInformation(LogMessages.SuccessfullyRetrievedData, requestUri, context.UserId);
             return Result<HsrMemoryInformation>.Success(json.Data, requestUri: requestUri);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<HsrMemoryInformation>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {

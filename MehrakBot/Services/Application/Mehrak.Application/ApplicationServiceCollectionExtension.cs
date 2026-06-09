@@ -1,12 +1,14 @@
 ﻿#region
 
-using Mehrak.Application.Services.Abstractions;
-using Mehrak.Application.Services.Common;
-using Mehrak.Application.Services.Genshin;
+using Mehrak.Application.CodeRedeem;
+using Mehrak.Application.DailyCheckIn;
+using Mehrak.Application.Genshin;
+using Mehrak.Application.Hsr;
 using Mehrak.Application.Services.Hi3;
-using Mehrak.Application.Services.Hsr;
-using Mehrak.Application.Services.Zzz;
-using Mehrak.Domain.Common;
+using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Services;
+using Mehrak.Application.Zzz;
+using Mehrak.Domain.Shared.Common;
 
 #endregion
 

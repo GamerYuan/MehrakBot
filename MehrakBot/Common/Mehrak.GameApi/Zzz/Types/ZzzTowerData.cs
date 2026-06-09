@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using Mehrak.Domain.Models;
-using Mehrak.Domain.Models.Abstractions;
+using Mehrak.Domain.Image.Abstractions;
+using Mehrak.Domain.Image.Models;
 
 namespace Mehrak.GameApi.Zzz.Types;
 
