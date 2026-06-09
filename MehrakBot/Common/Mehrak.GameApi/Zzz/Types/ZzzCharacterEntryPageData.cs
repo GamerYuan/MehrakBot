@@ -16,4 +16,6 @@ public class ZzzCharacterEntryPageData
 public class ZzzCharacterEntryPageList
 {
     [JsonPropertyName("list")] public required List<ZzzCharacterEntryPageData> List { get; set; }
+
+    [JsonPropertyName("total")] public int Total { get; set; }
 }

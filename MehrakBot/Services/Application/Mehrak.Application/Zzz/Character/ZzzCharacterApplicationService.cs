@@ -168,33 +168,40 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
         {
-            var avatarWikiUrl = characterData.AvatarWiki[charInfo.Id.ToString()];
-            var entryPage = string.Empty;
-
-            if (avatarWikiUrl.Contains("/aggregate/"))
+            if (!characterData.AvatarWiki.TryGetValue(charInfo.Id.ToString(), out var avatarWikiUrl))
             {
-                var entryPageResult = await m_CharacterEntryPageService.GetAsync(
-                    new ZzzCharacterEntryPageApiContext(context.UserId), cancellationToken);
-                if (entryPageResult.IsSuccess)
-                {
-                    var entry = entryPageResult.Data.List.FirstOrDefault(x => x.Name == charInfo.FullName);
-                    if (entry != null)
-                        entryPage = entry.EntryPageId;
-                    else
-                        Logger.LogWarning("Character '{Character}' not found in ZZZ entry page list", charInfo.FullName);
-                }
-                else
-                {
-                    Logger.LogWarning("Failed to get ZZZ entry page list: {Message}", entryPageResult.ErrorMessage);
-                }
+                Logger.LogWarning("Character '{Character}' (Id={Id}) not found in wiki data",
+                    charInfo.FullName, charInfo.Id);
             }
             else
             {
-                entryPage = avatarWikiUrl.Split('/')[^1];
-            }
+                var entryPage = string.Empty;
 
-            if (!string.IsNullOrEmpty(entryPage))
-                charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
+                if (avatarWikiUrl.Contains("/aggregate/"))
+                {
+                    var entryPageResult = await m_CharacterEntryPageService.GetAsync(
+                        new ZzzCharacterEntryPageApiContext(context.UserId), cancellationToken);
+                    if (entryPageResult.IsSuccess)
+                    {
+                        var entry = entryPageResult.Data.List.FirstOrDefault(x => x.Name == charInfo.FullName);
+                        if (entry != null)
+                            entryPage = entry.EntryPageId;
+                        else
+                            Logger.LogWarning("Character '{Character}' not found in ZZZ entry page list", charInfo.FullName);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Failed to get ZZZ entry page list: {Message}", entryPageResult.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    entryPage = avatarWikiUrl.Split('/')[^1];
+                }
+
+                if (!string.IsNullOrEmpty(entryPage))
+                    charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
+            }
         }
 
         if (charInfo.Weapon != null)
