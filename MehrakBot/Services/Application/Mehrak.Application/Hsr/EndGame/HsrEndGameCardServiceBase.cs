@@ -139,13 +139,14 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     var stageText = GetStageText(gameModeData, floorData, floorNumber);
 
+                    var maxTextWidth = floorData?.ExtraStarNum > 0 ? 380 : 450;
                     var bounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
-                    canvas.DrawText(new RichTextOptions(bounds.Width >= 450 ? Fonts.Small : Fonts.Normal)
+                    canvas.DrawText(new RichTextOptions(bounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 20, yOffset + 34),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Center,
-                        WrappingLength = 450
+                        WrappingLength = maxTextWidth
                     }, stageText, Brushes.Solid(Color.White), null);
 
                     if (floorData == null || floorData.IsFast)
