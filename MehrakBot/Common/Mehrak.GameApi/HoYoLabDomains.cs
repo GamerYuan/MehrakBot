@@ -49,4 +49,9 @@ public static class HoYoLabDomains
     /// HoYoWiki static API host
     /// </summary>
     public const string WikiApi = "https://sg-act-public-api-static.hoyolab.com/hoyowiki";
+
+    /// <summary>
+    /// HoYoWiki action API host (used for POST queries like get_entry_page_list)
+    /// </summary>
+    public const string WikiActApi = "https://sg-act-public-api.hoyolab.com/hoyowiki";
 }
