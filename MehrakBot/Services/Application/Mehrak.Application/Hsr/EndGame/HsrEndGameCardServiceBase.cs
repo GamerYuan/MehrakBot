@@ -83,8 +83,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         var gameModeData = context.Data;
 
         var avatarImages = await gameModeData.AllFloorDetail
-            .Where(x => x is { Node1: not null, Node2: not null })
-            .SelectMany(x => x.Node1!.Avatars.Concat(x.Node2!.Avatars))
+            .SelectMany(x =>
+                (x.Node1?.Avatars ?? []).Concat(x.Node2?.Avatars ?? []).Concat(x.Node3?.Avatars ?? []))
             .DistinctBy(x => x.Id).ToAsyncEnumerable()
             .Select(async (x, token) =>
             {
@@ -96,9 +96,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
             .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
 
         var buffImages = await gameModeData.AllFloorDetail
-            .Where(x => x is { Node1: not null, Node2: not null })
-            .SelectMany(x => new HsrEndBuff[] { x.Node1!.Buff, x.Node2!.Buff })
-            .Where(x => x is not null)
+            .SelectMany(x => new[] { x.Node1?.Buff, x.Node2?.Buff, x.Node3?.Buff })
+            .OfType<HsrEndBuff>()
             .DistinctBy(x => x.Id)
             .ToAsyncEnumerable()
             .ToDictionaryAsync(
@@ -371,10 +370,5 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
         if (data == null || data.IsFast) return 180;
         if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 850;
         return 600;
-    }
-
-    private static bool IsSmallBlob(HsrEndFloorDetail? data)
-    {
-        return data == null || data.IsFast;
     }
 }
