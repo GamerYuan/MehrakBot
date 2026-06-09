@@ -68,6 +68,9 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>, ZzzRealTimeNotesApiService>();
         services.AddSingleton<IApiService<IEnumerable<ZzzBuddyData>, BaseHoYoApiContext>, ZzzBuddyApiService>();
         services.AddSingleton<IApiService<ZzzTowerData, BaseHoYoApiContext>, ZzzTowerApiService>();
+        services
+            .AddSingleton<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>,
+                ZzzCharacterEntryPageApiService>();
 
         // HI3 services
         services.AddSingleton<
