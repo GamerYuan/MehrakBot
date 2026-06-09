@@ -129,7 +129,7 @@ See `docs/card-service.md` for the full guide. Key rules:
 - **Cache:** StackExchange.Redis
 - **Object storage:** AWSSDK.S3 (backed by SeaweedFS in dev/docker)
 - **Analytics:** ClickHouse
-- **Code formatter:** CSharpier 1.1.2
+- **Code formatter:** Dotnet Format Tool
 
 ## Documentation
 

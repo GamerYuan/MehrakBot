@@ -9,8 +9,7 @@ cd MehrakBot
 dotnet build
 dotnet test
 dotnet format .          # analyzers + style
-dotnet tool restore      # restores CSharpier
-dotnet csharpier .       # opinionated formatter (CI does not enforce, but use it)
+dotnet tool restore
 ```
 
 Run a single test project or filter:
@@ -57,6 +56,7 @@ MehrakBot/
 **Three-process system.** Bot and Dashboard are gRPC clients; Application is the gRPC server. All three must run for end-to-end testing.
 
 **Command dispatch is keyed DI.** Every command needs:
+
 1. A key in `Common/Mehrak.Domain/Shared/Common/CommandName.cs`
 2. A `[SlashCommand]`/`[SubSlashCommand]` method in a Bot module
 3. An `IApplicationService` implementation in Application
