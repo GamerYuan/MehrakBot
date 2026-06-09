@@ -178,12 +178,10 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     var separator3Y = 605;
                     var starShift = floorData.ExtraStarNum > 0 ? floorData.ExtraStarNum * 50 : 0;
 
-                    var node1Y = 65 + Math.Max(0, (separator2Y - 65 - 250) / 2);
-
+                    var node1Y = Math.Max(85, (65 + separator2Y) / 2 - 125);
                     var section2End = floorData.IsTierce ? separator3Y : blobHeight;
-                    var node2Y = separator2Y + Math.Max(0, (section2End - separator2Y - 250) / 2);
-
-                    var node3Y = separator3Y + Math.Max(15, (blobHeight - separator3Y - 250) / 2);
+                    var node2Y = Math.Max(separator2Y + 15, (separator2Y + section2End) / 2 - 125);
+                    var node3Y = Math.Max(separator3Y + 15, (separator3Y + blobHeight) / 2 - 125);
 
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 65),
                         new PointF(xOffset + 880, yOffset + 65)).Build());
@@ -368,7 +366,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     private static int GetBlobHeight(HsrEndFloorDetail? data)
     {
         if (data == null || data.IsFast) return 180;
-        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 850;
+        if (data.IsTierce && (data.Node1 is not null || data.Node2 is not null || data.Node3 is not null)) return 870;
         return 600;
     }
 }
