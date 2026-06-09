@@ -2,6 +2,7 @@
 
 using System.Text;
 using System.Text.Json;
+using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -26,19 +27,28 @@ public class ZzzCharacterEntryPageApiContext : IApiContext
 internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>
 {
     private const string MenuId = "8";
+    private const string CacheKey = "zzz_character_entry_pages";
+    private static readonly TimeSpan CacheExpiration = TimeSpan.FromHours(1);
     private const string Endpoint = $"{HoYoLabDomains.WikiActApi}/zzz/wapi/get_entry_page_list";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzCharacterEntryPageApiService> m_Logger;
+    private readonly ICacheService m_Cache;
 
-    public ZzzCharacterEntryPageApiService(IHttpClientFactory httpClientFactory, ILogger<ZzzCharacterEntryPageApiService> logger)
+    public ZzzCharacterEntryPageApiService(IHttpClientFactory httpClientFactory, ILogger<ZzzCharacterEntryPageApiService> logger,
+        ICacheService cache)
     {
         m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
+        m_Cache = cache;
     }
 
     public async Task<Result<ZzzCharacterEntryPageList>> GetAsync(ZzzCharacterEntryPageApiContext context, CancellationToken cancellationToken = default)
     {
+        var cached = await m_Cache.GetAsync<ZzzCharacterEntryPageList>(CacheKey, cancellationToken);
+        if (cached != null)
+            return Result<ZzzCharacterEntryPageList>.Success(cached);
+
         try
         {
             var payload = new
@@ -72,6 +82,9 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
                     apiResponse?.Retcode, apiResponse?.Message);
                 return Result<ZzzCharacterEntryPageList>.Failure(StatusCode.ExternalServerError, apiResponse?.Message ?? "Unknown error");
             }
+
+            var cacheEntry = new CacheEntryBase<ZzzCharacterEntryPageList>(CacheKey, apiResponse.Data, CacheExpiration);
+            await m_Cache.SetAsync(cacheEntry, cancellationToken);
 
             return Result<ZzzCharacterEntryPageList>.Success(apiResponse.Data);
         }
