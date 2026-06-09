@@ -796,6 +796,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock,
@@ -867,6 +868,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, attachmentStorageMock, userContext, portraitConfigMock);
@@ -960,6 +962,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
+            Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
