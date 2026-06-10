@@ -103,3 +103,4 @@ jobs:
             git checkout ${{ env.TAG_NAME }}
             docker compose up -d --remove-orphans --no-build
             docker image prune -af --filter "until=24h"
+            docker compose exec -T nginx nginx -s reload
