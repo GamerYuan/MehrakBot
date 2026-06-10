@@ -62,7 +62,14 @@ internal partial class HylEmbedService : IBotService
         List<HylPostStructuredInsert>? inserts;
         try
         {
-            inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+            if (string.IsNullOrWhiteSpace(post.Post.StructuredContent))
+            {
+                inserts = [new HylPostStructuredInsert { Insert = JsonSerializer.Deserialize<HylPostInsertContent>(post.Post.Content) }];
+            }
+            else
+            {
+                inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+            }
         }
         catch (JsonException e)
         {
