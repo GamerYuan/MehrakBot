@@ -160,11 +160,11 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 else
                 {
                     entity.Name = characterName;
-                    if (update.OffsetX.HasValue) entity.OffsetX = update.OffsetX;
-                    if (update.OffsetY.HasValue) entity.OffsetY = update.OffsetY;
-                    if (update.TargetScale.HasValue) entity.TargetScale = update.TargetScale;
-                    if (update.EnableGradientFade.HasValue) entity.EnableGradientFade = update.EnableGradientFade;
-                    if (update.GradientFadeStart.HasValue) entity.GradientFadeStart = update.GradientFadeStart;
+                    entity.OffsetX = update.OffsetX;
+                    entity.OffsetY = update.OffsetY;
+                    entity.TargetScale = update.TargetScale;
+                    entity.EnableGradientFade = update.EnableGradientFade;
+                    entity.GradientFadeStart = update.GradientFadeStart;
                 }
 
                 await context.SaveChangesAsync();

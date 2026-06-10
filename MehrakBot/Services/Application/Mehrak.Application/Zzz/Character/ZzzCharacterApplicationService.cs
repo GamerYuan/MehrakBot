@@ -183,7 +183,9 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                         new ZzzCharacterEntryPageApiContext(context.UserId), cancellationToken);
                     if (entryPageResult.IsSuccess)
                     {
-                        var entry = entryPageResult.Data.List.FirstOrDefault(x => x.Name == charInfo.FullName);
+                        var entry = entryPageResult.Data.List.FirstOrDefault(x =>
+                            x.Name.Equals(charInfo.FullName, StringComparison.OrdinalIgnoreCase) ||
+                            x.Name.Equals(charInfo.Name, StringComparison.OrdinalIgnoreCase));
                         if (entry != null)
                             entryPage = entry.EntryPageId;
                         else
