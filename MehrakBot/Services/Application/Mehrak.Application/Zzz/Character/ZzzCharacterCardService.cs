@@ -372,6 +372,7 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
             var textOptions = new RichTextOptions(Fonts.Medium!)
             {
+                Origin = new PointF(170, 40),
                 WrappingLength = 270,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
