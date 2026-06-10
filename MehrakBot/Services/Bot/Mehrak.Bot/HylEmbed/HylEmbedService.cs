@@ -62,7 +62,16 @@ internal partial class HylEmbedService : IBotService
         List<HylPostStructuredInsert>? inserts;
         try
         {
-            inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+            // structured content is only empty for image/video only posts
+            // in this case, post.content becomes a JSON string with InsertImage/InsertVideo that we can parse to build the embed
+            if (string.IsNullOrWhiteSpace(post.Post.StructuredContent))
+            {
+                inserts = [new HylPostStructuredInsert { Insert = JsonSerializer.Deserialize<HylPostInsertContent>(post.Post.Content) }];
+            }
+            else
+            {
+                inserts = JsonSerializer.Deserialize<List<HylPostStructuredInsert>>(post.Post.StructuredContent);
+            }
         }
         catch (JsonException e)
         {

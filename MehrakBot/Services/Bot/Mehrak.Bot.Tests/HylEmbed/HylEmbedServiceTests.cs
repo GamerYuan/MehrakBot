@@ -226,6 +226,83 @@ public class HylEmbedServiceTests
         Assert.That(mediaUrl, Is.EqualTo("https://example.com/cover.jpg"));
     }
 
+    [Test]
+    public async Task ExecuteAsync_ImageOnlyPost_IncludesMediaGallery()
+    {
+        // Arrange
+        var postData = LoadTestPost("hyl_post_5.json");
+        m_MockApiService
+            .Setup(x => x.GetAsync(It.IsAny<HylPostApiContext>()))
+            .ReturnsAsync(Result<HylPost>.Success(postData));
+
+        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        var mockContext = new Mock<IBotContext>();
+        var mockDiscordContext = new Mock<IInteractionContext>();
+        mockDiscordContext.SetupGet(x => x.Interaction).Returns(interaction);
+        mockContext.SetupGet(x => x.DiscordContext).Returns(mockDiscordContext.Object);
+        mockContext.Setup(x => x.GetParameter<long>("postId")).Returns(TestPostId);
+        mockContext.Setup(x => x.GetParameter<WikiLocales>("locale")).Returns(TestLocale);
+
+        m_Service.Context = mockContext.Object;
+
+        // Act
+        await m_Service.ExecuteAsync();
+
+        // Assert
+        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
+        Assert.That(response, Does.Contain("Sample Post with image only"));
+        Assert.That(response, Does.Contain("hoyolab.com/article/44470660"));
+
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        var mediaGallery = innerComponents.EnumerateArray()
+            .FirstOrDefault(c => c.TryGetProperty("type", out var t) && t.GetInt32() == 12);
+        Assert.That(mediaGallery.ValueKind, Is.EqualTo(JsonValueKind.Object));
+
+        var items = mediaGallery.GetProperty("items");
+        Assert.That(items.GetArrayLength(), Is.EqualTo(1));
+
+        var mediaUrl = items[0].GetProperty("media").GetProperty("url").GetString();
+        Assert.That(mediaUrl, Is.EqualTo("https://example.com/image.jpg"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ImageOnlyPost_NullInsertSkipped()
+    {
+        // Arrange
+        var postData = LoadTestPost("hyl_post_5.json");
+        m_MockApiService
+            .Setup(x => x.GetAsync(It.IsAny<HylPostApiContext>()))
+            .ReturnsAsync(Result<HylPost>.Success(postData));
+
+        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        var mockContext = new Mock<IBotContext>();
+        var mockDiscordContext = new Mock<IInteractionContext>();
+        mockDiscordContext.SetupGet(x => x.Interaction).Returns(interaction);
+        mockContext.SetupGet(x => x.DiscordContext).Returns(mockDiscordContext.Object);
+        mockContext.Setup(x => x.GetParameter<long>("postId")).Returns(TestPostId);
+        mockContext.Setup(x => x.GetParameter<WikiLocales>("locale")).Returns(TestLocale);
+
+        m_Service.Context = mockContext.Object;
+
+        // Act
+        await m_Service.ExecuteAsync();
+
+        // Assert - title and footer are always added; content JSON has no recognized insert type
+        // so only those 2 text displays should exist (no extra text from inserts)
+        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
+        using var json = JsonDocument.Parse(response);
+        var components = json.RootElement.GetProperty("components");
+        var innerComponents = components[0].GetProperty("components");
+
+        var textDisplays = innerComponents.EnumerateArray()
+            .Where(c => c.TryGetProperty("type", out var t) && t.GetInt32() == 10)
+            .ToList();
+        Assert.That(textDisplays.Count, Is.EqualTo(2));
+    }
+
     #endregion
 
     #region ExecuteAsync - Error Handling Tests

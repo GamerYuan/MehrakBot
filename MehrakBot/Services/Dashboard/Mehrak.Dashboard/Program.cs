@@ -10,7 +10,6 @@ using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
-using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -86,7 +85,6 @@ public class Program
         builder.Logging.AddSerilog(dispose: true);
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
-        builder.Services.Configure<CharacterCacheConfig>(builder.Configuration.GetSection("CharacterCache"));
 
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));

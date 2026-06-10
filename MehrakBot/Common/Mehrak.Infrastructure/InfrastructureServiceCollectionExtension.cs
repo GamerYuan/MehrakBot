@@ -84,7 +84,6 @@ public static class InfrastructureServiceCollectionExtension
         // Character Cache Services
         services.AddHostedService<CharacterInitializationService>();
         services.AddHostedService<AliasInitializationService>();
-        services.AddHostedService<CharacterCacheBackgroundService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
         services.AddSingleton<IAliasService, AliasService>();
 

@@ -20,6 +20,7 @@ public class HylPostDetail
     [JsonPropertyName("uid")] public required string Uid { get; set; }
     [JsonPropertyName("subject")] public required string Subject { get; set; }
     [JsonPropertyName("created_at")] public long CreatedAt { get; set; }
+    [JsonPropertyName("content")] public required string Content { get; set; }
     [JsonPropertyName("structured_content")] public required string StructuredContent { get; set; }
     [JsonPropertyName("origin_lang")] public required string OriginLang { get; set; }
     [JsonPropertyName("lang")] public required string Lang { get; set; }
