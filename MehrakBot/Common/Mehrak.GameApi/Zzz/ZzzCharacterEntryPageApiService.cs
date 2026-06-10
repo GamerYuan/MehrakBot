@@ -116,7 +116,7 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        var apiResponse = JsonSerializer.Deserialize<ApiResponse<ZzzCharacterEntryPageList>>(responseBody);
+        var apiResponse = JsonSerializer.Deserialize<ApiResponse<ZzzCharacterEntryPageList>>(responseBody, JsonOptions);
 
         if (apiResponse?.Retcode != 0 || apiResponse.Data == null)
         {
