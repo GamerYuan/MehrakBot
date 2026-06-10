@@ -370,12 +370,15 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
             region.DrawText(new RichTextOptions(Fonts.Medium!) { Origin = new PointF(30, 190) },
                 $"Lv.{weapon.Level}", Brushes.Solid(Color.White), null);
 
-            region.DrawText(new RichTextOptions(weapon.Name.Length > 40 ? Fonts.Small : Fonts.Medium)
+            var textOptions = new RichTextOptions(Fonts.Medium!)
             {
-                Origin = new Vector2(170, 40),
-                WrappingLength = 280,
+                WrappingLength = 270,
+                HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top
-            }, weapon.Name, Brushes.Solid(Color.White), null);
+            };
+            var textBounds = TextMeasurer.MeasureBounds(weapon.Name, textOptions);
+            region.DrawText(textBounds.Width >= 270 ? new(textOptions) { Font = Fonts.Small } : textOptions,
+                weapon.Name, Brushes.Solid(Color.White), null);
             var mainPropImg =
                 m_StatImages[StatUtils.GetStatAssetName(weapon.MainProperties[0].PropertyName)];
             region.DrawImage(mainPropImg, mainPropImg.Bounds,
