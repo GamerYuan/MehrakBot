@@ -2,6 +2,7 @@
 
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Models;
@@ -36,6 +37,7 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzCharacterEntryPageApiService> m_Logger;
     private readonly ICacheService m_Cache;
+    private static readonly JsonSerializerOptions JsonOptions = new() { NumberHandling = JsonNumberHandling.AllowReadingFromString };
 
     public ZzzCharacterEntryPageApiService(IHttpClientFactory httpClientFactory, ILogger<ZzzCharacterEntryPageApiService> logger,
         ICacheService cache)
