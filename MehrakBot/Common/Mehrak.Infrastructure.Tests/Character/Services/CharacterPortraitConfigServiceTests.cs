@@ -13,6 +13,7 @@ using Moq;
 
 namespace Mehrak.Infrastructure.Tests.Character.Services;
 
+[TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 internal sealed class CharacterPortraitConfigServiceTests : IDisposable
@@ -276,10 +277,10 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
 
     #endregion
 
-    #region Idempotency — same entity, not duplicated
+    #region Second update overwrites first
 
     [Test]
-    public async Task UpsertConfigAsync_CalledTwice_CreatesSingleEntity()
+    public async Task UpsertConfigAsync_SecondUpdateOverwritesFirst()
     {
         SetupService();
         await using (var ctx = CreateContext())
@@ -307,6 +308,70 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
             Assert.That(entity.OffsetX, Is.Null);
             Assert.That(entity.OffsetY, Is.EqualTo(2));
         });
+    }
+
+    #endregion
+
+    #region Idempotency — same update applied twice
+
+    [Test]
+    public async Task UpsertConfigAsync_SameUpdateTwice_IsIdempotent()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.Genshin, 700, "Bennett");
+        }
+
+        var update = new CharacterPortraitConfigUpdate
+        {
+            OffsetX = 10,
+            TargetScale = 2.0f,
+            EnableGradientFade = true
+        };
+
+        await m_Service.UpsertConfigAsync(Game.Genshin, 700, update);
+        await m_Service.UpsertConfigAsync(Game.Genshin, 700, update);
+
+        await using var verifyContext = CreateContext();
+        var entity = await verifyContext.CharacterPortraitConfigs
+            .FirstAsync(c => c.Game == Game.Genshin && c.ServerId == 700);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(entity.OffsetX, Is.EqualTo(10));
+            Assert.That(entity.TargetScale, Is.EqualTo(2.0f));
+            Assert.That(entity.EnableGradientFade, Is.True);
+        });
+    }
+
+    #endregion
+
+    #region Cache invalidation
+
+    [Test]
+    public async Task UpsertConfigAsync_SuccessfulUpsert_UpdatesCache()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.Genshin, 800, "Fischl");
+        }
+
+        var update = new CharacterPortraitConfigUpdate { OffsetX = 5 };
+        await m_Service.UpsertConfigAsync(Game.Genshin, 800, update);
+
+        await Task.Delay(500);
+
+        m_MockCache.Verify(c => c.SetAsync(
+            "portrait_cfg_Genshin_800",
+            It.IsAny<byte[]>(),
+            It.IsAny<DistributedCacheEntryOptions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        m_MockCache.Verify(c => c.RemoveAsync(
+            "portrait_cfg_all_Genshin",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
