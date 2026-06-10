@@ -95,7 +95,9 @@ public class CharacterCacheService : ICharacterCacheService
                 .Include(x => x.ServerIds)
                 .ToListAsync();
 
-            var existing = existingDb.Where(x => byName.ContainsKey(x.Name))
+            var existing = existingDb
+                .DistinctBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                .Where(x => byName.ContainsKey(x.Name))
                 .ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
 
             var newNames = new List<string>();
