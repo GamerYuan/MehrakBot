@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Domain.Character;
 using Mehrak.Infrastructure.Character.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,15 +16,18 @@ public class CharacterInitializationService : IHostedService
 {
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<CharacterInitializationService> m_Logger;
+    private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly string m_AssetsPath;
 
     public CharacterInitializationService(
         IServiceScopeFactory serviceScopeFactory,
         ILogger<CharacterInitializationService> logger,
+        ICharacterCacheService characterCacheService,
         string? assetsPath = null)
     {
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
+        m_CharacterCacheService = characterCacheService;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
 
@@ -34,6 +38,7 @@ public class CharacterInitializationService : IHostedService
         try
         {
             await InitializeCharactersFromJsonFiles();
+            await m_CharacterCacheService.UpdateAllCharactersAsync();
             m_Logger.LogInformation("Character initialization completed successfully");
         }
         catch (Exception ex)

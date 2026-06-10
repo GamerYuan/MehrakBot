@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Text.Json;
+using Mehrak.Domain.Character;
 using Mehrak.Infrastructure.Character.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,15 +16,18 @@ internal class AliasInitializationService : IHostedService
 {
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasInitializationService> m_Logger;
+    private readonly IAliasService m_AliasService;
     private readonly string m_AssetsPath;
 
     public AliasInitializationService(
         IServiceScopeFactory serviceScopeFactory,
         ILogger<AliasInitializationService> logger,
+        IAliasService aliasService,
         string? assetsPath = null)
     {
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
+        m_AliasService = aliasService;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
     }
 
@@ -34,6 +38,7 @@ internal class AliasInitializationService : IHostedService
         try
         {
             await InitializeAliasesFromJsonFiles();
+            await m_AliasService.UpdateAllAliasesAsync();
             m_Logger.LogInformation("Alias initialization completed successfully");
         }
         catch (Exception ex)
