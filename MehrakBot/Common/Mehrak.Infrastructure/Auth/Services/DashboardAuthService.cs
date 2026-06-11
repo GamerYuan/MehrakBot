@@ -1,5 +1,6 @@
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -59,7 +60,8 @@ public class DashboardAuthService : IDashboardAuthService
 
         var gameWrites = user.GamePermissions
             .Where(p => p.AllowWrite)
-            .Select(p => p.GameCode)
+            .Select(p => Enum.TryParse<Game>(p.GameCode, true, out var g) ? g : Game.Unsupported)
+            .Where(g => g != Game.Unsupported)
             .Distinct()
             .ToArray();
 

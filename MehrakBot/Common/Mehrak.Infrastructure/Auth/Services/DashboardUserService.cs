@@ -1,5 +1,6 @@
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public class DashboardUserService : IDashboardUserService
         m_Logger.LogInformation("Fetching dashboard user summaries.");
         var users = await m_Db.DashboardUsers
             .Include(u => u.GamePermissions)
+            .Where(u => u.IsSuperAdmin || u.GamePermissions.Any(p => p.AllowWrite))
             .OrderBy(u => u.Username)
             .ToListAsync(ct);
 
@@ -35,60 +37,31 @@ public class DashboardUserService : IDashboardUserService
                 IsRootUser = u.IsRootUser,
                 GameWritePermissions = [.. u.GamePermissions
                     .Where(p => p.AllowWrite)
-                    .Select(p => p.GameCode)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)]
+                    .Select(p => Enum.TryParse<Game>(p.GameCode, true, out var g) ? g : Game.Unsupported)
+                    .Where(g => g != Game.Unsupported)
+                    .Distinct()]
             })];
     }
 
-    public async Task<DashboardUserSummaryDto?> GetDashboardUserByIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<DashboardUserSummaryDto?> GetDashboardUserByDiscordIdAsync(long discordUserId, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Fetching dashboard user summary for user {UserId}.", userId);
+        m_Logger.LogInformation("Fetching dashboard user summary for DiscordId {DiscordUserId}.", discordUserId);
         var user = await m_Db.DashboardUsers
             .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.Id == userId, ct);
+            .SingleOrDefaultAsync(u => u.DiscordId == discordUserId, ct);
         if (user == null)
             return null;
-        return new DashboardUserSummaryDto
-        {
-            UserId = user.Id,
-            Username = user.Username,
-            DiscordUserId = user.DiscordId.ToString(),
-            IsSuperAdmin = user.IsSuperAdmin,
-            IsRootUser = user.IsRootUser,
-            GameWritePermissions = [.. user.GamePermissions
-                .Where(p => p.AllowWrite)
-                .Select(p => p.GameCode)
-                .Distinct(StringComparer.OrdinalIgnoreCase)]
-        };
+        return ToSummaryDto(user);
     }
 
     public async Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default)
     {
-        var username = request.Username?.Trim();
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is required."
-            };
-        }
-
         if (request.DiscordUserId <= 0)
         {
             return new AddDashboardUserResultDto
             {
                 Succeeded = false,
                 Error = "Discord user id must be a positive number."
-            };
-        }
-
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username, ct))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is already in use."
             };
         }
 
@@ -102,16 +75,15 @@ public class DashboardUserService : IDashboardUserService
         }
 
         var normalizedPermissions = (request.GameWritePermissions ?? [])
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim().ToLowerInvariant())
+            .Select(g => g.ToString().ToLowerInvariant())
             .Distinct()
             .ToArray();
 
         var user = new DashboardUser
         {
-            Username = username,
+            Username = string.Empty,
             DiscordId = request.DiscordUserId,
-            IsSuperAdmin = request.IsSuperAdmin,
+            IsSuperAdmin = false,
             IsActive = true,
             UpdatedAtUtc = DateTime.UtcNow
         };
@@ -148,34 +120,15 @@ public class DashboardUserService : IDashboardUserService
             Succeeded = true,
             UserId = user.Id,
             Username = user.Username,
-            GameWritePermissions = normalizedPermissions
+            GameWritePermissions = [.. request.GameWritePermissions ?? []]
         };
     }
 
-    public async Task<UpdateDashboardUserResultDto> UpdateDashboardUserAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default)
+    public async Task<UpdateDashboardUserResultDto> UpdateDashboardUserByDiscordIdAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Updating dashboard user {UserId}.", request.UserId);
-        var username = request.Username?.Trim();
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is required."
-            };
-        }
-
-        if (request.DiscordUserId <= 0)
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id must be a positive number."
-            };
-        }
-
+        m_Logger.LogInformation("Updating dashboard user {DiscordUserId}.", request.DiscordUserId);
         var user = await m_Db.DashboardUsers.Include(x => x.GamePermissions)
-            .SingleOrDefaultAsync(x => x.Id == request.UserId, ct);
+            .SingleOrDefaultAsync(x => x.DiscordId == request.DiscordUserId, ct);
         if (user == null)
         {
             return new UpdateDashboardUserResultDto
@@ -194,32 +147,11 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username && u.Id != user.Id, ct))
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is already in use."
-            };
-        }
-
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.DiscordId == request.DiscordUserId && u.Id != user.Id, ct))
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id is already in use."
-            };
-        }
-
         var normalizedPermissions = (request.GameWritePermissions ?? [])
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim().ToLowerInvariant())
+            .Select(g => g.ToString().ToLowerInvariant())
             .Distinct()
             .ToArray();
 
-        user.Username = username;
-        user.DiscordId = request.DiscordUserId;
         user.IsSuperAdmin = request.IsSuperAdmin;
         user.IsActive = request.IsActive;
         user.UpdatedAtUtc = DateTime.UtcNow;
@@ -236,7 +168,7 @@ public class DashboardUserService : IDashboardUserService
             return new UpdateDashboardUserResultDto
             {
                 Succeeded = false,
-                Error = "Failed to create user due to a database error."
+                Error = "Failed to update user due to a database error."
             };
         }
 
@@ -245,19 +177,18 @@ public class DashboardUserService : IDashboardUserService
         return new UpdateDashboardUserResultDto
         {
             Succeeded = true,
-            UserId = user.Id,
             Username = user.Username,
             IsActive = user.IsActive,
             IsSuperAdmin = user.IsSuperAdmin,
             IsRootUser = user.IsRootUser,
-            GameWritePermissions = normalizedPermissions
+            GameWritePermissions = [.. request.GameWritePermissions ?? []]
         };
     }
 
-    public async Task<RemoveDashboardUserResultDto> RemoveDashboardUserAsync(Guid userId, CancellationToken ct = default)
+    public async Task<RemoveDashboardUserResultDto> RemoveDashboardUserByDiscordIdAsync(long discordUserId, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Deleting dashboard user {UserId}.", userId);
-        var user = await m_Db.DashboardUsers.SingleOrDefaultAsync(u => u.Id == userId, ct);
+        m_Logger.LogInformation("Deleting dashboard user with DiscordId {DiscordUserId}.", discordUserId);
+        var user = await m_Db.DashboardUsers.SingleOrDefaultAsync(u => u.DiscordId == discordUserId, ct);
         if (user == null)
         {
             return new RemoveDashboardUserResultDto
@@ -284,7 +215,7 @@ public class DashboardUserService : IDashboardUserService
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to create dashboard user due to a database error.");
+            m_Logger.LogError(e, "Failed to delete dashboard user due to a database error.");
             return new RemoveDashboardUserResultDto
             {
                 Succeeded = false,
@@ -292,11 +223,28 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Logger.LogInformation("Dashboard user {UserId} deleted.", userId);
+        m_Logger.LogInformation("Dashboard user with DiscordId {DiscordUserId} deleted.", discordUserId);
 
         return new RemoveDashboardUserResultDto
         {
             Succeeded = true
+        };
+    }
+
+    private static DashboardUserSummaryDto ToSummaryDto(DashboardUser user)
+    {
+        return new DashboardUserSummaryDto
+        {
+            UserId = user.Id,
+            Username = user.Username,
+            DiscordUserId = user.DiscordId.ToString(),
+            IsSuperAdmin = user.IsSuperAdmin,
+            IsRootUser = user.IsRootUser,
+            GameWritePermissions = [.. user.GamePermissions
+                .Where(p => p.AllowWrite)
+                .Select(p => Enum.TryParse<Game>(p.GameCode, true, out var g) ? g : Game.Unsupported)
+                .Where(g => g != Game.Unsupported)
+                .Distinct()]
         };
     }
 

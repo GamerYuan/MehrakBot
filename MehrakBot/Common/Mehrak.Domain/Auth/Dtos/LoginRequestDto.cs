@@ -1,3 +1,5 @@
+﻿using Mehrak.Domain.Shared.Enums;
+
 namespace Mehrak.Domain.Auth.Dtos;
 
 public class LoginResultDto
@@ -11,5 +13,5 @@ public class LoginResultDto
 
     public bool IsSuperAdmin { get; init; }
     public bool IsRootUser { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
 }

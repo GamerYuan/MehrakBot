@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Amazon.S3;
 using Mehrak.Domain.Cache;

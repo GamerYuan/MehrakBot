@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Mehrak.Domain.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -92,7 +92,7 @@ public class AuthController : ControllerBase
             claims.Add(new Claim(ClaimTypes.Role, "rootuser"));
 
         foreach (var game in result.GameWritePermissions)
-            claims.Add(new Claim(PermissionClaim, $"game_write:{game}"));
+            claims.Add(new Claim(PermissionClaim, $"game_write:{game.ToString().ToLowerInvariant()}"));
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
 

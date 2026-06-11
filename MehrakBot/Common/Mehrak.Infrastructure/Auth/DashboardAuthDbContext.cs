@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Auth.Entities;
+﻿using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Auth;

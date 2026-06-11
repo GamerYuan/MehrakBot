@@ -1,4 +1,4 @@
-namespace Mehrak.Infrastructure.Auth.Entities;
+﻿namespace Mehrak.Infrastructure.Auth.Entities;
 
 public class DashboardUser
 {

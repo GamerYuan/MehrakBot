@@ -1,11 +1,11 @@
+﻿using Mehrak.Domain.Shared.Enums;
+
 namespace Mehrak.Domain.Auth.Dtos;
 
 public class AddDashboardUserRequestDto
 {
-    public string Username { get; init; } = string.Empty;
     public long DiscordUserId { get; init; }
-    public bool IsSuperAdmin { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
 }
 
 public class AddDashboardUserResultDto
@@ -14,29 +14,26 @@ public class AddDashboardUserResultDto
     public string? Error { get; init; }
     public Guid UserId { get; init; }
     public string? Username { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
     public bool IsRootUser { get; init; }
 }
 
 public class UpdateDashboardUserRequestDto
 {
-    public Guid UserId { get; init; }
-    public string Username { get; init; } = string.Empty;
     public long DiscordUserId { get; init; }
     public bool IsSuperAdmin { get; init; }
     public bool IsActive { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
 }
 
 public class UpdateDashboardUserResultDto
 {
     public bool Succeeded { get; init; }
     public string? Error { get; init; }
-    public Guid UserId { get; init; }
     public string? Username { get; init; }
     public bool IsActive { get; init; }
     public bool IsSuperAdmin { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = Array.Empty<string>();
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
     public bool IsRootUser { get; init; }
 }
 
@@ -55,5 +52,5 @@ public class DashboardUserSummaryDto
     public string DiscordUserId { get; init; } = string.Empty;
     public bool IsSuperAdmin { get; init; }
     public bool IsRootUser { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
 }
