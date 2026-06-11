@@ -16,11 +16,13 @@ public class AuthController : ControllerBase
     private const string DiscordScheme = "Discord";
     private readonly IDashboardAuthService m_AuthService;
     private readonly ILogger<AuthController> m_Logger;
+    private readonly IConfiguration m_Config;
 
-    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger, IConfiguration config)
     {
         m_AuthService = authService;
         m_Logger = logger;
+        m_Config = config;
     }
 
     [AllowAnonymous]
@@ -34,22 +36,28 @@ public class AuthController : ControllerBase
         return Challenge(properties, DiscordScheme);
     }
 
+    private string GetFrontendOrigin() =>
+        m_Config["Dashboard:Origin"]
+            ?? throw new ArgumentException("Dashboard:Origin must be set in configuration.");
+
     [AllowAnonymous]
     [HttpGet("callback")]
     public async Task<IActionResult> DiscordCallback()
     {
+        var frontendOrigin = GetFrontendOrigin();
+
         var authenticateResult = await HttpContext.AuthenticateAsync(DiscordScheme);
         if (!authenticateResult.Succeeded || authenticateResult.Principal == null)
         {
             m_Logger.LogWarning("Discord authentication failed");
-            return Unauthorized(new { error = "Discord authentication failed." });
+            return Redirect(frontendOrigin);
         }
 
         var discordIdClaim = authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(discordIdClaim) || !long.TryParse(discordIdClaim, out var discordId))
         {
             m_Logger.LogWarning("Discord authentication succeeded but no valid Discord ID found");
-            return Unauthorized(new { error = "Could not determine Discord user ID." });
+            return Redirect(frontendOrigin);
         }
 
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
@@ -60,7 +68,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded || result.SessionToken is null)
         {
             m_Logger.LogWarning("Discord login failed for DiscordId {DiscordId}: {Reason}", discordId, result.Error ?? "Unknown error");
-            return Unauthorized(new { error = result.Error ?? "Login failed." });
+            return Redirect(frontendOrigin);
         }
 
         m_Logger.LogInformation("Discord login succeeded for user {UserId}", result.UserId);
@@ -93,14 +101,7 @@ public class AuthController : ControllerBase
                 AllowRefresh = false
             });
 
-        return Ok(new
-        {
-            username = result.Username,
-            discordUserId = result.DiscordUserId.ToString(),
-            isSuperAdmin = result.IsSuperAdmin,
-            isRootUser = result.IsRootUser,
-            gameWritePermissions = result.GameWritePermissions
-        });
+        return Redirect(frontendOrigin);
     }
 
     [Authorize]

@@ -215,11 +215,15 @@ public class Program
 
         builder.Services.AddDashboardApplicationExecutor();
 
+        var cookieDomain = new Uri(builder.Configuration["Dashboard:Origin"]
+            ?? throw new ArgumentException("Dashboard:Origin cannot be empty.")).Host;
+
         builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options =>
             {
                 options.Cookie.Name = "mehrak.dashboard.auth";
+                options.Cookie.Domain = cookieDomain;
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
@@ -244,6 +248,11 @@ public class Program
                 var aspnetcoreBuilder = options.UseAspNetCore()
                        .EnableRedirectionEndpointPassthrough()
                        .EnableStatusCodePagesIntegration();
+
+                aspnetcoreBuilder.Configure(options =>
+                {
+                    options.CookieBuilder.Domain = cookieDomain;
+                });
 
                 if (builder.Environment.IsDevelopment())
                     aspnetcoreBuilder.DisableTransportSecurityRequirement();
@@ -297,26 +306,13 @@ public class Program
 
         builder.Services.AddCors(options =>
         {
-            if (builder.Environment.IsDevelopment())
+            options.AddDefaultPolicy(b =>
             {
-                options.AddDefaultPolicy(b =>
-                {
-                    b.WithOrigins("http://localhost:5173")
-                        .AllowAnyHeader()
-                        .AllowCredentials()
-                        .AllowAnyMethod();
-                });
-            }
-            else
-            {
-                options.AddDefaultPolicy(b =>
-                {
-                    b.WithOrigins(builder.Configuration["Dashboard:Origin"] ?? throw new ArgumentException("Dashboard Origin cannot be empty"))
-                        .AllowAnyHeader()
-                        .AllowCredentials()
-                        .AllowAnyMethod();
-                });
-            }
+                b.WithOrigins(builder.Configuration["Dashboard:Origin"] ?? throw new ArgumentException("Dashboard Origin cannot be empty"))
+                    .AllowAnyHeader()
+                    .AllowCredentials()
+                    .AllowAnyMethod();
+            });
         });
 
         var app = builder.Build();
