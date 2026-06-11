@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.Character.Models;
+using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace Mehrak.Dashboard.Character;
 [ApiController]
 [Authorize]
 [Route("characters")]
-public class CharactersController : ControllerBase
+public class CharactersController : GameWriteController
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ICharacterStatService m_CharacterStatService;
@@ -36,6 +37,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpPatch("add")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> AddCharacters([FromQuery] string? game, [FromBody] AddCharactersRequest request)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -63,6 +65,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpDelete("delete")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> DeleteCharacter([FromQuery] string? game, [FromQuery] string? character)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -101,6 +104,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpPatch("stat")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> UpdateCharacterStat([FromQuery] string? game, [FromQuery] string? character,
         [FromBody] UpdateCharacterStatRequest request)
     {
@@ -122,36 +126,5 @@ public class CharactersController : ControllerBase
             return NotFound(new { error = "Character not found." });
 
         return NoContent();
-    }
-
-    private static bool TryParseGame(string? input, out Game game, out string error)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            error = "Game parameter is required.";
-            game = default;
-            return false;
-        }
-
-        if (!Enum.TryParse<Game>(input, true, out game))
-        {
-            error = "Invalid game parameter.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 }

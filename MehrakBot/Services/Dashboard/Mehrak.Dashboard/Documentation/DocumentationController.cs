@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.Documentation.Models;
+using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Documentation;
 using Mehrak.Infrastructure.Documentation.Models;
@@ -9,8 +10,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Mehrak.Dashboard.Documentation;
 
 [ApiController]
+[Authorize]
 [Route("docs")]
-public sealed class DocumentationController : ControllerBase
+public sealed class DocumentationController : GameWriteController
 {
     private readonly DocumentationDbContext m_DbContext;
     private readonly ILogger<DocumentationController> m_Logger;
@@ -79,7 +81,7 @@ public sealed class DocumentationController : ControllerBase
     }
 
     [HttpPost("add")]
-    [Authorize]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> AddDocumentation([FromBody] DocumentationRequest request)
     {
         if (!ModelState.IsValid)
@@ -123,7 +125,7 @@ public sealed class DocumentationController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> UpdateDocumentation(Guid id, [FromBody] DocumentationRequest request)
     {
         if (!ModelState.IsValid)
@@ -171,7 +173,7 @@ public sealed class DocumentationController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> DeleteDocumentation(Guid id)
     {
         var doc = await m_DbContext.Documentations.FindAsync(id);
@@ -187,17 +189,5 @@ public sealed class DocumentationController : ControllerBase
         m_Logger.LogInformation("Deleted documentation {Name} for game {Game}", doc.Name, doc.Game);
 
         return NoContent();
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.Character.Models;
+using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace Mehrak.Dashboard.Character;
 [ApiController]
 [Route("alias")]
 [Authorize]
-public class AliasController : ControllerBase
+public class AliasController : GameWriteController
 {
     private readonly IAliasService m_AliasService;
     private readonly ILogger<AliasController> m_Logger;
@@ -38,6 +39,7 @@ public class AliasController : ControllerBase
     }
 
     [HttpPatch("add")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> AddAliases([FromQuery] string? game, [FromBody] AddAliasRequest request)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -82,6 +84,7 @@ public class AliasController : ControllerBase
     }
 
     [HttpDelete("delete")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> DeleteAlias([FromQuery] string? game, [FromQuery] string? alias)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -99,36 +102,5 @@ public class AliasController : ControllerBase
         await m_AliasService.DeleteAlias(gameEnum, normalized);
 
         return NoContent();
-    }
-
-    private static bool TryParseGame(string? input, out Game game, out string error)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            error = "Game parameter is required.";
-            game = default;
-            return false;
-        }
-
-        if (!Enum.TryParse(input, true, out game))
-        {
-            error = "Invalid game parameter.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 }

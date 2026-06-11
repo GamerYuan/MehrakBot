@@ -273,6 +273,7 @@ public class Program
                 policy.RequireRole("superadmin"))
             .AddPolicy("RequireGameWrite", policy =>
                 policy.RequireAssertion(ctx =>
+                    ctx.User.IsInRole("superadmin") ||
                     ctx.User.HasClaim(c =>
                         c.Type == "perm" &&
                         c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
