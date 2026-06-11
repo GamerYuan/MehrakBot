@@ -21,6 +21,7 @@ public class DashboardSession
     public Guid UserId { get; set; }
     public DashboardUser User { get; set; } = default!;
     public string SessionToken { get; set; } = default!;
+    public string? AccessToken { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAtUtc { get; set; }
 

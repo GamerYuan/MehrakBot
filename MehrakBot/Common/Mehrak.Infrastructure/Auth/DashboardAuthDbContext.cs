@@ -28,6 +28,7 @@ public class DashboardAuthDbContext : DbContext
             b.HasKey(s => s.Id);
             b.HasIndex(s => s.SessionToken).IsUnique();
             b.Property(s => s.SessionToken).IsRequired().HasMaxLength(128);
+            b.Property(s => s.AccessToken).HasMaxLength(512);
             b.HasOne(s => s.User)
                 .WithMany(u => u.Sessions)
                 .HasForeignKey(s => s.UserId)

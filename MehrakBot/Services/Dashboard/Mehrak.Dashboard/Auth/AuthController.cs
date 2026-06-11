@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Client;
+using OpenIddict.Client.AspNetCore;
 
 namespace Mehrak.Dashboard.Auth;
 
@@ -63,7 +65,9 @@ public class AuthController : ControllerBase
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
         var discordUsername = authenticateResult.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
-        var result = await m_AuthService.LoginByDiscordAsync(discordId, discordUsername, HttpContext.RequestAborted);
+        var avatarHash = authenticateResult.Principal.FindFirstValue("avatar");
+        var accessToken = authenticateResult.Properties?.GetTokenValue(OpenIddictClientAspNetCoreConstants.Tokens.BackchannelAccessToken);
+        var result = await m_AuthService.LoginByDiscordAsync(discordId, discordUsername, avatarHash, accessToken, HttpContext.RequestAborted);
 
         if (!result.Succeeded || result.SessionToken is null)
         {

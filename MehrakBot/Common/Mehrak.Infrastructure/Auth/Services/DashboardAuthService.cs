@@ -19,7 +19,7 @@ public class DashboardAuthService : IDashboardAuthService
         m_Logger = logger;
     }
 
-    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, CancellationToken ct = default)
+    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, string? avatarHash, string? accessToken, CancellationToken ct = default)
     {
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
@@ -47,6 +47,7 @@ public class DashboardAuthService : IDashboardAuthService
         {
             UserId = user.Id,
             SessionToken = sessionToken,
+            AccessToken = accessToken,
             ExpiresAtUtc = DateTime.UtcNow.Add(SessionLifetime)
         };
 
@@ -99,5 +100,17 @@ public class DashboardAuthService : IDashboardAuthService
             m_Db.DashboardSessions.Remove(session);
             await m_Db.SaveChangesAsync(ct);
         }
+    }
+
+    public async Task<string?> GetAccessTokenAsync(string sessionToken, CancellationToken ct = default)
+    {
+        var session = await m_Db.DashboardSessions
+            .Include(s => s.User)
+            .SingleOrDefaultAsync(s => s.SessionToken == sessionToken && s.User.IsActive, ct);
+
+        if (session == null || session.IsExpired())
+            return null;
+
+        return session.AccessToken;
     }
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using Mehrak.Dashboard.User.Models;
 using Mehrak.Domain.Auth;
@@ -13,12 +14,21 @@ namespace Mehrak.Dashboard.User;
 [Route("users")]
 public class UserController : ControllerBase
 {
+    private const string SessionTokenClaim = "dashboard_session";
     private readonly IDashboardUserService m_UserService;
+    private readonly IDashboardAuthService m_AuthService;
+    private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<UserController> m_Logger;
 
-    public UserController(IDashboardUserService userService, ILogger<UserController> logger)
+    public UserController(
+        IDashboardUserService userService,
+        IDashboardAuthService authService,
+        IHttpClientFactory httpClientFactory,
+        ILogger<UserController> logger)
     {
         m_UserService = userService;
+        m_AuthService = authService;
+        m_HttpClientFactory = httpClientFactory;
         m_Logger = logger;
     }
 
@@ -48,15 +58,42 @@ public class UserController : ControllerBase
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized(new { error = "Invalid user token." });
+
+        var sessionToken = User.FindFirstValue(SessionTokenClaim);
+        if (string.IsNullOrWhiteSpace(sessionToken))
+            return Unauthorized(new { error = "Invalid session." });
+
         m_Logger.LogInformation("Getting current dashboard user {UserId}", userId);
         var user = await m_UserService.GetDashboardUserByIdAsync(userId, HttpContext.RequestAborted);
         if (user == null)
             return NotFound(new { error = "User not found." });
+
+        string? avatarUrl = null;
+        var accessToken = await m_AuthService.GetAccessTokenAsync(sessionToken, HttpContext.RequestAborted);
+        if (!string.IsNullOrWhiteSpace(accessToken))
+        {
+            try
+            {
+                var httpClient = m_HttpClientFactory.CreateClient("Default");
+                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                var discordUser = await httpClient.GetFromJsonAsync<DiscordUserResponse>("https://discord.com/api/v10/users/@me", HttpContext.RequestAborted);
+                if (discordUser?.Avatar != null)
+                {
+                    var extension = discordUser.Avatar.StartsWith("a_") ? "gif" : "png";
+                    avatarUrl = $"https://cdn.discordapp.com/avatars/{discordUser.Id}/{discordUser.Avatar}.{extension}";
+                }
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogWarning(ex, "Failed to fetch Discord user info for user {UserId}", userId);
+            }
+        }
+
         return Ok(new
         {
-            userId = user.UserId,
             username = user.Username,
             discordUserId = user.DiscordUserId,
+            avatarUrl,
             isSuperAdmin = user.IsSuperAdmin,
             isRootUser = user.IsRootUser,
             gameWritePermissions = user.GameWritePermissions
@@ -228,5 +265,11 @@ public class UserController : ControllerBase
         }
 
         return true;
+    }
+
+    private sealed class DiscordUserResponse
+    {
+        public string Id { get; set; } = string.Empty;
+        public string? Avatar { get; set; }
     }
 }
