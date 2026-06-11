@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Security.Claims;
 using Mehrak.Dashboard.User.Models;
 using Mehrak.Domain.Auth;
@@ -113,8 +113,6 @@ public class UserController : ControllerBase
         {
             userId = result.UserId,
             username = result.Username,
-            temporaryPassword = result.TemporaryPassword,
-            requiresPasswordReset = result.RequiresPasswordReset,
             isRootUser = false,
             gameWritePermissions = result.GameWritePermissions
         });
@@ -192,32 +190,6 @@ public class UserController : ControllerBase
     }
 
     [Authorize(Policy = "RequireSuperAdmin")]
-    [HttpPost("{id:guid}/password/require-reset")]
-    public async Task<IActionResult> RequirePasswordReset(Guid id)
-    {
-        m_Logger.LogInformation("Forcing password reset requirement for user {UserId}", id);
-
-        if (!User.IsInRole("rootuser"))
-        {
-            m_Logger.LogWarning("Non-root user attempted to require password reset for user {UserId}", id);
-            return Forbid();
-        }
-
-        var result = await m_UserService.RequirePasswordResetAsync(id, HttpContext.RequestAborted);
-        if (!result.Succeeded)
-        {
-            m_Logger.LogWarning("Failed to set password reset requirement for user {UserId}: {Reason}", id, result.Error ?? "Unknown error");
-            return NotFound(new { error = result.Error ?? "User not found." });
-        }
-
-        return Ok(new
-        {
-            requiresPasswordReset = true,
-            sessionsInvalidated = result.SessionsInvalidated
-        });
-    }
-
-    [Authorize(Policy = "RequireSuperAdmin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
@@ -234,7 +206,7 @@ public class UserController : ControllerBase
         if (!result.Succeeded)
         {
             m_Logger.LogWarning("Failed to delete dashboard user {UserId}: {Reason}", id, result.Error ?? "Unknown error");
-            return NotFound(new { error = result.Error ?? "Failed to remove dashboard user." });
+            return NotFound(new { error = "Failed to remove dashboard user." });
         }
 
         m_Logger.LogInformation("Deleted dashboard user {UserId}", id);

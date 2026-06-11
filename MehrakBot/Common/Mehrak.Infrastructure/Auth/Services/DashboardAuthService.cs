@@ -1,17 +1,14 @@
-﻿using System.Text.RegularExpressions;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
-public partial class DashboardAuthService : IDashboardAuthService
+public class DashboardAuthService : IDashboardAuthService
 {
     private readonly DashboardAuthDbContext m_Db;
-    private readonly PasswordHasher<DashboardUser> m_Hasher = new();
     private readonly ILogger<DashboardAuthService> m_Logger;
 
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
@@ -22,28 +19,27 @@ public partial class DashboardAuthService : IDashboardAuthService
         m_Logger = logger;
     }
 
-    public async Task<LoginResultDto> LoginAsync(LoginRequestDto request, CancellationToken ct = default)
+    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
+        m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
+
         var user = await m_Db.DashboardUsers
             .Include(u => u.Sessions)
             .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.Username == request.Username && u.IsActive, ct);
+            .SingleOrDefaultAsync(u => u.DiscordId == discordId && u.IsActive, ct);
 
         if (user == null)
         {
-            m_Logger.LogWarning("Login failed for username {Username}: user not found or inactive", request.Username);
-            return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
+            m_Logger.LogWarning("Discord login failed: no active user with DiscordId {DiscordId}", discordId);
+            return new LoginResultDto { Succeeded = false, Error = "No dashboard account linked to this Discord user." };
         }
 
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.Password, @"\s+", ""));
-        if (verify == PasswordVerificationResult.Failed)
+        if (!string.IsNullOrWhiteSpace(discordUsername) && user.Username != discordUsername)
         {
-            m_Logger.LogWarning("Login failed for username {Username}: invalid password", request.Username);
-            return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
+            user.Username = discordUsername;
         }
 
-        // Uniqueness: remove previous sessions
+        // Remove previous sessions for uniqueness
         m_Db.DashboardSessions.RemoveRange(user.Sessions);
 
         var sessionToken = Guid.NewGuid().ToString("N");
@@ -58,7 +54,7 @@ public partial class DashboardAuthService : IDashboardAuthService
         m_Db.DashboardSessions.Add(session);
         await m_Db.SaveChangesAsync(ct);
 
-        m_Logger.LogInformation("Login succeeded for user {UserId}", user.Id);
+        m_Logger.LogInformation("Discord login succeeded for user {UserId}", user.Id);
 
         var gameWrites = user.GamePermissions
             .Where(p => p.AllowWrite)
@@ -75,8 +71,7 @@ public partial class DashboardAuthService : IDashboardAuthService
             SessionToken = sessionToken,
             IsSuperAdmin = user.IsSuperAdmin,
             IsRootUser = user.IsRootUser,
-            GameWritePermissions = gameWrites,
-            RequiresPasswordReset = user.RequirePasswordReset
+            GameWritePermissions = gameWrites
         };
     }
 
@@ -105,114 +100,4 @@ public partial class DashboardAuthService : IDashboardAuthService
             await m_Db.SaveChangesAsync(ct);
         }
     }
-
-    public async Task<ChangeDashboardPasswordResultDto> ChangePasswordAsync(ChangeDashboardPasswordRequestDto request, CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-        {
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "New password is too short."
-            };
-        }
-
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
-
-        if (user == null)
-        {
-            m_Logger.LogWarning("Password change failed: user {UserId} not found or inactive.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.CurrentPassword, @"\s+", ""));
-        if (verify == PasswordVerificationResult.Failed)
-        {
-            m_Logger.LogWarning("Password change failed: incorrect current password for user {UserId}.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "Current password is incorrect."
-            };
-        }
-
-        user.PasswordHash = m_Hasher.HashPassword(user, Regex.Replace(request.NewPassword, @"\s+", ""));
-        user.RequirePasswordReset = false;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Password changed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
-
-        return new ChangeDashboardPasswordResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
-    }
-
-    public async Task<ChangeDashboardPasswordResultDto> ForceResetPasswordAsync(ForceResetDashboardPasswordRequestDto request, CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-        {
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "New password is too short."
-            };
-        }
-
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
-
-        if (user == null)
-        {
-            m_Logger.LogWarning("Forced reset failed: user {UserId} not found or inactive.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        if (!user.RequirePasswordReset)
-        {
-            m_Logger.LogWarning("Forced reset skipped: user {UserId} does not require reset.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "Password reset is not required."
-            };
-        }
-
-        user.PasswordHash = m_Hasher.HashPassword(user, RemoveWhiteSpace().Replace(request.NewPassword, ""));
-        user.RequirePasswordReset = false;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Forced password reset completed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
-
-        return new ChangeDashboardPasswordResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
-    }
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex RemoveWhiteSpace();
 }

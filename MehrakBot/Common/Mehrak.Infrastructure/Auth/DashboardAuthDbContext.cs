@@ -1,4 +1,4 @@
-﻿using Mehrak.Infrastructure.Auth.Entities;
+using Mehrak.Infrastructure.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Auth;
@@ -19,9 +19,7 @@ public class DashboardAuthDbContext : DbContext
             b.HasIndex(u => u.Username).IsUnique();
             b.HasIndex(u => u.DiscordId).IsUnique();
             b.Property(u => u.Username).IsRequired().HasMaxLength(100);
-            b.Property(u => u.PasswordHash).IsRequired();
             b.Property(u => u.DiscordId).IsRequired();
-            b.Property(u => u.RequirePasswordReset).IsRequired();
             b.Property(u => u.IsRootUser).IsRequired();
         });
 

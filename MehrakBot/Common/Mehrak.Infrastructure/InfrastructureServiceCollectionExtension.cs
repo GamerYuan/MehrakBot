@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Amazon.S3;
 using Mehrak.Domain.Cache;
@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpenIddict.EntityFrameworkCore;
 using StackExchange.Redis;
 
 #endregion
@@ -33,7 +34,10 @@ public static class InfrastructureServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+        {
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString);
+            options.UseOpenIddict();
+        });
         services.AddDbContext<CharacterDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<UserDbContext>((sp, options) =>

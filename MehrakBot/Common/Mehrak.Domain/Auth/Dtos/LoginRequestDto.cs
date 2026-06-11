@@ -1,10 +1,4 @@
-﻿namespace Mehrak.Domain.Auth.Dtos;
-
-public class LoginRequestDto
-{
-    public string Username { get; set; } = default!;
-    public string Password { get; set; } = default!;
-}
+namespace Mehrak.Domain.Auth.Dtos;
 
 public class LoginResultDto
 {
@@ -18,5 +12,4 @@ public class LoginResultDto
     public bool IsSuperAdmin { get; init; }
     public bool IsRootUser { get; init; }
     public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
-    public bool RequiresPasswordReset { get; init; }
 }

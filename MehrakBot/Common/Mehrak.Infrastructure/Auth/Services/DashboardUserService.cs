@@ -1,8 +1,6 @@
-﻿using System.Security.Cryptography;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Infrastructure.Auth.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +9,7 @@ namespace Mehrak.Infrastructure.Auth.Services;
 public class DashboardUserService : IDashboardUserService
 {
     private readonly DashboardAuthDbContext m_Db;
-    private readonly PasswordHasher<DashboardUser> m_Hasher = new();
     private readonly ILogger<DashboardUserService> m_Logger;
-
-    private const string TemporaryPasswordCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*_-";
-    private const int TemporaryPasswordLength = 16;
 
     public DashboardUserService(DashboardAuthDbContext db, ILogger<DashboardUserService> logger)
     {
@@ -119,12 +113,9 @@ public class DashboardUserService : IDashboardUserService
             DiscordId = request.DiscordUserId,
             IsSuperAdmin = request.IsSuperAdmin,
             IsActive = true,
-            RequirePasswordReset = true,
             UpdatedAtUtc = DateTime.UtcNow
         };
 
-        var tempPassword = GenerateTemporaryPassword();
-        user.PasswordHash = m_Hasher.HashPassword(user, tempPassword);
         user.GamePermissions = normalizedPermissions
             .Select(code => new DashboardGamePermission
             {
@@ -157,8 +148,6 @@ public class DashboardUserService : IDashboardUserService
             Succeeded = true,
             UserId = user.Id,
             Username = user.Username,
-            TemporaryPassword = tempPassword,
-            RequiresPasswordReset = user.RequirePasswordReset,
             GameWritePermissions = normalizedPermissions
         };
     }
@@ -311,70 +300,6 @@ public class DashboardUserService : IDashboardUserService
         };
     }
 
-    public async Task<DashboardUserRequireResetResultDto> RequirePasswordResetAsync(Guid userId, CancellationToken ct = default)
-    {
-        m_Logger.LogInformation("Setting require password reset for user {UserId}.", userId);
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == userId, ct);
-
-        if (user == null)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        if (user.IsRootUser)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "Root user cannot be forced to reset password."
-            };
-        }
-
-        if (user.RequirePasswordReset)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = true,
-                SessionsInvalidated = false
-            };
-        }
-
-        user.RequirePasswordReset = true;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        if (hadSessions)
-            m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        try
-        {
-            await m_Db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException e)
-        {
-            m_Logger.LogError(e, "Failed to force password reset for dashboard user due to a database error.");
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "Failed to create user due to a database error."
-            };
-        }
-
-        m_Logger.LogInformation("Require password reset enabled for user {UserId}. Sessions invalidated: {Invalidated}.", userId, hadSessions);
-
-        return new DashboardUserRequireResetResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
-    }
-
     private void SyncGamePermissions(DashboardUser user, string[] normalizedPermissions)
     {
         var comparer = StringComparer.OrdinalIgnoreCase;
@@ -409,18 +334,5 @@ public class DashboardUserService : IDashboardUserService
 
         m_Logger.LogDebug("Synchronized permissions for user {UserId}. Added: {Added}, Removed: {Removed}.",
             user.Id, addedCount, toRemove.Count);
-    }
-
-    private static string GenerateTemporaryPassword(int length = TemporaryPasswordLength)
-    {
-        var passwordChars = new char[length];
-
-        for (var i = 0; i < length; i++)
-        {
-            var index = RandomNumberGenerator.GetInt32(TemporaryPasswordCharacters.Length);
-            passwordChars[i] = TemporaryPasswordCharacters[index];
-        }
-
-        return new string(passwordChars);
     }
 }
