@@ -94,6 +94,10 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<ICharacterStatService, CharacterStatService>();
         services.AddSingleton<ICharacterPortraitConfigService, CharacterPortraitConfigService>();
 
+        services.AddSingleton<IUserPortraitService, UserPortraitService>();
+        services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
+        services.AddSingleton<IImageClassificationService, ImageClassificationGrpcClient>();
+
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
         services.AddMemoryCache();
