@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package imageprocessor.v1;
+
+option csharp_namespace = "Mehrak.Domain.Protobuf";
+
+message ClassifyRequest {
+  bytes image_data = 1;
+}
+
+message ClassifyResponse {
+  bool is_nsfw = 1;
+  float nsfw_confidence = 2;
+  float sfw_confidence = 3;
+}
+
+service ImageProcessorService {
+  rpc ClassifyImage (ClassifyRequest) returns (ClassifyResponse);
+}

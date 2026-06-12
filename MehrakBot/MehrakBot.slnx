@@ -1,4 +1,9 @@
 <Solution>
+    <Folder Name="/Common/" />
+    <Folder Name="/Services/" />
+    <Folder Name="/Services/ImageProcessor/">
+        <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+    </Folder>
     <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" Id="4a8793d4-3780-4e79-81c4-0962ab50cf72" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
     <Project Path="Common/Mehrak.GameApi.Tests/Mehrak.GameApi.Tests.csproj" Id="faae925a-7fbc-4bb2-b49c-1b0aaeae6683" />
