@@ -84,6 +84,7 @@ public class Program
         builder.Logging.AddSerilog(dispose: true);
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
+        builder.Services.Configure<UserPortraitStorageConfig>(builder.Configuration.GetSection("UserPortraitStorage"));
 
         builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
         builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
@@ -188,6 +189,13 @@ public class Program
         {
             var address = builder.Configuration["Application:ConnectionString"] ??
                 throw new ArgumentException("gRPC Connection String cannot be empty!");
+            options.Address = new Uri(address);
+        });
+
+        builder.Services.AddGrpcClient<ImageProcessorService.ImageProcessorServiceClient>(options =>
+        {
+            var address = builder.Configuration["ImageProcessor:ConnectionString"] ??
+                throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
             options.Address = new Uri(address);
         });
 

@@ -74,7 +74,7 @@ internal class UserPortraitService : IUserPortraitService
     }
 
     public async Task<UploadPortraitResult> UploadPortraitAsync(
-        long discordUserId, Game game, string characterName, Stream imageStream, string sha256, CancellationToken ct = default)
+        long discordUserId, Game game, string characterName, Stream imageStream, string sha256, string extension, CancellationToken ct = default)
     {
         var normalizedCharacter = characterName.ReplaceLineEndings("").Trim();
 
@@ -128,7 +128,8 @@ internal class UserPortraitService : IUserPortraitService
         }
 
         // Upload to S3
-        var s3Key = $"{discordUserId}/{sha256}.png";
+        var s3Key = $"{discordUserId}/{sha256}.{extension}";
+        var contentType = extension == "png" ? "image/png" : "image/jpeg";
 
         if (imageStream.CanSeek) imageStream.Position = 0;
 
@@ -138,7 +139,7 @@ internal class UserPortraitService : IUserPortraitService
             Key = s3Key,
             InputStream = imageStream,
             AutoCloseStream = false,
-            ContentType = "image/png"
+            ContentType = contentType
         };
 
         var response = await m_S3.PutObjectAsync(putReq, ct);
