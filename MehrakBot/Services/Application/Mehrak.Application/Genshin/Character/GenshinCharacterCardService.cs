@@ -188,28 +188,14 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
         characterPortrait.Mutate(ctx =>
         {
-            ctx.CropTransparentPixels();
-
             if (portraitConfig?.TargetScale > 0f)
             {
                 var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
+                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Bicubic);
             }
             else
             {
-                var size = ctx.GetCurrentSize();
-                if (size.Width >= size.Height)
-                    ctx.Resize(0, (int)Math.Round(1280 * Math.Min(1.2 * size.Height / size.Width, 1f)), KnownResamplers.Lanczos3);
-                else
-                    ctx.Resize(1400, 0, KnownResamplers.Lanczos3);
-
-                size = ctx.GetCurrentSize();
-                if (size.Height > 1280)
-                    ctx.Resize(0, 1280, KnownResamplers.Lanczos3);
-
-                size = ctx.GetCurrentSize();
-                if (size.Width > 1280)
-                    ctx.Crop(new Rectangle((size.Width - 1280) / 2, 0, 1280, size.Height));
+                ctx.Resize(1400, 0, KnownResamplers.Bicubic);
             }
 
             var enableFade = portraitConfig?.EnableGradientFade ?? true;
