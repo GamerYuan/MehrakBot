@@ -102,8 +102,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var nonNull = challengeData.AllFloorDetail.Where(x => x is { Node1: not null, Node2: not null }).ToList();
-        if (nonNull.Count == 0)
+        if (challengeData.AllFloorDetail.All(x => x is { Node1: null, Node2: null, Node3: null }))
         {
             Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                 profile.GameUid);
@@ -132,7 +131,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
                 true);
         }
 
-        var tasks = nonNull
+        var tasks = challengeData.AllFloorDetail
             .SelectMany(x => (x.Node1?.Avatars ?? []).Concat(x.Node2?.Avatars ?? []).Concat(x.Node3?.Avatars ?? []))
             .DistinctBy(x => x.Id)
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
