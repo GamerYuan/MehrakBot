@@ -10,11 +10,13 @@ namespace Mehrak.Infrastructure.Auth.Services;
 public class DashboardUserService : IDashboardUserService
 {
     private readonly DashboardAuthDbContext m_Db;
+    private readonly IDashboardSessionService m_SessionService;
     private readonly ILogger<DashboardUserService> m_Logger;
 
-    public DashboardUserService(DashboardAuthDbContext db, ILogger<DashboardUserService> logger)
+    public DashboardUserService(DashboardAuthDbContext db, IDashboardSessionService sessionService, ILogger<DashboardUserService> logger)
     {
         m_Db = db;
+        m_SessionService = sessionService;
         m_Logger = logger;
     }
 
@@ -225,6 +227,8 @@ public class DashboardUserService : IDashboardUserService
 
         m_Logger.LogInformation("Dashboard permissions updated for DiscordId {DiscordUserId}.", request.DiscordUserId);
 
+        await m_SessionService.InvalidateAllForUserAsync(request.DiscordUserId, ct);
+
         var isRootUser = await IsRootUserAsync(request.DiscordUserId, ct);
 
         return new UpdateDashboardUserResultDto
@@ -281,6 +285,8 @@ public class DashboardUserService : IDashboardUserService
         }
 
         m_Logger.LogInformation("Dashboard permissions deleted for DiscordId {DiscordUserId}.", discordUserId);
+
+        await m_SessionService.InvalidateAllForUserAsync(discordUserId, ct);
 
         return new RemoveDashboardUserResultDto
         {

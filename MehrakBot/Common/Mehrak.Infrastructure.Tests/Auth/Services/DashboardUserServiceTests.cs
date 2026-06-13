@@ -7,6 +7,7 @@ using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Tests.TestUtils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace Mehrak.Infrastructure.Tests.Auth.Services;
 
@@ -16,6 +17,7 @@ namespace Mehrak.Infrastructure.Tests.Auth.Services;
 internal sealed class DashboardUserServiceTests : IDisposable
 {
     private readonly TestDbContextFactory m_DbFactory = new();
+    private readonly Mock<IDashboardSessionService> m_MockSessionService = new();
     private DashboardUserService m_Service = null!;
 
     public void Dispose()
@@ -27,6 +29,7 @@ internal sealed class DashboardUserServiceTests : IDisposable
     {
         m_Service = new DashboardUserService(
             m_DbFactory.CreateDbContext<DashboardAuthDbContext>(),
+            m_MockSessionService.Object,
             NullLogger<DashboardUserService>.Instance);
     }
 

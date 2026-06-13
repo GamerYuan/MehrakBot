@@ -6,22 +6,6 @@ namespace Mehrak.Dashboard.Shared;
 [ApiController]
 public abstract class GameWriteController : ControllerBase
 {
-    protected bool HasGameWriteAccess(string game)
-    {
-        if (!TryParseGame(game, out var gameEnum, out _) ||
-            gameEnum == Game.Unsupported)
-            return false;
-
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
-    }
-
     protected static bool TryParseGame(string? input, out Game game, out string error)
     {
         if (string.IsNullOrWhiteSpace(input))
