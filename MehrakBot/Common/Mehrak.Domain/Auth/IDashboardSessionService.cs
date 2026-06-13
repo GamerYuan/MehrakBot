@@ -12,6 +12,7 @@ public interface IDashboardSessionService
 {
     Task CreateSessionAsync(string sessionToken, long discordUserId, string? accessToken, string? loginIp, string? userAgent, string? location, CancellationToken ct = default);
     Task<DashboardSessionData?> GetSessionAsync(string sessionToken, CancellationToken ct = default);
+    Task<DashboardSessionData?> GetAndRefreshSessionAsync(string sessionToken, CancellationToken ct = default);
     Task RefreshSessionAsync(string sessionToken, CancellationToken ct = default);
     Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default);
     Task InvalidateAllForUserAsync(long discordUserId, CancellationToken ct = default);

@@ -221,6 +221,18 @@ internal class UserPortraitService : IUserPortraitService
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to save portrait upload record");
+            try
+            {
+                await m_S3.DeleteObjectAsync(new DeleteObjectRequest
+                {
+                    BucketName = m_Bucket,
+                    Key = s3Key
+                }, ct);
+            }
+            catch (Exception cleanupEx)
+            {
+                m_Logger.LogWarning(cleanupEx, "Failed to clean up orphaned S3 object: {S3Key}", s3Key);
+            }
             return new UploadPortraitResult
             {
                 Succeeded = false,

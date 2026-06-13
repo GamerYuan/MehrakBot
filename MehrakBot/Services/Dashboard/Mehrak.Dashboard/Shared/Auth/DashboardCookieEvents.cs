@@ -32,7 +32,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             return;
         }
 
-        var session = await m_SessionService.GetSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+        var session = await m_SessionService.GetAndRefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (session == null)
         {
             m_Logger.LogWarning("Session not found for token {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
@@ -40,9 +40,6 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             await context.HttpContext.SignOutAsync();
             return;
         }
-
-        // Refresh session TTL on each request (sliding window)
-        await m_SessionService.RefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
 
         // Atomically check if daily token validation is needed and claim it
         if (!await m_SessionService.TryClaimTokenValidationAsync(sessionToken, context.HttpContext.RequestAborted))

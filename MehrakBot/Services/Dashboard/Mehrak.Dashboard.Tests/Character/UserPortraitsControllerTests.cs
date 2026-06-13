@@ -37,11 +37,13 @@ public class UserPortraitsControllerTests
         SetupHttpContext(100L);
     }
 
-    private void SetupHttpContext(long? discordId = null)
+    private void SetupHttpContext(long? discordId = null, bool isSuperAdmin = false)
     {
         var claims = new List<Claim>();
         if (discordId.HasValue)
             claims.Add(new Claim("discord_id", discordId.Value.ToString()));
+        if (isSuperAdmin)
+            claims.Add(new Claim(ClaimTypes.Role, "superadmin"));
 
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
@@ -295,6 +297,184 @@ public class UserPortraitsControllerTests
         var result = await m_Controller.UpdatePortraitConfig(portraitId, config);
 
         Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());
+    }
+
+    #endregion
+
+    #region UploadPortrait
+
+    private static IFormFile CreateFormFile(string contentType = "image/png", long size = 1024)
+    {
+        var mock = new Mock<IFormFile>();
+        mock.Setup(f => f.ContentType).Returns(contentType);
+        mock.Setup(f => f.Length).Returns(size);
+        mock.Setup(f => f.FileName).Returns($"test.{contentType.Split('/')[1]}");
+        mock.Setup(f => f.OpenReadStream()).Returns(new MemoryStream(new byte[size]));
+        return mock.Object;
+    }
+
+    [Test]
+    public async Task UploadPortrait_ValidUpload_ReturnsOk()
+    {
+        var file = CreateFormFile();
+        var portrait = CreatePortraitDto();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        m_MockPortraitService.Setup(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UploadPortraitResult { Succeeded = true, UploadId = Guid.CreateVersion7(), Portrait = portrait });
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_Unauthorized_Returns401()
+    {
+        SetupHttpContext(null);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", CreateFormFile());
+
+        Assert.That(result, Is.InstanceOf<UnauthorizedObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_InvalidGame_Returns400()
+    {
+        var result = await m_Controller.UploadPortrait("invalid", "Raiden", CreateFormFile());
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_MissingCharacter_Returns400()
+    {
+        var result = await m_Controller.UploadPortrait("genshin", "", CreateFormFile());
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_NullFile_Returns400()
+    {
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", null!);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_EmptyFile_Returns400()
+    {
+        var file = CreateFormFile(size: 0);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_FileTooLarge_Returns400()
+    {
+        var file = CreateFormFile(size: 9 * 1024 * 1024);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_InvalidContentType_Returns400()
+    {
+        var file = CreateFormFile(contentType: "application/pdf");
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_RateLimitExceeded_Returns429()
+    {
+        var file = CreateFormFile();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        m_MockRateLimitService.Setup(s => s.GetRemainingAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        var objectResult = result as ObjectResult;
+        Assert.That(objectResult, Is.Not.Null);
+        Assert.That(objectResult!.StatusCode, Is.EqualTo(429));
+    }
+
+    [Test]
+    public async Task UploadPortrait_SuperAdmin_BypassesRateLimit()
+    {
+        SetupHttpContext(100L, isSuperAdmin: true);
+        var file = CreateFormFile();
+        var portrait = CreatePortraitDto();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
+        m_MockPortraitService.Setup(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UploadPortraitResult { Succeeded = true, UploadId = Guid.CreateVersion7(), Portrait = portrait });
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        m_MockRateLimitService.Verify(s => s.IsAllowedAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(result, Is.InstanceOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task UploadPortrait_NsfwBlocked_Returns422()
+    {
+        var file = CreateFormFile();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(true, 0.95f, 0.05f));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        var objectResult = result as ObjectResult;
+        Assert.That(objectResult, Is.Not.Null);
+        Assert.That(objectResult!.StatusCode, Is.EqualTo(422));
+    }
+
+    [Test]
+    public async Task UploadPortrait_ClassificationFails_Returns502()
+    {
+        var file = CreateFormFile();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Service unavailable"));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        var objectResult = result as ObjectResult;
+        Assert.That(objectResult, Is.Not.Null);
+        Assert.That(objectResult!.StatusCode, Is.EqualTo(502));
+    }
+
+    [Test]
+    public async Task UploadPortrait_UploadFails_Returns400()
+    {
+        var file = CreateFormFile();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        m_MockPortraitService.Setup(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UploadPortraitResult { Succeeded = false, Error = "Duplicate image." });
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
 
     #endregion

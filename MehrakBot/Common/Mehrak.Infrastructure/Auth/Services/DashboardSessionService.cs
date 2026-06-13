@@ -56,6 +56,26 @@ public class DashboardSessionService : IDashboardSessionService
             session.Location);
     }
 
+    public async Task<DashboardSessionData?> GetAndRefreshSessionAsync(string sessionToken, CancellationToken ct = default)
+    {
+        var session = await m_Db.DashboardSessions
+            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
+
+        if (session == null || session.ExpiresAt <= DateTime.UtcNow)
+            return null;
+
+        session.ExpiresAt = DateTime.UtcNow + SessionTtl;
+        await m_Db.SaveChangesAsync(ct);
+
+        return new DashboardSessionData(
+            session.DiscordId,
+            session.AccessToken,
+            session.LastTokenValidation ?? session.CreatedAt,
+            session.LoginIp,
+            session.UserAgent,
+            session.Location);
+    }
+
     public async Task RefreshSessionAsync(string sessionToken, CancellationToken ct = default)
     {
         var session = await m_Db.DashboardSessions
@@ -95,21 +115,17 @@ public class DashboardSessionService : IDashboardSessionService
 
     public async Task<bool> TryClaimTokenValidationAsync(string sessionToken, CancellationToken ct = default)
     {
-        var session = await m_Db.DashboardSessions
-            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
-
-        if (session == null || session.ExpiresAt <= DateTime.UtcNow)
-            return false;
-
         var today = DateTime.UtcNow.Date;
-        var lastValidation = session.LastTokenValidation;
+        var now = DateTime.UtcNow;
 
-        if (lastValidation.HasValue && lastValidation.Value.Date >= today)
-            return false;
+        var rowsUpdated = await m_Db.DashboardSessions
+            .Where(s => s.Token == sessionToken
+                         && s.ExpiresAt > DateTime.UtcNow
+                         && (s.LastTokenValidation == null || s.LastTokenValidation < today))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.LastTokenValidation, now), ct);
 
-        session.LastTokenValidation = DateTime.UtcNow;
-        await m_Db.SaveChangesAsync(ct);
-        return true;
+        return rowsUpdated > 0;
     }
 
     public async Task<int> CleanupExpiredSessionsAsync(CancellationToken ct = default)
