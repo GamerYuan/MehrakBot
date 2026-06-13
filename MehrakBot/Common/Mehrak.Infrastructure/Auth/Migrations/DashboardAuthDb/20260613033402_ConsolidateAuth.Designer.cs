@@ -3,17 +3,20 @@ using System;
 using Mehrak.Infrastructure.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Auth.Migrations
+namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
 {
     [DbContext(typeof(DashboardAuthDbContext))]
-    partial class DashboardAuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260613033402_ConsolidateAuth")]
+    partial class ConsolidateAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

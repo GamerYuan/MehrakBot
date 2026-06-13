@@ -11,4 +11,5 @@ public interface IDashboardSessionService
     Task InvalidateAllForUserAsync(long discordUserId, CancellationToken ct = default);
     Task<bool> NeedsTokenValidationAsync(string sessionToken, CancellationToken ct = default);
     Task MarkTokenValidatedAsync(string sessionToken, CancellationToken ct = default);
+    Task<bool> TryClaimTokenValidationAsync(string sessionToken, CancellationToken ct = default);
 }

@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Mehrak.Domain.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -44,15 +44,12 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         // Refresh session TTL on each request (sliding window)
         await m_SessionService.RefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
 
-        // Check if daily token validation is needed
-        if (!await m_SessionService.NeedsTokenValidationAsync(sessionToken, context.HttpContext.RequestAborted))
+        // Atomically check if daily token validation is needed and claim it
+        if (!await m_SessionService.TryClaimTokenValidationAsync(sessionToken, context.HttpContext.RequestAborted))
             return;
 
         if (string.IsNullOrWhiteSpace(session.AccessToken))
-        {
-            await m_SessionService.MarkTokenValidatedAsync(sessionToken, context.HttpContext.RequestAborted);
             return;
-        }
 
         try
         {
@@ -74,13 +71,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
                     await context.HttpContext.SignOutAsync();
                     return;
                 }
-
-                // Mark validated so we don't hammer Discord while it's rate-limiting or down.
-                await m_SessionService.MarkTokenValidatedAsync(sessionToken, context.HttpContext.RequestAborted);
-                return;
             }
-
-            await m_SessionService.MarkTokenValidatedAsync(sessionToken, context.HttpContext.RequestAborted);
         }
         catch (Exception ex)
         {

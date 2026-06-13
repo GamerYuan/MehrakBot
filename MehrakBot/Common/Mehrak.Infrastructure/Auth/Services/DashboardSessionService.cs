@@ -134,5 +134,44 @@ public class DashboardSessionService : IDashboardSessionService
         await db.StringSetAsync(key, updatedJson, SessionTtl);
     }
 
+    public async Task<bool> TryClaimTokenValidationAsync(string sessionToken, CancellationToken ct = default)
+    {
+        var db = m_Redis.GetDatabase();
+        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var today = DateTime.UtcNow.Date;
+
+        // Lua script: atomically check if validation is needed and claim it by updating the timestamp.
+        // Returns 1 if the claim succeeded (caller should validate), 0 otherwise.
+        const string script = @"
+            local json = redis.call('GET', KEYS[1])
+            if not json then return 0 end
+            local data = cjson.decode(json)
+            local last = data['lastTokenValidation']
+            if not last then
+                data['lastTokenValidation'] = ARGV[1]
+                redis.call('SET', KEYS[1], cjson.encode(data), 'EX', ARGV[2])
+                return 1
+            end
+            local lastDate = string.sub(last, 1, 10)
+            if lastDate < ARGV[3] then
+                data['lastTokenValidation'] = ARGV[1]
+                redis.call('SET', KEYS[1], cjson.encode(data), 'EX', ARGV[2])
+                return 1
+            end
+            return 0";
+
+        var now = DateTime.UtcNow;
+        var result = await db.ScriptEvaluateAsync(
+            script,
+            [key],
+            [
+                (RedisValue)now.ToString("O"),
+                (RedisValue)((int)SessionTtl.TotalSeconds).ToString(),
+                (RedisValue)today.ToString("yyyy-MM-dd")
+            ]);
+
+        return (int)result == 1;
+    }
+
     private sealed record SessionData(long DiscordUserId, string? AccessToken, DateTime LastTokenValidation);
 }

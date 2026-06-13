@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Auth.Migrations
+namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
 {
     /// <inheritdoc />
     public partial class ConsolidateAuth : Migration

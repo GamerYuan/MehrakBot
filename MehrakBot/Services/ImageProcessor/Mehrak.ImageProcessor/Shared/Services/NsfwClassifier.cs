@@ -18,7 +18,7 @@ public interface INsfwClassifier
 
 public record NsfwClassificationResult(bool IsNsfw, float NsfwConfidence, float SfwConfidence);
 
-public class NsfwClassifier : INsfwClassifier, IDisposable
+public sealed class NsfwClassifier : INsfwClassifier, IDisposable
 {
     private readonly InferenceSession m_Session;
     private readonly float m_NsfwThreshold;
@@ -44,14 +44,14 @@ public class NsfwClassifier : INsfwClassifier, IDisposable
 
     public NsfwClassificationResult Classify(byte[] imageData)
     {
-        var image = Cv2.ImDecode(imageData, ImreadModes.Color);
+        using var image = Cv2.ImDecode(imageData, ImreadModes.Color);
         if (image.Empty())
             throw new ArgumentException("Invalid image data.");
 
         try
         {
             // Resize to model input size
-            var resized = new Mat();
+            using var resized = new Mat();
             Cv2.Resize(image, resized, new Size(InputSize, InputSize), interpolation: InterpolationFlags.Cubic);
 
             // Convert to NCHW float tensor: [1, 3, 384, 384]

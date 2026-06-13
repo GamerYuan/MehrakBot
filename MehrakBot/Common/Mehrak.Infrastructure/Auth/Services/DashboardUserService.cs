@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Auth;
+using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth.Entities;
@@ -22,20 +22,17 @@ public class DashboardUserService : IDashboardUserService
     {
         m_Logger.LogInformation("Fetching dashboard user summaries.");
 
-        // Get all unique DiscordIds that have permissions
-        var discordIds = await m_Db.DashboardPermissions
-            .Select(p => p.DiscordId)
-            .Distinct()
+        var allPermissions = await m_Db.DashboardPermissions
+            .Select(p => new { p.DiscordId, p.Permission })
             .ToListAsync(ct);
+
+        var grouped = allPermissions.GroupBy(p => p.DiscordId);
 
         var result = new List<DashboardUserSummaryDto>();
 
-        foreach (var discordId in discordIds)
+        foreach (var group in grouped)
         {
-            var permissions = await m_Db.DashboardPermissions
-                .Where(p => p.DiscordId == discordId)
-                .Select(p => p.Permission)
-                .ToListAsync(ct);
+            var permissions = group.Select(p => p.Permission).ToList();
 
             var isSuperAdmin = permissions.Contains("superadmin", StringComparer.OrdinalIgnoreCase);
             var isRootUser = permissions.Contains("rootuser", StringComparer.OrdinalIgnoreCase);
@@ -53,7 +50,7 @@ public class DashboardUserService : IDashboardUserService
             {
                 result.Add(new DashboardUserSummaryDto
                 {
-                    DiscordUserId = discordId.ToString(),
+                    DiscordUserId = group.Key.ToString(),
                     IsSuperAdmin = isSuperAdmin,
                     IsRootUser = isRootUser,
                     GameWritePermissions = gameWrites

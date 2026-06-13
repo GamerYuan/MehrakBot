@@ -66,6 +66,7 @@ public class UserController : ControllerBase
         var user = await m_UserService.GetDashboardUserByDiscordIdAsync(discordUserId, HttpContext.RequestAborted);
 
         string? avatarUrl = null;
+        string? username = null;
         var accessToken = await m_AuthService.GetAccessTokenAsync(sessionToken, HttpContext.RequestAborted);
         if (!string.IsNullOrWhiteSpace(accessToken))
         {
@@ -74,6 +75,8 @@ public class UserController : ControllerBase
                 var httpClient = m_HttpClientFactory.CreateClient("Default");
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
                 var discordUser = await httpClient.GetFromJsonAsync<DiscordUserResponse>("https://discord.com/api/v10/users/@me", HttpContext.RequestAborted);
+                if (discordUser?.Username != null)
+                    username = discordUser.Username;
                 if (discordUser?.Avatar != null)
                 {
                     var extension = discordUser.Avatar.StartsWith("a_") ? "gif" : "png";
@@ -88,6 +91,7 @@ public class UserController : ControllerBase
 
         return Ok(new
         {
+            username,
             discordUserId = discordUserId.ToString(),
             avatarUrl,
             isSuperAdmin = user?.IsSuperAdmin ?? false,
@@ -260,5 +264,6 @@ public class UserController : ControllerBase
     {
         public string Id { get; set; } = string.Empty;
         public string? Avatar { get; set; }
+        public string? Username { get; set; }
     }
 }

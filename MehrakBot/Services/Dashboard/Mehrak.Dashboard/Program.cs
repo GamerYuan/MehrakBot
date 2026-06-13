@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
@@ -344,9 +344,6 @@ public class Program
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DashboardAuthDbContext>();
 
-        if (await db.DashboardPermissions.AnyAsync(p => p.Permission == "rootuser"))
-            return;
-
         var adminDiscordId = app.Configuration["Dashboard:AdminDiscordId"];
 
         if (string.IsNullOrWhiteSpace(adminDiscordId) ||
@@ -355,7 +352,7 @@ public class Program
             throw new ArgumentException("Dashboard:AdminDiscordId must be set in configuration.");
         }
 
-        if (await db.DashboardPermissions.AnyAsync(p => p.DiscordId == discordId))
+        if (await db.DashboardPermissions.AnyAsync(p => p.DiscordId == discordId && p.Permission == "rootuser"))
             return;
 
         var permissions = new[]

@@ -1,4 +1,4 @@
-﻿using Mehrak.Dashboard.CodeRedeem.Models;
+using Mehrak.Dashboard.CodeRedeem.Models;
 using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.CodeRedeem;
@@ -74,6 +74,7 @@ public sealed class CodesController : GameWriteController
     }
 
     [HttpGet("list")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> ListCodes([FromQuery] string game)
     {
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
