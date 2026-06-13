@@ -11,6 +11,7 @@ public class UserPortraitUploadDto
     public string CharacterName { get; init; } = string.Empty;
     public string SHA256Hash { get; init; } = string.Empty;
     public string S3Key { get; init; } = string.Empty;
+    public bool IsActive { get; init; }
     public UserPortraitConfigDto Config { get; init; } = default!;
     public DateTime CreatedAt { get; init; }
 }

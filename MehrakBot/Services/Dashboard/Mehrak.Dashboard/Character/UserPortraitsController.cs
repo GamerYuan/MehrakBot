@@ -57,6 +57,7 @@ public class UserPortraitsController : ControllerBase
             game = p.Game.ToString(),
             characterName = p.CharacterName,
             sha256Hash = p.SHA256Hash,
+            isActive = p.IsActive,
             config = p.Config,
             createdAt = p.CreatedAt
         }));
@@ -79,9 +80,25 @@ public class UserPortraitsController : ControllerBase
             game = portrait.Game.ToString(),
             characterName = portrait.CharacterName,
             sha256Hash = portrait.SHA256Hash,
+            isActive = portrait.IsActive,
             config = portrait.Config,
             createdAt = portrait.CreatedAt
         });
+    }
+
+    [HttpGet("{id:guid}/image")]
+    public async Task<IActionResult> GetPortraitImage(Guid id)
+    {
+        var discordUserId = GetDiscordUserId();
+        if (discordUserId == null)
+            return Unauthorized(new { error = "Invalid user identity." });
+
+        var result = await m_PortraitService.GetPortraitImageAsync(discordUserId.Value, id, HttpContext.RequestAborted);
+        if (result == null)
+            return NotFound(new { error = "Portrait image not found." });
+
+        Response.Headers.CacheControl = "private, max-age=86400";
+        return File(result.Content, result.ContentType);
     }
 
     [HttpPost("upload")]
@@ -165,6 +182,7 @@ public class UserPortraitsController : ControllerBase
                 game = result.Portrait.Game.ToString(),
                 characterName = result.Portrait.CharacterName,
                 sha256Hash = result.Portrait.SHA256Hash,
+                isActive = result.Portrait.IsActive,
                 config = result.Portrait.Config,
                 createdAt = result.Portrait.CreatedAt
             } : null
@@ -179,6 +197,20 @@ public class UserPortraitsController : ControllerBase
             return Unauthorized(new { error = "Invalid user identity." });
 
         var success = await m_PortraitService.UpdatePortraitConfigAsync(discordUserId.Value, id, config, HttpContext.RequestAborted);
+        if (!success)
+            return NotFound(new { error = "Portrait not found." });
+
+        return NoContent();
+    }
+
+    [HttpPatch("{id:guid}/active")]
+    public async Task<IActionResult> SetActivePortrait(Guid id)
+    {
+        var discordUserId = GetDiscordUserId();
+        if (discordUserId == null)
+            return Unauthorized(new { error = "Invalid user identity." });
+
+        var success = await m_PortraitService.SetActivePortraitAsync(discordUserId.Value, id, HttpContext.RequestAborted);
         if (!success)
             return NotFound(new { error = "Portrait not found." });
 

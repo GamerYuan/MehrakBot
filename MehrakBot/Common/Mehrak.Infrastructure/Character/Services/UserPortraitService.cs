@@ -4,6 +4,7 @@ using Amazon.S3.Model;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Character.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,6 +72,46 @@ internal class UserPortraitService : IUserPortraitService
             .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         return entity == null ? null : ToDto(entity);
+    }
+
+    public async Task<AttachmentDownloadResult?> GetPortraitImageAsync(
+        long discordUserId, Guid uploadId, CancellationToken ct = default)
+    {
+        using var scope = m_ScopeFactory.CreateScope();
+        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var entity = await context.UserPortraitUploads
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+
+        if (entity == null)
+            return null;
+
+        try
+        {
+            var getReq = new GetObjectRequest
+            {
+                BucketName = m_Bucket,
+                Key = entity.S3Key
+            };
+
+            var response = await m_S3.GetObjectAsync(getReq, ct);
+
+            if ((int)response.HttpStatusCode >= 300)
+                return null;
+
+            var stream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(stream, ct);
+            stream.Position = 0;
+
+            var contentType = ResolveContentType(entity.S3Key);
+            return new AttachmentDownloadResult(stream, contentType);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Failed to retrieve portrait image from S3: {S3Key}", entity.S3Key);
+            return null;
+        }
     }
 
     public async Task<UploadPortraitResult> UploadPortraitAsync(
@@ -154,6 +195,8 @@ internal class UserPortraitService : IUserPortraitService
         }
 
         // Create DB record
+        var isFirstForCharacter = existingCount == 0;
+
         var upload = new UserPortraitUpload
         {
             Id = Guid.CreateVersion7(),
@@ -162,6 +205,7 @@ internal class UserPortraitService : IUserPortraitService
             CharacterName = normalizedCharacter,
             SHA256Hash = sha256,
             S3Key = s3Key,
+            IsActive = isFirstForCharacter,
             Config = new UserPortraitConfigModel
             {
                 Id = Guid.NewGuid()
@@ -177,10 +221,6 @@ internal class UserPortraitService : IUserPortraitService
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to save portrait upload record");
-            // Note: do not clean up the S3 object here. The key is deterministic based on the
-            // image hash, so a concurrent duplicate upload may have already committed a DB record
-            // that references this same object. Deleting it would corrupt that record.
-
             return new UploadPortraitResult
             {
                 Succeeded = false,
@@ -227,6 +267,45 @@ internal class UserPortraitService : IUserPortraitService
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to update portrait config for {UploadId}", uploadId);
+            return false;
+        }
+    }
+
+    public async Task<bool> SetActivePortraitAsync(
+        long discordUserId, Guid uploadId, CancellationToken ct = default)
+    {
+        using var scope = m_ScopeFactory.CreateScope();
+        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+
+        if (entity == null)
+            return false;
+
+        // Deactivate all other portraits for the same character
+        var siblings = await context.UserPortraitUploads
+            .Where(u =>
+                u.DiscordUserId == discordUserId &&
+                u.Game == entity.Game &&
+                u.CharacterName == entity.CharacterName &&
+                u.Id != uploadId)
+            .ToListAsync(ct);
+
+        foreach (var sibling in siblings)
+            sibling.IsActive = false;
+
+        entity.IsActive = true;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+
+        try
+        {
+            await context.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to set active portrait for {UploadId}", uploadId);
             return false;
         }
     }
@@ -294,6 +373,7 @@ internal class UserPortraitService : IUserPortraitService
             CharacterName = entity.CharacterName,
             SHA256Hash = entity.SHA256Hash,
             S3Key = entity.S3Key,
+            IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             Config = new UserPortraitConfigDto
             {
@@ -303,6 +383,17 @@ internal class UserPortraitService : IUserPortraitService
                 EnableGradientFade = entity.Config.EnableGradientFade,
                 GradientFadeStart = entity.Config.GradientFadeStart
             }
+        };
+    }
+
+    private static string ResolveContentType(string s3Key)
+    {
+        var extension = Path.GetExtension(s3Key).ToLowerInvariant();
+        return extension switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream"
         };
     }
 }

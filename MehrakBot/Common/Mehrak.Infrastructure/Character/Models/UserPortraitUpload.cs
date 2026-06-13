@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Mehrak.Infrastructure.Character.Models;
 
 [Index(nameof(DiscordUserId), nameof(Game), nameof(CharacterName))]
+[Index(nameof(DiscordUserId), nameof(Game), nameof(CharacterName), nameof(IsActive))]
 public class UserPortraitUpload
 {
     [Key]
@@ -25,6 +26,8 @@ public class UserPortraitUpload
     [Required]
     [MaxLength(512)]
     public string S3Key { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
