@@ -129,7 +129,7 @@ public class UserPortraitsController : ControllerBase
         var extension = file.ContentType.Equals(PngContentType, StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
 
         // Rate limit check
-        if (!await m_RateLimitService.IsAllowedAsync(discordUserId.Value, HttpContext.RequestAborted))
+        if (!HttpContext.User.IsInRole("superadmin") && !await m_RateLimitService.IsAllowedAsync(discordUserId.Value, HttpContext.RequestAborted))
         {
             var remaining = await m_RateLimitService.GetRemainingAsync(discordUserId.Value, HttpContext.RequestAborted);
             return StatusCode(429, new { error = "Upload rate limit exceeded. Try again later.", remaining });
