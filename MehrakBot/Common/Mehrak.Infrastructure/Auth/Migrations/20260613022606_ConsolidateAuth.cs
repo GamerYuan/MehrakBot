@@ -3,21 +3,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
+namespace Mehrak.Infrastructure.Auth.Migrations
 {
     /// <inheritdoc />
-    public partial class DiscordOAuth : Migration
+    public partial class ConsolidateAuth : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "PasswordHash",
-                table: "DashboardUsers");
-
-            migrationBuilder.DropColumn(
-                name: "RequirePasswordReset",
-                table: "DashboardUsers");
+            migrationBuilder.CreateTable(
+                name: "DashboardPermissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DiscordId = table.Column<long>(type: "bigint", nullable: false),
+                    Permission = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DashboardPermissions", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "OpenIddictApplications",
@@ -122,6 +127,17 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_DashboardPermissions_DiscordId",
+                table: "DashboardPermissions",
+                column: "DiscordId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DashboardPermissions_DiscordId_Permission",
+                table: "DashboardPermissions",
+                columns: new[] { "DiscordId", "Permission" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OpenIddictApplications_ClientId",
                 table: "OpenIddictApplications",
                 column: "ClientId",
@@ -159,6 +175,9 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "DashboardPermissions");
+
+            migrationBuilder.DropTable(
                 name: "OpenIddictScopes");
 
             migrationBuilder.DropTable(
@@ -169,20 +188,6 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
 
             migrationBuilder.DropTable(
                 name: "OpenIddictApplications");
-
-            migrationBuilder.AddColumn<string>(
-                name: "PasswordHash",
-                table: "DashboardUsers",
-                type: "text",
-                nullable: false,
-                defaultValue: "");
-
-            migrationBuilder.AddColumn<bool>(
-                name: "RequirePasswordReset",
-                table: "DashboardUsers",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
         }
     }
 }

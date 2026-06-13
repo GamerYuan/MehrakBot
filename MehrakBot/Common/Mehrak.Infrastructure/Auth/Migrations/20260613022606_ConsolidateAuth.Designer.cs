@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
+namespace Mehrak.Infrastructure.Auth.Migrations
 {
     [DbContext(typeof(DashboardAuthDbContext))]
-    [Migration("20260611111923_StoreAccessToken")]
-    partial class StoreAccessToken
+    [Migration("20260613022606_ConsolidateAuth")]
+    partial class ConsolidateAuth
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,103 +25,28 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardGamePermission", b =>
+            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardPermission", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<bool>("AllowWrite")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("GameCode")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "GameCode")
-                        .IsUnique();
-
-                    b.ToTable("DashboardGamePermissions");
-                });
-
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccessToken")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SessionToken")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SessionToken")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("DashboardSessions");
-                });
-
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardUser", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long>("DiscordId")
                         .HasColumnType("bigint");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsRootUser")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSuperAdmin")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Username")
+                    b.Property<string>("Permission")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DiscordId")
+                    b.HasIndex("DiscordId");
+
+                    b.HasIndex("DiscordId", "Permission")
                         .IsUnique();
 
-                    b.HasIndex("Username")
-                        .IsUnique();
-
-                    b.ToTable("DashboardUsers");
+                    b.ToTable("DashboardPermissions");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>
@@ -332,28 +257,6 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
                     b.ToTable("OpenIddictTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardGamePermission", b =>
-                {
-                    b.HasOne("Mehrak.Infrastructure.Auth.Entities.DashboardUser", "User")
-                        .WithMany("GamePermissions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardSession", b =>
-                {
-                    b.HasOne("Mehrak.Infrastructure.Auth.Entities.DashboardUser", "User")
-                        .WithMany("Sessions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
                 {
                     b.HasOne("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", "Application")
@@ -376,13 +279,6 @@ namespace Mehrak.Infrastructure.Migrations.DashboardAuthDb
                     b.Navigation("Application");
 
                     b.Navigation("Authorization");
-                });
-
-            modelBuilder.Entity("Mehrak.Infrastructure.Auth.Entities.DashboardUser", b =>
-                {
-                    b.Navigation("GamePermissions");
-
-                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

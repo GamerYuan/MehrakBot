@@ -41,8 +41,6 @@ public class UserController : ControllerBase
         var users = await m_UserService.GetDashboardUsersAsync(HttpContext.RequestAborted);
         var payload = users.Select(u => new
         {
-            userId = u.UserId,
-            username = u.Username,
             discordUserId = u.DiscordUserId,
             isSuperAdmin = u.IsSuperAdmin,
             isRootUser = u.IsRootUser,
@@ -66,8 +64,6 @@ public class UserController : ControllerBase
 
         m_Logger.LogInformation("Getting current dashboard user DiscordId {DiscordUserId}", discordUserId);
         var user = await m_UserService.GetDashboardUserByDiscordIdAsync(discordUserId, HttpContext.RequestAborted);
-        if (user == null)
-            return NotFound(new { error = "User not found." });
 
         string? avatarUrl = null;
         var accessToken = await m_AuthService.GetAccessTokenAsync(sessionToken, HttpContext.RequestAborted);
@@ -92,12 +88,11 @@ public class UserController : ControllerBase
 
         return Ok(new
         {
-            username = user.Username,
-            discordUserId = user.DiscordUserId,
+            discordUserId = discordUserId.ToString(),
             avatarUrl,
-            isSuperAdmin = user.IsSuperAdmin,
-            isRootUser = user.IsRootUser,
-            gameWritePermissions = user.GameWritePermissions
+            isSuperAdmin = user?.IsSuperAdmin ?? false,
+            isRootUser = user?.IsRootUser ?? false,
+            gameWritePermissions = user?.GameWritePermissions ?? []
         });
     }
 
@@ -132,13 +127,12 @@ public class UserController : ControllerBase
             return isConflict ? Conflict(errorPayload) : BadRequest(errorPayload);
         }
 
-        m_Logger.LogInformation("Created dashboard user {UserId}", result.UserId);
+        m_Logger.LogInformation("Created dashboard user for DiscordId {DiscordUserId}", discordUserId);
 
         return Ok(new
         {
-            userId = result.UserId,
-            username = result.Username,
-            isRootUser = false,
+            discordUserId = result.DiscordUserId.ToString(),
+            isRootUser = result.IsRootUser,
             gameWritePermissions = result.GameWritePermissions
         });
     }
@@ -176,7 +170,6 @@ public class UserController : ControllerBase
         {
             DiscordUserId = parsedDiscordUserId,
             IsSuperAdmin = request.IsSuperAdmin,
-            IsActive = request.IsActive,
             GameWritePermissions = gamePermissions
         }, HttpContext.RequestAborted);
 
@@ -192,8 +185,6 @@ public class UserController : ControllerBase
 
         return Ok(new
         {
-            username = result.Username,
-            isActive = result.IsActive,
             isSuperAdmin = result.IsSuperAdmin,
             isRootUser = result.IsRootUser,
             gameWritePermissions = result.GameWritePermissions

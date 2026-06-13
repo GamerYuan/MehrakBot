@@ -236,7 +236,7 @@ public class Program
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.SlidingExpiration = false;
-                options.ExpireTimeSpan = TimeSpan.FromHours(1);
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 options.EventsType = typeof(DashboardCookieEvents);
             });
 
@@ -344,7 +344,7 @@ public class Program
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<DashboardAuthDbContext>();
 
-        if (await db.DashboardUsers.AnyAsync(u => u.IsRootUser))
+        if (await db.DashboardPermissions.AnyAsync(p => p.Permission == "rootuser"))
             return;
 
         var adminDiscordId = app.Configuration["Dashboard:AdminDiscordId"];
@@ -355,19 +355,16 @@ public class Program
             throw new ArgumentException("Dashboard:AdminDiscordId must be set in configuration.");
         }
 
-        if (await db.DashboardUsers.AnyAsync(u => u.DiscordId == discordId))
+        if (await db.DashboardPermissions.AnyAsync(p => p.DiscordId == discordId))
             return;
 
-        var user = new DashboardUser
+        var permissions = new[]
         {
-            Username = discordId.ToString(),
-            DiscordId = discordId,
-            IsSuperAdmin = true,
-            IsActive = true,
-            IsRootUser = true
+            new DashboardPermission { DiscordId = discordId, Permission = "rootuser" },
+            new DashboardPermission { DiscordId = discordId, Permission = "superadmin" }
         };
 
-        db.DashboardUsers.Add(user);
+        db.DashboardPermissions.AddRange(permissions);
         await db.SaveChangesAsync();
     }
 

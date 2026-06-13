@@ -75,12 +75,10 @@ public class AuthController : ControllerBase
             return Redirect(frontendOrigin);
         }
 
-        m_Logger.LogInformation("Discord login succeeded for user {UserId}", result.UserId);
+        m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, result.UserId.ToString()),
-            new(ClaimTypes.Name, result.Username ?? string.Empty),
             new("discord_id", result.DiscordUserId.ToString()),
             new(SessionTokenClaim, result.SessionToken)
         };

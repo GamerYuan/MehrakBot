@@ -9,4 +9,5 @@ public interface IDashboardUserService
     Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default);
     Task<UpdateDashboardUserResultDto> UpdateDashboardUserByDiscordIdAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default);
     Task<RemoveDashboardUserResultDto> RemoveDashboardUserByDiscordIdAsync(long discordUserId, CancellationToken ct = default);
+    Task<bool> IsRootUserAsync(long discordUserId, CancellationToken ct = default);
 }

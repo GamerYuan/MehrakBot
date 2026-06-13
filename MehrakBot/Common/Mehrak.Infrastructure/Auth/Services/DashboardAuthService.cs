@@ -10,13 +10,13 @@ namespace Mehrak.Infrastructure.Auth.Services;
 public class DashboardAuthService : IDashboardAuthService
 {
     private readonly DashboardAuthDbContext m_Db;
+    private readonly IDashboardSessionService m_SessionService;
     private readonly ILogger<DashboardAuthService> m_Logger;
 
-    private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
-
-    public DashboardAuthService(DashboardAuthDbContext db, ILogger<DashboardAuthService> logger)
+    public DashboardAuthService(DashboardAuthDbContext db, IDashboardSessionService sessionService, ILogger<DashboardAuthService> logger)
     {
         m_Db = db;
+        m_SessionService = sessionService;
         m_Logger = logger;
     }
 
@@ -24,95 +24,51 @@ public class DashboardAuthService : IDashboardAuthService
     {
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.DiscordId == discordId && u.IsActive, ct);
+        // Load permissions for this user
+        var permissions = await m_Db.DashboardPermissions
+            .Where(p => p.DiscordId == discordId)
+            .Select(p => p.Permission)
+            .ToListAsync(ct);
 
-        if (user == null)
-        {
-            m_Logger.LogWarning("Discord login failed: no active user with DiscordId {DiscordId}", discordId);
-            return new LoginResultDto { Succeeded = false, Error = "No dashboard account linked to this Discord user." };
-        }
+        var isSuperAdmin = permissions.Contains("superadmin", StringComparer.OrdinalIgnoreCase);
+        var isRootUser = permissions.Contains("rootuser", StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrWhiteSpace(discordUsername) && user.Username != discordUsername)
-        {
-            user.Username = discordUsername;
-        }
-
-        // Remove previous sessions for uniqueness
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        var sessionToken = Guid.NewGuid().ToString("N");
-        var session = new DashboardSession
-        {
-            UserId = user.Id,
-            SessionToken = sessionToken,
-            AccessToken = accessToken,
-            ExpiresAtUtc = DateTime.UtcNow.Add(SessionLifetime)
-        };
-
-        user.UpdatedAtUtc = DateTime.UtcNow;
-        m_Db.DashboardSessions.Add(session);
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Discord login succeeded for user {UserId}", user.Id);
-
-        var gameWrites = user.GamePermissions
-            .Where(p => p.AllowWrite)
-            .Select(p => Enum.TryParse<Game>(p.GameCode, true, out var g) ? g : Game.Unsupported)
+        var gameWrites = permissions
+            .Where(p => p.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))
+            .Select(p => p["game_write:".Length..])
+            .Select(p => Enum.TryParse<Game>(p, true, out var g) ? g : Game.Unsupported)
             .Where(g => g != Game.Unsupported)
             .Distinct()
             .ToArray();
 
+        // Invalidate any existing sessions for this user (single-session enforcement)
+        await m_SessionService.InvalidateAllForUserAsync(discordId, ct);
+
+        // Create new session
+        var sessionToken = Guid.NewGuid().ToString("N");
+        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, ct);
+
+        m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
+
         return new LoginResultDto
         {
             Succeeded = true,
-            UserId = user.Id,
-            Username = user.Username,
-            DiscordUserId = user.DiscordId,
+            DiscordUserId = discordId,
             SessionToken = sessionToken,
-            IsSuperAdmin = user.IsSuperAdmin,
-            IsRootUser = user.IsRootUser,
+            IsSuperAdmin = isSuperAdmin,
+            IsRootUser = isRootUser,
             GameWritePermissions = gameWrites
         };
     }
 
-    public async Task<bool> ValidateSessionAsync(string sessionToken, CancellationToken ct = default)
-    {
-        var session = await m_Db.DashboardSessions
-            .Include(s => s.User)
-            .SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
-
-        if (session == null || session.IsExpired() || !session.User.IsActive)
-        {
-            m_Logger.LogWarning("Session validation failed for token {Token}.", sessionToken[..6]);
-            return false;
-        }
-
-        return true;
-    }
-
     public async Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Invalidating session {Token}.", sessionToken[..6]);
-        var session = await m_Db.DashboardSessions.SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
-        if (session != null)
-        {
-            m_Db.DashboardSessions.Remove(session);
-            await m_Db.SaveChangesAsync(ct);
-        }
+        await m_SessionService.InvalidateSessionAsync(sessionToken, ct);
     }
 
     public async Task<string?> GetAccessTokenAsync(string sessionToken, CancellationToken ct = default)
     {
-        var session = await m_Db.DashboardSessions
-            .Include(s => s.User)
-            .SingleOrDefaultAsync(s => s.SessionToken == sessionToken && s.User.IsActive, ct);
-
-        if (session == null || session.IsExpired())
-            return null;
-
-        return session.AccessToken;
+        var session = await m_SessionService.GetSessionAsync(sessionToken, ct);
+        return session?.AccessToken;
     }
 }

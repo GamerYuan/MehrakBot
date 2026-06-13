@@ -5,7 +5,9 @@ using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Auth;
 using Mehrak.Infrastructure.Auth;
+using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.CodeRedeem;
@@ -93,6 +95,8 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<ICharacterStatService, CharacterStatService>();
         services.AddSingleton<ICharacterPortraitConfigService, CharacterPortraitConfigService>();
+
+        services.AddSingleton<IDashboardSessionService, DashboardSessionService>();
 
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
