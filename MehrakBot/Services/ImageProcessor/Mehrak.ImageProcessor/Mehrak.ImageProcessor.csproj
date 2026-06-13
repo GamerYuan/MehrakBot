@@ -29,9 +29,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../../Assets/Models/nsfw-classifier/*.*">
+        <None Include="../../../Assets/Models/**/*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>Assets/Models/nsfw-classifier/%(Filename)%(Extension)</Link>
+            <Link>Assets/Models/%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
     </ItemGroup>
 
