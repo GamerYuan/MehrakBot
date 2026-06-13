@@ -89,6 +89,9 @@ public class Program
 
         var app = builder.Build();
 
+        // Eagerly load the NSFW classifier model at startup
+        app.Services.GetRequiredService<INsfwClassifier>();
+
         app.MapGrpcService<GrpcImageProcessorService>();
         app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 
