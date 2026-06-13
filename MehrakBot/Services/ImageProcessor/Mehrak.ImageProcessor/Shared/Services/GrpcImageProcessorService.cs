@@ -1,4 +1,4 @@
-using Grpc.Core;
+﻿using Grpc.Core;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.ImageProcessor.Shared.Services;

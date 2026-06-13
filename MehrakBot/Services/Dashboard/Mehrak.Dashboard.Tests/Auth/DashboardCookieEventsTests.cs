@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Security.Claims;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Auth;

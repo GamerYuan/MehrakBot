@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Mehrak.Dashboard.Character;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;

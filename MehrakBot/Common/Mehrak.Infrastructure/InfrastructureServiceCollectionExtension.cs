@@ -1,11 +1,11 @@
 ﻿#region
 
 using Amazon.S3;
+using Mehrak.Domain.Auth;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Services;
-using Mehrak.Domain.Auth;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character;

@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Character;
@@ -6,11 +6,11 @@ using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Character.Models;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Mehrak.Infrastructure.Shared.Config;
 
 namespace Mehrak.Infrastructure.Character.Services;
 
@@ -95,7 +95,7 @@ internal class UserPortraitService : IUserPortraitService
                 Key = entity.S3Key
             };
 
-            var response = await m_S3.GetObjectAsync(getReq, ct);
+            using var response = await m_S3.GetObjectAsync(getReq, ct);
 
             if ((int)response.HttpStatusCode >= 300)
                 return null;
@@ -169,7 +169,8 @@ internal class UserPortraitService : IUserPortraitService
         }
 
         // Upload to S3
-        var s3Key = $"{discordUserId}/{sha256}.{extension}";
+        var uploadId = Guid.CreateVersion7();
+        var s3Key = $"{discordUserId}/{uploadId}.{extension}";
         var contentType = extension == "png" ? "image/png" : "image/jpeg";
 
         if (imageStream.CanSeek) imageStream.Position = 0;
@@ -199,7 +200,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var upload = new UserPortraitUpload
         {
-            Id = Guid.CreateVersion7(),
+            Id = uploadId,
             DiscordUserId = discordUserId,
             Game = game,
             CharacterName = normalizedCharacter,

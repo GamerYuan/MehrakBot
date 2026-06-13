@@ -1,4 +1,4 @@
-namespace Mehrak.Infrastructure.Shared.Config;
+﻿namespace Mehrak.Infrastructure.Shared.Config;
 
 public class UserPortraitStorageConfig
 {

@@ -1,4 +1,4 @@
-using Mehrak.Domain.Shared.Enums;
+﻿using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Mehrak.Dashboard.Shared;
@@ -8,6 +8,10 @@ public abstract class GameWriteController : ControllerBase
 {
     protected bool HasGameWriteAccess(string game)
     {
+        if (!TryParseGame(game, out var gameEnum, out _) ||
+            gameEnum == Game.Unsupported)
+            return false;
+
         if (User.IsInRole("superadmin"))
             return true;
 

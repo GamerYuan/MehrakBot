@@ -1,4 +1,4 @@
-namespace Mehrak.Domain.Character;
+﻿namespace Mehrak.Domain.Character;
 
 public interface IPortraitUploadRateLimitService
 {

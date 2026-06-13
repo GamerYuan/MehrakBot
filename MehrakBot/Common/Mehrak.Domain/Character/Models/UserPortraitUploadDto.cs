@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Domain.Shared.Enums;
 
 namespace Mehrak.Domain.Character.Models;

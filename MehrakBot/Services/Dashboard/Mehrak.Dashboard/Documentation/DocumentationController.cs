@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Documentation;
 
-[ApiController]
 [Authorize]
 [Route("docs")]
 public sealed class DocumentationController : GameWriteController
@@ -90,9 +89,6 @@ public sealed class DocumentationController : GameWriteController
         if (!Enum.TryParse<Game>(request.Game, true, out var gameEnum))
             return BadRequest(new { error = "Invalid game parameter." });
 
-        if (!HasGameWriteAccess(request.Game))
-            return Forbid();
-
         var trimmedName = request.Name.Trim().ReplaceLineEndings("");
 
         var existing = await m_DbContext.Documentations
@@ -134,15 +130,9 @@ public sealed class DocumentationController : GameWriteController
         if (!Enum.TryParse<Game>(request.Game, true, out var gameEnum))
             return BadRequest(new { error = "Invalid game parameter." });
 
-        if (!HasGameWriteAccess(request.Game))
-            return Forbid();
-
         var doc = await m_DbContext.Documentations.FindAsync(id);
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
-
-        if (!HasGameWriteAccess(doc.Game.ToString()) || !HasGameWriteAccess(gameEnum.ToString()))
-            return Forbid();
 
         var trimmedName = request.Name.Trim().ReplaceLineEndings("");
 
@@ -179,9 +169,6 @@ public sealed class DocumentationController : GameWriteController
         var doc = await m_DbContext.Documentations.FindAsync(id);
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
-
-        if (!HasGameWriteAccess(doc.Game.ToString()))
-            return Forbid();
 
         m_DbContext.Documentations.Remove(doc);
         await m_DbContext.SaveChangesAsync();

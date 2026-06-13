@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenIddict.Abstractions;
 using OpenIddict.Client;
 using OpenIddict.Client.AspNetCore;
 
@@ -81,7 +82,7 @@ public class AuthController : ControllerBase
 
         var claims = new List<Claim>
         {
-            new("discord_id", result.DiscordUserId.ToString()),
+            new("discord_id", result.DiscordUserId),
             new(SessionTokenClaim, result.SessionToken)
         };
 
@@ -112,6 +113,8 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
+        await m_AuthService.InvalidateSessionAsync(User.Claims.FirstOrDefault(c => c.Type == SessionTokenClaim)?.Value ?? string.Empty,
+            HttpContext.RequestAborted);
         await HttpContext.SignOutAsync();
         return Ok();
     }

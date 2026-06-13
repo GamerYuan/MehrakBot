@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
@@ -250,8 +250,17 @@ public class Program
             {
                 options.AllowAuthorizationCodeFlow();
 
-                options.AddDevelopmentEncryptionCertificate()
-                       .AddDevelopmentSigningCertificate();
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
+                }
+                else
+                {
+                    options
+                        .AddEncryptionCertificate("server-encryption-certificate.pfx")
+                        .AddSigningCertificate("server-signing-certificate.pfx");
+                }
 
                 var aspnetcoreBuilder = options.UseAspNetCore()
                        .EnableRedirectionEndpointPassthrough()

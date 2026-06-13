@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Mehrak.Domain.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -35,7 +35,6 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         var session = await m_SessionService.GetAndRefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (session == null)
         {
-            m_Logger.LogWarning("Session not found for token {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
             return;
@@ -52,12 +51,11 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         {
             var httpClient = m_HttpClientFactory.CreateClient("Default");
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", session.AccessToken);
-            var response = await httpClient.GetAsync("https://discord.com/api/v10/oauth2/@me", context.HttpContext.RequestAborted);
+            using var response = await httpClient.GetAsync("https://discord.com/api/v10/oauth2/@me", context.HttpContext.RequestAborted);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogWarning("Discord token validation failed for session {Token} with status {Status}",
-                    sessionToken[..Math.Min(6, sessionToken.Length)], response.StatusCode);
+                m_Logger.LogWarning("Discord token validation failed with status {Status}", response.StatusCode);
 
                 // Only revoke the session when Discord indicates the token is invalid/expired.
                 // Transient failures (429, 5xx) or network errors should not force a mass logout.
@@ -72,7 +70,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to validate Discord token for session {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
+            m_Logger.LogError(ex, "Failed to validate Discord token");
         }
     }
 

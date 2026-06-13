@@ -53,7 +53,7 @@ public class DashboardAuthService : IDashboardAuthService
         return new LoginResultDto
         {
             Succeeded = true,
-            DiscordUserId = discordId,
+            DiscordUserId = discordId.ToString(),
             SessionToken = sessionToken,
             IsSuperAdmin = isSuperAdmin,
             IsRootUser = isRootUser,

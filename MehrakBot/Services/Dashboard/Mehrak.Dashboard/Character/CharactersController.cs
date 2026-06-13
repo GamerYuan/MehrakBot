@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Mehrak.Dashboard.Character;
 
-[ApiController]
 [Authorize]
 [Route("characters")]
 public class CharactersController : GameWriteController
@@ -55,9 +54,6 @@ public class CharactersController : GameWriteController
         if (normalizedCharacters.Length == 0)
             return BadRequest(new { error = "Characters list must contain at least one name." });
 
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
-
         m_Logger.LogInformation("Adding {Count} characters to game {Game}", normalizedCharacters.Length, gameEnum);
         await m_CharacterCacheService.UpsertCharacters(gameEnum, normalizedCharacters);
 
@@ -73,9 +69,6 @@ public class CharactersController : GameWriteController
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
@@ -113,9 +106,6 @@ public class CharactersController : GameWriteController
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Updating stats for character {Character} in game {Game}", normalized, gameEnum);

@@ -11,7 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Character;
 
-[ApiController]
 [Authorize]
 [Route("portraits")]
 public class PortraitsController : GameWriteController
@@ -108,9 +107,6 @@ public class PortraitsController : GameWriteController
 
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} in game {Game}", serverId, gameEnum);
 

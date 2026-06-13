@@ -6,7 +6,7 @@ public class LoginResultDto
 {
     public bool Succeeded { get; init; }
     public string? Error { get; init; }
-    public long DiscordUserId { get; init; }
+    public string DiscordUserId { get; init; } = string.Empty;
     public string? SessionToken { get; init; }
 
     public bool IsSuperAdmin { get; init; }

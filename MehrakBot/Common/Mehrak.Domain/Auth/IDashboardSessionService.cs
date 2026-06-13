@@ -1,4 +1,4 @@
-namespace Mehrak.Domain.Auth;
+﻿namespace Mehrak.Domain.Auth;
 
 public record DashboardSessionData(
     long DiscordUserId,

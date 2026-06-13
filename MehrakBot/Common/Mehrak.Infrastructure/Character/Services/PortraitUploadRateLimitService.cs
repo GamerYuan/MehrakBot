@@ -1,4 +1,4 @@
-using Mehrak.Domain.Character;
+﻿using Mehrak.Domain.Character;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 

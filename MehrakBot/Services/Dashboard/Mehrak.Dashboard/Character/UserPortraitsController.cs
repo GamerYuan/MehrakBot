@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
@@ -46,7 +46,7 @@ public class UserPortraitsController : ControllerBase
         if (string.IsNullOrWhiteSpace(game))
             return BadRequest(new { error = "Game parameter is required." });
 
-        if (!Enum.TryParse<Game>(game, true, out var gameEnum))
+        if (!Enum.TryParse<Game>(game, true, out var gameEnum) || !Enum.IsDefined(gameEnum))
             return BadRequest(new { error = "Invalid game parameter." });
 
         var portraits = await m_PortraitService.GetUserPortraitsAsync(discordUserId.Value, gameEnum, character, HttpContext.RequestAborted);
@@ -155,6 +155,10 @@ public class UserPortraitsController : ControllerBase
                     confidence = classification.NsfwConfidence
                 });
             }
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

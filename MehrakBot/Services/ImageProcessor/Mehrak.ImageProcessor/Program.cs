@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Mehrak.ImageProcessor.Shared.Services;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;

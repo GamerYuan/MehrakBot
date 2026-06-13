@@ -1,4 +1,4 @@
-using Mehrak.Dashboard.CodeRedeem.Models;
+﻿using Mehrak.Dashboard.CodeRedeem.Models;
 using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.CodeRedeem;
@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.CodeRedeem;
 
-[ApiController]
 [Authorize]
 [Route("codes")]
 public sealed class CodesController : GameWriteController
@@ -33,9 +32,6 @@ public sealed class CodesController : GameWriteController
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
 
-        if (!HasGameWriteAccess(game))
-            return Forbid();
-
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
@@ -58,9 +54,6 @@ public sealed class CodesController : GameWriteController
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
 
-        if (!HasGameWriteAccess(game))
-            return Forbid();
-
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
@@ -79,9 +72,6 @@ public sealed class CodesController : GameWriteController
     {
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
-
-        if (!HasGameWriteAccess(game))
-            return Forbid();
 
         var codes = await m_CodeContext.Codes.AsNoTracking().Where(x => x.Game == parsedGame).Select(x => x.Code).ToListAsync();
         return Ok(new { game = parsedGame.ToString(), codes });

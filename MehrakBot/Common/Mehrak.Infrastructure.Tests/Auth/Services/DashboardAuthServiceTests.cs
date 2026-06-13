@@ -1,4 +1,4 @@
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth;
@@ -181,7 +181,7 @@ internal sealed class DashboardAuthServiceTests : IDisposable
         {
             Assert.That(result.Succeeded, Is.True);
             Assert.That(result.SessionToken, Is.Not.Null.And.Not.Empty);
-            Assert.That(result.DiscordUserId, Is.EqualTo(100L));
+            Assert.That(result.DiscordUserId, Is.EqualTo("100"));
         });
     }
 

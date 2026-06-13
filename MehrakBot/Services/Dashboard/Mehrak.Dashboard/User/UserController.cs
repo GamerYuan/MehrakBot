@@ -135,7 +135,7 @@ public class UserController : ControllerBase
 
         return Ok(new
         {
-            discordUserId = result.DiscordUserId.ToString(),
+            discordUserId = result.DiscordUserId,
             isRootUser = result.IsRootUser,
             gameWritePermissions = result.GameWritePermissions
         });

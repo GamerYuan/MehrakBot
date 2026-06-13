@@ -1,4 +1,4 @@
-namespace Mehrak.Domain.Shared.Services;
+﻿namespace Mehrak.Domain.Shared.Services;
 
 public interface IImageClassificationService
 {

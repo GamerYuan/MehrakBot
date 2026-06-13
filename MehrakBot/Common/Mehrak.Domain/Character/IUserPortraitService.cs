@@ -1,4 +1,4 @@
-using Mehrak.Domain.Character.Models;
+﻿using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 

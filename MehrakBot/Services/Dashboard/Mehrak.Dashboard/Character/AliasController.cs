@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Mehrak.Dashboard.Character;
 
-[ApiController]
 [Route("alias")]
 [Authorize]
 public class AliasController : GameWriteController
@@ -44,9 +43,6 @@ public class AliasController : GameWriteController
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         if (request == null || string.IsNullOrWhiteSpace(request.Character))
             return BadRequest(new { error = "Character name is required." });
@@ -92,9 +88,6 @@ public class AliasController : GameWriteController
 
         if (string.IsNullOrWhiteSpace(alias))
             return BadRequest(new { error = "Alias parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         var normalized = alias.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting alias {Alias} for game {Game}", normalized, gameEnum);
