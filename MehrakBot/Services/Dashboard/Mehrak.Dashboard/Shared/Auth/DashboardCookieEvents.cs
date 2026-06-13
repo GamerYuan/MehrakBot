@@ -64,9 +64,19 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             {
                 m_Logger.LogWarning("Discord token validation failed for session {Token} with status {Status}",
                     sessionToken[..6], response.StatusCode);
-                await m_SessionService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync();
+
+                // Only revoke the session when Discord indicates the token is invalid/expired.
+                // Transient failures (429, 5xx) or network errors should not force a mass logout.
+                if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                {
+                    await m_SessionService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync();
+                    return;
+                }
+
+                // Mark validated so we don't hammer Discord while it's rate-limiting or down.
+                await m_SessionService.MarkTokenValidatedAsync(sessionToken, context.HttpContext.RequestAborted);
                 return;
             }
 

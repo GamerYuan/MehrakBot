@@ -177,19 +177,9 @@ internal class UserPortraitService : IUserPortraitService
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to save portrait upload record");
-            // Clean up S3
-            try
-            {
-                await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-                {
-                    BucketName = m_Bucket,
-                    Key = s3Key
-                }, ct);
-            }
-            catch (Exception ex)
-            {
-                m_Logger.LogError(ex, "Failed to clean up S3 object after DB error");
-            }
+            // Note: do not clean up the S3 object here. The key is deterministic based on the
+            // image hash, so a concurrent duplicate upload may have already committed a DB record
+            // that references this same object. Deleting it would corrupt that record.
 
             return new UploadPortraitResult
             {

@@ -85,7 +85,7 @@ public class UserPortraitsController : ControllerBase
     }
 
     [HttpPost("upload")]
-    [DisableRequestSizeLimit]
+    [RequestSizeLimit(MaxFileSizeBytes + 1024 * 1024)] // 9 MB Kestrel limit, form reader enforces the 8 MB file limit
     [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSizeBytes)]
     public async Task<IActionResult> UploadPortrait([FromQuery] string game, [FromQuery] string character, IFormFile file)
     {
