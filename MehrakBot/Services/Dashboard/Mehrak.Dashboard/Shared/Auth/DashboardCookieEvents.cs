@@ -35,7 +35,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         var session = await m_SessionService.GetSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (session == null)
         {
-            m_Logger.LogWarning("Session not found for token {Token}", sessionToken[..6]);
+            m_Logger.LogWarning("Session not found for token {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
             return;
@@ -60,7 +60,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogWarning("Discord token validation failed for session {Token} with status {Status}",
-                    sessionToken[..6], response.StatusCode);
+                    sessionToken[..Math.Min(6, sessionToken.Length)], response.StatusCode);
 
                 // Only revoke the session when Discord indicates the token is invalid/expired.
                 // Transient failures (429, 5xx) or network errors should not force a mass logout.
@@ -75,7 +75,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to validate Discord token for session {Token}", sessionToken[..6]);
+            m_Logger.LogError(ex, "Failed to validate Discord token for session {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
         }
     }
 

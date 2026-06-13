@@ -1,177 +1,127 @@
-using System.Text.Json;
 using Mehrak.Domain.Auth;
+using Mehrak.Infrastructure.Auth;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
 public class DashboardSessionService : IDashboardSessionService
 {
-    private const string KeyPrefix = "dashboard_session:";
     private static readonly TimeSpan SessionTtl = TimeSpan.FromDays(7);
+    private static readonly TimeSpan CleanupThreshold = TimeSpan.FromHours(1);
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    private readonly IConnectionMultiplexer m_Redis;
+    private readonly DashboardAuthDbContext m_Db;
     private readonly ILogger<DashboardSessionService> m_Logger;
 
-    public DashboardSessionService(IConnectionMultiplexer redis, ILogger<DashboardSessionService> logger)
+    public DashboardSessionService(DashboardAuthDbContext db, ILogger<DashboardSessionService> logger)
     {
-        m_Redis = redis;
+        m_Db = db;
         m_Logger = logger;
     }
 
-    public async Task CreateSessionAsync(string sessionToken, long discordUserId, string? accessToken, CancellationToken ct = default)
+    public async Task CreateSessionAsync(string sessionToken, long discordUserId, string? accessToken, string? loginIp, string? userAgent, string? location, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var session = new Entities.DashboardSession
+        {
+            Token = sessionToken,
+            DiscordId = discordUserId,
+            AccessToken = accessToken,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow + SessionTtl,
+            LoginIp = loginIp,
+            UserAgent = userAgent,
+            Location = location
+        };
 
-        var data = new SessionData(discordUserId, accessToken, DateTime.UtcNow);
-        var json = JsonSerializer.Serialize(data, JsonOptions);
-
-        await db.StringSetAsync(key, json, SessionTtl);
-
-        // Also store a reverse mapping for invalidation by user
-        var userKey = new RedisKey($"dashboard_user_sessions:{discordUserId}");
-        await db.SetAddAsync(userKey, sessionToken);
-        await db.KeyExpireAsync(userKey, SessionTtl);
+        m_Db.DashboardSessions.Add(session);
+        await m_Db.SaveChangesAsync(ct);
 
         m_Logger.LogInformation("Session created for DiscordId {DiscordUserId}", discordUserId);
     }
 
     public async Task<DashboardSessionData?> GetSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var session = await m_Db.DashboardSessions
+            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
 
-        var json = await db.StringGetAsync(key);
-        if (json.IsNullOrEmpty)
+        if (session == null || session.ExpiresAt <= DateTime.UtcNow)
             return null;
 
-        var data = JsonSerializer.Deserialize<SessionData>((string)json!, JsonOptions);
-        if (data == null)
-            return null;
-
-        return new DashboardSessionData(data.DiscordUserId, data.AccessToken, data.LastTokenValidation);
+        return new DashboardSessionData(
+            session.DiscordId,
+            session.AccessToken,
+            session.LastTokenValidation ?? session.CreatedAt,
+            session.LoginIp,
+            session.UserAgent,
+            session.Location);
     }
 
     public async Task RefreshSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var session = await m_Db.DashboardSessions
+            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
 
-        await db.KeyExpireAsync(key, SessionTtl);
+        if (session == null || session.ExpiresAt <= DateTime.UtcNow)
+            return;
+
+        session.ExpiresAt = DateTime.UtcNow + SessionTtl;
+        await m_Db.SaveChangesAsync(ct);
     }
 
     public async Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var session = await m_Db.DashboardSessions
+            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
 
-        // Get the session data to find the user for reverse mapping cleanup
-        var json = await db.StringGetAsync(key);
-        if (!json.IsNullOrEmpty)
+        if (session != null)
         {
-            var data = JsonSerializer.Deserialize<SessionData>((string)json!, JsonOptions);
-            if (data != null)
-            {
-                var userKey = new RedisKey($"dashboard_user_sessions:{data.DiscordUserId}");
-                await db.SetRemoveAsync(userKey, sessionToken);
-            }
+            m_Db.DashboardSessions.Remove(session);
+            await m_Db.SaveChangesAsync(ct);
+            m_Logger.LogInformation("Session invalidated: {Token}", sessionToken[..Math.Min(6, sessionToken.Length)]);
         }
-
-        await db.KeyDeleteAsync(key);
-        m_Logger.LogInformation("Session invalidated: {Token}", sessionToken[..6]);
     }
 
     public async Task InvalidateAllForUserAsync(long discordUserId, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var userKey = new RedisKey($"dashboard_user_sessions:{discordUserId}");
+        var sessions = await m_Db.DashboardSessions
+            .Where(s => s.DiscordId == discordUserId)
+            .ToListAsync(ct);
 
-        var tokens = await db.SetMembersAsync(userKey);
-        foreach (var token in tokens)
-        {
-            if (!token.IsNullOrEmpty)
-            {
-                var sessionKey = new RedisKey($"{KeyPrefix}{token}");
-                await db.KeyDeleteAsync(sessionKey);
-            }
-        }
+        m_Db.DashboardSessions.RemoveRange(sessions);
+        await m_Db.SaveChangesAsync(ct);
 
-        await db.KeyDeleteAsync(userKey);
         m_Logger.LogInformation("All sessions invalidated for DiscordId {DiscordUserId}", discordUserId);
-    }
-
-    public async Task<bool> NeedsTokenValidationAsync(string sessionToken, CancellationToken ct = default)
-    {
-        var session = await GetSessionAsync(sessionToken, ct);
-        if (session == null)
-            return false;
-
-        return session.LastTokenValidation.Date < DateTime.UtcNow.Date;
-    }
-
-    public async Task MarkTokenValidatedAsync(string sessionToken, CancellationToken ct = default)
-    {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
-
-        var json = await db.StringGetAsync(key);
-        if (json.IsNullOrEmpty)
-            return;
-
-        var data = JsonSerializer.Deserialize<SessionData>((string)json!, JsonOptions);
-        if (data == null)
-            return;
-
-        var updated = new SessionData(data.DiscordUserId, data.AccessToken, DateTime.UtcNow);
-        var updatedJson = JsonSerializer.Serialize(updated, JsonOptions);
-
-        await db.StringSetAsync(key, updatedJson, SessionTtl);
     }
 
     public async Task<bool> TryClaimTokenValidationAsync(string sessionToken, CancellationToken ct = default)
     {
-        var db = m_Redis.GetDatabase();
-        var key = new RedisKey($"{KeyPrefix}{sessionToken}");
+        var session = await m_Db.DashboardSessions
+            .FirstOrDefaultAsync(s => s.Token == sessionToken, ct);
+
+        if (session == null || session.ExpiresAt <= DateTime.UtcNow)
+            return false;
+
         var today = DateTime.UtcNow.Date;
+        var lastValidation = session.LastTokenValidation;
 
-        // Lua script: atomically check if validation is needed and claim it by updating the timestamp.
-        // Returns 1 if the claim succeeded (caller should validate), 0 otherwise.
-        const string script = @"
-            local json = redis.call('GET', KEYS[1])
-            if not json then return 0 end
-            local data = cjson.decode(json)
-            local last = data['lastTokenValidation']
-            if not last then
-                data['lastTokenValidation'] = ARGV[1]
-                redis.call('SET', KEYS[1], cjson.encode(data), 'EX', ARGV[2])
-                return 1
-            end
-            local lastDate = string.sub(last, 1, 10)
-            if lastDate < ARGV[3] then
-                data['lastTokenValidation'] = ARGV[1]
-                redis.call('SET', KEYS[1], cjson.encode(data), 'EX', ARGV[2])
-                return 1
-            end
-            return 0";
+        if (lastValidation.HasValue && lastValidation.Value.Date >= today)
+            return false;
 
-        var now = DateTime.UtcNow;
-        var result = await db.ScriptEvaluateAsync(
-            script,
-            [key],
-            [
-                (RedisValue)now.ToString("O"),
-                (RedisValue)((int)SessionTtl.TotalSeconds).ToString(),
-                (RedisValue)today.ToString("yyyy-MM-dd")
-            ]);
-
-        return (int)result == 1;
+        session.LastTokenValidation = DateTime.UtcNow;
+        await m_Db.SaveChangesAsync(ct);
+        return true;
     }
 
-    private sealed record SessionData(long DiscordUserId, string? AccessToken, DateTime LastTokenValidation);
+    public async Task<int> CleanupExpiredSessionsAsync(CancellationToken ct = default)
+    {
+        var threshold = DateTime.UtcNow - CleanupThreshold;
+        var count = await m_Db.DashboardSessions
+            .Where(s => s.ExpiresAt < threshold)
+            .ExecuteDeleteAsync(ct);
+
+        if (count > 0)
+            m_Logger.LogInformation("Cleaned up {Count} expired sessions", count);
+
+        return count;
+    }
 }

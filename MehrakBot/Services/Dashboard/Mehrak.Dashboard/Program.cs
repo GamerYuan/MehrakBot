@@ -352,17 +352,26 @@ public class Program
             throw new ArgumentException("Dashboard:AdminDiscordId must be set in configuration.");
         }
 
-        if (await db.DashboardPermissions.AnyAsync(p => p.DiscordId == discordId && p.Permission == "rootuser"))
-            return;
-
         var permissions = new[]
         {
             new DashboardPermission { DiscordId = discordId, Permission = "rootuser" },
             new DashboardPermission { DiscordId = discordId, Permission = "superadmin" }
         };
 
-        db.DashboardPermissions.AddRange(permissions);
-        await db.SaveChangesAsync();
+        foreach (var permission in permissions)
+        {
+            if (!await db.DashboardPermissions.AnyAsync(p => p.DiscordId == discordId && p.Permission == permission.Permission))
+                db.DashboardPermissions.Add(permission);
+        }
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Another instance likely inserted the same permissions concurrently
+        }
     }
 
     private static LogEventLevel MapLevel(string? value, LogEventLevel fallback) =>

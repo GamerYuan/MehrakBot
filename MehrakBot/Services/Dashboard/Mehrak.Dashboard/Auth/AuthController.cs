@@ -67,7 +67,9 @@ public class AuthController : ControllerBase
         var discordUsername = authenticateResult.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
         var avatarHash = authenticateResult.Principal.FindFirstValue("avatar");
         var accessToken = authenticateResult.Properties?.GetTokenValue(OpenIddictClientAspNetCoreConstants.Tokens.BackchannelAccessToken);
-        var result = await m_AuthService.LoginByDiscordAsync(discordId, discordUsername, avatarHash, accessToken, HttpContext.RequestAborted);
+        var loginIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
+        var result = await m_AuthService.LoginByDiscordAsync(discordId, discordUsername, avatarHash, accessToken, loginIp, userAgent, null, HttpContext.RequestAborted);
 
         if (!result.Succeeded || result.SessionToken is null)
         {

@@ -20,7 +20,7 @@ public class DashboardAuthService : IDashboardAuthService
         m_Logger = logger;
     }
 
-    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, string? avatarHash, string? accessToken, CancellationToken ct = default)
+    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, string? avatarHash, string? accessToken, string? loginIp, string? userAgent, string? location, CancellationToken ct = default)
     {
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
@@ -46,7 +46,7 @@ public class DashboardAuthService : IDashboardAuthService
 
         // Create new session
         var sessionToken = Guid.NewGuid().ToString("N");
-        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, ct);
+        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, loginIp, userAgent, location, ct);
 
         m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
 

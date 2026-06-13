@@ -96,7 +96,8 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<ICharacterStatService, CharacterStatService>();
         services.AddSingleton<ICharacterPortraitConfigService, CharacterPortraitConfigService>();
 
-        services.AddSingleton<IDashboardSessionService, DashboardSessionService>();
+        services.AddScoped<IDashboardSessionService, DashboardSessionService>();
+        services.AddHostedService<SessionCleanupService>();
 
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
