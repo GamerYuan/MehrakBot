@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Net;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
 using Mehrak.Dashboard.Shared.Auth;
@@ -262,9 +263,12 @@ public class Program
                     var signingCertPath = builder.Configuration["Dashboard:SigningCertificatePath"]
                         ?? "server-signing-certificate.pfx";
 
+                    var encryptionCert = X509CertificateLoader.LoadCertificateFromFile(encryptionCertPath);
+                    var signingCert = X509CertificateLoader.LoadCertificateFromFile(signingCertPath);
+
                     options
-                        .AddEncryptionCertificate(encryptionCertPath)
-                        .AddSigningCertificate(signingCertPath);
+                        .AddEncryptionCertificate(encryptionCert)
+                        .AddSigningCertificate(signingCert);
                 }
 
                 var aspnetcoreBuilder = options.UseAspNetCore()
