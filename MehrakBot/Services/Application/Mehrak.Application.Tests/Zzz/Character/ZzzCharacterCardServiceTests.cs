@@ -31,6 +31,7 @@ public class ZzzCharacterCardServiceTests
     {
         m_Service = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await m_Service.InitializeAsync();

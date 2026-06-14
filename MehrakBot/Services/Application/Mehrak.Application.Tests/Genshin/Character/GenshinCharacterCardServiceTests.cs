@@ -5,7 +5,10 @@ using Mehrak.Application.Genshin.Character;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
@@ -31,6 +34,7 @@ public class GenshinCharacterCardServiceTests
     {
         m_GenshinCharacterCardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await m_GenshinCharacterCardService.InitializeAsync();
@@ -128,6 +132,121 @@ public class GenshinCharacterCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
+    }
+
+    [Test]
+    public async Task GenerateCharacterCard_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - a portrait service that reports an active user portrait for any character.
+        var portraitUploadId = Guid.NewGuid();
+        var portraitMock = new Mock<IUserPortraitService>();
+        portraitMock.Setup(x => x.GetUserPortraitsAsync(It.IsAny<long>(), It.IsAny<Game>(),
+                It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long _, Game _, string? _, CancellationToken _) =>
+                new[]
+                {
+                    new UserPortraitUploadDto
+                    {
+                        Id = portraitUploadId,
+                        IsActive = true,
+                        Config = new UserPortraitConfigDto()
+                    }
+                });
+
+        // Provide a recognizable portrait image (solid red 800x1000 PNG) as the download.
+        await using var portraitStream = CreateSolidColorPngStream(800, 1000, new(255, 0, 0));
+        portraitMock.Setup(x => x.GetPortraitImageAsync(It.IsAny<long>(), portraitUploadId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new AttachmentDownloadResult(portraitStream, "image/png"));
+
+        var cardService = new GenshinCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            portraitMock.Object,
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_TestData.json"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(
+            TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+
+        // Act
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
+        // rather than the stock-image path.
+        portraitMock.Verify(
+            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+    }
+
+    [Test]
+    public async Task GenerateCharacterCard_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - a portrait service that reports an active portrait but fails to download it.
+        var portraitUploadId = Guid.NewGuid();
+        var portraitMock = new Mock<IUserPortraitService>();
+        portraitMock.Setup(x => x.GetUserPortraitsAsync(It.IsAny<long>(), It.IsAny<Game>(),
+                It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((long _, Game _, string? _, CancellationToken _) =>
+                new[]
+                {
+                    new UserPortraitUploadDto
+                    {
+                        Id = portraitUploadId,
+                        IsActive = true,
+                        Config = new UserPortraitConfigDto()
+                    }
+                });
+        portraitMock.Setup(x => x.GetPortraitImageAsync(It.IsAny<long>(), portraitUploadId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AttachmentDownloadResult?)null);
+
+        var cardService = new GenshinCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            portraitMock.Object,
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_TestData.json"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(
+            TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - card was still generated despite the failed portrait download.
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+    }
+
+    /// <summary>
+    /// Creates a PNG stream of the given size filled with a solid RGB color, for use as a
+    /// stand-in portrait image in tests.
+    /// </summary>
+    private static MemoryStream CreateSolidColorPngStream(int width, int height, (byte R, byte G, byte B) color)
+    {
+        using var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgb24>(width, height,
+            new SixLabors.ImageSharp.PixelFormats.Rgb24(color.R, color.G, color.B));
+        var ms = new MemoryStream();
+        image.Save(ms, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+        ms.Position = 0;
+        return ms;
     }
 
     // To be used to generate golden image should the generation algorithm be updated

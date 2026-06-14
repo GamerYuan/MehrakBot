@@ -1020,6 +1020,7 @@ public class ZzzCharacterApplicationServiceTests
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
@@ -1087,6 +1088,7 @@ public class ZzzCharacterApplicationServiceTests
         // Use all real services - no mocks
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 

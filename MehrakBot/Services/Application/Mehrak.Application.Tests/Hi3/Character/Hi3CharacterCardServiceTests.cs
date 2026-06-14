@@ -31,6 +31,7 @@ internal class Hi3CharacterCardServiceTests
     {
         m_CharacterCardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await m_CharacterCardService.InitializeAsync();
@@ -104,6 +105,7 @@ internal class Hi3CharacterCardServiceTests
 
         var service = new Hi3CharacterCardService(
             imageRepositoryMock.Object,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 

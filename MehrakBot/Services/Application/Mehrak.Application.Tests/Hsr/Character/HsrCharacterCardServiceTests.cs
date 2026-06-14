@@ -152,6 +152,7 @@ public class HsrCharacterCardServiceTests
 
         var characterCardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             scopeFactory,
             Mock.Of<ILogger<HsrCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());

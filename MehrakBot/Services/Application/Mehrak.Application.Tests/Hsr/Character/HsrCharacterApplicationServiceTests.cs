@@ -1368,6 +1368,7 @@ public class HsrCharacterApplicationServiceTests
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             CreateRelicScopeFactory(relicContext),
             Mock.Of<ILogger<HsrCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
@@ -1444,6 +1445,7 @@ public class HsrCharacterApplicationServiceTests
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             CreateRelicScopeFactory(relicContext),
             Mock.Of<ILogger<HsrCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());

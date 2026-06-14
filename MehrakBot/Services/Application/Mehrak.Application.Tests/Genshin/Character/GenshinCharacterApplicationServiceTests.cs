@@ -1532,6 +1532,7 @@ public class GenshinCharacterApplicationServiceTests
         var metricsMock = new Mock<IApplicationMetrics>();
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             metricsMock.Object);
 
@@ -1593,6 +1594,7 @@ public class GenshinCharacterApplicationServiceTests
     {
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
+            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
