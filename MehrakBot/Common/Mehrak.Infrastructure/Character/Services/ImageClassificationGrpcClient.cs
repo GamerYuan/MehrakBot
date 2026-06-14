@@ -4,7 +4,7 @@ using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Infrastructure.Character.Services;
 
-internal class ImageClassificationGrpcClient : IImageClassificationService
+public class ImageClassificationGrpcClient : IImageClassificationService
 {
     private readonly Proto.ImageProcessorService.ImageProcessorServiceClient m_Client;
     private readonly ILogger<ImageClassificationGrpcClient> m_Logger;

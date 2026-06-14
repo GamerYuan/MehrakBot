@@ -12,7 +12,9 @@ using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
+using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.Domain.Shared.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -199,6 +201,8 @@ public class Program
                 throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
             options.Address = new Uri(address);
         });
+
+        builder.Services.AddSingleton<IImageClassificationService, ImageClassificationGrpcClient>();
 
         var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
 

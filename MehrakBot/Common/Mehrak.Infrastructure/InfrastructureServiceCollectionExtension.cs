@@ -101,7 +101,6 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
-        services.AddSingleton<IImageClassificationService, ImageClassificationGrpcClient>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 
