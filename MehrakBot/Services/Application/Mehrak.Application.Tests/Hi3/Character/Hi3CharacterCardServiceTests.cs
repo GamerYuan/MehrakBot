@@ -120,6 +120,47 @@ internal class Hi3CharacterCardServiceTests
         Assert.That(ex!.Message, Is.EqualTo("No splash art image found for character"));
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - a portrait service that reports an active user portrait for any character.
+        var portraitUploadId = Guid.NewGuid();
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+        var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
+
+        var cardService = new Hi3CharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            portraitMock.Object,
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        JsonSerializerOptions options = new()
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+
+        var characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
+            await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Character_TestData_1.json")), options);
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+
+        // Act
+        var generatedImageStream = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
+        // rather than the stock-image path.
+        portraitMock.Verify(
+            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.That(generatedImageStream, Is.Not.Null);
+        Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto

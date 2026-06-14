@@ -135,11 +135,11 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
         var character = characterInformation.AvatarList[0];
 
         var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.ZenlessZoneZero, character.Name!,
+            context.UserId, Game.ZenlessZoneZero, character.Name,
             disposables, cancellationToken);
 
         Image portraitImage;
-        CharacterPortraitConfig portraitConfig;
+        CharacterPortraitConfig? portraitConfig;
         if (userPortrait != null)
         {
             portraitImage = userPortrait.Image;

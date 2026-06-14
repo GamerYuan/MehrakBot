@@ -35,13 +35,20 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
 
     /// <summary>
     /// Loads the user's active uploaded portrait for the given character, if one exists.
-    /// Returns null (no active portrait, image download failed, or an exception occurred)
+    /// Returns null (no active portrait, image download failed, or a non-fatal error occurred)
     /// so callers can fall back to the stock portrait.
     /// </summary>
+    /// <remarks>
+    /// <paramref name="characterName"/> is nullable; a null or empty name skips the lookup
+    /// and returns null, so callers may pass the raw API value without null-forgiving operators.
+    /// Genuine cancellation is propagated rather than masked as a fallback.
+    /// </remarks>
     protected async Task<UserPortraitLoadResult?> TryLoadUserPortraitAsync(
-        ulong userId, Game game, string characterName,
+        ulong userId, Game game, string? characterName,
         DisposableBag disposables, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(characterName)) return null;
+
         try
         {
             var portraits = await UserPortraitService.GetUserPortraitsAsync(
@@ -69,6 +76,10 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
                 GradientFadeStart = active.Config.GradientFadeStart,
             };
             return new UserPortraitLoadResult(image, config);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

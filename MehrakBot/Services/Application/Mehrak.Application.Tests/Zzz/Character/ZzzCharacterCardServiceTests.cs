@@ -81,6 +81,43 @@ public class ZzzCharacterCardServiceTests
         Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - a portrait service that reports an active user portrait for any character.
+        var portraitUploadId = Guid.NewGuid();
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+        var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
+
+        var cardService = new ZzzCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            portraitMock.Object,
+            Mock.Of<ILogger<ZzzCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Jane_TestData.json")));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
+        // rather than the stock-image path.
+        portraitMock.Verify(
+            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto

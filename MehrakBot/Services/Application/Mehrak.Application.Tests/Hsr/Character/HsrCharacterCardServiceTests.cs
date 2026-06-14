@@ -5,6 +5,7 @@ using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -102,6 +103,39 @@ public class HsrCharacterCardServiceTests
         };
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - a portrait service that reports an active user portrait for any character.
+        var portraitUploadId = Guid.NewGuid();
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+        var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
+
+        var (relicContext, characterCardService) = await SetupTest(portraitMock.Object);
+        SeedRelicData(relicContext);
+
+        var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+
+        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
+        // rather than the stock-image path.
+        portraitMock.Verify(
+            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.That(generatedImageStream, Is.Not.Null);
+        Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
+    }
+
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)
     {
         Assert.That(generatedImageStream, Is.Not.Null, $"Generated image stream should not be null for {testName}");
@@ -139,7 +173,8 @@ public class HsrCharacterCardServiceTests
             $"Generated image should match golden image for {testName}");
     }
 
-    private async Task<(RelicDbContext RelicContext, HsrCharacterCardService Service)> SetupTest()
+    private async Task<(RelicDbContext RelicContext, HsrCharacterCardService Service)> SetupTest(
+        IUserPortraitService? portraitService = null)
     {
         var services = new ServiceCollection();
         var dbContext = m_DbFactory.CreateDbContext<RelicDbContext>();
@@ -152,7 +187,7 @@ public class HsrCharacterCardServiceTests
 
         var characterCardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
+            portraitService ?? PortraitServiceMockFactory.CreateEmpty(),
             scopeFactory,
             Mock.Of<ILogger<HsrCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());

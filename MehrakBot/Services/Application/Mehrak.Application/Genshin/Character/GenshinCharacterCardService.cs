@@ -133,7 +133,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
             disposables, cancellationToken);
 
         Image<Rgba32> characterPortrait;
-        CharacterPortraitConfig portraitConfig;
+        CharacterPortraitConfig? portraitConfig;
 
         if (userPortrait != null)
         {

@@ -96,11 +96,11 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
         var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
         var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.HonkaiStarRail, characterInformation.Name!,
+            context.UserId, Game.HonkaiStarRail, characterInformation.Name,
             disposables, cancellationToken);
 
         Image<Rgba32> characterPortrait;
-        CharacterPortraitConfig portraitConfig;
+        CharacterPortraitConfig? portraitConfig;
         if (userPortrait != null)
         {
             characterPortrait = userPortrait.Image;

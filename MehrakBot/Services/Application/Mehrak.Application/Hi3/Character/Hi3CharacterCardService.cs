@@ -70,14 +70,13 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
 
         var userPortrait = await TryLoadUserPortraitAsync(
             context.UserId, Game.HonkaiImpact3,
-            characterInformation.Avatar.Name!, disposables, cancellationToken);
+            characterInformation.Avatar.Name, disposables, cancellationToken);
 
         Image characterImage;
-        CharacterPortraitConfig portraitConfig;
+        CharacterPortraitConfig? portraitConfig;
         if (userPortrait != null)
         {
             characterImage = userPortrait.Image;
-            disposables.Add(characterImage);
             portraitConfig = userPortrait.Config;
         }
         else
