@@ -297,6 +297,6 @@ public class DashboardUserService : IDashboardUserService
     public async Task<bool> IsRootUserAsync(long discordUserId, CancellationToken ct = default)
     {
         return await m_Db.DashboardPermissions
-            .AnyAsync(p => p.DiscordId == discordUserId && p.Permission == "rootuser", ct);
+            .AnyAsync(p => p.DiscordId == discordUserId && p.Permission.Equals("rootuser", StringComparison.CurrentCultureIgnoreCase), ct);
     }
 }
