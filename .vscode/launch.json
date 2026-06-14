@@ -33,6 +33,17 @@
         "group": "",
         "order": 3
       }
+    },
+    {
+      "name": "Mehrak.ImageProcessor",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/MehrakBot/Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj",
+      "preLaunchTask": "build-image-processor",
+      "presentation": {
+        "group": "",
+        "order": 4
+      }
     }
   ]
 }

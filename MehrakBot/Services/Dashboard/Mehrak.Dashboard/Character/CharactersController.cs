@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.Character.Models;
+using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -6,10 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Mehrak.Dashboard.Character;
 
-[ApiController]
 [Authorize]
 [Route("characters")]
-public class CharactersController : ControllerBase
+public class CharactersController : GameWriteController
 {
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly ICharacterStatService m_CharacterStatService;
@@ -36,6 +36,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpPatch("add")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> AddCharacters([FromQuery] string? game, [FromBody] AddCharactersRequest request)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -53,9 +54,6 @@ public class CharactersController : ControllerBase
         if (normalizedCharacters.Length == 0)
             return BadRequest(new { error = "Characters list must contain at least one name." });
 
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
-
         m_Logger.LogInformation("Adding {Count} characters to game {Game}", normalizedCharacters.Length, gameEnum);
         await m_CharacterCacheService.UpsertCharacters(gameEnum, normalizedCharacters);
 
@@ -63,6 +61,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpDelete("delete")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> DeleteCharacter([FromQuery] string? game, [FromQuery] string? character)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -70,9 +69,6 @@ public class CharactersController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
@@ -101,6 +97,7 @@ public class CharactersController : ControllerBase
     }
 
     [HttpPatch("stat")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> UpdateCharacterStat([FromQuery] string? game, [FromQuery] string? character,
         [FromBody] UpdateCharacterStatRequest request)
     {
@@ -109,9 +106,6 @@ public class CharactersController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Updating stats for character {Character} in game {Game}", normalized, gameEnum);
@@ -122,36 +116,5 @@ public class CharactersController : ControllerBase
             return NotFound(new { error = "Character not found." });
 
         return NoContent();
-    }
-
-    private static bool TryParseGame(string? input, out Game game, out string error)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            error = "Game parameter is required.";
-            game = default;
-            return false;
-        }
-
-        if (!Enum.TryParse<Game>(input, true, out game))
-        {
-            error = "Invalid game parameter.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 }

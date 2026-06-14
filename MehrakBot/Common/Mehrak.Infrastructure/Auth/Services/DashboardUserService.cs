@@ -1,8 +1,7 @@
-﻿using System.Security.Cryptography;
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -11,75 +10,98 @@ namespace Mehrak.Infrastructure.Auth.Services;
 public class DashboardUserService : IDashboardUserService
 {
     private readonly DashboardAuthDbContext m_Db;
-    private readonly PasswordHasher<DashboardUser> m_Hasher = new();
+    private readonly IDashboardSessionService m_SessionService;
     private readonly ILogger<DashboardUserService> m_Logger;
 
-    private const string TemporaryPasswordCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*_-";
-    private const int TemporaryPasswordLength = 16;
-
-    public DashboardUserService(DashboardAuthDbContext db, ILogger<DashboardUserService> logger)
+    public DashboardUserService(DashboardAuthDbContext db, IDashboardSessionService sessionService, ILogger<DashboardUserService> logger)
     {
         m_Db = db;
+        m_SessionService = sessionService;
         m_Logger = logger;
     }
 
     public async Task<IReadOnlyCollection<DashboardUserSummaryDto>> GetDashboardUsersAsync(CancellationToken ct = default)
     {
         m_Logger.LogInformation("Fetching dashboard user summaries.");
-        var users = await m_Db.DashboardUsers
-            .Include(u => u.GamePermissions)
-            .OrderBy(u => u.Username)
+
+        // Get all unique DiscordIds that have permissions
+        var discordIds = await m_Db.DashboardPermissions
+            .Select(p => p.DiscordId)
+            .Distinct()
             .ToListAsync(ct);
 
-        return [.. users
-            .Select(u => new DashboardUserSummaryDto
+        var result = new List<DashboardUserSummaryDto>();
+
+        foreach (var discordId in discordIds)
+        {
+            var permissions = await m_Db.DashboardPermissions
+                .Where(p => p.DiscordId == discordId)
+                .Select(p => p.Permission)
+                .ToListAsync(ct);
+
+            var isSuperAdmin = permissions.Contains("superadmin", StringComparer.OrdinalIgnoreCase);
+            var isRootUser = permissions.Contains("rootuser", StringComparer.OrdinalIgnoreCase);
+
+            var gameWrites = permissions
+                .Where(p => p.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p["game_write:".Length..])
+                .Select(p => Enum.TryParse<Game>(p, true, out var g) ? g : Game.Unsupported)
+                .Where(g => g != Game.Unsupported)
+                .Distinct()
+                .ToArray();
+
+            // Only include users who have superadmin or game write permissions
+            if (isSuperAdmin || gameWrites.Length > 0)
             {
-                UserId = u.Id,
-                Username = u.Username,
-                DiscordUserId = u.DiscordId.ToString(),
-                IsSuperAdmin = u.IsSuperAdmin,
-                IsRootUser = u.IsRootUser,
-                GameWritePermissions = [.. u.GamePermissions
-                    .Where(p => p.AllowWrite)
-                    .Select(p => p.GameCode)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)]
-            })];
+                result.Add(new DashboardUserSummaryDto
+                {
+                    DiscordUserId = discordId.ToString(),
+                    IsSuperAdmin = isSuperAdmin,
+                    IsRootUser = isRootUser,
+                    GameWritePermissions = gameWrites
+                });
+            }
+        }
+
+        return result
+            .OrderBy(u => u.DiscordUserId)
+            .ToList();
     }
 
-    public async Task<DashboardUserSummaryDto?> GetDashboardUserByIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<DashboardUserSummaryDto?> GetDashboardUserByDiscordIdAsync(long discordUserId, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Fetching dashboard user summary for user {UserId}.", userId);
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.Id == userId, ct);
-        if (user == null)
+        m_Logger.LogInformation("Fetching dashboard user summary for DiscordId {DiscordUserId}.", discordUserId);
+
+        var permissions = await m_Db.DashboardPermissions
+            .Where(p => p.DiscordId == discordUserId)
+            .Select(p => p.Permission)
+            .ToListAsync(ct);
+
+        if (permissions.Count == 0)
             return null;
+
+        var isSuperAdmin = permissions.Contains("superadmin", StringComparer.OrdinalIgnoreCase);
+        var isRootUser = permissions.Contains("rootuser", StringComparer.OrdinalIgnoreCase);
+
+        var gameWrites = permissions
+            .Where(p => p.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))
+            .Select(p => p["game_write:".Length..])
+            .Select(p => Enum.TryParse<Game>(p, true, out var g) ? g : Game.Unsupported)
+            .Where(g => g != Game.Unsupported)
+            .Distinct()
+            .ToArray();
+
         return new DashboardUserSummaryDto
         {
-            UserId = user.Id,
-            Username = user.Username,
-            DiscordUserId = user.DiscordId.ToString(),
-            IsSuperAdmin = user.IsSuperAdmin,
-            IsRootUser = user.IsRootUser,
-            GameWritePermissions = [.. user.GamePermissions
-                .Where(p => p.AllowWrite)
-                .Select(p => p.GameCode)
-                .Distinct(StringComparer.OrdinalIgnoreCase)]
+            DiscordUserId = discordUserId.ToString(),
+            IsSuperAdmin = isSuperAdmin,
+            IsRootUser = isRootUser,
+            GameWritePermissions = gameWrites
         };
     }
 
     public async Task<AddDashboardUserResultDto> AddDashboardUserAsync(AddDashboardUserRequestDto request, CancellationToken ct = default)
     {
-        var username = request.Username?.Trim();
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return new AddDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is required."
-            };
-        }
-
         if (request.DiscordUserId <= 0)
         {
             return new AddDashboardUserResultDto
@@ -89,52 +111,32 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username, ct))
+        // Check if user already has permissions
+        var existing = await m_Db.DashboardPermissions
+            .AnyAsync(p => p.DiscordId == request.DiscordUserId, ct);
+
+        if (existing)
         {
             return new AddDashboardUserResultDto
             {
                 Succeeded = false,
-                Error = "Username is already in use."
+                Error = "Discord user id already has permissions."
             };
         }
 
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.DiscordId == request.DiscordUserId, ct))
+        var permissions = new List<DashboardPermission>();
+
+        // Add game write permissions
+        foreach (var game in (request.GameWritePermissions ?? []))
         {
-            return new AddDashboardUserResultDto
+            permissions.Add(new DashboardPermission
             {
-                Succeeded = false,
-                Error = "Discord user id is already in use."
-            };
+                DiscordId = request.DiscordUserId,
+                Permission = $"game_write:{game.ToString().ToLowerInvariant()}"
+            });
         }
 
-        var normalizedPermissions = (request.GameWritePermissions ?? [])
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim().ToLowerInvariant())
-            .Distinct()
-            .ToArray();
-
-        var user = new DashboardUser
-        {
-            Username = username,
-            DiscordId = request.DiscordUserId,
-            IsSuperAdmin = request.IsSuperAdmin,
-            IsActive = true,
-            RequirePasswordReset = true,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
-
-        var tempPassword = GenerateTemporaryPassword();
-        user.PasswordHash = m_Hasher.HashPassword(user, tempPassword);
-        user.GamePermissions = normalizedPermissions
-            .Select(code => new DashboardGamePermission
-            {
-                GameCode = code,
-                AllowWrite = true,
-                User = user
-            })
-            .ToList();
-
-        m_Db.DashboardUsers.Add(user);
+        m_Db.DashboardPermissions.AddRange(permissions);
 
         try
         {
@@ -142,7 +144,7 @@ public class DashboardUserService : IDashboardUserService
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to create dashboard user due to a database error.");
+            m_Logger.LogError(e, "Failed to create dashboard permissions due to a database error.");
             return new AddDashboardUserResultDto
             {
                 Succeeded = false,
@@ -150,53 +152,22 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Logger.LogInformation("Dashboard user {UserId} created with DiscordId {DiscordId}.", user.Id, user.DiscordId);
+        m_Logger.LogInformation("Dashboard permissions created for DiscordId {DiscordUserId}.", request.DiscordUserId);
 
         return new AddDashboardUserResultDto
         {
             Succeeded = true,
-            UserId = user.Id,
-            Username = user.Username,
-            TemporaryPassword = tempPassword,
-            RequiresPasswordReset = user.RequirePasswordReset,
-            GameWritePermissions = normalizedPermissions
+            DiscordUserId = request.DiscordUserId.ToString(),
+            GameWritePermissions = [.. request.GameWritePermissions ?? []]
         };
     }
 
-    public async Task<UpdateDashboardUserResultDto> UpdateDashboardUserAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default)
+    public async Task<UpdateDashboardUserResultDto> UpdateDashboardUserByDiscordIdAsync(UpdateDashboardUserRequestDto request, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Updating dashboard user {UserId}.", request.UserId);
-        var username = request.Username?.Trim();
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Username is required."
-            };
-        }
+        m_Logger.LogInformation("Updating dashboard permissions for DiscordId {DiscordUserId}.", request.DiscordUserId);
 
-        if (request.DiscordUserId <= 0)
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id must be a positive number."
-            };
-        }
-
-        var user = await m_Db.DashboardUsers.Include(x => x.GamePermissions)
-            .SingleOrDefaultAsync(x => x.Id == request.UserId, ct);
-        if (user == null)
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        if (user.IsRootUser)
+        // Check if root user
+        if (await IsRootUserAsync(request.DiscordUserId, ct))
         {
             return new UpdateDashboardUserResultDto
             {
@@ -205,37 +176,40 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.Username == username && u.Id != user.Id, ct))
-        {
-            return new UpdateDashboardUserResultDto
+        var existingPermissions = await m_Db.DashboardPermissions
+            .Where(p => p.DiscordId == request.DiscordUserId)
+            .ToListAsync(ct);
+
+        var existingPermissionStrings = existingPermissions
+            .Select(p => p.Permission)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Build target permission set
+        var targetPermissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (request.IsSuperAdmin)
+            targetPermissions.Add("superadmin");
+
+        foreach (var game in (request.GameWritePermissions ?? []))
+            targetPermissions.Add($"game_write:{game.ToString().ToLowerInvariant()}");
+
+        // Remove permissions that are no longer needed
+        var toRemove = existingPermissions
+            .Where(p => !targetPermissions.Contains(p.Permission))
+            .ToList();
+
+        // Add permissions that are new
+        var toAdd = targetPermissions
+            .Where(p => !existingPermissionStrings.Contains(p))
+            .Select(p => new DashboardPermission
             {
-                Succeeded = false,
-                Error = "Username is already in use."
-            };
-        }
+                DiscordId = request.DiscordUserId,
+                Permission = p
+            })
+            .ToList();
 
-        if (await m_Db.DashboardUsers.AnyAsync(u => u.DiscordId == request.DiscordUserId && u.Id != user.Id, ct))
-        {
-            return new UpdateDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "Discord user id is already in use."
-            };
-        }
-
-        var normalizedPermissions = (request.GameWritePermissions ?? [])
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.Trim().ToLowerInvariant())
-            .Distinct()
-            .ToArray();
-
-        user.Username = username;
-        user.DiscordId = request.DiscordUserId;
-        user.IsSuperAdmin = request.IsSuperAdmin;
-        user.IsActive = request.IsActive;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        SyncGamePermissions(user, normalizedPermissions);
+        m_Db.DashboardPermissions.RemoveRange(toRemove);
+        m_Db.DashboardPermissions.AddRange(toAdd);
 
         try
         {
@@ -243,42 +217,36 @@ public class DashboardUserService : IDashboardUserService
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to update dashboard user due to a database error.");
+            m_Logger.LogError(e, "Failed to update dashboard permissions due to a database error.");
             return new UpdateDashboardUserResultDto
             {
                 Succeeded = false,
-                Error = "Failed to create user due to a database error."
+                Error = "Failed to update user due to a database error."
             };
         }
 
-        m_Logger.LogInformation("Dashboard user {UserId} updated successfully.", user.Id);
+        m_Logger.LogInformation("Dashboard permissions updated for DiscordId {DiscordUserId}.", request.DiscordUserId);
+
+        await m_SessionService.InvalidateAllForUserAsync(request.DiscordUserId, ct);
+
+        var isRootUser = await IsRootUserAsync(request.DiscordUserId, ct);
 
         return new UpdateDashboardUserResultDto
         {
             Succeeded = true,
-            UserId = user.Id,
-            Username = user.Username,
-            IsActive = user.IsActive,
-            IsSuperAdmin = user.IsSuperAdmin,
-            IsRootUser = user.IsRootUser,
-            GameWritePermissions = normalizedPermissions
+            DiscordUserId = request.DiscordUserId.ToString(),
+            IsSuperAdmin = request.IsSuperAdmin,
+            IsRootUser = isRootUser,
+            GameWritePermissions = [.. request.GameWritePermissions ?? []]
         };
     }
 
-    public async Task<RemoveDashboardUserResultDto> RemoveDashboardUserAsync(Guid userId, CancellationToken ct = default)
+    public async Task<RemoveDashboardUserResultDto> RemoveDashboardUserByDiscordIdAsync(long discordUserId, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Deleting dashboard user {UserId}.", userId);
-        var user = await m_Db.DashboardUsers.SingleOrDefaultAsync(u => u.Id == userId, ct);
-        if (user == null)
-        {
-            return new RemoveDashboardUserResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
+        m_Logger.LogInformation("Deleting dashboard permissions for DiscordId {DiscordUserId}.", discordUserId);
 
-        if (user.IsRootUser)
+        // Check if root user
+        if (await IsRootUserAsync(discordUserId, ct))
         {
             return new RemoveDashboardUserResultDto
             {
@@ -287,7 +255,20 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Db.DashboardUsers.Remove(user);
+        var permissions = await m_Db.DashboardPermissions
+            .Where(p => p.DiscordId == discordUserId)
+            .ToListAsync(ct);
+
+        if (permissions.Count == 0)
+        {
+            return new RemoveDashboardUserResultDto
+            {
+                Succeeded = false,
+                Error = "User not found."
+            };
+        }
+
+        m_Db.DashboardPermissions.RemoveRange(permissions);
 
         try
         {
@@ -295,7 +276,7 @@ public class DashboardUserService : IDashboardUserService
         }
         catch (DbUpdateException e)
         {
-            m_Logger.LogError(e, "Failed to create dashboard user due to a database error.");
+            m_Logger.LogError(e, "Failed to delete dashboard permissions due to a database error.");
             return new RemoveDashboardUserResultDto
             {
                 Succeeded = false,
@@ -303,7 +284,9 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Logger.LogInformation("Dashboard user {UserId} deleted.", userId);
+        m_Logger.LogInformation("Dashboard permissions deleted for DiscordId {DiscordUserId}.", discordUserId);
+
+        await m_SessionService.InvalidateAllForUserAsync(discordUserId, ct);
 
         return new RemoveDashboardUserResultDto
         {
@@ -311,116 +294,9 @@ public class DashboardUserService : IDashboardUserService
         };
     }
 
-    public async Task<DashboardUserRequireResetResultDto> RequirePasswordResetAsync(Guid userId, CancellationToken ct = default)
+    public async Task<bool> IsRootUserAsync(long discordUserId, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Setting require password reset for user {UserId}.", userId);
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == userId, ct);
-
-        if (user == null)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        if (user.IsRootUser)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "Root user cannot be forced to reset password."
-            };
-        }
-
-        if (user.RequirePasswordReset)
-        {
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = true,
-                SessionsInvalidated = false
-            };
-        }
-
-        user.RequirePasswordReset = true;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        if (hadSessions)
-            m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        try
-        {
-            await m_Db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException e)
-        {
-            m_Logger.LogError(e, "Failed to force password reset for dashboard user due to a database error.");
-            return new DashboardUserRequireResetResultDto
-            {
-                Succeeded = false,
-                Error = "Failed to create user due to a database error."
-            };
-        }
-
-        m_Logger.LogInformation("Require password reset enabled for user {UserId}. Sessions invalidated: {Invalidated}.", userId, hadSessions);
-
-        return new DashboardUserRequireResetResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
-    }
-
-    private void SyncGamePermissions(DashboardUser user, string[] normalizedPermissions)
-    {
-        var comparer = StringComparer.OrdinalIgnoreCase;
-        var toRemove = user.GamePermissions
-            .Where(permission => !normalizedPermissions.Contains(permission.GameCode, comparer))
-            .ToList();
-
-        if (toRemove.Count > 0)
-        {
-            foreach (var permission in toRemove)
-                m_Db.DashboardGamePermissions.Remove(permission);
-        }
-
-        var existingCodes = user.GamePermissions
-            .Select(p => p.GameCode)
-            .Where(code => code != null)
-            .ToHashSet(comparer);
-
-        var addedCount = 0;
-        foreach (var code in normalizedPermissions.Where(code => !existingCodes.Contains(code)))
-        {
-            m_Db.DashboardGamePermissions.Add(new DashboardGamePermission
-            {
-                UserId = user.Id,
-                User = user,
-                GameCode = code,
-                AllowWrite = true
-            });
-            existingCodes.Add(code);
-            addedCount++;
-        }
-
-        m_Logger.LogDebug("Synchronized permissions for user {UserId}. Added: {Added}, Removed: {Removed}.",
-            user.Id, addedCount, toRemove.Count);
-    }
-
-    private static string GenerateTemporaryPassword(int length = TemporaryPasswordLength)
-    {
-        var passwordChars = new char[length];
-
-        for (var i = 0; i < length; i++)
-        {
-            var index = RandomNumberGenerator.GetInt32(TemporaryPasswordCharacters.Length);
-            passwordChars[i] = TemporaryPasswordCharacters[index];
-        }
-
-        return new string(passwordChars);
+        return await m_Db.DashboardPermissions
+            .AnyAsync(p => p.DiscordId == discordUserId && p.Permission.Equals("rootuser", StringComparison.CurrentCultureIgnoreCase), ct);
     }
 }

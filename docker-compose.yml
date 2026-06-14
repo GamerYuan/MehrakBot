@@ -38,6 +38,8 @@ services:
     depends_on:
       application:
         condition: service_started
+      image-processor:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
@@ -59,6 +61,7 @@ services:
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
       - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
+      - ImageProcessor__ConnectionString=http://image-processor:13000
 
   application:
     image: mehrak-application:latest
@@ -85,6 +88,23 @@ services:
       - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
+
+  image-processor:
+    image: mehrak-image-processor:latest
+    build:
+      context: ./MehrakBot
+      dockerfile: Services/ImageProcessor/Dockerfile
+      args:
+        BASE_IMAGE_TAG: ${BASE_IMAGE_TAG:-opencv-4.12.0-ocvsharp-4.11.0.20250507}
+        VERSION: ${VERSION:-0.0.1}
+    depends_on:
+      seaweed-s3:
+        condition: service_healthy
+    networks:
+      - mehrak-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - NsfwClassifier__NsfwThreshold=${NSFW_THRESHOLD:-0.7}
 
   postgres:
     image: postgres:18.3

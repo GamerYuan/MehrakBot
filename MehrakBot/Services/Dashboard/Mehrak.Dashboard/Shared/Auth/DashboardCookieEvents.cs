@@ -7,11 +7,11 @@ namespace Mehrak.Dashboard.Shared.Auth;
 public class DashboardCookieEvents : CookieAuthenticationEvents
 {
     private const string SessionTokenClaim = "dashboard_session";
-    private readonly IDashboardAuthService m_AuthService;
+    private readonly IDashboardSessionService m_SessionService;
 
-    public DashboardCookieEvents(IDashboardAuthService authService)
+    public DashboardCookieEvents(IDashboardSessionService sessionService)
     {
-        m_AuthService = authService;
+        m_SessionService = sessionService;
     }
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
@@ -24,11 +24,12 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             return;
         }
 
-        var valid = await m_AuthService.ValidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
-        if (!valid)
+        var session = await m_SessionService.GetAndRefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+        if (session == null)
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
+            return;
         }
     }
 
@@ -37,7 +38,7 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         var sessionToken = context.HttpContext.User?.Claims.FirstOrDefault(c => c.Type == SessionTokenClaim)?.Value;
         if (!string.IsNullOrWhiteSpace(sessionToken))
         {
-            await m_AuthService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+            await m_SessionService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         }
     }
 }

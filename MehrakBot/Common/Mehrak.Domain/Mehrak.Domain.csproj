@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <Protobuf Include="Command/Protos/mehrak.proto" GrpcServices="Both" />
+        <Protobuf Include="Command/Protos/image-processor.proto" GrpcServices="Both" />
     </ItemGroup>
 
 </Project>

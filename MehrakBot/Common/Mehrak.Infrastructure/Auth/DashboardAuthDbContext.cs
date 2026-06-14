@@ -7,44 +7,30 @@ public class DashboardAuthDbContext : DbContext
 {
     public DashboardAuthDbContext(DbContextOptions<DashboardAuthDbContext> options) : base(options) { }
 
-    public DbSet<DashboardUser> DashboardUsers => Set<DashboardUser>();
+    public DbSet<DashboardPermission> DashboardPermissions => Set<DashboardPermission>();
     public DbSet<DashboardSession> DashboardSessions => Set<DashboardSession>();
-    public DbSet<DashboardGamePermission> DashboardGamePermissions => Set<DashboardGamePermission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<DashboardUser>(b =>
+        modelBuilder.Entity<DashboardPermission>(b =>
         {
-            b.HasKey(u => u.Id);
-            b.HasIndex(u => u.Username).IsUnique();
-            b.HasIndex(u => u.DiscordId).IsUnique();
-            b.Property(u => u.Username).IsRequired().HasMaxLength(100);
-            b.Property(u => u.PasswordHash).IsRequired();
-            b.Property(u => u.DiscordId).IsRequired();
-            b.Property(u => u.RequirePasswordReset).IsRequired();
-            b.Property(u => u.IsRootUser).IsRequired();
+            b.HasKey(p => p.Id);
+            b.Property(p => p.DiscordId).IsRequired();
+            b.Property(p => p.Permission).IsRequired().HasMaxLength(128);
+            b.HasIndex(p => p.DiscordId);
+            b.HasIndex(p => new { p.DiscordId, p.Permission }).IsUnique();
         });
 
         modelBuilder.Entity<DashboardSession>(b =>
         {
             b.HasKey(s => s.Id);
-            b.HasIndex(s => s.SessionToken).IsUnique();
-            b.Property(s => s.SessionToken).IsRequired().HasMaxLength(128);
-            b.HasOne(s => s.User)
-                .WithMany(u => u.Sessions)
-                .HasForeignKey(s => s.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<DashboardGamePermission>(b =>
-        {
-            b.HasKey(p => p.Id);
-            b.Property(p => p.GameCode).IsRequired().HasMaxLength(64);
-            b.HasIndex(p => new { p.UserId, p.GameCode }).IsUnique();
-            b.HasOne(p => p.User)
-                .WithMany(u => u.GamePermissions)
-                .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            b.Property(s => s.Token).IsRequired().HasMaxLength(32);
+            b.Property(s => s.LoginIp).HasMaxLength(45);
+            b.Property(s => s.UserAgent).HasMaxLength(512);
+            b.Property(s => s.Location).HasMaxLength(256);
+            b.HasIndex(s => s.Token).IsUnique();
+            b.HasIndex(s => s.DiscordId);
+            b.HasIndex(s => s.ExpiresAt);
         });
     }
 }

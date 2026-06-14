@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.CodeRedeem.Models;
+using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.CodeRedeem;
 using Mehrak.Infrastructure.CodeRedeem.Models;
@@ -8,10 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.CodeRedeem;
 
-[ApiController]
 [Authorize]
 [Route("codes")]
-public sealed class CodesController : ControllerBase
+public sealed class CodesController : GameWriteController
 {
     private readonly CodeRedeemDbContext m_CodeContext;
     private readonly ILogger<CodesController> m_Logger;
@@ -23,16 +23,14 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpPatch("add")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> AddCodes([FromQuery] string game, [FromBody] AddCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
-            return errorResult!;
-
-        if (!HasGameWriteAccess(game))
-            return Forbid();
+            return BadRequest(new { error = errorResult });
 
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
@@ -47,16 +45,14 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpDelete("remove")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> RemoveCodes([FromQuery] string game, [FromQuery] RemoveCodesRequest request)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
-            return errorResult!;
-
-        if (!HasGameWriteAccess(game))
-            return Forbid();
+            return BadRequest(new { error = errorResult });
 
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
@@ -71,41 +67,14 @@ public sealed class CodesController : ControllerBase
     }
 
     [HttpGet("list")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> ListCodes([FromQuery] string game)
     {
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
-            return errorResult!;
-
-        if (!HasGameWriteAccess(game))
-            return Forbid();
+            return BadRequest(new { error = errorResult });
 
         var codes = await m_CodeContext.Codes.AsNoTracking().Where(x => x.Game == parsedGame).Select(x => x.Code).ToListAsync();
         return Ok(new { game = parsedGame.ToString(), codes });
-    }
-
-    private static bool TryParseGame(string gameValue, out Game game, out IActionResult? error)
-    {
-        error = null;
-        if (string.IsNullOrWhiteSpace(gameValue) || !Enum.TryParse(gameValue, true, out game))
-        {
-            game = default;
-            error = new BadRequestObjectResult(new { error = "Invalid game value." });
-            return false;
-        }
-
-        return true;
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 
     private static List<string> NormalizeCodes(IEnumerable<string> codes)

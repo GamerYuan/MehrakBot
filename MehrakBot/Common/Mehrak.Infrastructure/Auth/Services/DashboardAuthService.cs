@@ -1,218 +1,74 @@
-﻿using System.Text.RegularExpressions;
-using Mehrak.Domain.Auth;
+﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.Infrastructure.Auth.Services;
 
-public partial class DashboardAuthService : IDashboardAuthService
+public class DashboardAuthService : IDashboardAuthService
 {
     private readonly DashboardAuthDbContext m_Db;
-    private readonly PasswordHasher<DashboardUser> m_Hasher = new();
+    private readonly IDashboardSessionService m_SessionService;
     private readonly ILogger<DashboardAuthService> m_Logger;
 
-    private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(1);
-
-    public DashboardAuthService(DashboardAuthDbContext db, ILogger<DashboardAuthService> logger)
+    public DashboardAuthService(DashboardAuthDbContext db, IDashboardSessionService sessionService, ILogger<DashboardAuthService> logger)
     {
         m_Db = db;
+        m_SessionService = sessionService;
         m_Logger = logger;
     }
 
-    public async Task<LoginResultDto> LoginAsync(LoginRequestDto request, CancellationToken ct = default)
+    public async Task<LoginResultDto> LoginByDiscordAsync(long discordId, string discordUsername, string? avatarHash, string? accessToken, string? loginIp, string? userAgent, string? location, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Login attempt for username {Username}", request.Username);
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .Include(u => u.GamePermissions)
-            .SingleOrDefaultAsync(u => u.Username == request.Username && u.IsActive, ct);
+        m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
-        if (user == null)
-        {
-            m_Logger.LogWarning("Login failed for username {Username}: user not found or inactive", request.Username);
-            return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
-        }
+        // Load permissions for this user
+        var permissions = await m_Db.DashboardPermissions
+            .Where(p => p.DiscordId == discordId)
+            .Select(p => p.Permission)
+            .ToListAsync(ct);
 
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.Password, @"\s+", ""));
-        if (verify == PasswordVerificationResult.Failed)
-        {
-            m_Logger.LogWarning("Login failed for username {Username}: invalid password", request.Username);
-            return new LoginResultDto { Succeeded = false, Error = "Invalid credentials." };
-        }
+        var isSuperAdmin = permissions.Contains("superadmin", StringComparer.OrdinalIgnoreCase);
+        var isRootUser = permissions.Contains("rootuser", StringComparer.OrdinalIgnoreCase);
 
-        // Uniqueness: remove previous sessions
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        var sessionToken = Guid.NewGuid().ToString("N");
-        var session = new DashboardSession
-        {
-            UserId = user.Id,
-            SessionToken = sessionToken,
-            ExpiresAtUtc = DateTime.UtcNow.Add(SessionLifetime)
-        };
-
-        user.UpdatedAtUtc = DateTime.UtcNow;
-        m_Db.DashboardSessions.Add(session);
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Login succeeded for user {UserId}", user.Id);
-
-        var gameWrites = user.GamePermissions
-            .Where(p => p.AllowWrite)
-            .Select(p => p.GameCode)
+        var gameWrites = permissions
+            .Where(p => p.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))
+            .Select(p => p["game_write:".Length..])
+            .Select(p => Enum.TryParse<Game>(p, true, out var g) ? g : Game.Unsupported)
+            .Where(g => g != Game.Unsupported)
             .Distinct()
             .ToArray();
+
+        // Invalidate any existing sessions for this user (single-session enforcement)
+        await m_SessionService.InvalidateAllForUserAsync(discordId, ct);
+
+        // Create new session
+        var sessionToken = Guid.NewGuid().ToString("N");
+        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, loginIp, userAgent, location, ct);
+
+        m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
 
         return new LoginResultDto
         {
             Succeeded = true,
-            UserId = user.Id,
-            Username = user.Username,
-            DiscordUserId = user.DiscordId,
+            DiscordUserId = discordId.ToString(),
             SessionToken = sessionToken,
-            IsSuperAdmin = user.IsSuperAdmin,
-            IsRootUser = user.IsRootUser,
-            GameWritePermissions = gameWrites,
-            RequiresPasswordReset = user.RequirePasswordReset
+            IsSuperAdmin = isSuperAdmin,
+            IsRootUser = isRootUser,
+            GameWritePermissions = gameWrites
         };
-    }
-
-    public async Task<bool> ValidateSessionAsync(string sessionToken, CancellationToken ct = default)
-    {
-        var session = await m_Db.DashboardSessions
-            .Include(s => s.User)
-            .SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
-
-        if (session == null || session.IsExpired() || !session.User.IsActive)
-        {
-            m_Logger.LogWarning("Session validation failed for token {Token}.", sessionToken[..6]);
-            return false;
-        }
-
-        return true;
     }
 
     public async Task InvalidateSessionAsync(string sessionToken, CancellationToken ct = default)
     {
-        m_Logger.LogInformation("Invalidating session {Token}.", sessionToken[..6]);
-        var session = await m_Db.DashboardSessions.SingleOrDefaultAsync(s => s.SessionToken == sessionToken, ct);
-        if (session != null)
-        {
-            m_Db.DashboardSessions.Remove(session);
-            await m_Db.SaveChangesAsync(ct);
-        }
+        await m_SessionService.InvalidateSessionAsync(sessionToken, ct);
     }
 
-    public async Task<ChangeDashboardPasswordResultDto> ChangePasswordAsync(ChangeDashboardPasswordRequestDto request, CancellationToken ct = default)
+    public async Task<string?> GetAccessTokenAsync(string sessionToken, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-        {
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "New password is too short."
-            };
-        }
-
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
-
-        if (user == null)
-        {
-            m_Logger.LogWarning("Password change failed: user {UserId} not found or inactive.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        var verify = m_Hasher.VerifyHashedPassword(user, user.PasswordHash, Regex.Replace(request.CurrentPassword, @"\s+", ""));
-        if (verify == PasswordVerificationResult.Failed)
-        {
-            m_Logger.LogWarning("Password change failed: incorrect current password for user {UserId}.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "Current password is incorrect."
-            };
-        }
-
-        user.PasswordHash = m_Hasher.HashPassword(user, Regex.Replace(request.NewPassword, @"\s+", ""));
-        user.RequirePasswordReset = false;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Password changed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
-
-        return new ChangeDashboardPasswordResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
+        var session = await m_SessionService.GetSessionAsync(sessionToken, ct);
+        return session?.AccessToken;
     }
-
-    public async Task<ChangeDashboardPasswordResultDto> ForceResetPasswordAsync(ForceResetDashboardPasswordRequestDto request, CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-        {
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "New password is too short."
-            };
-        }
-
-        var user = await m_Db.DashboardUsers
-            .Include(u => u.Sessions)
-            .SingleOrDefaultAsync(u => u.Id == request.UserId && u.IsActive, ct);
-
-        if (user == null)
-        {
-            m_Logger.LogWarning("Forced reset failed: user {UserId} not found or inactive.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "User not found."
-            };
-        }
-
-        if (!user.RequirePasswordReset)
-        {
-            m_Logger.LogWarning("Forced reset skipped: user {UserId} does not require reset.", request.UserId);
-            return new ChangeDashboardPasswordResultDto
-            {
-                Succeeded = false,
-                Error = "Password reset is not required."
-            };
-        }
-
-        user.PasswordHash = m_Hasher.HashPassword(user, RemoveWhiteSpace().Replace(request.NewPassword, ""));
-        user.RequirePasswordReset = false;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-
-        var hadSessions = user.Sessions.Count > 0;
-        m_Db.DashboardSessions.RemoveRange(user.Sessions);
-
-        await m_Db.SaveChangesAsync(ct);
-
-        m_Logger.LogInformation("Forced password reset completed for user {UserId}. Sessions invalidated: {Invalidated}.", request.UserId, hadSessions);
-
-        return new ChangeDashboardPasswordResultDto
-        {
-            Succeeded = true,
-            SessionsInvalidated = hadSessions
-        };
-    }
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex RemoveWhiteSpace();
 }
