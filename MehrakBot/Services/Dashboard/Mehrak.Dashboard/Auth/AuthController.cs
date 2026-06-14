@@ -113,8 +113,6 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        await m_AuthService.InvalidateSessionAsync(User.Claims.FirstOrDefault(c => c.Type == SessionTokenClaim)?.Value ?? string.Empty,
-            HttpContext.RequestAborted);
         await HttpContext.SignOutAsync();
         return Ok();
     }

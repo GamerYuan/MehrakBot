@@ -49,14 +49,6 @@
     <None Include="appsettings.json" Condition="Exists('appsettings.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="server-encryption-certificate.pfx"
-      Condition="Exists('server-encryption-certificate.pfx')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="server-signing-certificate.pfx"
-      Condition="Exists('server-signing-certificate.pfx')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 

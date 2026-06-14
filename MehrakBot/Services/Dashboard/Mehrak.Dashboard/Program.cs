@@ -257,9 +257,14 @@ public class Program
                 }
                 else
                 {
+                    var encryptionCertPath = builder.Configuration["Dashboard:EncryptionCertificatePath"]
+                        ?? "server-encryption-certificate.pfx";
+                    var signingCertPath = builder.Configuration["Dashboard:SigningCertificatePath"]
+                        ?? "server-signing-certificate.pfx";
+
                     options
-                        .AddEncryptionCertificate("server-encryption-certificate.pfx")
-                        .AddSigningCertificate("server-signing-certificate.pfx");
+                        .AddEncryptionCertificate(encryptionCertPath)
+                        .AddSigningCertificate(signingCertPath);
                 }
 
                 var aspnetcoreBuilder = options.UseAspNetCore()
