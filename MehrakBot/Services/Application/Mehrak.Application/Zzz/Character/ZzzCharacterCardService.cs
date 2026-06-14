@@ -24,7 +24,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Zzz.Character;
 
-internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarData>
+internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 {
     private Dictionary<string, Image> m_StatImages = [];
     private Dictionary<string, Image> m_DimmedStatImages = [];
@@ -48,13 +48,11 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
     };
 
     public ZzzCharacterCardService(IImageRepository imageRepository,
-        IUserPortraitService userPortraitService,
         ILogger<ZzzCharacterCardService> logger,
         IApplicationMetrics metrics)
         : base(
             "Zzz Character",
             imageRepository,
-            userPortraitService,
             logger,
             metrics,
             LoadFonts("Assets/Fonts/zzz.ttf", titleSize: 64, normalSize: 40, mediumSize: 36, smallSize: 28, tinySize: 20))
@@ -134,22 +132,19 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
         var characterInformation = context.Data;
         var character = characterInformation.AvatarList[0];
 
-        var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.ZenlessZoneZero, character.Name,
-            disposables, cancellationToken);
-
         Image portraitImage;
         CharacterPortraitConfig? portraitConfig;
-        if (userPortrait != null)
+        if (!string.IsNullOrEmpty(context.PortraitImageKey))
         {
-            portraitImage = userPortrait.Image;
-            portraitConfig = userPortrait.Config;
+            portraitImage = await LoadImageFromRepositoryAsync(
+                context.PortraitImageKey, disposables, cancellationToken);
+            portraitConfig = context.PortraitConfig;
         }
         else
         {
             portraitImage = await LoadImageFromRepositoryAsync(
                 character.ToImageName(), disposables, cancellationToken);
-            portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+            portraitConfig = context.PortraitConfig;
         }
 
         portraitImage.Mutate(ctx =>

@@ -999,6 +999,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             entryPageApiMock.Object,
             loggerMock.Object);
 
@@ -1020,7 +1021,6 @@ public class ZzzCharacterApplicationServiceTests
         // Use real card service with MongoTestHelper for image repository
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
@@ -1072,6 +1072,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             loggerMock.Object);
 
@@ -1088,7 +1089,6 @@ public class ZzzCharacterApplicationServiceTests
         // Use all real services - no mocks
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
@@ -1167,6 +1167,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 

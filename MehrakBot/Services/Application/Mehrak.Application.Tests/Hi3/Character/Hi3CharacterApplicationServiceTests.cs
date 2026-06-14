@@ -610,10 +610,12 @@ public class Hi3CharacterApplicationServiceTests
         aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
+        var imageRepositoryMock = new Mock<IImageRepository>();
         var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
         var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
+        var portraitServiceMock = new Mock<IUserPortraitService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -630,6 +632,7 @@ public class Hi3CharacterApplicationServiceTests
             cardServiceMock.Object,
             characterApiMock.Object,
             imageUpdaterMock.Object,
+            imageRepositoryMock.Object,
             characterCacheMock.Object,
             aliasServiceMock.Object,
             metricsMock.Object,
@@ -637,6 +640,7 @@ public class Hi3CharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            portraitServiceMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, portraitConfigMock, userContext);
@@ -656,7 +660,6 @@ public class Hi3CharacterApplicationServiceTests
 
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
@@ -684,10 +687,14 @@ public class Hi3CharacterApplicationServiceTests
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
+        var imageRepositoryMock = new Mock<IImageRepository>();
+        var portraitServiceMock = new Mock<IUserPortraitService>();
+
         var service = new Hi3CharacterApplicationService(
             cardService,
             characterApiMock.Object,
             imageUpdaterService,
+            imageRepositoryMock.Object,
             characterCacheMock.Object,
             aliasServiceMock.Object,
             metricsMock.Object,
@@ -695,6 +702,7 @@ public class Hi3CharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            portraitServiceMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, gameRoleApiMock, attachmentStorageMock, portraitConfigMock, userContext);

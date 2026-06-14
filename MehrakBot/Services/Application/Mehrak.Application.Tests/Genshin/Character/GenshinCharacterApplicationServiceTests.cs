@@ -1507,6 +1507,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
@@ -1532,7 +1533,6 @@ public class GenshinCharacterApplicationServiceTests
         var metricsMock = new Mock<IApplicationMetrics>();
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             metricsMock.Object);
 
@@ -1584,6 +1584,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
@@ -1594,7 +1595,6 @@ public class GenshinCharacterApplicationServiceTests
     {
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
@@ -1664,6 +1664,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<ILogger<GenshinCharacterApplicationService>>());
 
         return (service, storedAttachments, userContext);

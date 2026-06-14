@@ -27,7 +27,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Genshin.Character;
 
-internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCharacterInformation>
+internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInformation>
 {
     private Dictionary<int, Image> m_StatImages = null!;
     private Dictionary<int, Image> m_DimmedStatImages = null!;
@@ -39,12 +39,10 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
     public GenshinCharacterCardService(IImageRepository imageRepository,
-        IUserPortraitService userPortraitService,
         ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
         : base(
             "Genshin Character",
             imageRepository,
-            userPortraitService,
             logger,
             metrics,
             LoadFonts("Assets/Fonts/genshin.ttf", titleSize: 64, normalSize: 40, mediumSize: 32, smallSize: 28))
@@ -128,23 +126,20 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
         if (StaticBackground == null || Fonts.Medium == null || Fonts.Small == null)
             throw new CommandException("An error occurred when generating Genshin Character card");
 
-        var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.Genshin, charInfo.Base.Name,
-            disposables, cancellationToken);
-
         Image<Rgba32> characterPortrait;
         CharacterPortraitConfig? portraitConfig;
 
-        if (userPortrait != null)
+        if (!string.IsNullOrEmpty(context.PortraitImageKey))
         {
-            characterPortrait = userPortrait.Image;
-            portraitConfig = userPortrait.Config;
+            characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
+                context.PortraitImageKey, disposables, cancellationToken);
+            portraitConfig = context.PortraitConfig;
         }
         else
         {
             characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
                 charInfo.Base.ToImageName(), disposables, cancellationToken);
-            portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+            portraitConfig = context.PortraitConfig;
         }
 
         characterPortrait.Mutate(ctx =>

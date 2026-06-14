@@ -46,6 +46,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly RelicDbContext m_RelicContext;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
 
 
     protected override string CommandName => "HSR Character";
@@ -64,6 +65,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         RelicDbContext relicContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
@@ -76,6 +78,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService = metricsService;
         m_RelicContext = relicContext;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -379,9 +382,26 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
+            (long)context.UserId, Game.HonkaiStarRail, characterInfo.Name, cancellationToken);
+        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
+
+        if (activePortrait != null)
+        {
+            cardContext.PortraitImageKey = activePortrait.S3Key;
+            cardContext.PortraitConfig = new CharacterPortraitConfig
+            {
+                OffsetX = activePortrait.Config.OffsetX,
+                OffsetY = activePortrait.Config.OffsetY,
+                TargetScale = activePortrait.Config.TargetScale,
+                EnableGradientFade = activePortrait.Config.EnableGradientFade,
+                GradientFadeStart = activePortrait.Config.GradientFadeStart,
+            };
+        }
+        else
+        {
+            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id);
+        }
 
         await using var card = await m_CardService.GetCardAsync(cardContext);
 

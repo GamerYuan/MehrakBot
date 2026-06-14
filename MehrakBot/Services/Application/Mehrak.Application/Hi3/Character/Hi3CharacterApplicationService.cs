@@ -30,6 +30,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly IAliasService m_AliasService;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IImageRepository m_ImageRepository;
 
 
     protected override string CommandName => "HI3 Character";
@@ -38,6 +40,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
+        IImageRepository imageRepository,
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
         IApplicationMetrics metricsService,
@@ -45,16 +48,19 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<Hi3CharacterApplicationService> logger
     ) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
         m_CharacterApi = characterApi;
         m_ImageUpdaterService = imageUpdaterService;
+        m_ImageRepository = imageRepository;
         m_CharacterCacheService = characterCacheService;
         m_AliasService = aliasService;
         m_MetricsService = metricsService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -152,16 +158,36 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfigs = new Dictionary<int, CharacterPortraitConfig>();
-        foreach (var costume in characterInfo.Costumes)
-        {
-            var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
-            if (config != null)
-                portraitConfigs[costume.Id] = config;
-        }
+        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
+            (long)context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
+        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
 
-        if (portraitConfigs.Count > 0)
-            cardContext.SetParameter("portraitConfigs", portraitConfigs);
+        if (activePortrait != null)
+        {
+            cardContext.PortraitImageKey = activePortrait.S3Key;
+            cardContext.PortraitConfig = new CharacterPortraitConfig
+            {
+                OffsetX = activePortrait.Config.OffsetX,
+                OffsetY = activePortrait.Config.OffsetY,
+                TargetScale = activePortrait.Config.TargetScale,
+                EnableGradientFade = activePortrait.Config.EnableGradientFade,
+                GradientFadeStart = activePortrait.Config.GradientFadeStart,
+            };
+        }
+        else
+        {
+            // Resolve the first available costume for stock portrait
+            foreach (var costume in characterInfo.Costumes)
+            {
+                var costumeImageName = costume.ToImageName();
+                if (await m_ImageRepository.FileExistsAsync(costumeImageName))
+                {
+                    cardContext.PortraitImageKey = costumeImageName;
+                    cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+                    break;
+                }
+            }
+        }
 
         await using var card = await m_CardService.GetCardAsync(cardContext);
 

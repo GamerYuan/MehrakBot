@@ -31,7 +31,6 @@ public class GenshinCharacterCardServiceTests
     {
         m_GenshinCharacterCardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            PortraitServiceMockFactory.CreateEmpty(),
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await m_GenshinCharacterCardService.InitializeAsync();
@@ -143,7 +142,6 @@ public class GenshinCharacterCardServiceTests
 
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            portraitMock.Object,
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await cardService.InitializeAsync();
@@ -189,7 +187,6 @@ public class GenshinCharacterCardServiceTests
 
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            portraitMock.Object,
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());
         await cardService.InitializeAsync();

@@ -20,7 +20,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Hi3.Character;
 
-internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDetail>
+internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 {
     private readonly Dictionary<int, Color> m_RarityColor = new()
     {
@@ -40,9 +40,8 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgba32(47, 87, 126, 196));
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
-        IUserPortraitService userPortraitService,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
-        : base("Hi3 Character", imageRepository, userPortraitService, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
+        : base("Hi3 Character", imageRepository, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
     {
     }
 
@@ -68,16 +67,13 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     {
         var characterInformation = context.Data;
 
-        var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.HonkaiImpact3,
-            characterInformation.Avatar.Name, disposables, cancellationToken);
-
         Image characterImage;
         CharacterPortraitConfig? portraitConfig;
-        if (userPortrait != null)
+        if (!string.IsNullOrEmpty(context.PortraitImageKey))
         {
-            characterImage = userPortrait.Image;
-            portraitConfig = userPortrait.Config;
+            characterImage = await LoadImageFromRepositoryAsync(
+                context.PortraitImageKey, disposables, cancellationToken);
+            portraitConfig = context.PortraitConfig;
         }
         else
         {

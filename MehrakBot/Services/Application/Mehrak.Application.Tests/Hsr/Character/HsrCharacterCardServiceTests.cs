@@ -112,7 +112,7 @@ public class HsrCharacterCardServiceTests
             PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
         var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
 
-        var (relicContext, characterCardService) = await SetupTest(portraitMock.Object);
+        var (relicContext, characterCardService) = await SetupTest();
         SeedRelicData(relicContext);
 
         var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
@@ -153,7 +153,7 @@ public class HsrCharacterCardServiceTests
         var portraitUploadId = Guid.NewGuid();
         var portraitMock = PortraitServiceMockFactory.CreateWithFailingDownload(portraitUploadId);
 
-        var (relicContext, characterCardService) = await SetupTest(portraitMock.Object);
+        var (relicContext, characterCardService) = await SetupTest();
         SeedRelicData(relicContext);
 
         var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
@@ -212,8 +212,7 @@ public class HsrCharacterCardServiceTests
             $"Generated image should match golden image for {testName}");
     }
 
-    private async Task<(RelicDbContext RelicContext, HsrCharacterCardService Service)> SetupTest(
-        IUserPortraitService? portraitService = null)
+    private async Task<(RelicDbContext RelicContext, HsrCharacterCardService Service)> SetupTest()
     {
         var services = new ServiceCollection();
         var dbContext = m_DbFactory.CreateDbContext<RelicDbContext>();
@@ -226,7 +225,6 @@ public class HsrCharacterCardServiceTests
 
         var characterCardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
-            portraitService ?? PortraitServiceMockFactory.CreateEmpty(),
             scopeFactory,
             Mock.Of<ILogger<HsrCharacterCardService>>(),
             Mock.Of<IApplicationMetrics>());

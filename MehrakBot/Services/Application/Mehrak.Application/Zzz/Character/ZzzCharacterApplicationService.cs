@@ -9,6 +9,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -38,6 +39,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
     private readonly IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> m_CharacterEntryPageService;
 
 
@@ -56,6 +58,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> characterEntryPageService,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
@@ -69,6 +72,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_WikiApi = wikiApi;
         m_MetricsService = metricsService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
         m_CharacterEntryPageService = characterEntryPageService;
     }
 
@@ -253,9 +257,26 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
+            (long)context.UserId, Game.ZenlessZoneZero, charInfo.Name, cancellationToken);
+        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
+
+        if (activePortrait != null)
+        {
+            cardContext.PortraitImageKey = activePortrait.S3Key;
+            cardContext.PortraitConfig = new CharacterPortraitConfig
+            {
+                OffsetX = activePortrait.Config.OffsetX,
+                OffsetY = activePortrait.Config.OffsetY,
+                TargetScale = activePortrait.Config.TargetScale,
+                EnableGradientFade = activePortrait.Config.EnableGradientFade,
+                GradientFadeStart = activePortrait.Config.GradientFadeStart,
+            };
+        }
+        else
+        {
+            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
+        }
 
         await using var card = await m_CardService.GetCardAsync(cardContext);
 

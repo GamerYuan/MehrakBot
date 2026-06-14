@@ -26,7 +26,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Hsr.Character;
 
-public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInformation>
+public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private Dictionary<int, Image> m_StatImages = null!;
@@ -38,14 +38,12 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
     private const string StatsPath = FileNameFormat.Hsr.StatsName;
 
     public HsrCharacterCardService(IImageRepository imageRepository,
-        IUserPortraitService userPortraitService,
         IServiceScopeFactory scopeFactory,
         ILogger<HsrCharacterCardService> logger,
         IApplicationMetrics metrics)
         : base(
             "Hsr Character",
             imageRepository,
-            userPortraitService,
             logger,
             metrics,
             LoadFonts("Assets/Fonts/hsr.ttf", titleSize: 64, normalSize: 40, mediumSize: 36, smallSize: 28))
@@ -95,22 +93,19 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
         using var scope = m_ScopeFactory.CreateScope();
         var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        var userPortrait = await TryLoadUserPortraitAsync(
-            context.UserId, Game.HonkaiStarRail, characterInformation.Name,
-            disposables, cancellationToken);
-
         Image<Rgba32> characterPortrait;
         CharacterPortraitConfig? portraitConfig;
-        if (userPortrait != null)
+        if (!string.IsNullOrEmpty(context.PortraitImageKey))
         {
-            characterPortrait = userPortrait.Image;
-            portraitConfig = userPortrait.Config;
+            characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
+                context.PortraitImageKey, disposables, cancellationToken);
+            portraitConfig = context.PortraitConfig;
         }
         else
         {
             characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
                 characterInformation.ToImageName(), disposables, cancellationToken);
-            portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+            portraitConfig = context.PortraitConfig;
         }
 
         var equipImageTask = characterInformation.Equip == null

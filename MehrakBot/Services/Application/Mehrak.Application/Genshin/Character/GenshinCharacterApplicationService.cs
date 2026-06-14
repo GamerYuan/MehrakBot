@@ -11,6 +11,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -46,6 +47,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
 
 
     protected override string CommandName => "Genshin Character";
@@ -64,6 +66,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         ICharacterStatService characterStatService,
         IAttachmentStorageService attachmentStorage,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
     {
@@ -77,6 +80,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_MetricsService = metricsService;
         m_CharacterStatService = characterStatService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -318,9 +322,26 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
+            (long)context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
+        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
+
+        if (activePortrait != null)
+        {
+            cardContext.PortraitImageKey = activePortrait.S3Key;
+            cardContext.PortraitConfig = new CharacterPortraitConfig
+            {
+                OffsetX = activePortrait.Config.OffsetX,
+                OffsetY = activePortrait.Config.OffsetY,
+                TargetScale = activePortrait.Config.TargetScale,
+                EnableGradientFade = activePortrait.Config.EnableGradientFade,
+                GradientFadeStart = activePortrait.Config.GradientFadeStart,
+            };
+        }
+        else
+        {
+            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
+        }
 
         using var card = await m_CardService.GetCardAsync(cardContext);
         if (!await StoreAttachmentAsync(context.UserId, filename, card))
