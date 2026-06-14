@@ -3,10 +3,12 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
@@ -18,7 +20,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Hi3.Character;
 
-internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
+internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDetail>
 {
     private readonly Dictionary<int, Color> m_RarityColor = new()
     {
@@ -38,8 +40,9 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgba32(47, 87, 126, 196));
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
+        IUserPortraitService userPortraitService,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
-        : base("Hi3 Character", imageRepository, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
+        : base("Hi3 Character", imageRepository, userPortraitService, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
     {
     }
 
@@ -65,11 +68,28 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     {
         var characterInformation = context.Data;
 
-        var (characterImage, costumeId) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
-        disposables.Add(characterImage);
+        var userPortrait = await TryLoadUserPortraitAsync(
+            context.UserId, Game.HonkaiImpact3,
+            characterInformation.Avatar.Name!, disposables, cancellationToken);
 
-        var portraitConfigs = context.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs");
-        var portraitConfig = portraitConfigs?.GetValueOrDefault(costumeId);
+        Image characterImage;
+        CharacterPortraitConfig portraitConfig;
+        if (userPortrait != null)
+        {
+            characterImage = userPortrait.Image;
+            disposables.Add(characterImage);
+            portraitConfig = userPortrait.Config;
+        }
+        else
+        {
+            var (loadedImage, costumeId) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
+            characterImage = loadedImage;
+            disposables.Add(characterImage);
+
+            var portraitConfigs = context.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs");
+            portraitConfig = portraitConfigs?.GetValueOrDefault(costumeId);
+        }
+
         characterImage.Mutate(ctx =>
         {
             if (portraitConfig?.TargetScale > 0f)

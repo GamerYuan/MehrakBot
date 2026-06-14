@@ -6,6 +6,7 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -25,7 +26,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Hsr.Character;
 
-public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
+public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInformation>
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private Dictionary<int, Image> m_StatImages = null!;
@@ -37,12 +38,14 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
     private const string StatsPath = FileNameFormat.Hsr.StatsName;
 
     public HsrCharacterCardService(IImageRepository imageRepository,
+        IUserPortraitService userPortraitService,
         IServiceScopeFactory scopeFactory,
         ILogger<HsrCharacterCardService> logger,
         IApplicationMetrics metrics)
         : base(
             "Hsr Character",
             imageRepository,
+            userPortraitService,
             logger,
             metrics,
             LoadFonts("Assets/Fonts/hsr.ttf", titleSize: 64, normalSize: 40, mediumSize: 36, smallSize: 28))
@@ -92,8 +95,24 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         using var scope = m_ScopeFactory.CreateScope();
         var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        var characterPortraitTask = LoadImageFromRepositoryAsync<Rgba32>(
-            characterInformation.ToImageName(), disposables, cancellationToken);
+        var userPortrait = await TryLoadUserPortraitAsync(
+            context.UserId, Game.HonkaiStarRail, characterInformation.Name!,
+            disposables, cancellationToken);
+
+        Image<Rgba32> characterPortrait;
+        CharacterPortraitConfig portraitConfig;
+        if (userPortrait != null)
+        {
+            characterPortrait = userPortrait.Image;
+            portraitConfig = userPortrait.Config;
+        }
+        else
+        {
+            characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
+                characterInformation.ToImageName(), disposables, cancellationToken);
+            portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
+        }
+
         var equipImageTask = characterInformation.Equip == null
             ? LoadImageFromRepositoryAsync<Rgba32>(FileNameFormat.Hsr.LightconeTemplateName, disposables, cancellationToken)
             : LoadImageFromRepositoryAsync<Rgba32>(
@@ -208,9 +227,6 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 
         var accentColor = GetAccentColor(characterInformation.Element!);
 
-        var characterPortrait = await characterPortraitTask;
-
-        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
         characterPortrait.Mutate(ctx =>
         {
             if (portraitConfig?.TargetScale > 0f)
