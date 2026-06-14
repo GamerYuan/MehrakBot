@@ -169,6 +169,15 @@ public class GenshinCharacterCardServiceTests
             Times.Once);
         Assert.That(image, Is.Not.Null);
         Assert.That(image.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
     }
 
     [Test]
@@ -199,9 +208,25 @@ public class GenshinCharacterCardServiceTests
         // Act - should not throw; falls back to the stock portrait.
         var image = await cardService.GetCardAsync(cardContext);
 
-        // Assert - card was still generated despite the failed portrait download.
-        Assert.That(image, Is.Not.Null);
-        Assert.That(image.Length, Is.GreaterThan(0));
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", "Character_GoldenImage.jpg"));
+
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_DownloadFailFallback_Generated.jpg"),
+            generatedImage.ToArray());
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_DownloadFailFallback_Golden.jpg"),
+            goldenImage);
+
+        generatedImage.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(generatedImage, IsImage.IdenticalTo(goldenStream));
     }
 
     // To be used to generate golden image should the generation algorithm be updated

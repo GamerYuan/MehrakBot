@@ -134,6 +134,45 @@ public class HsrCharacterCardServiceTests
             Times.Once);
         Assert.That(generatedImageStream, Is.Not.Null);
         Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        generatedImageStream.Position = 0;
+        using MemoryStream generatedImage = new();
+        await generatedImageStream.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "HsrCharacter_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
+    }
+
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - a portrait service that reports an active portrait but fails to download it.
+        var portraitUploadId = Guid.NewGuid();
+        var portraitMock = PortraitServiceMockFactory.CreateWithFailingDownload(portraitUploadId);
+
+        var (relicContext, characterCardService) = await SetupTest(portraitMock.Object);
+        SeedRelicData(relicContext);
+
+        var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
+        var goldenImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", "Character_Stelle_GoldenImage.jpg");
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        await AssertImageMatches(generatedImageStream, goldenImagePath, "HsrCharacter_DownloadFailFallback");
     }
 
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)
