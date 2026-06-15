@@ -7,8 +7,8 @@ namespace Mehrak.ImageProcessor.Shared.Services;
 
 public class NsfwClassifierOptions
 {
-    public string ModelPath { get; set; } = "Assets/Models/nsfw-classifier/model.onnx";
-    public float NsfwThreshold { get; set; } = 0.7f;
+    public string ModelPath { get; set; } = "Assets/Models/nsfw-classifier/freepik-nsfw-model.onnx";
+    public float NsfwThreshold { get; set; } = 0.5f;
 }
 
 public interface INsfwClassifier
@@ -24,8 +24,11 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
     private readonly float m_NsfwThreshold;
     private readonly ILogger<NsfwClassifier> m_Logger;
 
-    // ViT-Tiny Patch16 384 preprocessing: (x - 0.5) / 0.5
-    private const int InputSize = 384;
+    // EVA02 Base Patch14 448 preprocessing: (x/255 - mean) / std
+    private const int InputSize = 448;
+
+    private static readonly float[] Mean = [0.48145466f, 0.4578275f, 0.40821073f];
+    private static readonly float[] Std = [0.26862954f, 0.26130258f, 0.27577711f];
 
     public NsfwClassifier(IOptions<NsfwClassifierOptions> options, ILogger<NsfwClassifier> logger)
     {
@@ -52,8 +55,8 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
         using var resized = new Mat();
         Cv2.Resize(image, resized, new Size(InputSize, InputSize), interpolation: InterpolationFlags.Cubic);
 
-        // Convert to NCHW float tensor: [1, 3, 384, 384]
-        // Normalize: (pixel / 255.0 - 0.5) / 0.5 = pixel / 127.5 - 1.0
+        // Convert to NCHW float tensor: [1, 3, 448, 448]
+        // Normalize: (pixel / 255.0 - mean) / std
         var tensor = new DenseTensor<float>([1, 3, InputSize, InputSize]);
 
         // Extract pixel data from Mat (BGR format)
@@ -69,10 +72,10 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
                 var g = pixelData[pixelOffset + 1];
                 var r = pixelData[pixelOffset + 2];
 
-                // BGR to RGB, normalize to [-1, 1]
-                tensor[0, 0, y, x] = r / 127.5f - 1.0f;
-                tensor[0, 1, y, x] = g / 127.5f - 1.0f;
-                tensor[0, 2, y, x] = b / 127.5f - 1.0f;
+                // BGR to RGB, normalize with ImageNet mean/std
+                tensor[0, 0, y, x] = (r / 255.0f - Mean[0]) / Std[0];
+                tensor[0, 1, y, x] = (g / 255.0f - Mean[1]) / Std[1];
+                tensor[0, 2, y, x] = (b / 255.0f - Mean[2]) / Std[2];
             }
         }
 
@@ -88,13 +91,15 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
         using var results = m_Session.Run(inputs);
         var output = results[0].AsEnumerable<float>().ToArray();
 
-        // Output shape: [1, 2] — [NSFW, SFW]
+        // Output shape: [1, 4] — [neutral, low, medium, high]
         // Apply softmax
-        var exp0 = MathF.Exp(output[0]);
-        var exp1 = MathF.Exp(output[1]);
-        var sum = exp0 + exp1;
-        var sfwProb = exp1 / sum;
-        var nsfwProb = exp0 / sum;
+        var maxVal = output.Max();
+        var exps = output.Select(v => MathF.Exp(v - maxVal)).ToArray();
+        var sum = exps.Sum();
+        var probs = exps.Select(e => e / sum).ToArray();
+
+        var nsfwProb = probs[3]; // "high" class
+        var sfwProb = probs[0] + probs[1] + probs[2]; // neutral + low + medium
 
         var isNsfw = nsfwProb >= m_NsfwThreshold;
 
