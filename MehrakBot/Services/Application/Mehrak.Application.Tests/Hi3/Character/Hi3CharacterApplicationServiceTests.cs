@@ -500,7 +500,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Id), Times.Once);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id), Times.Once);
     }
 
     [Test]
@@ -520,7 +520,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 8, OffsetY = 16 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Id))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id))
             .ReturnsAsync(portraitConfig);
 
         BaseCardGenerationContext<Hi3CharacterDetail>? capturedContext = null;

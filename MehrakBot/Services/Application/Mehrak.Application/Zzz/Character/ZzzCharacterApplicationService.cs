@@ -156,7 +156,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var characterData = response.Data;
         var charInfo = characterData.AvatarList[0];
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.ZenlessZoneZero, charInfo.Name, cancellationToken);
+
+        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
@@ -257,39 +260,28 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
         cardContext.SetParameter("server", server);
 
-        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
-            (long)context.UserId, Game.ZenlessZoneZero, charInfo.Name, cancellationToken);
-        var activePortrait = portraits?.FirstOrDefault(p => p.IsActive);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        if (activePortrait != null)
+        try
         {
-            cardContext.PortraitImageKey = activePortrait.S3Key;
-            var portraitResult = await m_UserPortraitService.GetPortraitImageAsync(
-                (long)context.UserId, activePortrait.Id, cancellationToken);
-            if (portraitResult != null)
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
             {
-                cardContext.PortraitImageStream = portraitResult.Content;
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
             }
-            cardContext.PortraitConfig = new CharacterPortraitConfig
-            {
-                OffsetX = activePortrait.Config.OffsetX,
-                OffsetY = activePortrait.Config.OffsetY,
-                TargetScale = activePortrait.Config.TargetScale,
-                EnableGradientFade = activePortrait.Config.EnableGradientFade,
-                GradientFadeStart = activePortrait.Config.GradientFadeStart,
-            };
         }
-        else
+        finally
         {
-            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
-        }
-
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-        {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());

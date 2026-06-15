@@ -13,7 +13,6 @@ public interface ICardGenerationContext<out T>
     T Data { get; }
     GameProfileDto GameProfile { get; }
 
-    string? PortraitImageKey { get; }
     Stream? PortraitImageStream { get; }
     CharacterPortraitConfig? PortraitConfig { get; }
 

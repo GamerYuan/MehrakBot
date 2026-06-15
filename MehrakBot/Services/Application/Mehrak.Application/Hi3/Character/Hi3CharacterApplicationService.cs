@@ -121,7 +121,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             }
         }
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
+
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
@@ -155,39 +158,39 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
-            (long)context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
-        var activePortrait = portraits?.FirstOrDefault(p => p.IsActive);
-
-        if (activePortrait != null)
+        // HI3 portrait configs are keyed by costume id (CharacterServerId is seeded per costume),
+        // not avatar id, so the stock config must be looked up per costume.
+        async Task<CharacterPortraitConfig?> ResolveStockHi3Config()
         {
-            cardContext.PortraitImageKey = activePortrait.S3Key;
-            var portraitResult = await m_UserPortraitService.GetPortraitImageAsync(
-                (long)context.UserId, activePortrait.Id, cancellationToken);
-            if (portraitResult != null)
+            foreach (var costume in characterInfo.Costumes)
             {
-                cardContext.PortraitImageStream = portraitResult.Content;
+                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+                if (config != null) return config;
             }
-            cardContext.PortraitConfig = new CharacterPortraitConfig
+            return null;
+        }
+
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                ResolveStockHi3Config, cancellationToken)
+            : new PortraitResolution(null, await ResolveStockHi3Config());
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
+
+        try
+        {
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
             {
-                OffsetX = activePortrait.Config.OffsetX,
-                OffsetY = activePortrait.Config.OffsetY,
-                TargetScale = activePortrait.Config.TargetScale,
-                EnableGradientFade = activePortrait.Config.EnableGradientFade,
-                GradientFadeStart = activePortrait.Config.GradientFadeStart,
-            };
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
         }
-        else
+        finally
         {
-            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, characterInfo.Avatar.Id);
-        }
-
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
-        {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),

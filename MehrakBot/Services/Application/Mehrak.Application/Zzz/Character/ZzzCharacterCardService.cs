@@ -19,12 +19,13 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 #endregion
 
 namespace Mehrak.Application.Zzz.Character;
 
-internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
+internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarData>
 {
     private Dictionary<string, Image> m_StatImages = [];
     private Dictionary<string, Image> m_DimmedStatImages = [];
@@ -40,6 +41,9 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
     private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgb24(40, 40, 40));
 
     private const float MaskGradient = 100f / 1400f;
+
+    protected override int DefaultPortraitWidth => 2000;
+    protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
 
 
     private static readonly DrawingOptions RotateOptions = new()
@@ -132,37 +136,9 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
         var characterInformation = context.Data;
         var character = characterInformation.AvatarList[0];
 
-        Image portraitImage;
-        CharacterPortraitConfig? portraitConfig;
-        if (context.PortraitImageStream != null)
-        {
-            portraitImage = await LoadImageFromStreamAsync(
-                context.PortraitImageStream, disposables, cancellationToken);
-            portraitConfig = context.PortraitConfig;
-        }
-        else
-        {
-            portraitImage = await LoadImageFromRepositoryAsync(
-                character.ToImageName(), disposables, cancellationToken);
-            portraitConfig = context.PortraitConfig;
-        }
-
-        portraitImage.Mutate(ctx =>
-        {
-            if (portraitConfig?.TargetScale > 0f)
-            {
-                var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
-            }
-            else
-            {
-                ctx.Resize(2000, 0, KnownResamplers.Lanczos3);
-            }
-
-            if (portraitConfig?.EnableGradientFade == true &&
-                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
-                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
-        });
+        Image portraitImage = await LoadPortraitAsync(context,
+            () => LoadImageFromRepositoryAsync(character.ToImageName(), disposables, cancellationToken),
+            disposables, cancellationToken);
 
         var weaponTask = character.Weapon != null
             ? LoadImageFromRepositoryAsync(character.Weapon.ToImageName(), disposables, cancellationToken)
@@ -202,8 +178,8 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
                 }, string.Join($"{character.FullName.ToUpperInvariant()} ", Enumerable.Range(0, 5).Select(_ => "")),
                     Color.White.WithAlpha(0.25f));
 
-                var offsetX = portraitConfig?.OffsetX ?? 0;
-                var offsetY = portraitConfig?.OffsetY ?? 0;
+                var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+                var offsetY = context.PortraitConfig?.OffsetY ?? 0;
                 canvas.DrawImage(portraitImage, portraitImage.Bounds,
                     new RectangleF(350 - portraitImage.Width / 2 + offsetX, 650 - portraitImage.Height / 4 + offsetY,
                         portraitImage.Width, portraitImage.Height), KnownResamplers.Bicubic);

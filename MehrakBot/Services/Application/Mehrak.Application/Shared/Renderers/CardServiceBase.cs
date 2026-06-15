@@ -172,6 +172,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
 
     protected async Task<Image> LoadImageFromStreamAsync(Stream stream, DisposableBag disposable, CancellationToken cancellationToken = default)
     {
+        if (stream.CanSeek) stream.Position = 0;
         var image = await Image.LoadAsync(stream, cancellationToken);
         disposable.Add(image);
         return image;
@@ -180,6 +181,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
     protected async Task<Image<T>> LoadImageFromStreamAsync<T>(Stream stream, DisposableBag disposable, CancellationToken cancellationToken = default)
         where T : unmanaged, IPixel<T>
     {
+        if (stream.CanSeek) stream.Position = 0;
         var image = await Image.LoadAsync<T>(stream, cancellationToken);
         disposable.Add(image);
         return image;

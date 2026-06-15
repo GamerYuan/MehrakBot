@@ -16,8 +16,6 @@ public class BaseCardGenerationContext<T> : ICardGenerationContext<T>
 
     public GameProfileDto GameProfile { get; }
 
-    public string? PortraitImageKey { get; set; }
-
     public Stream? PortraitImageStream { get; set; }
 
     public CharacterPortraitConfig? PortraitConfig { get; set; }

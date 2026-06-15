@@ -220,7 +220,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         Dictionary<string, string> avatarWiki, Dictionary<string, string> weaponWiki,
         CancellationToken cancellationToken = default)
     {
-        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
+
+        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(filename))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
@@ -322,39 +325,29 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
 
-        var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
-            (long)context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
-        var activePortrait = portraits?.FirstOrDefault(p => p.IsActive);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        if (activePortrait != null)
+        try
         {
-            cardContext.PortraitImageKey = activePortrait.S3Key;
-            var portraitResult = await m_UserPortraitService.GetPortraitImageAsync(
-                (long)context.UserId, activePortrait.Id, cancellationToken);
-            if (portraitResult != null)
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
             {
-                cardContext.PortraitImageStream = portraitResult.Content;
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return Result<string>.Failure(StatusCode.BotError,
+                    ResponseMessage.AttachmentStoreError);
             }
-            cardContext.PortraitConfig = new CharacterPortraitConfig
-            {
-                OffsetX = activePortrait.Config.OffsetX,
-                OffsetY = activePortrait.Config.OffsetY,
-                TargetScale = activePortrait.Config.TargetScale,
-                EnableGradientFade = activePortrait.Config.EnableGradientFade,
-                GradientFadeStart = activePortrait.Config.GradientFadeStart,
-            };
         }
-        else
+        finally
         {
-            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
-        }
-
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
-        {
-            Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
-            return Result<string>.Failure(StatusCode.BotError,
-                ResponseMessage.AttachmentStoreError);
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
