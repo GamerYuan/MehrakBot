@@ -223,7 +223,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
             m_UserPortraitService, context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
 
-        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, activePortrait?.Key);
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, extraData);
         if (await AttachmentExistsAsync(filename))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
