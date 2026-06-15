@@ -3,10 +3,12 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
@@ -15,10 +17,11 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace Mehrak.Application.Hi3.Character;
 
-internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
+internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDetail>
 {
     private readonly Dictionary<int, Color> m_RarityColor = new()
     {
@@ -36,6 +39,9 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     private List<Image> m_CharacterRankIcons = [];
 
     private static readonly Color LocalOverlayColor = Color.FromPixel(new Rgba32(47, 87, 126, 196));
+
+    protected override int DefaultPortraitWidth => 960;
+    protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
@@ -65,27 +71,14 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
     {
         var characterInformation = context.Data;
 
-        var (characterImage, costumeId) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
-        disposables.Add(characterImage);
-
-        var portraitConfigs = context.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs");
-        var portraitConfig = portraitConfigs?.GetValueOrDefault(costumeId);
-        characterImage.Mutate(ctx =>
+        async Task<Image> LoadStockHi3Portrait()
         {
-            if (portraitConfig?.TargetScale > 0f)
-            {
-                var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
-            }
-            else
-            {
-                ctx.Resize(960, 0, KnownResamplers.Lanczos3);
-            }
+            var (image, _) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
+            disposables.Add(image);
+            return image;
+        }
 
-            if (portraitConfig?.EnableGradientFade == true &&
-                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
-                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
-        });
+        Image characterImage = await LoadPortraitAsync(context, LoadStockHi3Portrait, disposables, cancellationToken);
 
         var weaponImage = await LoadImageFromRepositoryAsync(
             characterInformation.Weapon.ToImageName(), disposables, cancellationToken);
@@ -104,8 +97,8 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
         background.Mutate(ctx =>
         {
-            var offsetX = portraitConfig?.OffsetX ?? 0;
-            var offsetY = portraitConfig?.OffsetY ?? 0;
+            var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+            var offsetY = context.PortraitConfig?.OffsetY ?? 0;
 
             ctx.Paint(canvas =>
             {

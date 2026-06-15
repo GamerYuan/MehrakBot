@@ -1,5 +1,6 @@
 ﻿#region
 
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.Domain.User.Models;
 
@@ -14,6 +15,10 @@ public class BaseCardGenerationContext<T> : ICardGenerationContext<T>
     public T Data { get; }
 
     public GameProfileDto GameProfile { get; }
+
+    public Stream? PortraitImageStream { get; set; }
+
+    public CharacterPortraitConfig? PortraitConfig { get; set; }
 
     private readonly Dictionary<string, object> m_Params = [];
 

@@ -185,9 +185,12 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
     }
 
-    protected static string GetFileName(string serializedData, string extension, string gameUid)
+    protected static string GetFileName(string serializedData, string extension, string gameUid, string? portraitKey = null)
     {
-        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{gameUid}_{serializedData}"));
+        var input = portraitKey != null
+            ? $"{gameUid}_{serializedData}_{portraitKey}"
+            : $"{gameUid}_{serializedData}";
+        var hashBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
         return $"{Convert.ToHexString(hashBytes).ToLowerInvariant()}.{extension}";
     }
 

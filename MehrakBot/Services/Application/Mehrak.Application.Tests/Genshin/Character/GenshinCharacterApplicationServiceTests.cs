@@ -1340,9 +1340,9 @@ public class GenshinCharacterApplicationServiceTests
 
         cardServiceMock.Verify(x => x.GetCardAsync(
             It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig") != null &&
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetX == 10 &&
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetY == 20)),
+                ctx.PortraitConfig != null &&
+                ctx.PortraitConfig!.OffsetX == 10 &&
+                ctx.PortraitConfig!.OffsetY == 20)),
             Times.Once);
     }
 
@@ -1507,6 +1507,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
@@ -1583,6 +1584,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, wikiApiMock, imageRepositoryMock, gameRoleApiMock,
@@ -1662,6 +1664,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<ILogger<GenshinCharacterApplicationService>>());
 
         return (service, storedAttachments, userContext);

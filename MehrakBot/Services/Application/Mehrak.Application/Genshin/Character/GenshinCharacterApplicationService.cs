@@ -11,6 +11,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -46,6 +47,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
 
 
     protected override string CommandName => "Genshin Character";
@@ -64,6 +66,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         ICharacterStatService characterStatService,
         IAttachmentStorageService attachmentStorage,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
     {
@@ -77,6 +80,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_MetricsService = metricsService;
         m_CharacterStatService = characterStatService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -216,7 +220,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         Dictionary<string, string> avatarWiki, Dictionary<string, string> weaponWiki,
         CancellationToken cancellationToken = default)
     {
-        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
+
+        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(filename))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
@@ -318,16 +325,29 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
-            return Result<string>.Failure(StatusCode.BotError,
-                ResponseMessage.AttachmentStoreError);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return Result<string>.Failure(StatusCode.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());

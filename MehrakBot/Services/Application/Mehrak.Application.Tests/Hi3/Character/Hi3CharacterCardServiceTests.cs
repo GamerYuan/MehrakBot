@@ -118,6 +118,86 @@ internal class Hi3CharacterCardServiceTests
         Assert.That(ex!.Message, Is.EqualTo("No splash art image found for character"));
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+
+        var cardService = new Hi3CharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        JsonSerializerOptions options = new()
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+
+        var characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
+            await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Character_TestData_1.json")), options);
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+        cardContext.PortraitImageStream = portraitStream;
+
+        // Act
+        var generatedImageStream = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the card should render successfully using the provided portrait stream.
+        Assert.That(generatedImageStream, Is.Not.Null);
+        Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        generatedImageStream.Position = 0;
+        using MemoryStream generatedImage = new();
+        await generatedImageStream.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "Hi3Character_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
+    }
+
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
+        var cardService = new Hi3CharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<Hi3CharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        JsonSerializerOptions options = new()
+        {
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
+        };
+
+        var testDataPath = Path.Combine(TestDataPath, "Character_TestData_1.json");
+        var goldenImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hi3", "TestAssets", "Character_GoldenImage_1.jpg");
+        var characterDetail = JsonSerializer.Deserialize<Hi3CharacterDetail>(
+            await File.ReadAllTextAsync(testDataPath), options);
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Hi3Server.SEA);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var generatedImageStream = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        await AssertImageMatches(generatedImageStream, goldenImagePath, "Hi3Character_DownloadFailFallback");
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto

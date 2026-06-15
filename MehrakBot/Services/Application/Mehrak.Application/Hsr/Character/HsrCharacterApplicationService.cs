@@ -46,6 +46,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly RelicDbContext m_RelicContext;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
 
 
     protected override string CommandName => "HSR Character";
@@ -64,6 +65,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         RelicDbContext relicContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
@@ -76,6 +78,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService = metricsService;
         m_RelicContext = relicContext;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -200,7 +203,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         CancellationToken cancellationToken = default
     )
     {
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.HonkaiStarRail, characterInfo.Name, cancellationToken);
+
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
@@ -379,17 +385,29 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return Result<string>.Failure(StatusCode.BotError,
-                ResponseMessage.AttachmentStoreError);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return Result<string>.Failure(StatusCode.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),

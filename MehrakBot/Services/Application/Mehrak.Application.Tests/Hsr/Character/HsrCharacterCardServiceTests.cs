@@ -5,6 +5,7 @@ using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
@@ -100,6 +101,71 @@ public class HsrCharacterCardServiceTests
             Nickname = TestNickName,
             Level = 70
         };
+    }
+
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+
+        var (relicContext, characterCardService) = await SetupTest();
+        SeedRelicData(relicContext);
+
+        var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.PortraitImageStream = portraitStream;
+
+        // Act
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+
+        // Assert - the card should render successfully using the provided portrait stream.
+        Assert.That(generatedImageStream, Is.Not.Null);
+        Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        generatedImageStream.Position = 0;
+        using MemoryStream generatedImage = new();
+        await generatedImageStream.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "HsrCharacter_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
+    }
+
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
+        var (relicContext, characterCardService) = await SetupTest();
+        SeedRelicData(relicContext);
+
+        var testDataPath = Path.Combine(TestDataPath, "Stelle_TestData.json");
+        var goldenImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr", "TestAssets", "Character_Stelle_GoldenImage.jpg");
+        var characterDetail = JsonSerializer.Deserialize<HsrCharacterInformation>(
+            await File.ReadAllTextAsync(testDataPath));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        await AssertImageMatches(generatedImageStream, goldenImagePath, "HsrCharacter_DownloadFailFallback");
     }
 
     private static async Task AssertImageMatches(Stream generatedImageStream, string goldenImagePath, string testName)

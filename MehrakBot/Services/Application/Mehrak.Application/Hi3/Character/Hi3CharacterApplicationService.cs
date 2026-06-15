@@ -30,6 +30,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly IAliasService m_AliasService;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
 
 
     protected override string CommandName => "HI3 Character";
@@ -45,6 +46,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         ILogger<Hi3CharacterApplicationService> logger
     ) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -55,6 +57,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_AliasService = aliasService;
         m_MetricsService = metricsService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -118,7 +121,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             }
         }
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
+
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, activePortrait?.Key);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
@@ -152,23 +158,39 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfigs = new Dictionary<int, CharacterPortraitConfig>();
-        foreach (var costume in characterInfo.Costumes)
+        // HI3 portrait configs are keyed by costume id (CharacterServerId is seeded per costume),
+        // not avatar id, so the stock config must be looked up per costume.
+        async Task<CharacterPortraitConfig?> ResolveStockHi3Config()
         {
-            var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
-            if (config != null)
-                portraitConfigs[costume.Id] = config;
+            foreach (var costume in characterInfo.Costumes)
+            {
+                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+                if (config != null) return config;
+            }
+            return null;
         }
 
-        if (portraitConfigs.Count > 0)
-            cardContext.SetParameter("portraitConfigs", portraitConfigs);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                ResolveStockHi3Config, cancellationToken)
+            : new PortraitResolution(null, await ResolveStockHi3Config());
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
