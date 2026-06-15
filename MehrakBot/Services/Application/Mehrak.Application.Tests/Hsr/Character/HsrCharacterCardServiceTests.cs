@@ -106,11 +106,9 @@ public class HsrCharacterCardServiceTests
     [Test]
     public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
     {
-        // Arrange - a portrait service that reports an active user portrait for any character.
-        var portraitUploadId = Guid.NewGuid();
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
         await using var portraitStream =
             PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
-        var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
 
         var (relicContext, characterCardService) = await SetupTest();
         SeedRelicData(relicContext);
@@ -123,15 +121,12 @@ public class HsrCharacterCardServiceTests
         var profile = GetTestUserGameData();
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(TestUserId, characterDetail, profile);
         cardContext.SetParameter("server", Server.Asia);
+        cardContext.PortraitImageStream = portraitStream;
 
         // Act
         var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
 
-        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
-        // rather than the stock-image path.
-        portraitMock.Verify(
-            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
-            Times.Once);
+        // Assert - the card should render successfully using the provided portrait stream.
         Assert.That(generatedImageStream, Is.Not.Null);
         Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
 
@@ -149,10 +144,8 @@ public class HsrCharacterCardServiceTests
     [Test]
     public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
     {
-        // Arrange - a portrait service that reports an active portrait but fails to download it.
-        var portraitUploadId = Guid.NewGuid();
-        var portraitMock = PortraitServiceMockFactory.CreateWithFailingDownload(portraitUploadId);
-
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
         var (relicContext, characterCardService) = await SetupTest();
         SeedRelicData(relicContext);
 

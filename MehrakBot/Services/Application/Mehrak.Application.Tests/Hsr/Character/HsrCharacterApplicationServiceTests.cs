@@ -1192,12 +1192,11 @@ public class HsrCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
 
-        var portraitConfigParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(portraitConfigParam, Is.Not.Null);
-            Assert.That(portraitConfigParam!.OffsetX, Is.EqualTo(15));
-            Assert.That(portraitConfigParam.OffsetY, Is.EqualTo(25));
+            Assert.That(capturedContext!.PortraitConfig, Is.Not.Null);
+            Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(15));
+            Assert.That(capturedContext.PortraitConfig.OffsetY, Is.EqualTo(25));
         }
     }
 

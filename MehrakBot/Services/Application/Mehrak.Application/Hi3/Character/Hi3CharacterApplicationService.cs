@@ -31,7 +31,6 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
-    private readonly IImageRepository m_ImageRepository;
 
 
     protected override string CommandName => "HI3 Character";
@@ -40,7 +39,6 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
-        IImageRepository imageRepository,
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
         IApplicationMetrics metricsService,
@@ -55,7 +53,6 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_CardService = cardService;
         m_CharacterApi = characterApi;
         m_ImageUpdaterService = imageUpdaterService;
-        m_ImageRepository = imageRepository;
         m_CharacterCacheService = characterCacheService;
         m_AliasService = aliasService;
         m_MetricsService = metricsService;
@@ -160,11 +157,17 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
         var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
             (long)context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
-        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
+        var activePortrait = portraits?.FirstOrDefault(p => p.IsActive);
 
         if (activePortrait != null)
         {
             cardContext.PortraitImageKey = activePortrait.S3Key;
+            var portraitResult = await m_UserPortraitService.GetPortraitImageAsync(
+                (long)context.UserId, activePortrait.Id, cancellationToken);
+            if (portraitResult != null)
+            {
+                cardContext.PortraitImageStream = portraitResult.Content;
+            }
             cardContext.PortraitConfig = new CharacterPortraitConfig
             {
                 OffsetX = activePortrait.Config.OffsetX,
@@ -176,17 +179,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         }
         else
         {
-            // Resolve the first available costume for stock portrait
-            foreach (var costume in characterInfo.Costumes)
-            {
-                var costumeImageName = costume.ToImageName();
-                if (await m_ImageRepository.FileExistsAsync(costumeImageName))
-                {
-                    cardContext.PortraitImageKey = costumeImageName;
-                    cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
-                    break;
-                }
-            }
+            cardContext.PortraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, characterInfo.Avatar.Id);
         }
 
         await using var card = await m_CardService.GetCardAsync(cardContext);

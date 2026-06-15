@@ -69,20 +69,19 @@ internal class Hi3CharacterCardService : CardServiceBase<Hi3CharacterDetail>
 
         Image characterImage;
         CharacterPortraitConfig? portraitConfig;
-        if (!string.IsNullOrEmpty(context.PortraitImageKey))
+        if (context.PortraitImageStream != null)
         {
-            characterImage = await LoadImageFromRepositoryAsync(
-                context.PortraitImageKey, disposables, cancellationToken);
+            characterImage = await LoadImageFromStreamAsync<Rgba32>(
+                context.PortraitImageStream, disposables, cancellationToken);
             portraitConfig = context.PortraitConfig;
         }
         else
         {
-            var (loadedImage, costumeId) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
+            var (loadedImage, _) = await LoadFirstAvailableCostumeImageAsync(characterInformation);
             characterImage = loadedImage;
             disposables.Add(characterImage);
 
-            var portraitConfigs = context.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs");
-            portraitConfig = portraitConfigs?.GetValueOrDefault(costumeId);
+            portraitConfig = context.PortraitConfig;
         }
 
         characterImage.Mutate(ctx =>

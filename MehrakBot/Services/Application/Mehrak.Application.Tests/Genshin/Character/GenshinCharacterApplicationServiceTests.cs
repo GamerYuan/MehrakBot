@@ -1340,9 +1340,9 @@ public class GenshinCharacterApplicationServiceTests
 
         cardServiceMock.Verify(x => x.GetCardAsync(
             It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig") != null &&
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetX == 10 &&
-                ctx.GetParameter<CharacterPortraitConfig>("portraitConfig")!.OffsetY == 20)),
+                ctx.PortraitConfig != null &&
+                ctx.PortraitConfig!.OffsetX == 10 &&
+                ctx.PortraitConfig!.OffsetY == 20)),
             Times.Once);
     }
 

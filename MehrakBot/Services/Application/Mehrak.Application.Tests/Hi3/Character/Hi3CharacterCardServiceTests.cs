@@ -121,11 +121,9 @@ internal class Hi3CharacterCardServiceTests
     [Test]
     public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
     {
-        // Arrange - a portrait service that reports an active user portrait for any character.
-        var portraitUploadId = Guid.NewGuid();
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
         await using var portraitStream =
             PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
-        var portraitMock = PortraitServiceMockFactory.CreateWithActivePortrait(portraitUploadId, portraitStream);
 
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
@@ -145,15 +143,12 @@ internal class Hi3CharacterCardServiceTests
         var profile = GetTestUserGameData();
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(TestUserId, characterDetail, profile);
         cardContext.SetParameter("server", Hi3Server.SEA);
+        cardContext.PortraitImageStream = portraitStream;
 
         // Act
         var generatedImageStream = await cardService.GetCardAsync(cardContext);
 
-        // Assert - the user portrait image was requested, proving the user-portrait branch was taken
-        // rather than the stock-image path.
-        portraitMock.Verify(
-            x => x.GetPortraitImageAsync((long)TestUserId, portraitUploadId, It.IsAny<CancellationToken>()),
-            Times.Once);
+        // Assert - the card should render successfully using the provided portrait stream.
         Assert.That(generatedImageStream, Is.Not.Null);
         Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
 
@@ -171,10 +166,8 @@ internal class Hi3CharacterCardServiceTests
     [Test]
     public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
     {
-        // Arrange - a portrait service that reports an active portrait but fails to download it.
-        var portraitUploadId = Guid.NewGuid();
-        var portraitMock = PortraitServiceMockFactory.CreateWithFailingDownload(portraitUploadId);
-
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>(),

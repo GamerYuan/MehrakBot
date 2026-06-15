@@ -634,13 +634,12 @@ public class ZzzCharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        var configParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
-        Assert.That(configParam, Is.Not.Null);
+        Assert.That(capturedContext!.PortraitConfig, Is.Not.Null);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(configParam!.OffsetX, Is.EqualTo(5));
-            Assert.That(configParam.OffsetY, Is.EqualTo(10));
+            Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(5));
+            Assert.That(capturedContext.PortraitConfig.OffsetY, Is.EqualTo(10));
         }
     }
 

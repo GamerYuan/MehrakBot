@@ -384,11 +384,17 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         var portraits = await m_UserPortraitService.GetUserPortraitsAsync(
             (long)context.UserId, Game.HonkaiStarRail, characterInfo.Name, cancellationToken);
-        var activePortrait = portraits.FirstOrDefault(p => p.IsActive);
+        var activePortrait = portraits?.FirstOrDefault(p => p.IsActive);
 
         if (activePortrait != null)
         {
             cardContext.PortraitImageKey = activePortrait.S3Key;
+            var portraitResult = await m_UserPortraitService.GetPortraitImageAsync(
+                (long)context.UserId, activePortrait.Id, cancellationToken);
+            if (portraitResult != null)
+            {
+                cardContext.PortraitImageStream = portraitResult.Content;
+            }
             cardContext.PortraitConfig = new CharacterPortraitConfig
             {
                 OffsetX = activePortrait.Config.OffsetX,

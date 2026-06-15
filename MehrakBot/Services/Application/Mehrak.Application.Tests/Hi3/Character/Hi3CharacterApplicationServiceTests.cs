@@ -500,7 +500,7 @@ public class Hi3CharacterApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id), Times.Once);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Id), Times.Once);
     }
 
     [Test]
@@ -520,7 +520,7 @@ public class Hi3CharacterApplicationServiceTests
             .ReturnsAsync(true);
 
         var portraitConfig = new CharacterPortraitConfig { OffsetX = 8, OffsetY = 16 };
-        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Costumes.First().Id))
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.HonkaiImpact3, character.Avatar.Id))
             .ReturnsAsync(portraitConfig);
 
         BaseCardGenerationContext<Hi3CharacterDetail>? capturedContext = null;
@@ -535,8 +535,7 @@ public class Hi3CharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        Assert.That(capturedContext!.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs"),
-            Is.EqualTo(new Dictionary<int, CharacterPortraitConfig> { { character.Costumes.First().Id, portraitConfig } }));
+        Assert.That(capturedContext!.PortraitConfig, Is.EqualTo(portraitConfig));
     }
 
     #endregion
@@ -610,7 +609,6 @@ public class Hi3CharacterApplicationServiceTests
         aliasServiceMock.Setup(x => x.GetAliases(Game.HonkaiImpact3)).Returns([]);
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
-        var imageRepositoryMock = new Mock<IImageRepository>();
         var cardServiceMock = new Mock<ICardService<Hi3CharacterDetail>>();
         var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -632,7 +630,6 @@ public class Hi3CharacterApplicationServiceTests
             cardServiceMock.Object,
             characterApiMock.Object,
             imageUpdaterMock.Object,
-            imageRepositoryMock.Object,
             characterCacheMock.Object,
             aliasServiceMock.Object,
             metricsMock.Object,
@@ -687,14 +684,12 @@ public class Hi3CharacterApplicationServiceTests
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
-        var imageRepositoryMock = new Mock<IImageRepository>();
         var portraitServiceMock = new Mock<IUserPortraitService>();
 
         var service = new Hi3CharacterApplicationService(
             cardService,
             characterApiMock.Object,
             imageUpdaterService,
-            imageRepositoryMock.Object,
             characterCacheMock.Object,
             aliasServiceMock.Object,
             metricsMock.Object,

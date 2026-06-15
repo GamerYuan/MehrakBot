@@ -129,10 +129,10 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         Image<Rgba32> characterPortrait;
         CharacterPortraitConfig? portraitConfig;
 
-        if (!string.IsNullOrEmpty(context.PortraitImageKey))
+        if (context.PortraitImageStream != null)
         {
-            characterPortrait = await LoadImageFromRepositoryAsync<Rgba32>(
-                context.PortraitImageKey, disposables, cancellationToken);
+            characterPortrait = await LoadImageFromStreamAsync<Rgba32>(
+                context.PortraitImageStream, disposables, cancellationToken);
             portraitConfig = context.PortraitConfig;
         }
         else

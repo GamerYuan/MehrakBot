@@ -134,10 +134,10 @@ internal class ZzzCharacterCardService : CardServiceBase<ZzzFullAvatarData>
 
         Image portraitImage;
         CharacterPortraitConfig? portraitConfig;
-        if (!string.IsNullOrEmpty(context.PortraitImageKey))
+        if (context.PortraitImageStream != null)
         {
-            portraitImage = await LoadImageFromRepositoryAsync(
-                context.PortraitImageKey, disposables, cancellationToken);
+            portraitImage = await LoadImageFromStreamAsync(
+                context.PortraitImageStream, disposables, cancellationToken);
             portraitConfig = context.PortraitConfig;
         }
         else

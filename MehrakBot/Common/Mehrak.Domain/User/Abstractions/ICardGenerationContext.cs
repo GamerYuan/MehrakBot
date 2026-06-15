@@ -14,6 +14,7 @@ public interface ICardGenerationContext<out T>
     GameProfileDto GameProfile { get; }
 
     string? PortraitImageKey { get; }
+    Stream? PortraitImageStream { get; }
     CharacterPortraitConfig? PortraitConfig { get; }
 
     TParam? GetParameter<TParam>(string key);
