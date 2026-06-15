@@ -147,12 +147,11 @@ public class UserPortraitsController : ControllerBase
             var classification = await m_ClassificationService.ClassifyAsync(fileStream, HttpContext.RequestAborted);
             if (classification.IsNsfw)
             {
-                m_Logger.LogWarning("NSFW image upload blocked for user {DiscordUserId}: confidence={Confidence:F4}",
+                m_Logger.LogInformation("NSFW image upload blocked for user {DiscordUserId}: confidence={Confidence:F4}",
                     discordUserId, classification.NsfwConfidence);
                 return UnprocessableEntity(new
                 {
-                    error = "Image was classified as NSFW and cannot be uploaded.",
-                    confidence = classification.NsfwConfidence
+                    error = "Image was classified as NSFW and cannot be uploaded."
                 });
             }
         }
