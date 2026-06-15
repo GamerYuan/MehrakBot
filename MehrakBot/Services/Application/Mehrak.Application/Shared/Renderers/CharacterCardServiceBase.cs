@@ -62,7 +62,7 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
         Image portrait;
         if (context.PortraitImageStream != null)
         {
-            portrait = await LoadImageFromStreamAsync(
+            portrait = await LoadImageFromStreamAsync<Rgba32>(
                 context.PortraitImageStream, disposables, cancellationToken);
         }
         else
@@ -88,7 +88,7 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
         Image portrait;
         if (context.PortraitImageStream != null)
         {
-            portrait = await LoadImageFromStreamAsync(
+            portrait = await LoadImageFromStreamAsync<Rgba32>(
                 context.PortraitImageStream, disposables, cancellationToken);
         }
         else
