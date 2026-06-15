@@ -159,7 +159,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
             m_UserPortraitService, context.UserId, Game.ZenlessZoneZero, charInfo.Name, cancellationToken);
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid, activePortrait?.Key);
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid, extraData);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());

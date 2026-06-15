@@ -124,7 +124,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
             m_UserPortraitService, context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, activePortrait?.Key);
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, extraData);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),

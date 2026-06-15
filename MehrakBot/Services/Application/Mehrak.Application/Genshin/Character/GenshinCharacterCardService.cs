@@ -36,6 +36,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
     private Image[] m_StarRatingImages = null!;
     private Image[] m_StarRatingImagesSmall = null!;
     private Image<Rgba32>[] m_RelicTemplateImages = null!;
+    private Image<Rgba32> m_OverlayImage = null!;
 
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
@@ -111,7 +112,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
             });
         });
 
-        StaticBackground = await Image.LoadAsync<Rgba32>(
+        m_OverlayImage = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.BackgroundName, cancellationToken),
             cancellationToken);
 
@@ -128,10 +129,10 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
     {
         var charInfo = context.Data;
 
-        if (StaticBackground == null || Fonts.Medium == null || Fonts.Small == null)
+        if (Fonts.Medium == null || Fonts.Small == null)
             throw new CommandException("An error occurred when generating Genshin Character card");
 
-        Image characterPortrait = await LoadPortraitAsync(context,
+        var characterPortrait = await LoadPortraitAsync(context,
             () => LoadImageFromRepositoryAsync<Rgba32>(
                 charInfo.Base.ToImageName(), disposables, cancellationToken),
             disposables, cancellationToken);
@@ -251,26 +252,26 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
         background.Mutate(ctx =>
         {
             var backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(backgroundColor), new Rectangle(0, 0, background.Width, background.Height));
-            });
 
             ctx.Paint(canvas =>
             {
+                canvas.Fill(Brushes.Solid(backgroundColor), new Rectangle(0, 0, background.Width, background.Height));
+
                 _ = canvas.SaveLayer(new GraphicsOptions { ColorBlendingMode = PixelColorBlendingMode.Overlay });
-                canvas.DrawImage(StaticBackground, StaticBackground.Bounds,
+                canvas.DrawImage(m_OverlayImage, m_OverlayImage.Bounds,
                     new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
                 canvas.Restore();
 
                 var textColor = Color.White;
 
+                _ = canvas.SaveLayer();
                 var offsetX = context.PortraitConfig?.OffsetX ?? 0;
                 var offsetY = context.PortraitConfig?.OffsetY ?? 0;
                 canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
                     new RectangleF((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY,
                         characterPortrait.Width, characterPortrait.Height),
                     KnownResamplers.Bicubic);
+                canvas.Restore();
 
                 canvas.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
 
@@ -457,6 +458,11 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                 }
             });
         });
+    }
+
+    protected override Image<Rgba32> CreateBackground()
+    {
+        return new Image<Rgba32>(3240, 1080, Color.Transparent.ToPixel<Rgba32>());
     }
 
     private void DrawRelicSlotImage(DrawingCanvas canvas, Relic relic, Image relicImage, Point position)
