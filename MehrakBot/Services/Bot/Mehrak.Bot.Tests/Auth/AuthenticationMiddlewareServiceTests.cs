@@ -419,6 +419,7 @@ public class AuthenticationMiddlewareServiceTests
     }
 
     [Test]
+    [MaxTime(15000)]
     public async Task GetAuthenticationAsync_WhenModalTimesOut_ClearsCurrentRequests()
     {
         // Arrange

@@ -178,6 +178,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
         finally
         {
+            m_NotifiedRequests.TryRemove(guid, out _);
             m_CurrentRequests.TryRemove(guid, out _);
         }
     }
