@@ -44,23 +44,17 @@ public class GrpcImageProcessorService(
     public override Task<Proto.ProcessWeaponImageResponse> ProcessWeaponImage(
         Proto.ProcessWeaponImageRequest request, ServerCallContext context)
     {
+        var streams = request.Images.Select(bytes => new MemoryStream(bytes.ToByteArray()) as Stream).ToList();
         try
         {
-            var streams = request.Images.Select(bytes => new MemoryStream(bytes.ToByteArray()) as Stream).ToList();
-
             using var resultStream = weaponImageProcessor.ProcessImage(streams);
-
-            foreach (var stream in streams)
-            {
-                stream.Dispose();
-            }
 
             if (resultStream == Stream.Null || resultStream.Length == 0)
             {
                 return Task.FromResult(new Proto.ProcessWeaponImageResponse());
             }
 
-            var ms = new MemoryStream();
+            using var ms = new MemoryStream();
             resultStream.CopyTo(ms);
             ms.Position = 0;
 
@@ -73,6 +67,13 @@ public class GrpcImageProcessorService(
         {
             logger.LogError(ex, "Error processing weapon image");
             throw new RpcException(new Status(StatusCode.Internal, "Weapon image processing failed."));
+        }
+        finally
+        {
+            foreach (var stream in streams)
+            {
+                stream.Dispose();
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ namespace Mehrak.ImageProcessor.Shared.Services;
 
 public class GenshinWeaponImageProcessor
 {
-    public Stream ProcessImage(IEnumerable<Stream> images)
+    public virtual Stream ProcessImage(IEnumerable<Stream> images)
     {
         if (images.Count() < 2)
         {
