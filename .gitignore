@@ -498,3 +498,7 @@ appsettings.**.json
 /seaweed**/
 
 sixlabors.lic
+
+.claude
+.mimocode
+.opencode
