@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
@@ -30,6 +31,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 #endregion
@@ -1329,6 +1331,9 @@ public class HsrCharacterApplicationServiceTests
 
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
+        var relicContextFactoryMock = new Mock<IDbContextFactory<RelicDbContext>>();
+        relicContextFactoryMock.Setup(x => x.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
 
         var service = new HsrCharacterApplicationService(
             cardServiceMock.Object,
@@ -1341,10 +1346,11 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,
-            relicContext,
+            relicContextFactoryMock.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             portraitServiceMock.Object,
+            Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
@@ -1368,6 +1374,9 @@ public class HsrCharacterApplicationServiceTests
     {
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
+        var relicContextFactoryMock = new Mock<IDbContextFactory<RelicDbContext>>();
+        relicContextFactoryMock.Setup(x => x.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
@@ -1425,10 +1434,11 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiMock.Object,
             userContext,
-            relicContext,
+            relicContextFactoryMock.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
+            Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
 
@@ -1446,6 +1456,9 @@ public class HsrCharacterApplicationServiceTests
 
         var userContext = m_DbFactory1.CreateDbContext<UserDbContext>();
         var relicContext = m_DbFactory2.CreateDbContext<RelicDbContext>();
+        var relicContextFactoryMock = new Mock<IDbContextFactory<RelicDbContext>>();
+        relicContextFactoryMock.Setup(x => x.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
 
         var cardService = new HsrCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
@@ -1515,10 +1528,11 @@ public class HsrCharacterApplicationServiceTests
             metricsMock.Object,
             gameRoleApiService,
             userContext,
-            relicContext,
+            relicContextFactoryMock.Object,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
             Mock.Of<IUserPortraitService>(),
+            Options.Create(new CommandDispatcherConfig()),
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
 

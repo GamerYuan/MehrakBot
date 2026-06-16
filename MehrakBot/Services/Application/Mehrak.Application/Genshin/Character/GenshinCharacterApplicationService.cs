@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Mehrak.Application.Genshin.Extensions;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
@@ -23,6 +24,7 @@ using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.User;
+using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -48,6 +50,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
 
 
     protected override string CommandName => "Genshin Character";
@@ -67,6 +70,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         IAttachmentStorageService attachmentStorage,
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
+        IOptions<CommandDispatcherConfig> dispatcherConfig,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
     {
@@ -81,6 +85,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_CharacterStatService = characterStatService;
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
+        m_DispatcherConfig = dispatcherConfig;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -182,21 +187,26 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         List<string> attachments = [];
 
-        foreach (var charData in characterInfo.Data.List)
+        var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
+            characterInfo.Data.List,
+            (charData, ct) => ProcessCharacterAsync(context, server, profile, charData,
+                characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki, ct),
+            m_DispatcherConfig.Value.MaxCharacterParallelism,
+            cancellationToken);
+
+        if (timedOut)
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+
+        for (var i = 0; i < results.Count; i++)
         {
-            var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki, cancellationToken);
+            var result = results[i];
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
             }
-            else if (result.StatusCode == StatusCode.Timeout)
-            {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            }
             else
             {
-                failureMessages.Add($"{charData.Base.Name}: {result.ErrorMessage}");
+                failureMessages.Add($"{characterInfo.Data.List[i].Base.Name}: {result.ErrorMessage}");
             }
         }
 
