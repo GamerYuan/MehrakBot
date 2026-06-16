@@ -26,6 +26,7 @@ using Mehrak.Infrastructure.Relic;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 #endregion
 
@@ -46,7 +47,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterApi;
 
     private readonly IApplicationMetrics m_MetricsService;
-    private readonly RelicDbContext m_RelicContext;
+    private readonly IDbContextFactory<RelicDbContext> m_RelicContextFactory;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
     private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
@@ -65,7 +66,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
-        RelicDbContext relicContext,
+        IDbContextFactory<RelicDbContext> relicContextFactory,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
@@ -80,7 +81,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_AliasService = aliasService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
-        m_RelicContext = relicContext;
+        m_RelicContextFactory = relicContextFactory;
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
         m_DispatcherConfig = dispatcherConfig;
@@ -431,24 +432,44 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     }
     private async Task AddSetName(int setId, string setName)
     {
-        try
+        const int maxRetries = 3;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var existing = await m_RelicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
-            if (existing == null)
+            try
             {
-                var entity = new HsrRelicModel { SetId = setId, SetName = setName };
-                m_RelicContext.HsrRelics.Add(entity);
-                await m_RelicContext.SaveChangesAsync();
-                Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+                await using var relicContext = await m_RelicContextFactory.CreateDbContextAsync();
+                var existing = await relicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
+                if (existing == null)
+                {
+                    var entity = new HsrRelicModel { SetId = setId, SetName = setName };
+                    relicContext.HsrRelics.Add(entity);
+                    await relicContext.SaveChangesAsync();
+                    Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+                }
+                else
+                {
+                    Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+                }
+                return;
             }
-            else
+            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx
+                                              && pgEx.SqlState is "23505" or "40001" or "57014")
             {
-                Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+                // 23505 = unique_violation (already inserted by concurrent request)
+                // 40001 = serialization_failure, 57014 = query_canceled — retriable
+                Logger.LogWarning(e, "Retriable DB error inserting relic set {Attempt}/{MaxRetries}: {SetId}", attempt, maxRetries, setId);
+                if (attempt == maxRetries)
+                {
+                    Logger.LogWarning(e, "Failed to insert relic set after {MaxRetries} attempts: {SetId}, {SetName}", maxRetries, setId, setName);
+                    return;
+                }
+                await Task.Delay(100 * attempt);
             }
-        }
-        catch (DbUpdateException e)
-        {
-            Logger.LogWarning(e, "An error occurred while inserting relic {SetId}, {SetName}", setId, setName);
+            catch (DbUpdateException e)
+            {
+                Logger.LogWarning(e, "Non-retriable DB error inserting relic {SetId}, {SetName}", setId, setName);
+                return;
+            }
         }
     }
 }
