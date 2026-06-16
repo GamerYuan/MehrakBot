@@ -80,7 +80,7 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
                                 "Authentication expired. Please re-authenticate this profile."),
             DashboardAuthStatus.InvalidPassphrase => DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
                                 "Invalid passphrase. Please try again."),
-            DashboardAuthStatus.RateLimited => DashboardApplicationExecutionResult.Error(authResult.Error ??
+            DashboardAuthStatus.RateLimited => DashboardApplicationExecutionResult.RateLimited(authResult.Error ??
                                 "Too many attempts. Please try again later."),
             DashboardAuthStatus.NotFound => DashboardApplicationExecutionResult.NotFound(authResult.Error ??
                                 "Requested profile could not be found."),
@@ -181,6 +181,11 @@ public sealed class DashboardApplicationExecutionResult
     public static DashboardApplicationExecutionResult NotFound(string message)
     {
         return new DashboardApplicationExecutionResult(DashboardExecutionStatus.NotFound, errorMessage: message);
+    }
+
+    public static DashboardApplicationExecutionResult RateLimited(string message)
+    {
+        return new DashboardApplicationExecutionResult(DashboardExecutionStatus.RateLimited, errorMessage: message);
     }
 
     public static DashboardApplicationExecutionResult Error(string message)
