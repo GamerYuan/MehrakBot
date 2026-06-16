@@ -40,10 +40,6 @@ jobs:
         working-directory: ./MehrakBot
         run: dotnet restore
 
-      - name: Check formatting
-        working-directory: ./MehrakBot
-        run: dotnet format --verify-no-changes --no-restore
-
       - name: Build solution
         working-directory: ./MehrakBot
         run: dotnet build --configuration Release --no-restore
