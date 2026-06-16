@@ -8,7 +8,9 @@ using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Zzz;
+using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Common;
+using Proto = Mehrak.Domain.Protobuf;
 
 #endregion
 
@@ -29,6 +31,8 @@ internal static class ApplicationServiceCollectionExtension
         services.AddHsrApplicationServices();
         services.AddZzzApplicationServices();
         services.AddHi3ApplicationServices();
+
+        services.AddKeyedSingleton<IMultiImageProcessor, WeaponImageProcessorGrpcClient>(CommandName.ImageProcessor.Weapon);
 
         return services;
     }
