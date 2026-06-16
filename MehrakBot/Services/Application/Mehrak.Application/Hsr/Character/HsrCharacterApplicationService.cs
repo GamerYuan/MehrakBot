@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
@@ -24,6 +25,7 @@ using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.Relic;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 #endregion
 
@@ -47,6 +49,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly RelicDbContext m_RelicContext;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
 
 
     protected override string CommandName => "HSR Character";
@@ -66,6 +69,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
+        IOptions<CommandDispatcherConfig> dispatcherConfig,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
@@ -79,6 +83,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_RelicContext = relicContext;
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
+        m_DispatcherConfig = dispatcherConfig;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -164,21 +169,27 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         List<string> attachments = [];
 
-        foreach (var charData in validCharacters.Values)
+        var charList = validCharacters.Values.ToList();
+        var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
+            charList,
+            (charData, ct) => ProcessCharacterAsync(context, server, profile, charData,
+                characterList.RelicWiki, characterList.EquipWiki, ct),
+            m_DispatcherConfig.Value.MaxCharacterParallelism,
+            cancellationToken);
+
+        if (timedOut)
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+
+        for (var i = 0; i < results.Count; i++)
         {
-            var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterList.RelicWiki, characterList.EquipWiki, cancellationToken);
+            var result = results[i];
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
             }
-            else if (result.StatusCode == StatusCode.Timeout)
-            {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            }
             else
             {
-                failureMessages.Add($"{charData.Name}: {result.ErrorMessage}");
+                failureMessages.Add($"{charList[i].Name}: {result.ErrorMessage}");
             }
         }
 

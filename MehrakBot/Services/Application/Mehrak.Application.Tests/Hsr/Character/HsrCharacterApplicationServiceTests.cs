@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
@@ -30,6 +31,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 #endregion
@@ -1345,6 +1347,7 @@ public class HsrCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             portraitServiceMock.Object,
+            Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, wikiApiMock, imageRepositoryMock, imageUpdaterMock,
@@ -1429,6 +1432,7 @@ public class HsrCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
+            Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
 
@@ -1519,6 +1523,7 @@ public class HsrCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
             Mock.Of<IUserPortraitService>(),
+            Options.Create(new CommandDispatcherConfig()),
             Mock.Of<ILogger<HsrCharacterApplicationService>>());
 
 
