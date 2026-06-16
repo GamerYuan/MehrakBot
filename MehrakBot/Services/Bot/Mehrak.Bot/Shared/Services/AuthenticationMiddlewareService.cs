@@ -7,6 +7,7 @@ using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     private readonly IEncryptionService m_EncryptionService;
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
+    private readonly IPassphraseAttemptRateLimiter m_PassphraseLimiter;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
     private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
 
@@ -33,12 +35,14 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         ICacheService cacheService,
         IEncryptionService encryptionService,
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<AuthenticationMiddlewareService> logger)
+        ILogger<AuthenticationMiddlewareService> logger,
+        IPassphraseAttemptRateLimiter passphraseLimiter)
     {
         m_CacheService = cacheService;
         m_EncryptionService = encryptionService;
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
+        m_PassphraseLimiter = passphraseLimiter;
     }
 
     public async Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request)
@@ -116,6 +120,12 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         await authResponse.Context.Interaction.SendResponseAsync(
             InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
+        if (await m_PassphraseLimiter.IsBlockedAsync(request.Context.Interaction.User.Id))
+        {
+            m_Logger.LogWarning("Rate limit exceeded for passphrase attempts by user {UserId}", request.Context.Interaction.User.Id);
+            return AuthenticationResult.Failure(authResponse.Context, "Too many incorrect attempts. Please try again later.");
+        }
+
         try
         {
             token = m_EncryptionService.Decrypt(profile.LToken, authResponse.Passphrase);
@@ -126,6 +136,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         {
             m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid,
                 request.Context.Interaction.User.Id);
+            await m_PassphraseLimiter.RecordFailureAsync(request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
 

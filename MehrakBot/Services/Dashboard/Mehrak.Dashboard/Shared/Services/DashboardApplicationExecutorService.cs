@@ -87,6 +87,9 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
             case DashboardAuthStatus.InvalidPassphrase:
                 return DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
                     "Invalid passphrase. Please try again.");
+            case DashboardAuthStatus.RateLimited:
+                return DashboardApplicationExecutionResult.Error(authResult.Error ??
+                    "Too many attempts. Please try again later.");
             case DashboardAuthStatus.NotFound:
                 return DashboardApplicationExecutionResult.NotFound(authResult.Error ??
                     "Requested profile could not be found.");

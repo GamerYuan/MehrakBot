@@ -11,6 +11,7 @@ using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.Extensions.Logging;
@@ -533,7 +534,8 @@ public class AuthenticationMiddlewareServiceTests
             m_MockCacheService.Object,
             m_MockEncryptionService.Object,
             m_DbFactory.ScopeFactory,
-            m_MockLogger.Object);
+            m_MockLogger.Object,
+            Mock.Of<IPassphraseAttemptRateLimiter>());
     }
 
     private static UserModel BuildUserModel(ulong userId, ulong ltUid, string ltoken, int profileId = TestProfileId)
