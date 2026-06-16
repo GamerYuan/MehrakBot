@@ -2,6 +2,7 @@
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,18 +25,21 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
     private readonly ILogger<DashboardProfileAuthenticationService> m_Logger;
+    private readonly IPassphraseAttemptRateLimiter m_PassphraseLimiter;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     public DashboardProfileAuthenticationService(
         UserDbContext userRepository,
         IEncryptionService encryptionService,
         ICacheService cacheService,
-        ILogger<DashboardProfileAuthenticationService> logger)
+        ILogger<DashboardProfileAuthenticationService> logger,
+        IPassphraseAttemptRateLimiter passphraseLimiter)
     {
         m_UserRepository = userRepository;
         m_EncryptionService = encryptionService;
         m_CacheService = cacheService;
         m_Logger = logger;
+        m_PassphraseLimiter = passphraseLimiter;
     }
 
     public async Task<DashboardProfileAuthenticationResult> AuthenticateAsync(
@@ -97,6 +101,12 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 "Authentication required. Please provide your passphrase.");
         }
 
+        if (await m_PassphraseLimiter.IsBlockedAsync(discordUserId, ct))
+        {
+            m_Logger.LogWarning("Rate limit exceeded for passphrase attempts by user {UserId}", discordUserId);
+            return DashboardProfileAuthenticationResult.RateLimited("Too many incorrect attempts. Please try again later.");
+        }
+
         try
         {
             var decrypted = m_EncryptionService.Decrypt(profile.LToken, passphrase);
@@ -115,6 +125,7 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         {
             m_Logger.LogWarning(ex, "Dashboard authentication failed due to invalid passphrase for user {UserId}",
                 discordUserId);
+            await m_PassphraseLimiter.RecordFailureAsync(discordUserId, ct);
             return DashboardProfileAuthenticationResult.InvalidPassphrase("Incorrect passphrase. Please try again.");
         }
     }
@@ -140,7 +151,8 @@ public enum DashboardAuthStatus
     NotFound,
     PassphraseRequired,
     InvalidPassphrase,
-    Failure
+    Failure,
+    RateLimited
 }
 
 public class DashboardProfileAuthenticationResult
@@ -177,6 +189,9 @@ public class DashboardProfileAuthenticationResult
 
     public static DashboardProfileAuthenticationResult InvalidPassphrase(string error) =>
         new(DashboardAuthStatus.InvalidPassphrase, error, null, 0, null);
+
+    public static DashboardProfileAuthenticationResult RateLimited(string error) =>
+        new(DashboardAuthStatus.RateLimited, error, null, 0, null);
 
     public static DashboardProfileAuthenticationResult Failure(string error) =>
         new(DashboardAuthStatus.Failure, error, null, 0, null);

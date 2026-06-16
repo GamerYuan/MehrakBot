@@ -100,7 +100,8 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             m_MockCacheService.Object,
             m_EncryptionService,
             m_DbFactory.ScopeFactory,
-            NullLogger<AuthenticationMiddlewareService>.Instance);
+            NullLogger<AuthenticationMiddlewareService>.Instance,
+            Mock.Of<IPassphraseAttemptRateLimiter>());
     }
 
     [TearDown]

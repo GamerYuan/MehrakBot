@@ -103,6 +103,7 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
+        services.AddSingleton<IPassphraseAttemptRateLimiter, PassphraseAttemptRateLimiter>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 

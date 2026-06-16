@@ -592,7 +592,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             m_MockCacheService.Object,
             m_EncryptionService,
             m_DbFactory.ScopeFactory,
-            NullLogger<AuthenticationMiddlewareService>.Instance);
+            NullLogger<AuthenticationMiddlewareService>.Instance,
+            Mock.Of<IPassphraseAttemptRateLimiter>());
     }
 
     private static UserModel CreateUserModel(ulong userId, int profileId, ulong ltUid, string ltoken)
