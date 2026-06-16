@@ -418,6 +418,59 @@ public class AuthenticationMiddlewareServiceTests
         });
     }
 
+    [Test]
+    public async Task GetAuthenticationAsync_WhenModalTimesOut_ClearsCurrentRequests()
+    {
+        // Arrange
+        using var discordHelper = new DiscordTestHelper();
+        discordHelper.SetupRequestCapture();
+
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = discordHelper.CreateModalInteraction(TestUserId);
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var encryptedToken = "encrypted-token-for-timeout-test";
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, encryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        // Shorten timeout to avoid real 1-minute wait
+        var prop = typeof(AuthenticationMiddlewareService)
+            .GetProperty("TimeoutMinutes", BindingFlags.NonPublic | BindingFlags.Instance);
+        prop?.SetValue(m_Service, 0.1f);
+
+        // Act
+        var authTask = m_Service.GetAuthenticationAsync(request);
+
+        // Wait for the GUID to appear in m_CurrentRequests
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        // Wait for timeout
+        var result = await authTask;
+
+        // Assert - authentication should have timed out
+        Assert.That(result.Status, Is.EqualTo(AuthStatus.Timeout));
+
+        // Assert - late NotifyAuthenticate should be rejected (marker was cleaned up)
+        var lateResponse = new AuthenticationResponse(TestUserId, guid, "some-passphrase", mockContext.Object);
+        Assert.That(m_Service.NotifyAuthenticate(lateResponse), Is.False,
+            "NotifyAuthenticate should return false for a GUID whose timeout has expired");
+
+        // Assert - m_CurrentRequests should be empty
+        var field = typeof(AuthenticationMiddlewareService)
+            .GetField("m_CurrentRequests", BindingFlags.Instance | BindingFlags.NonPublic);
+        var dictionary = (ConcurrentDictionary<string, byte>)field!.GetValue(m_Service)!;
+        Assert.That(dictionary, Is.Empty, "m_CurrentRequests should be empty after timeout cleanup");
+    }
+
     #endregion
 
     #region AuthenticationRequest Tests
