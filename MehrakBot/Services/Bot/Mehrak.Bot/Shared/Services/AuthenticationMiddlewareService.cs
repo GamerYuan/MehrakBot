@@ -168,7 +168,6 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 await Task.Delay(100, token);
             }
 
-            m_CurrentRequests.TryRemove(guid, out _);
             m_Logger.LogDebug("Authentication response dequeued. Guid={Guid}", guid);
             return response;
         }
@@ -176,6 +175,11 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         {
             m_Logger.LogDebug("WaitForAuthenticationAsync canceled. Guid={Guid}", guid);
             return null;
+        }
+        finally
+        {
+            m_NotifiedRequests.TryRemove(guid, out _);
+            m_CurrentRequests.TryRemove(guid, out _);
         }
     }
 }
