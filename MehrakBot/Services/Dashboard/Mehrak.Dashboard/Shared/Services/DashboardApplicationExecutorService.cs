@@ -73,30 +73,20 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
             .AuthenticateAsync(DiscordUserId, profileId, null, ct)
             .ConfigureAwait(false);
 
-        switch (authResult.Status)
+        return authResult.Status switch
         {
-            case DashboardAuthStatus.Success:
-                return await ExecuteApplicationAsync(authResult, ct).ConfigureAwait(false);
-            case DashboardAuthStatus.PassphraseRequired:
-                m_Logger.LogInformation(
-                    "Dashboard authentication cache miss for user {UserId}, profile {ProfileId}",
-                    DiscordUserId,
-                    profileId);
-                return DashboardApplicationExecutionResult.AuthenticationRequired(authResult.Error ??
-                    "Authentication expired. Please re-authenticate this profile.");
-            case DashboardAuthStatus.InvalidPassphrase:
-                return DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
-                    "Invalid passphrase. Please try again.");
-            case DashboardAuthStatus.RateLimited:
-                return DashboardApplicationExecutionResult.Error(authResult.Error ??
-                    "Too many attempts. Please try again later.");
-            case DashboardAuthStatus.NotFound:
-                return DashboardApplicationExecutionResult.NotFound(authResult.Error ??
-                    "Requested profile could not be found.");
-            default:
-                return DashboardApplicationExecutionResult.Error(authResult.Error ??
-                    "Unable to complete authentication.");
-        }
+            DashboardAuthStatus.Success => await ExecuteApplicationAsync(authResult, ct).ConfigureAwait(false),
+            DashboardAuthStatus.PassphraseRequired => DashboardApplicationExecutionResult.AuthenticationRequired(authResult.Error ??
+                                "Authentication expired. Please re-authenticate this profile."),
+            DashboardAuthStatus.InvalidPassphrase => DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
+                                "Invalid passphrase. Please try again."),
+            DashboardAuthStatus.RateLimited => DashboardApplicationExecutionResult.Error(authResult.Error ??
+                                "Too many attempts. Please try again later."),
+            DashboardAuthStatus.NotFound => DashboardApplicationExecutionResult.NotFound(authResult.Error ??
+                                "Requested profile could not be found."),
+            _ => DashboardApplicationExecutionResult.Error(authResult.Error ??
+                                "Unable to complete authentication."),
+        };
     }
 
     private async Task<DashboardApplicationExecutionResult> ExecuteApplicationAsync(
@@ -140,6 +130,7 @@ public enum DashboardExecutionStatus
     AuthenticationRequired,
     AuthenticationFailed,
     NotFound,
+    RateLimited,
     Error
 }
 
@@ -227,6 +218,11 @@ public sealed class DashboardApplicationExecutionResult
                 => new ObjectResult(new { error = ErrorMessage ?? "Requested resource was not found." })
                 {
                     StatusCode = StatusCodes.Status404NotFound
+                },
+            DashboardExecutionStatus.RateLimited
+                => new ObjectResult(new { error = ErrorMessage ?? "Too many attempts. Please try again later." })
+                {
+                    StatusCode = StatusCodes.Status429TooManyRequests
                 },
             _
                 => new ObjectResult(new { error = ErrorMessage ?? "Unable to execute command." })
