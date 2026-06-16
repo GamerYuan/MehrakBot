@@ -78,11 +78,12 @@ services:
       dockerfile: Services/Application/Dockerfile
       args:
         ASPNETCORE_ENVIRONMENT: Development
-        BASE_IMAGE_TAG: ${BASE_IMAGE_TAG:-opencv-4.12.0-ocvsharp-4.11.0.20250507}
         VERSION: ${VERSION:-0.0.0}
       secrets:
         - sixlabors-license
     depends_on:
+      image-processor:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:
@@ -98,6 +99,7 @@ services:
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Storage__ServiceURL=http://seaweed-s3:8333
       - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
+      - ImageProcessor__ConnectionString=http://image-processor:13000
       - Kestrel__Endpoints__MyHttpEndpoint__Url=http://*:12000
 
   image-processor:

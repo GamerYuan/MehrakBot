@@ -3,6 +3,7 @@
     <Folder Name="/Services/" />
     <Folder Name="/Services/ImageProcessor/">
         <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+        <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor.Tests/Mehrak.ImageProcessor.Tests.csproj" />
     </Folder>
     <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" Id="4a8793d4-3780-4e79-81c4-0962ab50cf72" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />

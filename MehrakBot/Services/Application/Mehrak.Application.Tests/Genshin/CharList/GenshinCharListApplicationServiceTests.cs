@@ -659,10 +659,13 @@ public class GenshinCharListApplicationServiceTests
             imageRepositoryMock.Object,
             wikiApiMock.Object,
             attachmentStorageMock.Object,
+            Mock.Of<IMultiImageProcessor>(),
             loggerMock.Object);
 
-        return (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, characterCacheMock,
-            imageRepositoryMock, wikiApiMock, attachmentStorageMock, userContext);
+        return (Service: service, CharacterApiMock: characterApiMock, ImageUpdaterMock: imageUpdaterMock,
+            GameRoleApiMock: gameRoleApiMock, CardServiceMock: cardServiceMock,
+            CharacterCacheMock: characterCacheMock, ImageRepositoryMock: imageRepositoryMock,
+            WikiApiMock: wikiApiMock, AttachmentStorageMock: attachmentStorageMock, UserContext: userContext);
     }
 
     private (
@@ -727,6 +730,7 @@ public class GenshinCharListApplicationServiceTests
             imageRepository,
             wikiApiMock.Object,
             attachmentStorageMock.Object,
+            Mock.Of<IMultiImageProcessor>(),
             loggerMock.Object);
 
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -793,6 +797,7 @@ public class GenshinCharListApplicationServiceTests
             imageRepositoryMock.Object,
             wikiApiMock.Object,
             attachmentStorageMock.Object,
+            Mock.Of<IMultiImageProcessor>(),
             Mock.Of<ILogger<GenshinCharListApplicationService>>());
 
         return (service, storedAttachments, userContext);

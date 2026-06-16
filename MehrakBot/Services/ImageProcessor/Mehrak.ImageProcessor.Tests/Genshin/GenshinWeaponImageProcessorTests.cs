@@ -1,8 +1,8 @@
-﻿using Mehrak.Application.Genshin;
-using Mehrak.Application.Tests.TestUtils;
+﻿using Mehrak.ImageProcessor.Shared.Services;
+using Mehrak.ImageProcessor.Tests.TestUtils;
 using OpenCvSharp;
 
-namespace Mehrak.Application.Tests.Genshin.Types;
+namespace Mehrak.ImageProcessor.Tests.Genshin;
 
 [Parallelizable(ParallelScope.All)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -18,14 +18,6 @@ internal class GenshinWeaponImageProcessorTests
     {
         m_Processor = new GenshinWeaponImageProcessor();
     }
-
-    [Test]
-    public void ShouldProcess_ReturnsTrue()
-    {
-        Assert.That(m_Processor.ShouldProcess, Is.True);
-    }
-
-    #region Unit Tests
 
     [Test]
     public void ProcessImage_WithInsufficientImages_ThrowsException()
@@ -66,8 +58,6 @@ internal class GenshinWeaponImageProcessorTests
             foreach (var s in streams) s.Dispose();
         }
     }
-
-    #endregion
 
     #region Integration Tests
     [Test]
@@ -125,28 +115,5 @@ internal class GenshinWeaponImageProcessorTests
     {
         return new MemoryStream(mat.ImEncode(".png"));
     }
-
-    /*
-    [Test]
-    [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
-    [TestCase("icon_polearm.png", "ascended_polearm.png", "golden_polearm.png")]
-    [TestCase("icon_claymore.png", "ascended_claymore.png", "golden_claymore.png")]
-    [TestCase("icon_bow.png", "ascended_bow.png", "golden_bow.png")]
-    public void GenerateImage(string iconFile, string ascendedFile, string outputFile)
-    {
-        var icon = File.OpenRead(Path.Combine(TestDirectory, iconFile));
-        var ascended = File.OpenRead(Path.Combine(TestDirectory, ascendedFile));
-
-        var resultStream = m_Processor.ProcessImage([icon, ascended]);
-
-        Assert.That(resultStream, Is.Not.Null);
-
-        var resultFile = File.Create(Path.Combine(TestDirectory, outputFile));
-        resultStream.Position = 0;
-        resultStream.CopyTo(resultFile);
-        resultFile.Flush();
-        resultFile.Close();
-    }
-    */
     #endregion
 }
