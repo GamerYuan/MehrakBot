@@ -11,7 +11,6 @@ public static class DSGenerator
 {
     private const string Salt = "6s25p5ox5y14umn1p61aqyyvbvvl3lrt";
     private const string Characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static readonly Random Random = new();
 
     public static string GenerateDS()
     {
@@ -20,7 +19,7 @@ public static class DSGenerator
 
         // Generate 6 random characters
         StringBuilder randomStr = new();
-        for (var i = 0; i < 6; i++) randomStr.Append(Characters[Random.Next(Characters.Length)]);
+        for (var i = 0; i < 6; i++) randomStr.Append(Characters[Random.Shared.Next(Characters.Length)]);
 
         // Create hash input
         var hashInput = $"salt={Salt}&t={timestamp}&r={randomStr}";
