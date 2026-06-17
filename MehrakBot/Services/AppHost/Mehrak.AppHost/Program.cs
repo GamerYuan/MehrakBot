@@ -61,6 +61,12 @@ var clickhouse = builder.AddContainer("clickhouse", "clickhouse/clickhouse-serve
 
 // --- Application Services ---
 
+var migrationService = builder.AddProject<Projects.Mehrak_MigrationService>("migration-service")
+    .WithReference(postgres)
+    .WithReference(redis)
+    .WaitFor(postgres)
+    .WaitFor(redis);
+
 var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
     .WaitFor(seaweedS3);
 
@@ -68,18 +74,19 @@ var application = builder.AddProject<Projects.Mehrak_Application>("application")
     .WithReference(postgres)
     .WithReference(redis)
     .WithReference(imageProcessor)
-    .WithEnvironment("Storage__ServiceURL", "http://seaweed-s3:8333")
+    .WithEnvironment("Storage__ServiceURL", "http://localhost:8333")
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
     .WaitFor(postgres)
     .WaitFor(redis)
-    .WaitFor(seaweedS3);
+    .WaitFor(seaweedS3)
+    .WaitFor(migrationService);
 
 var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
     .WithReference(postgres)
     .WithReference(redis)
     .WithReference(application)
     .WithEnvironment("Discord__Token", discordToken)
-    .WithEnvironment("Storage__ServiceURL", "http://seaweed-s3:8333")
+    .WithEnvironment("Storage__ServiceURL", "http://localhost:8333")
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
     .WithEnvironment("ClickHouse__Host", "clickhouse")
     .WithEnvironment("ClickHouse__Username", clickhouseUser)
@@ -93,9 +100,9 @@ var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
     .WithReference(redis)
     .WithReference(application)
     .WithReference(imageProcessor)
-    .WithEnvironment("Storage__ServiceURL", "http://seaweed-s3:8333")
+    .WithEnvironment("Storage__ServiceURL", "http://localhost:8333")
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
-    .WithEnvironment("SeaweedFiler__BaseUrl", "http://seaweed-filer:8888")
+    .WithEnvironment("SeaweedFiler__BaseUrl", "http://localhost:8888")
     .WithEnvironment("Dashboard__AdminDiscordId", dashboardAdminDiscordId)
     .WithEnvironment("Dashboard__Origin", dashboardOrigin)
     .WaitFor(postgres)

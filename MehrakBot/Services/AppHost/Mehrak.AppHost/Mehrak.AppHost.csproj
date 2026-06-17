@@ -14,6 +14,8 @@
         <ProjectReference Include="../../Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
         <ProjectReference Include="../../Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
         <ProjectReference Include="../../ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+        <ProjectReference
+            Include="../../MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
     </ItemGroup>
 
     <ItemGroup>
