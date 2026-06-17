@@ -10,6 +10,7 @@ using Mehrak.ServiceDefaults;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
+using Proto = Mehrak.Domain.Protobuf;
 
 public class Program
 {
