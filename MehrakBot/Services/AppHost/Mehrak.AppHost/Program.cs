@@ -12,7 +12,7 @@ var dashboardOrigin = builder.AddParameter("dashboard-origin");
 
 // --- Infrastructure ---
 
-var postgres = builder.AddPostgres("postgres", password: postgresPassword)
+var mehrakdb = builder.AddPostgres("postgres", password: postgresPassword)
     .WithLifetime(ContainerLifetime.Persistent)
     .WithDataVolume()
     .AddDatabase("mehrakdb", databaseName: "mehrak_dev");
@@ -62,27 +62,27 @@ var clickhouse = builder.AddContainer("clickhouse", "clickhouse/clickhouse-serve
 // --- Application Services ---
 
 var migrationService = builder.AddProject<Projects.Mehrak_MigrationService>("migration-service")
-    .WithReference(postgres)
+    .WithReference(mehrakdb)
     .WithReference(redis)
-    .WaitFor(postgres)
+    .WaitFor(mehrakdb)
     .WaitFor(redis);
 
 var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
     .WaitFor(seaweedS3);
 
 var application = builder.AddProject<Projects.Mehrak_Application>("application")
-    .WithReference(postgres)
+    .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(imageProcessor)
     .WithEnvironment("Storage__ServiceURL", "http://localhost:8333")
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
-    .WaitFor(postgres)
+    .WaitFor(mehrakdb)
     .WaitFor(redis)
     .WaitFor(seaweedS3)
     .WaitFor(migrationService);
 
 var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
-    .WithReference(postgres)
+    .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(application)
     .WithEnvironment("Discord__Token", discordToken)
@@ -91,12 +91,12 @@ var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
     .WithEnvironment("ClickHouse__Host", "clickhouse")
     .WithEnvironment("ClickHouse__Username", clickhouseUser)
     .WithEnvironment("ClickHouse__Password", clickhousePassword)
-    .WaitFor(postgres)
+    .WaitFor(mehrakdb)
     .WaitFor(redis)
     .WaitFor(application);
 
 var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
-    .WithReference(postgres)
+    .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(application)
     .WithReference(imageProcessor)
@@ -105,7 +105,7 @@ var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
     .WithEnvironment("SeaweedFiler__BaseUrl", "http://localhost:8888")
     .WithEnvironment("Dashboard__AdminDiscordId", dashboardAdminDiscordId)
     .WithEnvironment("Dashboard__Origin", dashboardOrigin)
-    .WaitFor(postgres)
+    .WaitFor(mehrakdb)
     .WaitFor(redis)
     .WaitFor(application)
     .WaitFor(imageProcessor);

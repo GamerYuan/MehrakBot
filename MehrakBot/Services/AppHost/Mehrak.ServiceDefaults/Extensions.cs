@@ -1,14 +1,10 @@
-using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using StackExchange.Redis;
 
 namespace Mehrak.ServiceDefaults;
 
@@ -18,7 +14,12 @@ public static class Extensions
         where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
-        builder.AddDefaultHealthChecks();
+        builder.Services.AddServiceDiscovery();
+        builder.Services.ConfigureHttpClientDefaults(http =>
+        {
+            http.AddStandardResilienceHandler();
+            http.AddServiceDiscovery();
+        });
         return builder;
     }
 
@@ -66,22 +67,6 @@ public static class Extensions
             builder.Services.AddOpenTelemetry()
                 .UseOtlpExporter();
         }
-
-        return builder;
-    }
-
-    public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
-        builder.Services.AddHealthChecks()
-            .AddNpgSql(sp =>
-                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PgConfig>>().Value.ConnectionString,
-                name: "postgres",
-                tags: ["ready"])
-            .AddRedis(sp =>
-                    sp.GetRequiredService<IConnectionMultiplexer>(),
-                name: "redis",
-                tags: ["ready"]);
 
         return builder;
     }
