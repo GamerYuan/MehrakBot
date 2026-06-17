@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.4">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAspireHost>true</IsAspireHost>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Application/Mehrak.Application/Mehrak.Application.csproj" />
+        <ProjectReference Include="../../Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
+        <ProjectReference Include="../../Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+        <ProjectReference Include="../../ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.4" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.4" />
+    </ItemGroup>
+
+</Project>
