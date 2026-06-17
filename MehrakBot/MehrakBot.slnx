@@ -1,13 +1,21 @@
 <Solution>
     <Folder Name="/Common/" />
     <Folder Name="/Services/" />
+    <Folder Name="/Services/AppHost/" />
     <Folder Name="/Services/ImageProcessor/">
         <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
-        <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor.Tests/Mehrak.ImageProcessor.Tests.csproj" />
+        <Project
+            Path="Services/ImageProcessor/Mehrak.ImageProcessor.Tests/Mehrak.ImageProcessor.Tests.csproj" />
     </Folder>
-    <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" Id="4a8793d4-3780-4e79-81c4-0962ab50cf72" />
+    <Folder Name="/Services/MigrationService/">
+        <Project
+            Path="Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
+    </Folder>
+    <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj"
+        Id="4a8793d4-3780-4e79-81c4-0962ab50cf72" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-    <Project Path="Common/Mehrak.GameApi.Tests/Mehrak.GameApi.Tests.csproj" Id="faae925a-7fbc-4bb2-b49c-1b0aaeae6683" />
+    <Project Path="Common/Mehrak.GameApi.Tests/Mehrak.GameApi.Tests.csproj"
+        Id="faae925a-7fbc-4bb2-b49c-1b0aaeae6683" />
     <Project Path="Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
     <Project Path="Common/Mehrak.Infrastructure.Tests/Mehrak.Infrastructure.Tests.csproj" />
     <Project Path="Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
