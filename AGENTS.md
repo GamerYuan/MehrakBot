@@ -59,9 +59,7 @@ MehrakBot/
 
 ## Architecture Gotchas
 
-**Four-process system.** Bot and Dashboard are gRPC clients; Application and ImageProcessor are gRPC servers. All four must run for end-to-end testing. Aspire AppHost orchestrates all of them locally.
-
-**Aspire service discovery.** gRPC clients resolve services by name (e.g., `http://application`). Config-based URIs (`Application:ConnectionString`) still work as fallback for production Docker.
+**Three-process system.** Bot and Dashboard are gRPC clients; Application is the gRPC server. All three must run for end-to-end testing.
 
 **Command dispatch is keyed DI.** Every command needs:
 

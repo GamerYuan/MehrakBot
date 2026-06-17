@@ -56,16 +56,10 @@ The repo root contains Docker/infra configs. The actual .NET solution is in `Meh
 - `Mehrak.Bot` — Console app; Discord entry point using NetCord, auto-discovers command modules
 - `Mehrak.Bot.Generators` — Roslyn source generator (targets `netstandard2.0`)
 - `Mehrak.Dashboard` — ASP.NET Web API; admin dashboard backend with cookie auth
-- `Mehrak.ImageProcessor` — ASP.NET gRPC server; NSFW image classification using ONNX + OpenCvSharp
-
-**Aspire:**
-
-- `Mehrak.AppHost` — Aspire orchestrator; defines infrastructure (PostgreSQL, Redis, SeaweedFS, ClickHouse) and wires all services
-- `Mehrak.ServiceDefaults` — Shared OpenTelemetry, health checks, and service discovery configuration
 
 ### Request Flow
 
-Bot and Dashboard are gRPC clients. Application and ImageProcessor are gRPC servers.
+Bot and Dashboard are gRPC clients. Application is the gRPC server.
 
 ```
 Discord User → Bot Module → CommandExecutorService → gRPC → GrpcApplicationService
@@ -81,7 +75,7 @@ Discord User → Bot Module → CommandExecutorService → gRPC → GrpcApplicat
 
 **Configuration:** `IOptions<T>` pattern with `appsettings.json` + environment-specific overrides. Config classes: `S3StorageConfig`, `RedisConfig`, `PgConfig`, `CommandDispatcherConfig`, `RateLimiterConfig`.
 
-**Observability:** Serilog (Console, File, OpenTelemetry sinks), OpenTelemetry traces/metrics via OTLP, Prometheus via `prometheus-net`, ClickHouse for analytics. OTel is centralized in `Mehrak.ServiceDefaults` — each service calls `AddServiceDefaults()` to get health checks and OTel instrumentation automatically.
+**Observability:** Serilog (Console, File, OpenTelemetry sinks), OpenTelemetry traces/metrics via OTLP, Prometheus via `prometheus-net`, ClickHouse for analytics.
 
 ## Naming Conventions
 
@@ -128,12 +122,11 @@ See `docs/card-service.md` for the full guide. Key rules:
 - **.NET 10.0** (all projects, except source generator targets `netstandard2.0`)
 - **Discord:** NetCord 1.0.0-alpha.461
 - **gRPC:** Grpc.AspNetCore 2.76.0 / Google.Protobuf 3.34.1
-- **Image processing:** SixLabors.ImageSharp 4.0.0 (Application) + OpenCvSharp4 4.11.0 (ImageProcessor)
+- **Image processing:** SixLabors.ImageSharp 3.1.12 + OpenCvSharp4 4.11.0
 - **Database:** PostgreSQL via EF Core + Npgsql
 - **Cache:** StackExchange.Redis
 - **Object storage:** AWSSDK.S3 (backed by SeaweedFS in dev/docker)
 - **Analytics:** ClickHouse
-- **Orchestration:** .NET Aspire (local dev) / Docker Compose (production)
 - **Code formatter:** Dotnet Format Tool
 
 ## Documentation
