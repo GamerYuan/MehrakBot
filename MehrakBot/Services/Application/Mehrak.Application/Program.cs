@@ -93,7 +93,7 @@ public class Program
         builder.Services.AddGrpcClient<Proto.ImageProcessorService.ImageProcessorServiceClient>(options =>
         {
             var address = builder.Configuration["ImageProcessor:ConnectionString"]
-                ?? throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
+                ?? "http://image-processor";
             options.Address = new Uri(address);
         });
 

@@ -192,15 +192,15 @@ public class Program
 
         builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
         {
-            var address = builder.Configuration["Application:ConnectionString"] ??
-                throw new ArgumentException("gRPC Connection String cannot be empty!");
+            var address = builder.Configuration["Application:ConnectionString"]
+                ?? "http://application";
             options.Address = new Uri(address);
         });
 
         builder.Services.AddGrpcClient<ImageProcessorService.ImageProcessorServiceClient>(options =>
         {
-            var address = builder.Configuration["ImageProcessor:ConnectionString"] ??
-                throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
+            var address = builder.Configuration["ImageProcessor:ConnectionString"]
+                ?? "http://image-processor";
             options.Address = new Uri(address);
         });
 

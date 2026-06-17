@@ -114,8 +114,9 @@ public class Program
             builder.Services.AddBotServices();
             builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
             {
-                var address = builder.Configuration["Application:ConnectionString"];
-                options.Address = new Uri(address ?? "http://localhost:5000");
+                var address = builder.Configuration["Application:ConnectionString"]
+                    ?? "http://application";
+                options.Address = new Uri(address);
             });
 
             builder.Services.AddHostedService<UserTrackerBackfillService>();
