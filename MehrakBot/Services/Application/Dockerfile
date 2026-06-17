@@ -1,5 +1,4 @@
-﻿ARG BASE_IMAGE_TAG=opencv-4.12.0-ocvsharp-4.11.0.20250507
-FROM ghcr.io/gameryuan/mehrak-app-base:${BASE_IMAGE_TAG} AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
 
 COPY . .
@@ -20,7 +19,5 @@ RUN --mount=type=secret,id=sixlabors-license \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS app
 WORKDIR /app
 
-COPY --from=build /usr/lib /usr/lib
-COPY --from=build /artifacts /artifacts
 COPY --from=build /app/out /app
 ENTRYPOINT ["/app/Mehrak.Application"]

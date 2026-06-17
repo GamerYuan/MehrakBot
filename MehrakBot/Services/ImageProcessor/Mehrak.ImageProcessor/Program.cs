@@ -65,6 +65,7 @@ public class Program
         builder.Services.Configure<NsfwClassifierOptions>(builder.Configuration.GetSection("NsfwClassifier"));
 
         builder.Services.AddSingleton<INsfwClassifier, NsfwClassifier>();
+        builder.Services.AddSingleton<GenshinWeaponImageProcessor>();
 
         builder.Services.AddGrpc();
 

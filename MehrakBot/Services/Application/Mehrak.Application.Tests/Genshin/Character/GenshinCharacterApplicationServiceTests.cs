@@ -1510,6 +1510,7 @@ public class GenshinCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
+            Mock.Of<IMultiImageProcessor>(),
             Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
@@ -1588,6 +1589,7 @@ public class GenshinCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
+            Mock.Of<IMultiImageProcessor>(),
             Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
 
@@ -1669,6 +1671,7 @@ public class GenshinCharacterApplicationServiceTests
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
             Mock.Of<IUserPortraitService>(),
+            Mock.Of<IMultiImageProcessor>(),
             Options.Create(new CommandDispatcherConfig()),
             Mock.Of<ILogger<GenshinCharacterApplicationService>>());
 

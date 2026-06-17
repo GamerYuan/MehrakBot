@@ -12,6 +12,7 @@ using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
@@ -37,6 +38,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
     private readonly IImageRepository m_ImageRepository;
+    private readonly IMultiImageProcessor m_WeaponImageProcessor;
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
 
 
@@ -52,6 +54,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         IImageRepository imageRepository,
         IApiService<JsonNode, WikiApiContext> wikiApi,
         IAttachmentStorageService attachmentStorageService,
+        [FromKeyedServices(Mehrak.Domain.Shared.Common.CommandName.ImageProcessor.Weapon)] IMultiImageProcessor weaponImageProcessor,
         ILogger<GenshinCharListApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -61,6 +64,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         m_CharacterCache = characterCache;
         m_ImageRepository = imageRepository;
         m_WikiApi = wikiApi;
+        m_WeaponImageProcessor = weaponImageProcessor;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -171,7 +175,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                             return m_ImageUpdaterService.UpdateMultiImageAsync(
                                 new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
                                     [x.Data.Weapon.Icon, x.Url.Data!]),
-                                new GenshinWeaponImageProcessor(),
+                                m_WeaponImageProcessor,
                                 cancellationToken
                             );
                         }

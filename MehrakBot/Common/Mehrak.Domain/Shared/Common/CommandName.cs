@@ -45,4 +45,9 @@ public static class CommandName
     {
         public const string Character = "hi3 battlesuit";
     }
+
+    public static class ImageProcessor
+    {
+        public const string Weapon = "imageprocessor weapon";
+    }
 }

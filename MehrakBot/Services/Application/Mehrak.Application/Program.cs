@@ -12,6 +12,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
+using Proto = Mehrak.Domain.Protobuf;
 
 public class Program
 {
@@ -87,6 +88,14 @@ public class Program
         builder.Services.AddGameApiServices();
         builder.Services.AddInfrastructureServices();
         builder.Services.AddApplicationServices();
+
+        builder.Services.AddGrpcClient<Proto.ImageProcessorService.ImageProcessorServiceClient>(options =>
+        {
+            var address = builder.Configuration["ImageProcessor:ConnectionString"]
+                ?? throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
+            options.Address = new Uri(address);
+        });
+
         builder.Services.AddSingleton<CommandDispatcher>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<CommandDispatcher>());
 

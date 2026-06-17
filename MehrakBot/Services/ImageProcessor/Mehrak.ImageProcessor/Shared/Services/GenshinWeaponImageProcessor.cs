@@ -1,15 +1,12 @@
-﻿using Mehrak.Domain.Image.Abstractions;
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using OpenCvSharp.Features2D;
 using OpenCvSharp.Flann;
 
-namespace Mehrak.Application.Genshin;
+namespace Mehrak.ImageProcessor.Shared.Services;
 
-internal class GenshinWeaponImageProcessor : IMultiImageProcessor
+public class GenshinWeaponImageProcessor
 {
-    public bool ShouldProcess => true;
-
-    public Stream ProcessImage(IEnumerable<Stream> images)
+    public virtual Stream ProcessImage(IEnumerable<Stream> images)
     {
         if (images.Count() < 2)
         {

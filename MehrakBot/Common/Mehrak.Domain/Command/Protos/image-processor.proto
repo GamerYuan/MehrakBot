@@ -14,6 +14,15 @@ message ClassifyResponse {
   float sfw_confidence = 3;
 }
 
+message ProcessWeaponImageRequest {
+  repeated bytes images = 1;
+}
+
+message ProcessWeaponImageResponse {
+  bytes processed_image = 1;
+}
+
 service ImageProcessorService {
   rpc ClassifyImage (ClassifyRequest) returns (ClassifyResponse);
+  rpc ProcessWeaponImage (ProcessWeaponImageRequest) returns (ProcessWeaponImageResponse);
 }

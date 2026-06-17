@@ -15,7 +15,9 @@ using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Image.Models;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -50,6 +52,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IMultiImageProcessor m_WeaponImageProcessor;
     private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
 
 
@@ -70,6 +73,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         IAttachmentStorageService attachmentStorage,
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
+        [FromKeyedServices(Mehrak.Domain.Shared.Common.CommandName.ImageProcessor.Weapon)] IMultiImageProcessor weaponImageProcessor,
         IOptions<CommandDispatcherConfig> dispatcherConfig,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
@@ -85,6 +89,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_CharacterStatService = characterStatService;
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
+        m_WeaponImageProcessor = weaponImageProcessor;
         m_DispatcherConfig = dispatcherConfig;
     }
 
@@ -309,7 +314,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                         await m_ImageUpdaterService.UpdateMultiImageAsync(
                             new MultiImageData(charData.Weapon.ToAscendedImageName(),
                                 [charData.Weapon.Icon, weapImage.Data]),
-                            new GenshinWeaponImageProcessor(),
+                            m_WeaponImageProcessor,
                             cancellationToken
                         );
                     }
