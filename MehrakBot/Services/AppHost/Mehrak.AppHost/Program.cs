@@ -1,4 +1,7 @@
-﻿var builder = DistributedApplication.CreateBuilder(args);
+﻿using System.Net.Sockets;
+using Google.Protobuf.WellKnownTypes;
+
+var builder = DistributedApplication.CreateBuilder(args);
 
 // --- Secrets / Parameters ---
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
@@ -70,7 +73,10 @@ var migrationService = builder.AddProject<Projects.Mehrak_MigrationService>("mig
 var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
     .WaitFor(seaweedS3);
 
-var application = builder.AddProject<Projects.Mehrak_Application>("application")
+var application = builder.AddProject<Projects.Mehrak_Application>("application", options =>
+    {
+        options.ExcludeKestrelEndpoints = true;
+    })
     .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(imageProcessor)
@@ -95,7 +101,10 @@ var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
     .WaitFor(redis)
     .WaitFor(application);
 
-var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
+var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard", options =>
+    {
+        options.ExcludeKestrelEndpoints = true;
+    })
     .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(application)
@@ -105,6 +114,7 @@ var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
     .WithEnvironment("SeaweedFiler__BaseUrl", "http://localhost:8888")
     .WithEnvironment("Dashboard__AdminDiscordId", dashboardAdminDiscordId)
     .WithEnvironment("Dashboard__Origin", dashboardOrigin)
+    .WithEndpoint(port: 5000, targetPort: 5000, isProxied: false)
     .WaitFor(mehrakdb)
     .WaitFor(redis)
     .WaitFor(application)
