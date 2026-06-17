@@ -18,4 +18,5 @@
     <Project Path="Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+    <Project Path="Services/AppHost/Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
 </Solution>

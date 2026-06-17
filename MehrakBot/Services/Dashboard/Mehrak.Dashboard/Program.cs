@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
@@ -15,14 +15,12 @@ using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Client;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -35,6 +33,8 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
 
         if (builder.Environment.IsDevelopment())
         {
@@ -67,7 +67,9 @@ public class Program
             )
             .WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                    ?? builder.Configuration["Otlp:Endpoint"]
+                    ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -204,28 +206,6 @@ public class Program
 
         builder.Services.AddSingleton<IImageClassificationService, ImageClassificationGrpcClient>();
 
-        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource
-                .AddService(serviceName: "MehrakDashboard", serviceInstanceId: Environment.MachineName))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddGrpcClientInstrumentation()
-                .AddSource("MehrakDashboard")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddMeter("MehrakDashboard")
-                .AddOtlpExporter((o, m) =>
-                {
-                    o.Endpoint = otlpEndpoint;
-                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                }));
-
         builder.Services.AddDashboardApplicationExecutor();
 
         var cookieDomain = new Uri(builder.Configuration["Dashboard:Origin"]
@@ -357,6 +337,7 @@ public class Program
         app.UseRateLimiter();
         app.MapControllers();
         app.MapReverseProxy();
+        app.MapDefaultEndpoints();
 
         await app.RunAsync();
     }

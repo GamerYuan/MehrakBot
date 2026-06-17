@@ -1,5 +1,3 @@
-﻿#region
-
 using System.Globalization;
 using Mehrak.Bot.Shared.Modules;
 using Mehrak.Bot.Shared.Services;
@@ -7,6 +5,7 @@ using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,15 +17,10 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Extensions;
 using Serilog.Sinks.OpenTelemetry;
-
-#endregion
 
 namespace Mehrak.Bot;
 
@@ -47,6 +41,8 @@ public class Program
             .Build();
 
         var builder = Host.CreateApplicationBuilder(args);
+
+        builder.AddServiceDefaults();
 
         if (builder.Environment.IsDevelopment())
         {
@@ -83,7 +79,9 @@ public class Program
             )
             .WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                    ?? builder.Configuration["Otlp:Endpoint"]
+                    ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -121,28 +119,6 @@ public class Program
             });
 
             builder.Services.AddHostedService<UserTrackerBackfillService>();
-
-            var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
-
-            builder.Services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource
-                    .AddService(serviceName: "MehrakBot", serviceInstanceId: Environment.MachineName))
-                .WithTracing(tracing => tracing
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddGrpcClientInstrumentation()
-                    .AddSource("MehrakBot")
-                    .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
-                .WithMetrics(metrics => metrics
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation()
-                    .AddMeter("MehrakBot")
-                    .AddOtlpExporter((o, m) =>
-                    {
-                        o.Endpoint = otlpEndpoint;
-                        m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                    }));
 
             builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
                 new CustomCommandResultHandler<ApplicationCommandContext>())

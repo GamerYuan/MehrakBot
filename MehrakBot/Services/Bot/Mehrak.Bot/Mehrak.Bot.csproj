@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -54,6 +54,7 @@
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+        <ProjectReference Include="../../AppHost/Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
     </ItemGroup>
 
     <ItemGroup>
