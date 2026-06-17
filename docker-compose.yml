@@ -21,12 +21,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Production
       - Discord__Token=${DISCORD_TOKEN}
-      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
-      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ClickHouse__Username=${CLICKHOUSE_USER}
       - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
-      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -56,12 +56,12 @@ services:
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
       - Dashboard__Origin=${DASHBOARD_ORIGIN}
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
-      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
-      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
+      - ConnectionStrings__image-processor=http://image-processor:13000
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
-      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
-      - ImageProcessor__ConnectionString=http://image-processor:13000
 
   application:
     image: mehrak-application:latest
@@ -84,10 +84,9 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - Redis__ConnectionString=redis:6379,password=${REDIS_PASSWORD}
-      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
-      - Application__ConnectionString=${APPLICATION_CONNECTION_STRING}
 
   image-processor:
     image: mehrak-image-processor:latest

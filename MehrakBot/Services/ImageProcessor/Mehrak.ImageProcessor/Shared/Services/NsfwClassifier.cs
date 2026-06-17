@@ -35,7 +35,7 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
         m_Logger = logger;
         m_NsfwThreshold = options.Value.NsfwThreshold;
 
-        var modelPath = Path.GetFullPath(options.Value.ModelPath);
+        var modelPath = Path.Combine(AppContext.BaseDirectory, options.Value.ModelPath);
         if (!File.Exists(modelPath))
             throw new FileNotFoundException($"NSFW classification model not found at: {modelPath}");
 

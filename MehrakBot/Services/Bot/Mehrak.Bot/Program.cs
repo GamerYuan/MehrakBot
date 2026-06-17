@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Mehrak.Bot.Shared.Modules;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetCord;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
@@ -105,8 +106,13 @@ public class Program
 
             // Database Services
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
-            builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
-            builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+            builder.Services.Configure<RedisConfig>(options =>
+            {
+                options.ConnectionString = builder.Configuration.GetConnectionString("redis") ?? options.ConnectionString;
+                options.InstanceName = builder.Configuration.GetValue<string>("Redis:InstanceName") ?? "Mehrak_";
+            });
+            builder.Services.Configure<PgConfig>(options =>
+                options.ConnectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? options.ConnectionString);
             builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
             builder.Services.Configure<RateLimiterConfig>(builder.Configuration.GetSection("RateLimit"));
 
@@ -114,8 +120,7 @@ public class Program
             builder.Services.AddBotServices();
             builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
             {
-                var address = builder.Configuration["Application:ConnectionString"]
-                    ?? "http://application";
+                var address = builder.Configuration.GetConnectionString("application") ?? "http://application";
                 options.Address = new Uri(address);
             });
 

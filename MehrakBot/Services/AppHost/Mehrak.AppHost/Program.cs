@@ -1,4 +1,4 @@
-var builder = DistributedApplication.CreateBuilder(args);
+﻿var builder = DistributedApplication.CreateBuilder(args);
 
 // --- Secrets / Parameters ---
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
@@ -14,9 +14,11 @@ var dashboardOrigin = builder.AddParameter("dashboard-origin");
 
 var postgres = builder.AddPostgres("postgres", password: postgresPassword)
     .WithLifetime(ContainerLifetime.Persistent)
+    .WithDataVolume()
     .AddDatabase("mehrakdb", databaseName: "mehrak_dev");
 
 var redis = builder.AddRedis("redis", password: redisPassword)
+    .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
 // SeaweedFS cluster
@@ -45,6 +47,7 @@ var seaweedS3 = builder.AddContainer("seaweed-s3", "chrislusf/seaweedfs", "4.13"
     .WithArgs("s3", "-filer=seaweed-filer:8888", "-ip.bind=0.0.0.0", "-port=8333", "-config=/etc/seaweedfs/s3.json")
     .WithEndpoint(port: 8333, targetPort: 8333, name: "s3")
     .WithLifetime(ContainerLifetime.Persistent)
+    .WithBindMount("seaweed-s3/s3.json", "/etc/seaweedfs/s3.json")
     .WaitFor(seaweedFiler);
 
 // ClickHouse
@@ -58,17 +61,17 @@ var clickhouse = builder.AddContainer("clickhouse", "clickhouse/clickhouse-serve
 
 // --- Application Services ---
 
+var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
+    .WaitFor(seaweedS3);
+
 var application = builder.AddProject<Projects.Mehrak_Application>("application")
     .WithReference(postgres)
     .WithReference(redis)
+    .WithReference(imageProcessor)
     .WithEnvironment("Storage__ServiceURL", "http://seaweed-s3:8333")
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
-    .WithEnvironment("ImageProcessor__ConnectionString", "http://image-processor:13000")
     .WaitFor(postgres)
     .WaitFor(redis)
-    .WaitFor(seaweedS3);
-
-var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
     .WaitFor(seaweedS3);
 
 var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
@@ -95,7 +98,6 @@ var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard")
     .WithEnvironment("SeaweedFiler__BaseUrl", "http://seaweed-filer:8888")
     .WithEnvironment("Dashboard__AdminDiscordId", dashboardAdminDiscordId)
     .WithEnvironment("Dashboard__Origin", dashboardOrigin)
-    .WithEnvironment("ImageProcessor__ConnectionString", "http://image-processor:13000")
     .WaitFor(postgres)
     .WaitFor(redis)
     .WaitFor(application)

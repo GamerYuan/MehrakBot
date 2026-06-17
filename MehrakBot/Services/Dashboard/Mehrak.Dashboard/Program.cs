@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
@@ -91,8 +91,13 @@ public class Program
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<UserPortraitStorageConfig>(builder.Configuration.GetSection("UserPortraitStorage"));
 
-        builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
-        builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+        builder.Services.Configure<RedisConfig>(options =>
+        {
+            options.ConnectionString = builder.Configuration.GetConnectionString("redis") ?? options.ConnectionString;
+            options.InstanceName = builder.Configuration.GetValue<string>("Redis:InstanceName") ?? "Mehrak_";
+        });
+        builder.Services.Configure<PgConfig>(options =>
+            options.ConnectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? options.ConnectionString);
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
@@ -192,15 +197,13 @@ public class Program
 
         builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
         {
-            var address = builder.Configuration["Application:ConnectionString"]
-                ?? "http://application";
+            var address = builder.Configuration.GetConnectionString("application") ?? "http://application";
             options.Address = new Uri(address);
         });
 
         builder.Services.AddGrpcClient<ImageProcessorService.ImageProcessorServiceClient>(options =>
         {
-            var address = builder.Configuration["ImageProcessor:ConnectionString"]
-                ?? "http://image-processor";
+            var address = builder.Configuration.GetConnectionString("image-processor") ?? "http://image-processor";
             options.Address = new Uri(address);
         });
 
