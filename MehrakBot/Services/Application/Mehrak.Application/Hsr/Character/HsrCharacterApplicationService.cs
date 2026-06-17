@@ -47,7 +47,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterApi;
 
     private readonly IApplicationMetrics m_MetricsService;
-    private readonly IDbContextFactory<RelicDbContext> m_RelicContextFactory;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
     private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
@@ -66,7 +66,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
-        IDbContextFactory<RelicDbContext> relicContextFactory,
+        IServiceScopeFactory scopeFactory,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
@@ -81,7 +81,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_AliasService = aliasService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
-        m_RelicContextFactory = relicContextFactory;
+        m_ScopeFactory = scopeFactory;
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
         m_DispatcherConfig = dispatcherConfig;
@@ -437,7 +437,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         {
             try
             {
-                await using var relicContext = await m_RelicContextFactory.CreateDbContextAsync();
+                using var scope = m_ScopeFactory.CreateScope();
+                await using var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
                 var existing = await relicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
                 if (existing == null)
                 {
