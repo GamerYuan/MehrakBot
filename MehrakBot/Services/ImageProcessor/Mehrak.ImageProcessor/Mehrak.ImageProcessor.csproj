@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-        <ProjectReference Include="../../AppHost/Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
+        <ProjectReference Include="../../Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
     </ItemGroup>
 
     <ItemGroup>

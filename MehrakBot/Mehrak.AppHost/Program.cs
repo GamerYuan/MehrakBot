@@ -47,7 +47,7 @@ var seaweedS3 = builder.AddContainer("seaweed-s3", "chrislusf/seaweedfs", "4.13"
     .WithArgs("s3", "-filer=seaweed-filer:8888", "-ip.bind=0.0.0.0", "-port=8333", "-config=/etc/seaweedfs/s3.json")
     .WithEndpoint(port: 8333, targetPort: 8333, name: "s3")
     .WithLifetime(ContainerLifetime.Persistent)
-    .WithBindMount("seaweed-s3/s3.json", "/etc/seaweedfs/s3.json")
+    .WithBindMount("../../seaweed-s3/s3.json", "/etc/seaweedfs/s3.json")
     .WaitFor(seaweedFiler);
 
 // ClickHouse

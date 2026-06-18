@@ -26,7 +26,7 @@
 
     <ItemGroup>
         <ProjectReference
-            Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+            Include="../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

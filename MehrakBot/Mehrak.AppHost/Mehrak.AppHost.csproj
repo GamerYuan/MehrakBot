@@ -10,12 +10,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../../Application/Mehrak.Application/Mehrak.Application.csproj" />
-        <ProjectReference Include="../../Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
-        <ProjectReference Include="../../Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
-        <ProjectReference Include="../../ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
         <ProjectReference
-            Include="../../MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
+            Include="../Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
+        <ProjectReference Include="../Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
+        <ProjectReference
+            Include="../Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+        <ProjectReference
+            Include="../Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+        <ProjectReference
+            Include="../Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
     </ItemGroup>
 
     <ItemGroup>

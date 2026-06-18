@@ -1,6 +1,6 @@
 {
   "$schema": "https://aspire.dev/reference/cli/configuration/schema.json",
   "appHost": {
-    "path": "MehrakBot/Services/AppHost/Mehrak.AppHost/Mehrak.AppHost.csproj"
+    "path": "./MehrakBot/Mehrak.AppHost/Mehrak.AppHost.csproj"
   }
 }
