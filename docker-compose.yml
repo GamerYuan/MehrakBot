@@ -52,8 +52,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://*:5000
-      - Dashboard__AdminUsername=${DASHBOARD_ADMIN_USERNAME}
-      - Dashboard__AdminPassword=${DASHBOARD_ADMIN_PASSWORD}
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
       - Dashboard__Origin=${DASHBOARD_ORIGIN}
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
