@@ -7,6 +7,7 @@ using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
+using OpenTelemetry.Metrics;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -19,6 +20,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddMeter("MehrakApplication"));
 
         if (builder.Environment.IsDevelopment())
         {

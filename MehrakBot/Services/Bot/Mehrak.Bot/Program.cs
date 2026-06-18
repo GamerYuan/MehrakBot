@@ -7,6 +7,7 @@ using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
+using OpenTelemetry.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,6 +44,7 @@ public class Program
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddMeter("MehrakBot"));
 
         if (builder.Environment.IsDevelopment())
         {
