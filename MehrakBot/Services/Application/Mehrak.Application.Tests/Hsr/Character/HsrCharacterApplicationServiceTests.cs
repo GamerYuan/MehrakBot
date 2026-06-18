@@ -1334,7 +1334,7 @@ public class HsrCharacterApplicationServiceTests
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.Setup(x => x.ServiceProvider.GetService(typeof(RelicDbContext)))
-            .Returns(relicContext);
+            .Returns(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
         scopeFactoryMock.Setup(x => x.CreateScope())
             .Returns(() => scopeMock.Object);
 
@@ -1380,7 +1380,7 @@ public class HsrCharacterApplicationServiceTests
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.Setup(x => x.ServiceProvider.GetService(typeof(RelicDbContext)))
-            .Returns(relicContext);
+            .Returns(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
         scopeFactoryMock.Setup(x => x.CreateScope())
             .Returns(() => scopeMock.Object);
 
@@ -1465,7 +1465,7 @@ public class HsrCharacterApplicationServiceTests
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.Setup(x => x.ServiceProvider.GetService(typeof(RelicDbContext)))
-            .Returns(relicContext);
+            .Returns(() => m_DbFactory2.CreateDbContext<RelicDbContext>());
         scopeFactoryMock.Setup(x => x.CreateScope())
             .Returns(() => scopeMock.Object);
 
