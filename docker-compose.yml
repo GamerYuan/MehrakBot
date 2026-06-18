@@ -51,6 +51,7 @@ services:
       - seaweed-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:5000
       - Dashboard__AdminUsername=${DASHBOARD_ADMIN_USERNAME}
       - Dashboard__AdminPassword=${DASHBOARD_ADMIN_PASSWORD}
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
@@ -59,7 +60,7 @@ services:
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
-      - ConnectionStrings__image-processor=http://image-processor:13000
+      - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
 
@@ -84,8 +85,10 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:12000
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
 
   image-processor:
@@ -103,6 +106,7 @@ services:
       - mehrak-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:13000
       - NsfwClassifier__NsfwThreshold=${NSFW_THRESHOLD:-0.7}
 
   postgres:

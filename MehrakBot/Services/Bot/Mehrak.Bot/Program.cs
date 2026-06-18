@@ -119,7 +119,8 @@ public class Program
             builder.Services.AddBotServices();
             builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
             {
-                var address = builder.Configuration.GetConnectionString("application") ?? "http://application";
+                var address = builder.Configuration.GetConnectionString("application") ??
+                    throw new InvalidOperationException("Application service connection string is not configured.");
                 options.Address = new Uri(address);
             });
 

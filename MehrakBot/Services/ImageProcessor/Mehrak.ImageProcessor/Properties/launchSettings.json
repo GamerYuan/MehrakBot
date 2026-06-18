@@ -4,10 +4,10 @@
       "commandName": "Project",
       "workingDirectory": "bin\\Debug\\net10.0",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
       },
-      "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:55825;http://localhost:55826"
+      "applicationUrl": "http://localahost:13000",
+      "dotnetRunMessages": true
     }
   }
 }

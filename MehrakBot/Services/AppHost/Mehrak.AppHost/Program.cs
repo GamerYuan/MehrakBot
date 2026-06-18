@@ -1,7 +1,4 @@
-﻿using System.Net.Sockets;
-using Google.Protobuf.WellKnownTypes;
-
-var builder = DistributedApplication.CreateBuilder(args);
+﻿var builder = DistributedApplication.CreateBuilder(args);
 
 // --- Secrets / Parameters ---
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
@@ -70,13 +67,12 @@ var migrationService = builder.AddProject<Projects.Mehrak_MigrationService>("mig
     .WaitFor(mehrakdb)
     .WaitFor(redis);
 
-var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor")
+var imageProcessor = builder.AddProject<Projects.Mehrak_ImageProcessor>("image-processor", launchProfileName: "Mehrak.ImageProcessor")
+    .WithHttpEndpoint()
     .WaitFor(seaweedS3);
 
-var application = builder.AddProject<Projects.Mehrak_Application>("application", options =>
-    {
-        options.ExcludeKestrelEndpoints = true;
-    })
+var application = builder.AddProject<Projects.Mehrak_Application>("application", launchProfileName: "Mehrak.Application")
+    .WithHttpEndpoint()
     .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(imageProcessor)
@@ -101,10 +97,8 @@ var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
     .WaitFor(redis)
     .WaitFor(application);
 
-var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard", options =>
-    {
-        options.ExcludeKestrelEndpoints = true;
-    })
+var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard", launchProfileName: "Mehrak.Dashboard")
+    .WithHttpEndpoint()
     .WithReference(mehrakdb)
     .WithReference(redis)
     .WithReference(application)
@@ -117,7 +111,6 @@ var dashboard = builder.AddProject<Projects.Mehrak_Dashboard>("dashboard", optio
     .WithEndpoint(port: 5000, targetPort: 5000, isProxied: false)
     .WaitFor(mehrakdb)
     .WaitFor(redis)
-    .WaitFor(application)
-    .WaitFor(imageProcessor);
+    .WaitFor(application);
 
 builder.Build().Run();
