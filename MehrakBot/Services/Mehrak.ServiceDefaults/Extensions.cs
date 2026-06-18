@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -83,6 +84,14 @@ public static class Extensions
     {
         builder.Services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+
+        var pgConn = builder.Configuration.GetConnectionString("mehrakdb");
+        if (!string.IsNullOrWhiteSpace(pgConn))
+            builder.Services.AddHealthChecks().AddNpgSql(pgConn, tags: ["ready"]);
+
+        var redisConn = builder.Configuration.GetConnectionString("redis");
+        if (!string.IsNullOrWhiteSpace(redisConn))
+            builder.Services.AddHealthChecks().AddRedis(redisConn, tags: ["ready"]);
 
         return builder;
     }

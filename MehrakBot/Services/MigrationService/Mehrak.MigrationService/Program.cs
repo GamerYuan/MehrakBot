@@ -13,8 +13,6 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-Console.WriteLine(builder.Configuration);
-
 var connectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? throw new InvalidOperationException("Postgres connection string is not configured.");
 
 builder.Services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
