@@ -17,14 +17,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: francisbilham11/action-cached-lfs-checkout@v3.6
         with:
-          lfs: true
           submodules: recursive
           token: ${{ secrets.ASSETS_PAT }}
-
-      - name: Checkout LFS
-        run: git lfs pull
 
       - name: Setup SixLabors License
         env:
