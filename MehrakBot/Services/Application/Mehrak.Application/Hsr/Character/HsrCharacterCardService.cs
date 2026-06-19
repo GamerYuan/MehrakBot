@@ -281,7 +281,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                }, extraText: context.PortraitConfig?.ArtistAttribution != null ? $"Cre: {context.PortraitConfig.ArtistAttribution}" : null);
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 for (var i = 0; i < ranks.Length; i++)
                 {
