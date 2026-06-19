@@ -151,9 +151,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                         Name = characterName,
                         OffsetX = update.OffsetX,
                         OffsetY = update.OffsetY,
-                        TargetScale = update.TargetScale,
-                        EnableGradientFade = update.EnableGradientFade,
-                        GradientFadeStart = update.GradientFadeStart
+                        TargetScale = update.TargetScale
                     };
                     context.CharacterPortraitConfigs.Add(entity);
                 }
@@ -163,8 +161,6 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     entity.OffsetX = update.OffsetX;
                     entity.OffsetY = update.OffsetY;
                     entity.TargetScale = update.TargetScale;
-                    entity.EnableGradientFade = update.EnableGradientFade;
-                    entity.GradientFadeStart = update.GradientFadeStart;
                 }
 
                 await context.SaveChangesAsync();
@@ -214,9 +210,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             ServerId = entity.ServerId,
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
-            TargetScale = entity.TargetScale,
-            EnableGradientFade = entity.EnableGradientFade,
-            GradientFadeStart = entity.GradientFadeStart
+            TargetScale = entity.TargetScale
         };
     }
 
@@ -227,9 +221,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             ServerId = cache.ServerId,
             OffsetX = cache.OffsetX,
             OffsetY = cache.OffsetY,
-            TargetScale = cache.TargetScale,
-            EnableGradientFade = cache.EnableGradientFade,
-            GradientFadeStart = cache.GradientFadeStart
+            TargetScale = cache.TargetScale
         };
     }
 
@@ -240,9 +232,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             ServerId = entity.ServerId,
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
-            TargetScale = entity.TargetScale,
-            EnableGradientFade = entity.EnableGradientFade,
-            GradientFadeStart = entity.GradientFadeStart
+            TargetScale = entity.TargetScale
         };
     }
 
@@ -252,7 +242,5 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         public int? OffsetX { get; set; }
         public int? OffsetY { get; set; }
         public float? TargetScale { get; set; }
-        public bool? EnableGradientFade { get; set; }
-        public float? GradientFadeStart { get; set; }
     }
 }

@@ -43,6 +43,9 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     protected override int DefaultPortraitWidth => 960;
     protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
 
+    private const int FadeX = 680;
+    private const int FadeWidth = 120;
+
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
         : base("Hi3 Character", imageRepository, logger, metrics, LoadFonts("Assets/Fonts/hsr.ttf", 36, 28, smallSize: 18))
@@ -79,6 +82,14 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
         }
 
         Image characterImage = await LoadPortraitAsync(context, LoadStockHi3Portrait, disposables, cancellationToken);
+
+        {
+            var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+            var scaledImageMinX = 350 - characterImage.Width / 2 + offsetX;
+            var fadeStart = FadeX - scaledImageMinX;
+            var fadeEnd = fadeStart + FadeWidth;
+            characterImage.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd));
+        }
 
         var weaponImage = await LoadImageFromRepositoryAsync(
             characterInformation.Weapon.ToImageName(), disposables, cancellationToken);

@@ -21,8 +21,6 @@ public class UserPortraitConfigDto
     public int? OffsetX { get; init; }
     public int? OffsetY { get; init; }
     public float? TargetScale { get; init; }
-    public bool? EnableGradientFade { get; init; }
-    public float? GradientFadeStart { get; init; }
 }
 
 public class UploadPortraitResult

@@ -42,7 +42,9 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
 
     protected override int DefaultPortraitWidth => 1400;
     protected override IResampler PortraitResampler => KnownResamplers.Bicubic;
-    protected override bool DefaultEnableGradientFade => true;
+
+    private const int FadeX = 1150;
+    private const int FadeWidth = 250;
 
     public GenshinCharacterCardService(IImageRepository imageRepository,
         ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
@@ -136,6 +138,14 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
             () => LoadImageFromRepositoryAsync<Rgba32>(
                 charInfo.Base.ToImageName(), disposables, cancellationToken),
             disposables, cancellationToken);
+
+        {
+            var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+            var scaledImageMinX = (1280 - characterPortrait.Width) / 2 + offsetX;
+            var fadeStart = FadeX - scaledImageMinX;
+            var fadeEnd = fadeStart + FadeWidth;
+            characterPortrait.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd));
+        }
 
         Task<Image<Rgba32>> weaponImageTask;
 

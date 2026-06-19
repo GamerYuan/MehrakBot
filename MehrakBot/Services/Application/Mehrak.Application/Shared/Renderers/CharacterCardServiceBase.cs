@@ -2,7 +2,6 @@
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers.Extensions;
-using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.User.Abstractions;
@@ -18,14 +17,11 @@ namespace Mehrak.Application.Shared.Renderers;
 
 /// <summary>
 /// Base for character card services. Deduplicates the load-decision (user-uploaded portrait
-/// stream vs stock repository image) and the resize/gradient-fade mutate step that each
-/// game previously copy-pasted. Per-game behavior is configured via the protected abstract
-/// properties.
+/// stream vs stock repository image) and the resize step that each game previously
+/// copy-pasted. Per-game behavior is configured via the protected abstract properties.
 /// </summary>
 public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
 {
-    private const float DefaultGradientFadeStart = 0.75f;
-
     protected CharacterCardServiceBase(
         string cardTypeName,
         IImageRepository imageRepository,
@@ -42,16 +38,10 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
     protected abstract IResampler PortraitResampler { get; }
 
     /// <summary>
-    /// Whether gradient fade is applied when the portrait config does not specify a value.
-    /// Genshin enables it by default; other games do not.
-    /// </summary>
-    protected virtual bool DefaultEnableGradientFade => false;
-
-    /// <summary>
     /// Loads the character portrait — either the user's uploaded image (when
     /// <see cref="ICardGenerationContext{TData}.PortraitImageStream"/> is set) or the stock
-    /// image produced by <paramref name="loadStockImage"/> — then applies resize and
-    /// optional gradient fade from <paramref name="context"/>'s portrait config.
+    /// image produced by <paramref name="loadStockImage"/> — then applies resize from
+    /// <paramref name="context"/>'s portrait config.
     /// </summary>
     protected async Task<Image> LoadPortraitAsync(
         ICardGenerationContext<TData> context,
@@ -111,9 +101,5 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
         {
             ctx.Resize(DefaultPortraitWidth, 0, PortraitResampler);
         }
-
-        var enableFade = config?.EnableGradientFade ?? DefaultEnableGradientFade;
-        if (enableFade && (config?.GradientFadeStart ?? DefaultGradientFadeStart) > 0f)
-            ctx.ApplyGradientFade(config?.GradientFadeStart ?? DefaultGradientFadeStart);
     }
 }

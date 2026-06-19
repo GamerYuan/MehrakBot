@@ -104,8 +104,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity.OffsetX, Is.Null);
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.Null);
-        Assert.That(entity.EnableGradientFade, Is.Null);
-        Assert.That(entity.GradientFadeStart, Is.Null);
     }
 
     #endregion
@@ -124,8 +122,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         var update = new CharacterPortraitConfigUpdate
         {
             OffsetX = 10,
-            TargetScale = 1.5f,
-            EnableGradientFade = true
+            TargetScale = 1.5f
         };
 
         var result = await m_Service.UpsertConfigAsync(Game.HonkaiStarRail, 200, update);
@@ -140,8 +137,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity!.OffsetX, Is.EqualTo(10));
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.EqualTo(1.5f));
-        Assert.That(entity.EnableGradientFade, Is.True);
-        Assert.That(entity.GradientFadeStart, Is.Null);
     }
 
     #endregion
@@ -161,9 +156,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             OffsetX = 5,
             OffsetY = -3,
-            TargetScale = 2.0f,
-            EnableGradientFade = true,
-            GradientFadeStart = 0.5f
+            TargetScale = 2.0f
         };
         await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 300, initialUpdate);
 
@@ -178,8 +171,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity!.OffsetX, Is.Null);
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.Null);
-        Assert.That(entity.EnableGradientFade, Is.Null);
-        Assert.That(entity.GradientFadeStart, Is.Null);
     }
 
     #endregion
@@ -252,9 +243,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             OffsetX = -15,
             OffsetY = 20,
-            TargetScale = 3.5f,
-            EnableGradientFade = false,
-            GradientFadeStart = 0.9f
+            TargetScale = 3.5f
         };
 
         var result = await m_Service.UpsertConfigAsync(Game.HonkaiImpact3, 500, update);
@@ -270,8 +259,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
             Assert.That(entity.OffsetX, Is.EqualTo(-15));
             Assert.That(entity.OffsetY, Is.EqualTo(20));
             Assert.That(entity.TargetScale, Is.EqualTo(3.5f));
-            Assert.That(entity.EnableGradientFade, Is.False);
-            Assert.That(entity.GradientFadeStart, Is.EqualTo(0.9f));
         });
     }
 
@@ -326,8 +313,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         var update = new CharacterPortraitConfigUpdate
         {
             OffsetX = 10,
-            TargetScale = 2.0f,
-            EnableGradientFade = true
+            TargetScale = 2.0f
         };
 
         await m_Service.UpsertConfigAsync(Game.Genshin, 700, update);
@@ -341,7 +327,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             Assert.That(entity.OffsetX, Is.EqualTo(10));
             Assert.That(entity.TargetScale, Is.EqualTo(2.0f));
-            Assert.That(entity.EnableGradientFade, Is.True);
         });
     }
 

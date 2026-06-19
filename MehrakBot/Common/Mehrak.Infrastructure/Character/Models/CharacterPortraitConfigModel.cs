@@ -21,6 +21,4 @@ public class CharacterPortraitConfigModel
     public int? OffsetX { get; set; }
     public int? OffsetY { get; set; }
     public float? TargetScale { get; set; }
-    public bool? EnableGradientFade { get; set; }
-    public float? GradientFadeStart { get; set; }
 }

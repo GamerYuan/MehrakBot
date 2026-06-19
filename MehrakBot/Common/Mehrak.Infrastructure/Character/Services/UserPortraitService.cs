@@ -268,8 +268,6 @@ internal class UserPortraitService : IUserPortraitService
         entity.Config.OffsetX = config.OffsetX;
         entity.Config.OffsetY = config.OffsetY;
         entity.Config.TargetScale = config.TargetScale;
-        entity.Config.EnableGradientFade = config.EnableGradientFade;
-        entity.Config.GradientFadeStart = config.GradientFadeStart;
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         try
@@ -392,9 +390,7 @@ internal class UserPortraitService : IUserPortraitService
             {
                 OffsetX = entity.Config.OffsetX,
                 OffsetY = entity.Config.OffsetY,
-                TargetScale = entity.Config.TargetScale,
-                EnableGradientFade = entity.Config.EnableGradientFade,
-                GradientFadeStart = entity.Config.GradientFadeStart
+                TargetScale = entity.Config.TargetScale
             }
         };
     }
