@@ -62,7 +62,8 @@ public static class PortraitResolutionHelper
     {
         OffsetX = dto.OffsetX,
         OffsetY = dto.OffsetY,
-        TargetScale = dto.TargetScale
+        TargetScale = dto.TargetScale,
+        FlipX = dto.FlipX
     };
 }
 

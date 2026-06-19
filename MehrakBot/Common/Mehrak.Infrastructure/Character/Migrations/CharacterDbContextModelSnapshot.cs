@@ -89,6 +89,9 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool?>("FlipX")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Game")
                         .HasColumnType("integer");
 
@@ -144,6 +147,9 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool?>("FlipX")
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("OffsetX")
                         .HasColumnType("integer");

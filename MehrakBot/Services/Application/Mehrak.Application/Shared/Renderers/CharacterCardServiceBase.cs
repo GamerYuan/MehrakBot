@@ -101,5 +101,8 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
         {
             ctx.Resize(DefaultPortraitWidth, 0, PortraitResampler);
         }
+
+        if (config?.FlipX == true)
+            ctx.Flip(FlipMode.Horizontal);
     }
 }

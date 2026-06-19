@@ -5,31 +5,51 @@
 namespace Mehrak.Infrastructure.Migrations.CharacterDb
 {
     /// <inheritdoc />
-    public partial class RemoveGradientFade : Migration
+    public partial class UpdatePortraitConfig : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "EnableGradientFade",
+                name: "GradientFadeStart",
                 table: "UserPortraitConfigs");
 
             migrationBuilder.DropColumn(
                 name: "GradientFadeStart",
+                table: "CharacterPortraitConfigs");
+
+            migrationBuilder.DropColumn(
+                name: "EnableGradientFade",
                 table: "UserPortraitConfigs");
 
             migrationBuilder.DropColumn(
                 name: "EnableGradientFade",
                 table: "CharacterPortraitConfigs");
 
-            migrationBuilder.DropColumn(
-                name: "GradientFadeStart",
-                table: "CharacterPortraitConfigs");
+            migrationBuilder.AddColumn<bool>(
+                name: "FlipX",
+                table: "UserPortraitConfigs",
+                type: "boolean",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "FlipX",
+                table: "CharacterPortraitConfigs",
+                type: "boolean",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "FlipX",
+                table: "UserPortraitConfigs");
+
+            migrationBuilder.DropColumn(
+                name: "FlipX",
+                table: "CharacterPortraitConfigs");
+
             migrationBuilder.AddColumn<bool>(
                 name: "EnableGradientFade",
                 table: "UserPortraitConfigs",

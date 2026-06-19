@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations.CharacterDb
 {
     [DbContext(typeof(CharacterDbContext))]
-    [Migration("20260619041009_RemoveGradientFade")]
-    partial class RemoveGradientFade
+    [Migration("20260619042152_UpdatePortraitConfig")]
+    partial class UpdatePortraitConfig
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -92,6 +92,9 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool?>("FlipX")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Game")
                         .HasColumnType("integer");
 
@@ -147,6 +150,9 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool?>("FlipX")
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("OffsetX")
                         .HasColumnType("integer");
