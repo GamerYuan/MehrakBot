@@ -24,12 +24,14 @@ var redis = builder.AddRedis("redis", password: redisPassword)
 // SeaweedFS cluster
 var seaweedMaster = builder.AddContainer("seaweed-master", "chrislusf/seaweedfs", "4.13")
     .WithArgs("master", "-mdir=/data", "-ip=seaweed-master", "-ip.bind=0.0.0.0")
+    .WithVolume("seaweed-master", "/data")
     .WithEndpoint(port: 9333, targetPort: 9333, name: "master-http")
     .WithEndpoint(port: 19333, targetPort: 19333, name: "master-grpc")
     .WithLifetime(ContainerLifetime.Session);
 
 var seaweedVolume = builder.AddContainer("seaweed-volume", "chrislusf/seaweedfs", "4.13")
     .WithArgs("volume", "-mserver=seaweed-master:9333", "-dir=/data", "-ip=seaweed-volume", "-preStopSeconds=1")
+    .WithVolume("seaweed-volume", "/data")
     .WithEndpoint(port: 8080, targetPort: 8080, name: "volume-http")
     .WithEndpoint(port: 18080, targetPort: 18080, name: "volume-grpc")
     .WithLifetime(ContainerLifetime.Session)
@@ -37,6 +39,7 @@ var seaweedVolume = builder.AddContainer("seaweed-volume", "chrislusf/seaweedfs"
 
 var seaweedFiler = builder.AddContainer("seaweed-filer", "chrislusf/seaweedfs", "4.13")
     .WithArgs("filer", "-master=seaweed-master:9333", "-ip=seaweed-filer")
+    .WithVolume("seaweed-filer", "/data")
     .WithEndpoint(port: 8888, targetPort: 8888, name: "filer-http")
     .WithEndpoint(port: 18888, targetPort: 18888, name: "filer-grpc")
     .WithLifetime(ContainerLifetime.Session)
@@ -45,7 +48,7 @@ var seaweedFiler = builder.AddContainer("seaweed-filer", "chrislusf/seaweedfs", 
 
 var seaweedS3 = builder.AddContainer("seaweed-s3", "chrislusf/seaweedfs", "4.13")
     .WithArgs("s3", "-filer=seaweed-filer:8888", "-ip.bind=0.0.0.0", "-port=8333", "-config=/etc/seaweedfs/s3.json")
-    .WithEndpoint(port: 8333, targetPort: 8333, name: "s3")
+    .WithEndpoint(port: 8333, targetPort: 8333, name: "s3", isProxied: false)
     .WithLifetime(ContainerLifetime.Session)
     .WithBindMount("../../seaweed-s3/s3.json", "/etc/seaweedfs/s3.json")
     .WaitFor(seaweedFiler);
