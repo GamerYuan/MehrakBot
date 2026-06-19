@@ -6,6 +6,7 @@ using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
@@ -85,7 +86,7 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
             var scaledImageMinX = 350 - characterImage.Width / 2 + offsetX;
             var fadeStart = FadeX - scaledImageMinX;
             var fadeEnd = fadeStart + FadeWidth;
-            characterImage.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd));
+            characterImage.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd, EasingType.InCubic));
         }
 
         var weaponImage = await LoadImageFromRepositoryAsync(

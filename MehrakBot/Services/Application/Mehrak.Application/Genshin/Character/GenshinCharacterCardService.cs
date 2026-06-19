@@ -12,6 +12,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
@@ -137,13 +138,12 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                 charInfo.Base.ToImageName(), disposables, cancellationToken),
             disposables, cancellationToken);
 
-        {
-            var offsetX = context.PortraitConfig?.OffsetX ?? 0;
-            var scaledImageMinX = (1280 - characterPortrait.Width) / 2 + offsetX;
-            var fadeStart = FadeX - scaledImageMinX;
-            var fadeEnd = fadeStart + FadeWidth;
-            characterPortrait.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd));
-        }
+
+        var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+        var scaledImageMinX = (1280 - characterPortrait.Width) / 2 + offsetX;
+        var fadeStart = FadeX - scaledImageMinX;
+        var fadeEnd = fadeStart + FadeWidth;
+        characterPortrait.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd, EasingType.InCubic));
 
         Task<Image<Rgba32>> weaponImageTask;
 
