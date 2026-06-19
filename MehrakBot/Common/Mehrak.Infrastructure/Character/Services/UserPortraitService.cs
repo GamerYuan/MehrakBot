@@ -269,6 +269,7 @@ internal class UserPortraitService : IUserPortraitService
         entity.Config.OffsetY = config.OffsetY;
         entity.Config.TargetScale = config.TargetScale;
         entity.Config.FlipX = config.FlipX;
+        entity.Config.ArtistAttribution = config.ArtistAttribution;
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         try
@@ -392,7 +393,8 @@ internal class UserPortraitService : IUserPortraitService
                 OffsetX = entity.Config.OffsetX,
                 OffsetY = entity.Config.OffsetY,
                 TargetScale = entity.Config.TargetScale,
-                FlipX = entity.Config.FlipX
+                FlipX = entity.Config.FlipX,
+                ArtistAttribution = entity.Config.ArtistAttribution
             }
         };
     }

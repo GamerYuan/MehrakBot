@@ -32,12 +32,11 @@ public static class AttributionRenderer
     private static readonly string[] Lines = ["MehrakBot", "mehrak.yuan-dev.com"];
     private static readonly string Text = string.Join("\n", Lines);
 
-    public static void DrawAttribution(
-        this DrawingCanvas canvas,
-        RichTextOptions textOptions,
-        AttributionStyle? style = null
-    )
+    public static void DrawAttribution(this DrawingCanvas canvas, RichTextOptions textOptions,
+        AttributionStyle? style = null, string? extraText = null)
     {
+        var finalText = extraText != null ? $"{extraText}\n{Text}" : Text;
+
         style ??= Default;
         var needsRotation = Math.Abs(style.RotationDegrees) > 0.001f;
         var needsOpacity = style.Opacity is > 0f and < 1f;
@@ -65,7 +64,7 @@ public static class AttributionRenderer
 
         if (style.ShadowStyle != null)
         {
-            canvas.DrawTextWithShadow(Text, textOptions, textColor, style.ShadowStyle);
+            canvas.DrawTextWithShadow(finalText, textOptions, textColor, style.ShadowStyle);
         }
         else
         {
@@ -73,7 +72,7 @@ public static class AttributionRenderer
             var pen = style.OutlineColor.HasValue
                 ? Pens.Solid(style.OutlineColor.Value, style.OutlineWidth)
                 : null;
-            canvas.DrawText(textOptions, Text, brush, pen);
+            canvas.DrawText(textOptions, finalText, brush, pen);
         }
 
         if (needsOpacity)
@@ -81,5 +80,19 @@ public static class AttributionRenderer
 
         if (needsRotation)
             canvas.Restore();
+    }
+
+    public static void DrawAttribution(this DrawingCanvas canvas, RichTextOptions textOptions)
+    {
+        DrawAttribution(canvas, textOptions, style: null, extraText: null);
+    }
+
+    public static void DrawAttribution(
+        this DrawingCanvas canvas,
+        RichTextOptions textOptions,
+        AttributionStyle? style = null
+    )
+    {
+        DrawAttribution(canvas, textOptions, style, extraText: null);
     }
 }

@@ -15,4 +15,7 @@ public class UserPortraitConfigModel
     public int? OffsetY { get; set; }
     public float? TargetScale { get; set; }
     public bool? FlipX { get; set; }
+
+    [MaxLength(15)]
+    public string? ArtistAttribution { get; set; }
 }

@@ -140,8 +140,7 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                }
-                );
+                }, extraText: context.PortraitConfig?.ArtistAttribution != null ? $"Cre: {context.PortraitConfig.ArtistAttribution}" : null);
 
                 var rankIcon = m_CharacterRankIcons[characterInformation.Avatar.Star - 1];
                 canvas.DrawImage(rankIcon, rankIcon.Bounds,

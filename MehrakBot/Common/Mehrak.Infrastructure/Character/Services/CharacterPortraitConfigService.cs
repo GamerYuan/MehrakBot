@@ -152,7 +152,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                         OffsetX = update.OffsetX,
                         OffsetY = update.OffsetY,
                         TargetScale = update.TargetScale,
-                        FlipX = update.FlipX
+                        FlipX = update.FlipX,
+                        ArtistAttribution = update.ArtistAttribution
                     };
                     context.CharacterPortraitConfigs.Add(entity);
                 }
@@ -163,6 +164,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     entity.OffsetY = update.OffsetY;
                     entity.TargetScale = update.TargetScale;
                     entity.FlipX = update.FlipX;
+                    entity.ArtistAttribution = update.ArtistAttribution;
                 }
 
                 await context.SaveChangesAsync();
@@ -213,7 +215,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
-            FlipX = entity.FlipX
+            FlipX = entity.FlipX,
+            ArtistAttribution = entity.ArtistAttribution
         };
     }
 
@@ -225,7 +228,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = cache.OffsetX,
             OffsetY = cache.OffsetY,
             TargetScale = cache.TargetScale,
-            FlipX = cache.FlipX
+            FlipX = cache.FlipX,
+            ArtistAttribution = cache.ArtistAttribution
         };
     }
 
@@ -237,7 +241,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
-            FlipX = entity.FlipX
+            FlipX = entity.FlipX,
+            ArtistAttribution = entity.ArtistAttribution
         };
     }
 
@@ -248,5 +253,6 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         public int? OffsetY { get; set; }
         public float? TargetScale { get; set; }
         public bool? FlipX { get; set; }
+        public string? ArtistAttribution { get; set; }
     }
 }

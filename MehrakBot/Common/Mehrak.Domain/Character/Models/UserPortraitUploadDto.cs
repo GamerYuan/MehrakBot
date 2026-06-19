@@ -22,6 +22,7 @@ public class UserPortraitConfigDto
     public int? OffsetY { get; init; }
     public float? TargetScale { get; init; }
     public bool? FlipX { get; init; }
+    public string? ArtistAttribution { get; init; }
 }
 
 public class UploadPortraitResult
