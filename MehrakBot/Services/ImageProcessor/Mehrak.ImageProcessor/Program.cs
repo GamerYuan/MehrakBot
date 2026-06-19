@@ -1,8 +1,6 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Mehrak.ImageProcessor.Shared.Services;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+using Mehrak.ServiceDefaults;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -12,6 +10,8 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
 
         if (builder.Environment.IsDevelopment())
         {
@@ -44,7 +44,9 @@ public class Program
             )
             .WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                    ?? builder.Configuration["Otlp:Endpoint"]
+                    ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -69,26 +71,9 @@ public class Program
 
         builder.Services.AddGrpc();
 
-        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource
-                .AddService(serviceName: "MehrakImageProcessor", serviceInstanceId: Environment.MachineName))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation()
-                .AddSource("MehrakImageProcessor")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddMeter("MehrakImageProcessor")
-                .AddOtlpExporter((o, m) =>
-                {
-                    o.Endpoint = otlpEndpoint;
-                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                }));
-
         var app = builder.Build();
+
+        app.MapDefaultEndpoints();
 
         // Eagerly load the NSFW classifier model at startup
         app.Services.GetRequiredService<INsfwClassifier>();

@@ -31,13 +31,11 @@ dotnet format .
 ### Docker Development
 
 ```bash
-# Start infrastructure services
-docker compose -f docker-compose.development.yml up -d postgres redis seaweed-master \
-    seaweed-volume seaweed-filer seaweed-s3
+# Start all services with Aspire (recommended for local dev)
+dotnet run --project Services/AppHost/Mehrak.AppHost
 
-# Build and run all services in Docker
-docker buildx bake -f docker-compose.development.yml
-docker compose up -d --no-build
+# Or use production compose directly
+docker compose --env-file .env.local up -d
 ```
 
 ## Architecture

@@ -61,7 +61,8 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
             metrics,
             LoadFonts("Assets/Fonts/zzz.ttf", titleSize: 64, normalSize: 40, mediumSize: 36, smallSize: 28, tinySize: 20))
     {
-        m_ExtraLargeFont = new FontCollection().Add("Assets/Fonts/anton.ttf").CreateFont(400);
+        m_ExtraLargeFont = new FontCollection()
+            .Add(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets/Fonts/anton.ttf")).CreateFont(400);
     }
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)

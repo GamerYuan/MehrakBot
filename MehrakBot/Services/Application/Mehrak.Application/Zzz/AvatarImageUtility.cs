@@ -25,7 +25,7 @@ internal static class AvatarImageUtility
     static AvatarImageUtility()
     {
         var collection = new FontCollection();
-        var fontFamily = collection.Add("Assets/Fonts/zzz.ttf");
+        var fontFamily = collection.Add(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets/Fonts/zzz.ttf"));
 
         Style = new AvatarImageStyle(
             NormalFont: fontFamily.CreateFont(24, FontStyle.Bold),

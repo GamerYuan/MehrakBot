@@ -15,14 +15,12 @@ using Mehrak.Infrastructure.Auth.Entities;
 using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Client;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -35,6 +33,8 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
 
         if (builder.Environment.IsDevelopment())
         {
@@ -67,7 +67,9 @@ public class Program
             )
             .WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                    ?? builder.Configuration["Otlp:Endpoint"]
+                    ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -89,8 +91,13 @@ public class Program
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<UserPortraitStorageConfig>(builder.Configuration.GetSection("UserPortraitStorage"));
 
-        builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
-        builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+        builder.Services.Configure<RedisConfig>(options =>
+        {
+            options.ConnectionString = builder.Configuration.GetConnectionString("redis") ?? options.ConnectionString;
+            options.InstanceName = builder.Configuration.GetValue<string>("Redis:InstanceName") ?? "Mehrak_";
+        });
+        builder.Services.Configure<PgConfig>(options =>
+            options.ConnectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? options.ConnectionString);
 
         // Auth services
         builder.Services.AddScoped<IDashboardAuthService, DashboardAuthService>();
@@ -190,41 +197,17 @@ public class Program
 
         builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
         {
-            var address = builder.Configuration["Application:ConnectionString"] ??
-                throw new ArgumentException("gRPC Connection String cannot be empty!");
+            var address = builder.Configuration.GetConnectionString("application") ?? "http://application";
             options.Address = new Uri(address);
         });
 
         builder.Services.AddGrpcClient<ImageProcessorService.ImageProcessorServiceClient>(options =>
         {
-            var address = builder.Configuration["ImageProcessor:ConnectionString"] ??
-                throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
+            var address = builder.Configuration.GetConnectionString("image-processor") ?? "http://image-processor";
             options.Address = new Uri(address);
         });
 
         builder.Services.AddSingleton<IImageClassificationService, ImageClassificationGrpcClient>();
-
-        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource
-                .AddService(serviceName: "MehrakDashboard", serviceInstanceId: Environment.MachineName))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddGrpcClientInstrumentation()
-                .AddSource("MehrakDashboard")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddMeter("MehrakDashboard")
-                .AddOtlpExporter((o, m) =>
-                {
-                    o.Endpoint = otlpEndpoint;
-                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                }));
 
         builder.Services.AddDashboardApplicationExecutor();
 
@@ -357,6 +340,7 @@ public class Program
         app.UseRateLimiter();
         app.MapControllers();
         app.MapReverseProxy();
+        app.MapDefaultEndpoints();
 
         await app.RunAsync();
     }

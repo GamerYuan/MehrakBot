@@ -28,9 +28,14 @@ dotnet test --filter "FullyQualifiedName~GenshinCharacter"
   git submodule update --init --recursive
   git lfs pull
   ```
-- **Local infra** — start before running services manually:
+- **Local dev with Aspire** — run the AppHost to start all services and infrastructure:
   ```
-  docker compose -f docker-compose.development.yml up -d postgres redis seaweed-master seaweed-volume seaweed-filer seaweed-s3
+  dotnet run --project Services/AppHost/Mehrak.AppHost
+  ```
+  This replaces the old `docker-compose.development.yml` workflow. The Aspire dashboard opens automatically.
+- **Production compose** — still available at the repo root:
+  ```
+  docker compose --env-file .env.local up -d
   ```
 - Each service needs a manually created `appsettings.Development.json` copied from its `appsettings.json` (Application, Bot, Dashboard)
 
@@ -46,6 +51,7 @@ MehrakBot/
     Mehrak.Infrastructure  — EF Core DbContexts, Redis, S3, ClickHouse
   Services/
     Application/           — gRPC server (core logic, card rendering)
+    AppHost/               — Aspire orchestrator + ServiceDefaults
     Bot/                   — Discord entry point (NetCord), auto-discovers modules
     Bot.Generators/        — Roslyn source generator (targets netstandard2.0)
     Dashboard/             — ASP.NET Web API admin backend

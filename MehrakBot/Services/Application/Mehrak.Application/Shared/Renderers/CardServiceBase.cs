@@ -190,7 +190,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
     protected static FontDefinitions LoadFonts(string fontPath, float titleSize, float normalSize, float? mediumSize = null, float? smallSize = null, float? tinySize = null)
     {
         FontCollection collection = new();
-        var family = collection.Add(fontPath);
+        var family = collection.Add(System.IO.Path.Combine(AppContext.BaseDirectory, fontPath));
 
         var actualMedium = mediumSize ?? normalSize - 4;
         var actualSmall = smallSize ?? actualMedium - 4;

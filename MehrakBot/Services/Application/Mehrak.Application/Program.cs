@@ -6,9 +6,8 @@ using Mehrak.Application.Shared.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.ServiceDefaults;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -19,6 +18,9 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
+        builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddMeter("MehrakApplication"));
 
         if (builder.Environment.IsDevelopment())
         {
@@ -52,7 +54,9 @@ public class Program
             )
             .WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317";
+                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+                    ?? builder.Configuration["Otlp:Endpoint"]
+                    ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -69,8 +73,13 @@ public class Program
         Log.Information("Starting Mehrak Application Service");
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
-        builder.Services.Configure<RedisConfig>(builder.Configuration.GetSection("Redis"));
-        builder.Services.Configure<PgConfig>(builder.Configuration.GetSection("Postgres"));
+        builder.Services.Configure<RedisConfig>(options =>
+        {
+            options.ConnectionString = builder.Configuration.GetConnectionString("redis") ?? options.ConnectionString;
+            options.InstanceName = builder.Configuration.GetValue<string>("Redis:InstanceName") ?? "Mehrak_";
+        });
+        builder.Services.Configure<PgConfig>(options =>
+            options.ConnectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? options.ConnectionString);
         builder.Services.Configure<CommandDispatcherConfig>(builder.Configuration.GetSection("CommandDispatcher"));
 
         builder.Host.UseSerilog();
@@ -91,8 +100,7 @@ public class Program
 
         builder.Services.AddGrpcClient<Proto.ImageProcessorService.ImageProcessorServiceClient>(options =>
         {
-            var address = builder.Configuration["ImageProcessor:ConnectionString"]
-                ?? throw new ArgumentException("ImageProcessor:ConnectionString must be set in configuration.");
+            var address = builder.Configuration.GetConnectionString("image-processor") ?? "http://image-processor";
             options.Address = new Uri(address);
         });
 
@@ -101,28 +109,9 @@ public class Program
 
         builder.Services.AddSingleton<IApplicationMetrics, ApplicationMetricsService>();
 
-        var otlpEndpoint = new Uri(builder.Configuration["Otlp:Endpoint"] ?? "http://localhost:4317");
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource
-                .AddService(serviceName: "MehrakApplication", serviceInstanceId: Environment.MachineName))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddSource("MehrakApplication")
-                .AddOtlpExporter(o => o.Endpoint = otlpEndpoint))
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation()
-                .AddMeter("MehrakApplication")
-                .AddOtlpExporter((o, m) =>
-                {
-                    o.Endpoint = otlpEndpoint;
-                    m.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                }));
-
         var app = builder.Build();
+
+        app.MapDefaultEndpoints();
 
         // Configure the HTTP request pipeline.
         app.MapGrpcService<GrpcApplicationService>();
