@@ -21,6 +21,7 @@ using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Genshin.Types;
@@ -274,7 +275,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             new ImageProcessorBuilder().Resize(100, 0).Build(), cancellationToken)));
         tasks.AddRange(charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
             new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
-                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build(), cancellationToken)));
+                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f, EasingType.InQuint)).Build(), cancellationToken)));
 
         try
         {

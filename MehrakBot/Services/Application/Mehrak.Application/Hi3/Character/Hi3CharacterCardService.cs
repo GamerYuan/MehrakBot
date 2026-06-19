@@ -3,12 +3,9 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
-using Mehrak.Domain.Character;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
-using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
@@ -43,8 +40,8 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     protected override int DefaultPortraitWidth => 960;
     protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
 
-    private const int FadeX = 680;
-    private const int FadeWidth = 120;
+    private const int FadeX = 650;
+    private const int FadeWidth = 100;
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)

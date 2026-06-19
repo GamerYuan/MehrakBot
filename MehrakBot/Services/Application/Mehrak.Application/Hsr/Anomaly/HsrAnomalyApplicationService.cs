@@ -130,7 +130,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(bestRecord.BossInfo.ToImageData(),
-            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade()).Build(), cancellationToken));
+            new ImageProcessorBuilder().Resize(350, 0).AddOperation(x => x.ApplyGradientFade(easing: EasingType.InQuint)).Build(), cancellationToken));
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(anomalyData.ToMedalIconData(),
             new ImageProcessorBuilder().Resize(120, 0).Build(), cancellationToken));

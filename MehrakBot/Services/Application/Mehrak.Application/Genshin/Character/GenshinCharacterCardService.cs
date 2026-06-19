@@ -8,8 +8,6 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
-using Mehrak.Domain.Character;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
@@ -43,8 +41,8 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
     protected override int DefaultPortraitWidth => 1400;
     protected override IResampler PortraitResampler => KnownResamplers.Bicubic;
 
-    private const int FadeX = 1150;
-    private const int FadeWidth = 250;
+    private const int FadeX = 1000;
+    private const int FadeWidth = 150;
 
     public GenshinCharacterCardService(IImageRepository imageRepository,
         ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
