@@ -1,4 +1,4 @@
-using Google.Protobuf;
+﻿using Google.Protobuf;
 using Grpc.Core;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Domain.Protobuf;
@@ -55,7 +55,7 @@ internal class WeaponImageProcessorGrpcClientTests
 
         var resultBytes = new byte[result.Length];
         result.Position = 0;
-        result.Read(resultBytes, 0, resultBytes.Length);
+        result.ReadExactly(resultBytes);
         Assert.That(resultBytes, Is.EqualTo(imageData));
 
         m_MockClient.Verify(c => c.ProcessWeaponImage(

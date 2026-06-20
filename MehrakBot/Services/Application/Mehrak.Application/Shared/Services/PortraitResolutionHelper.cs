@@ -63,8 +63,8 @@ public static class PortraitResolutionHelper
         OffsetX = dto.OffsetX,
         OffsetY = dto.OffsetY,
         TargetScale = dto.TargetScale,
-        EnableGradientFade = dto.EnableGradientFade,
-        GradientFadeStart = dto.GradientFadeStart,
+        FlipX = dto.FlipX,
+        ArtistAttribution = dto.ArtistAttribution
     };
 }
 

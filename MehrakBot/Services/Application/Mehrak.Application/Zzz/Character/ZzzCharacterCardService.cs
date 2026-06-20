@@ -219,7 +219,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                });
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 foreach (var rank in character.Ranks)
                 {

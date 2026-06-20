@@ -83,8 +83,7 @@ var application = builder.AddProject<Projects.Mehrak_Application>("application",
     .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
     .WaitFor(mehrakdb)
     .WaitFor(redis)
-    .WaitFor(seaweedS3)
-    .WaitFor(migrationService);
+    .WaitFor(seaweedS3);
 
 var bot = builder.AddProject<Projects.Mehrak_Bot>("bot")
     .WithReference(mehrakdb)

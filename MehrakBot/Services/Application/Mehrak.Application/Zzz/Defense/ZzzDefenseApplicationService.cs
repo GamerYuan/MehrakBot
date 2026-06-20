@@ -12,6 +12,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Shared.Types;
@@ -127,7 +128,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                 new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
         var bossTask = defenseData.FifthLayerDetail!.LayerChallengeInfoList
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToMonsterImageData(),
-                new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade()).Build(), cancellationToken));
+                new ImageProcessorBuilder().Resize(250, 0).AddOperation(x => x.ApplyGradientFade(easing: EasingType.InQuint)).Build(), cancellationToken));
 
         var completed = await Task.WhenAll(updateImageTask.Concat(updateBuddyTask).Concat(bossTask));
 

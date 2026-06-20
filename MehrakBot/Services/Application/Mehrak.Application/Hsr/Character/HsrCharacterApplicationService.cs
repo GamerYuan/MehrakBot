@@ -17,6 +17,7 @@ using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr.Types;
@@ -305,7 +306,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         List<Task<bool>> tasks = [];
 
-        var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
+        var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f, EasingType.InQuint)).Build();
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
             ImageProcessors.None, cancellationToken));

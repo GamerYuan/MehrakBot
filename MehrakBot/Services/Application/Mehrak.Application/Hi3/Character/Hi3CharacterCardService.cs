@@ -3,12 +3,10 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
-using Mehrak.Domain.Character;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
-using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Hi3.Types;
 using SixLabors.Fonts;
@@ -42,6 +40,9 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
 
     protected override int DefaultPortraitWidth => 960;
     protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
+
+    private const int FadeX = 650;
+    private const int FadeWidth = 100;
 
     public Hi3CharacterCardService(IImageRepository imageRepository,
         ILogger<Hi3CharacterCardService> logger, IApplicationMetrics metrics)
@@ -79,6 +80,14 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
         }
 
         Image characterImage = await LoadPortraitAsync(context, LoadStockHi3Portrait, disposables, cancellationToken);
+
+        {
+            var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+            var scaledImageMinX = 350 - characterImage.Width / 2 + offsetX;
+            var fadeStart = FadeX - scaledImageMinX;
+            var fadeEnd = fadeStart + FadeWidth;
+            characterImage.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd, EasingType.InCubic));
+        }
 
         var weaponImage = await LoadImageFromRepositoryAsync(
             characterInformation.Weapon.ToImageName(), disposables, cancellationToken);
@@ -131,8 +140,7 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                }
-                );
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 var rankIcon = m_CharacterRankIcons[characterInformation.Avatar.Star - 1];
                 canvas.DrawImage(rankIcon, rankIcon.Bounds,

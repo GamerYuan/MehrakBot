@@ -15,31 +15,6 @@ public static class ImageUtility
     private static readonly Color StarColor = Color.ParseHex("#FFCC33");
     private static readonly Color ShadowColor = Color.FromPixel(new Rgba32(0, 0, 0, 100)); // Semi-transparent black for shadow
 
-    /// <summary>
-    /// Applies a horizontal gradient fade to an image, making it gradually
-    /// transparent towards the right
-    /// </summary>
-    public static IImageProcessingContext ApplyGradientFade(this IImageProcessingContext context,
-        float fadeStart = 0.75f)
-    {
-        return context.ProcessPixelRowsAsVector4(row =>
-        {
-            var width = row.Length;
-            var fadeStartX = (int)(width * fadeStart);
-            // fade only columns from fadeStartX → width
-            for (var x = fadeStartX; x < width; x++)
-            {
-                // same fall‑off curve you had before
-                var alpha = 1.0f - (float)(x - fadeStartX) / (width - fadeStartX);
-                alpha = MathF.Pow(alpha, 5);
-                alpha = Math.Clamp(alpha, 0, 1);
-
-                // apply to the existing alpha
-                row[x].W *= alpha;
-            }
-        });
-    }
-
     public static void DrawStarRating(this DrawingCanvas canvas, int starCount, Point position)
     {
         starCount = Math.Clamp(starCount, 1, 5);

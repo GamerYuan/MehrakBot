@@ -8,12 +8,11 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
-using Mehrak.Domain.Character;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
@@ -42,7 +41,9 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
 
     protected override int DefaultPortraitWidth => 1400;
     protected override IResampler PortraitResampler => KnownResamplers.Bicubic;
-    protected override bool DefaultEnableGradientFade => true;
+
+    private const int FadeX = 1000;
+    private const int FadeWidth = 150;
 
     public GenshinCharacterCardService(IImageRepository imageRepository,
         ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
@@ -136,6 +137,13 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
             () => LoadImageFromRepositoryAsync<Rgba32>(
                 charInfo.Base.ToImageName(), disposables, cancellationToken),
             disposables, cancellationToken);
+
+
+        var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+        var scaledImageMinX = (1280 - characterPortrait.Width) / 2 + offsetX;
+        var fadeStart = FadeX - scaledImageMinX;
+        var fadeEnd = fadeStart + FadeWidth;
+        characterPortrait.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd, EasingType.InCubic));
 
         Task<Image<Rgba32>> weaponImageTask;
 
@@ -316,7 +324,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                });
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 for (var i = 0; i < constellationIcons.Length; i++)
                 {

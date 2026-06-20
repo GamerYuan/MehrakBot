@@ -3,6 +3,7 @@ using System;
 using Mehrak.Infrastructure.Character;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Mehrak.Infrastructure.Migrations.CharacterDb
 {
     [DbContext(typeof(CharacterDbContext))]
-    partial class CharacterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619042152_UpdatePortraitConfig")]
+    partial class UpdatePortraitConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -89,10 +92,6 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ArtistAttribution")
-                        .HasMaxLength(15)
-                        .HasColumnType("character varying(15)");
-
                     b.Property<bool?>("FlipX")
                         .HasColumnType("boolean");
 
@@ -151,10 +150,6 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<string>("ArtistAttribution")
-                        .HasMaxLength(15)
-                        .HasColumnType("character varying(15)");
 
                     b.Property<bool?>("FlipX")
                         .HasColumnType("boolean");
