@@ -111,11 +111,10 @@ public sealed class ProfileController : ControllerBase
 
         var hadProfiles = user.Profiles.Count > 0;
 
-        var profileCount = user.Profiles.Count;
         UserProfileModel profile = new()
         {
             UserId = (long)discordUserId,
-            ProfileId = profileCount + 1,
+            ProfileId = user.Profiles.Count + 1,
             LtUid = (long)request.LtUid,
             LToken = await Task.Run(() => m_EncryptionService.Encrypt(request.LToken, request.Passphrase), HttpContext.RequestAborted)
         };
@@ -134,7 +133,7 @@ public sealed class ProfileController : ControllerBase
 
         if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
 
-        return CreatedAtAction(nameof(ListProfiles), new { }, new
+        return CreatedAtAction(nameof(ListProfiles), new
         {
             profileId = profile.ProfileId,
             ltUid = request.LtUid
