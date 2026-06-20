@@ -7,6 +7,7 @@ using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hoyolab;
+using Mehrak.Infrastructure.User.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 #endregion

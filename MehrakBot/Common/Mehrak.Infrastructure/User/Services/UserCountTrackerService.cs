@@ -1,8 +1,8 @@
-﻿using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
-namespace Mehrak.Bot.Shared.Services;
+namespace Mehrak.Infrastructure.User.Services;
 
 public class UserCountTrackerService
 {
