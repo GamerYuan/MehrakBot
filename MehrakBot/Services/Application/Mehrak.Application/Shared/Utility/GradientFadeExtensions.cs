@@ -19,7 +19,7 @@ public static class GradientFadeExtensions
             var fadeStartX = (int)(width * fadeStart);
             for (var x = fadeStartX; x < width; x++)
             {
-                var t = (float)(x - fadeStartX) / (width - fadeStartX);
+                var t = 1f - (float)(x - fadeStartX) / (width - fadeStartX);
                 var alpha = Easing.Evaluate(easing, t);
                 row[x].W *= alpha;
             }
@@ -43,7 +43,7 @@ public static class GradientFadeExtensions
 
             for (var x = Math.Max(0, fadeStart); x < Math.Min(fadeEnd, width); x++)
             {
-                var t = (float)(x - fadeStart) / fadeWidth;
+                var t = 1f - (float)(x - fadeStart) / fadeWidth;
                 row[x].W *= Easing.Evaluate(easing, t);
             }
 
