@@ -117,19 +117,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            try
-            {
-                await m_UserContext.SaveChangesAsync();
-                if (user.Profiles.Count == 0) await m_UserTracker.AdjustUserCountAsync(1);
-            }
-            catch (DbUpdateException e)
-            {
-                m_Logger.LogError(e, "Failed to add profile for user {UserId}", Context.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
-                return;
-            }
+            var hadProfiles = user.Profiles.Count > 0;
 
             UserProfileModel profile = new()
             {
@@ -140,10 +128,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
             };
 
-            await m_UserContext.UserProfiles.AddAsync(profile);
+            user.Profiles.Add(profile);
+
             try
             {
                 await m_UserContext.SaveChangesAsync();
+                if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
                 m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)

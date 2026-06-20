@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Shared.Config;
+﻿using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -26,5 +26,10 @@ public class UserCountTrackerService
     {
         var value = await m_Redis.StringGetAsync($"{m_InstanceName}{Key}");
         return value.HasValue ? (int)value : 0;
+    }
+
+    public async Task SetIfNotExistsAsync(int count)
+    {
+        await m_Redis.StringSetAsync($"{m_InstanceName}{Key}", count, when: When.NotExists);
     }
 }

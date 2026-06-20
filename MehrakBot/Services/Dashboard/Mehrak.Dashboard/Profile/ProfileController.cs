@@ -1,3 +1,4 @@
+﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
@@ -111,19 +112,37 @@ public sealed class ProfileController : ControllerBase
 
         var hadProfiles = user.Profiles.Count > 0;
 
+        string encryptedLToken;
+        try
+        {
+            encryptedLToken = await Task.Run(
+                () => m_EncryptionService.Encrypt(request.LToken, request.Passphrase),
+                HttpContext.RequestAborted);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Failed to encrypt LToken for user {UserId}", discordUserId);
+            return BadRequest(new { error = "Invalid LToken or passphrase." });
+        }
+
         UserProfileModel profile = new()
         {
             UserId = (long)discordUserId,
             ProfileId = user.Profiles.Count + 1,
             LtUid = (long)request.LtUid,
-            LToken = await Task.Run(() => m_EncryptionService.Encrypt(request.LToken, request.Passphrase), HttpContext.RequestAborted)
+            LToken = encryptedLToken
         };
 
-        await m_UserContext.UserProfiles.AddAsync(profile, HttpContext.RequestAborted);
+        user.Profiles.Add(profile);
 
         try
         {
             await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+        }
+        catch (DbUpdateException e) when (IsUniqueConstraintViolation(e))
+        {
+            m_Logger.LogWarning(e, "Duplicate profile for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
+            return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
         }
         catch (DbUpdateException e)
         {
@@ -174,7 +193,14 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update profile. Please try again later." });
         }
 
-        await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
+        try
+        {
+            await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogWarning(e, "Failed to remove cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
+        }
 
         return Ok(new { message = "Profile updated successfully." });
     }
@@ -211,10 +237,13 @@ public sealed class ProfileController : ControllerBase
 
         try
         {
+            await using var transaction = await m_UserContext.Database.BeginTransactionAsync(HttpContext.RequestAborted);
+
             if (profiles.Count > 0)
                 m_UserContext.UserProfiles.UpdateRange(profiles);
 
             await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+            await transaction.CommitAsync(HttpContext.RequestAborted);
         }
         catch (DbUpdateException e)
         {
@@ -222,7 +251,14 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profile. Please try again later." });
         }
 
-        await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
+        try
+        {
+            await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogWarning(e, "Failed to remove cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
+        }
 
         if (profiles.Count == 0)
             await m_UserTracker.AdjustUserCountAsync(-1);
@@ -261,5 +297,11 @@ public sealed class ProfileController : ControllerBase
         }
 
         return true;
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException e)
+    {
+        return e.InnerException is DbException dbEx
+            && dbEx.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
     }
 }

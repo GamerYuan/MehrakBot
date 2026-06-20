@@ -2,6 +2,9 @@
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Mehrak.Infrastructure.User;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.InMemory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Proto = Mehrak.Domain.Protobuf;
@@ -28,9 +31,15 @@ public class DashboardApplicationExecutorServiceTests
         m_ServiceProviderMock.Setup(sp => sp.GetService(typeof(Proto.ApplicationService.ApplicationServiceClient)))
             .Returns(m_ApplicationClientMock.Object);
 
+        var options = new DbContextOptionsBuilder<UserDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        var userContext = new UserDbContext(options);
+
         m_Service = new DashboardApplicationExecutorService(
             m_ServiceProviderMock.Object,
             m_AuthServiceMock.Object,
+            userContext,
             m_LoggerMock.Object
         );
     }
