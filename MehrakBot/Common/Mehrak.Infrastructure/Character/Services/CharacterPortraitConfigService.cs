@@ -121,6 +121,12 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
     {
         const int maxRetries = 3;
 
+        if (update.ArtistAttribution is { Length: > 15 })
+        {
+            m_Logger.LogWarning("ArtistAttribution exceeds 15 characters for {Game} - ServerId {ServerId}", game, serverId);
+            return false;
+        }
+
         for (var attempt = 0; attempt < maxRetries; attempt++)
         {
             using var scope = m_ScopeFactory.CreateScope();

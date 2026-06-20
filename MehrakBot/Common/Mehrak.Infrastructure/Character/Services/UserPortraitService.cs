@@ -265,6 +265,12 @@ internal class UserPortraitService : IUserPortraitService
         if (entity == null)
             return false;
 
+        if (config.ArtistAttribution is { Length: > 15 })
+        {
+            m_Logger.LogWarning("ArtistAttribution exceeds 15 characters for UploadId {UploadId}", uploadId);
+            return false;
+        }
+
         entity.Config.OffsetX = config.OffsetX;
         entity.Config.OffsetY = config.OffsetY;
         entity.Config.TargetScale = config.TargetScale;

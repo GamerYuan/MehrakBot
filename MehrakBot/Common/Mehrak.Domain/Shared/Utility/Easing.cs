@@ -23,7 +23,7 @@ public static class Easing
         t = Math.Clamp(t, 0f, 1f);
         return type switch
         {
-            EasingType.None => 1f,
+            EasingType.None => 0f,
             EasingType.Linear => t,
             EasingType.InCubic => MathF.Pow(t, 3),
             EasingType.OutCubic => 1f - MathF.Pow(1f - t, 3),
