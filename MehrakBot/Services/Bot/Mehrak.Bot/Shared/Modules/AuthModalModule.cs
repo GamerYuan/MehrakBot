@@ -80,7 +80,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .Where(u => u.Id == (long)Context.User.Id)
                 .Include(u => u.Profiles)
                 .SingleOrDefaultAsync();
-            var isNewUser = user == null;
 
             if (user == null)
             {
@@ -121,7 +120,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
-                if (isNewUser) await m_UserTracker.AdjustUserCountAsync(1);
+                if (user.Profiles.Count == 0) await m_UserTracker.AdjustUserCountAsync(1);
             }
             catch (DbUpdateException e)
             {
