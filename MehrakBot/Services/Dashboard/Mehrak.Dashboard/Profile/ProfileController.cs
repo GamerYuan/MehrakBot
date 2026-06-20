@@ -66,11 +66,11 @@ public sealed class ProfileController : ControllerBase
                 gameUids = p.GameUids
                     .GroupBy(g => g.Game)
                     .ToDictionary(
-                        g => g.Key.ToFriendlyString(),
+                        g => g.Key.ToString(),
                         g => g.ToDictionary(x => x.Region, x => x.GameUid)),
                 lastUsedRegions = p.LastUsedRegions
                     .DistinctBy(r => r.Game)
-                    .ToDictionary(r => r.Game.ToFriendlyString(), r => r.Region)
+                    .ToDictionary(r => r.Game.ToString(), r => r.Region)
             });
 
         return Ok(profiles);
