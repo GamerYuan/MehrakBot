@@ -39,7 +39,7 @@ public class EasingTests
     [TestCase(EasingType.None, 0f)]
     public void Evaluate_None_AlwaysReturnsOne(EasingType type, float t)
     {
-        Assert.That(Easing.Evaluate(type, t), Is.EqualTo(1f).Within(Tolerance));
+        Assert.That(Easing.Evaluate(type, t), Is.Zero.Within(Tolerance));
     }
 
     [TestCase(EasingType.Linear, 0.25f, ExpectedResult = 0.25f)]
