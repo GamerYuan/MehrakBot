@@ -220,6 +220,20 @@ public class UserPortraitsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/inactive")]
+    public async Task<IActionResult> SetInactivePortrait(Guid id)
+    {
+        var discordUserId = GetDiscordUserId();
+        if (discordUserId == null)
+            return Unauthorized(new { error = "Invalid user identity." });
+
+        var success = await m_PortraitService.SetInactivePortraitAsync(discordUserId.Value, id, HttpContext.RequestAborted);
+        if (!success)
+            return NotFound(new { error = "Portrait not found." });
+
+        return NoContent();
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeletePortrait(Guid id)
     {

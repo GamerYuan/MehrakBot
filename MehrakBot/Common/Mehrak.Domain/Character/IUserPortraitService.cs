@@ -12,6 +12,7 @@ public interface IUserPortraitService
     Task<UploadPortraitResult> UploadPortraitAsync(long discordUserId, Game game, string characterName, Stream imageStream, string sha256, string extension, CancellationToken ct = default);
     Task<bool> UpdatePortraitConfigAsync(long discordUserId, Guid uploadId, UserPortraitConfigDto config, CancellationToken ct = default);
     Task<bool> SetActivePortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);
+    Task<bool> SetInactivePortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);
     Task<bool> DeletePortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);
     Task<int> GetUploadCountAsync(long discordUserId, Game game, string characterName, CancellationToken ct = default);
 }

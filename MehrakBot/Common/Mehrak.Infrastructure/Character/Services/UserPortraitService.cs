@@ -329,6 +329,33 @@ internal class UserPortraitService : IUserPortraitService
         }
     }
 
+    public async Task<bool> SetInactivePortraitAsync(
+        long discordUserId, Guid uploadId, CancellationToken ct = default)
+    {
+        using var scope = m_ScopeFactory.CreateScope();
+        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+
+        if (entity == null)
+            return false;
+
+        entity.IsActive = false;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
+
+        try
+        {
+            await context.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to deactivate portrait {UploadId}", uploadId);
+            return false;
+        }
+    }
+
     public async Task<bool> DeletePortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default)
     {
         using var scope = m_ScopeFactory.CreateScope();
