@@ -133,7 +133,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
-                if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
+                if (!hadProfiles)
+                    try
+                    {
+                        await m_UserTracker.AdjustUserCountAsync(1);
+                    }
+                    catch (Exception e)
+                    {
+                        m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
+                    }
                 m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
