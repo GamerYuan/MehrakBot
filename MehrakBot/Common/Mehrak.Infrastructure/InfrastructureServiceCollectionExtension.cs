@@ -99,6 +99,9 @@ public static class InfrastructureServiceCollectionExtension
         services.AddScoped<IDashboardSessionService, DashboardSessionService>();
         services.AddHostedService<SessionCleanupService>();
 
+        services.AddSingleton<UserCountTrackerService>();
+        services.AddHostedService<UserTrackerBackfillService>();
+
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
         services.AddSingleton<IPassphraseAttemptRateLimiter, PassphraseAttemptRateLimiter>();

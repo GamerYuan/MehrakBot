@@ -2,11 +2,11 @@
 
 using System.Text;
 using Mehrak.Bot.Shared.Attributes;
-using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
+using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -72,7 +72,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             try
             {
-                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
+                var deleted = await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ExecuteDeleteAsync();
 
                 if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -116,8 +116,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
             if (profiles.Count == 0)
             {
-                var deleted = await m_UserContext.Users.Where(x => x.Id == (long)Context.User.Id).ExecuteDeleteAsync();
-                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
+                await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("All profiles deleted!")));

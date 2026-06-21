@@ -126,8 +126,6 @@ public class Program
                 options.Address = new Uri(address);
             });
 
-            builder.Services.AddHostedService<UserTrackerBackfillService>();
-
             builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
                 new CustomCommandResultHandler<ApplicationCommandContext>())
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()

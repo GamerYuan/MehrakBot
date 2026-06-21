@@ -1,4 +1,5 @@
 ﻿using Mehrak.Dashboard.Shared.Auth;
+using Mehrak.Infrastructure.User;
 
 namespace Mehrak.Dashboard.Shared.Services;
 
@@ -61,11 +62,13 @@ internal class DashboardApplicationExecutorBuilder : IDashboardApplicationExecut
     public IDashboardApplicationExecutorService Build()
     {
         var profileAuthService = m_ServiceProvider.GetRequiredService<IDashboardProfileAuthenticationService>();
+        var userContext = m_ServiceProvider.GetRequiredService<UserDbContext>();
         var logger = m_ServiceProvider.GetRequiredService<ILogger<DashboardApplicationExecutorService>>();
 
         var executor = new DashboardApplicationExecutorService(
             m_ServiceProvider,
             profileAuthService,
+            userContext,
             logger
         )
         {

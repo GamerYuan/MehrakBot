@@ -1,10 +1,9 @@
-﻿using Mehrak.Infrastructure.User;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Mehrak.Bot.Shared.Services;
+namespace Mehrak.Infrastructure.User.Services;
 
 internal class UserTrackerBackfillService : IHostedService
 {
@@ -22,15 +21,12 @@ internal class UserTrackerBackfillService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var curr = await m_UserTracker.GetUserCountAsync();
-        if (curr > 0) return;
-
         using var scope = m_ScopeFactory.CreateScope();
         using var userContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
 
-        var count = await userContext.Users.CountAsync(cancellationToken);
+        var count = await userContext.Users.CountAsync(u => u.Profiles.Any(), cancellationToken);
         m_Logger.LogInformation("Backfilling user count with {Count} users", count);
-        await m_UserTracker.AdjustUserCountAsync(count);
+        await m_UserTracker.SetIfNotExistsAsync(count);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
