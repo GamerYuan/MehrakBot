@@ -16,12 +16,12 @@ namespace Mehrak.Infrastructure.Migrations.CodeRedeemDb
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Mehrak.Infrastructure.Models.CodeRedeemModel", b =>
+            modelBuilder.Entity("Mehrak.Infrastructure.CodeRedeem.Models.CodeRedeemModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -37,6 +37,8 @@ namespace Mehrak.Infrastructure.Migrations.CodeRedeemDb
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Game");
 
                     b.HasIndex("Game", "Code")
                         .IsUnique();

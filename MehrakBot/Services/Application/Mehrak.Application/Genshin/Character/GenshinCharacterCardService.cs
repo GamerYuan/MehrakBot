@@ -8,11 +8,11 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Genshin.Types;
 using SixLabors.Fonts;
@@ -21,12 +21,13 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 #endregion
 
 namespace Mehrak.Application.Genshin.Character;
 
-internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInformation>
+internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCharacterInformation>
 {
     private Dictionary<int, Image> m_StatImages = null!;
     private Dictionary<int, Image> m_DimmedStatImages = null!;
@@ -34,10 +35,18 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
     private Image[] m_StarRatingImages = null!;
     private Image[] m_StarRatingImagesSmall = null!;
     private Image<Rgba32>[] m_RelicTemplateImages = null!;
+    private Image<Rgba32> m_OverlayImage = null!;
 
     private const string StatsPath = FileNameFormat.Genshin.StatsName;
 
-    public GenshinCharacterCardService(IImageRepository imageRepository, ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
+    protected override int DefaultPortraitWidth => 1400;
+    protected override IResampler PortraitResampler => KnownResamplers.Bicubic;
+
+    private const int FadeX = 1000;
+    private const int FadeWidth = 150;
+
+    public GenshinCharacterCardService(IImageRepository imageRepository,
+        ILogger<GenshinCharacterCardService> logger, IApplicationMetrics metrics)
         : base(
             "Genshin Character",
             imageRepository,
@@ -104,7 +113,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
             });
         });
 
-        StaticBackground = await Image.LoadAsync<Rgba32>(
+        m_OverlayImage = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.BackgroundName, cancellationToken),
             cancellationToken);
 
@@ -121,11 +130,20 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
     {
         var charInfo = context.Data;
 
-        if (StaticBackground == null || Fonts.Medium == null || Fonts.Small == null)
+        if (Fonts.Medium == null || Fonts.Small == null)
             throw new CommandException("An error occurred when generating Genshin Character card");
 
-        var characterPortraitTask =
-            LoadImageFromRepositoryAsync<Rgba32>(charInfo.Base.ToImageName(), disposables, cancellationToken);
+        var characterPortrait = await LoadPortraitAsync(context,
+            () => LoadImageFromRepositoryAsync<Rgba32>(
+                charInfo.Base.ToImageName(), disposables, cancellationToken),
+            disposables, cancellationToken);
+
+
+        var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+        var scaledImageMinX = (1280 - characterPortrait.Width) / 2 + offsetX;
+        var fadeStart = FadeX - scaledImageMinX;
+        var fadeEnd = fadeStart + FadeWidth;
+        characterPortrait.Mutate(ctx => ctx.ApplyGradientFade(fadeStart, fadeEnd, EasingType.InCubic));
 
         Task<Image<Rgba32>> weaponImageTask;
 
@@ -182,27 +200,6 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
 
         if (charInfo.Constellations?.FirstOrDefault(x => x.Pos == 5)?.IsActived ?? false)
             AssignConstEffects(charInfo.Constellations[4], charInfo.Skills);
-
-        var characterPortrait = await characterPortraitTask;
-
-        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
-        characterPortrait.Mutate(ctx =>
-        {
-            if (portraitConfig?.TargetScale > 0f)
-            {
-                var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Bicubic);
-            }
-            else
-            {
-                ctx.Resize(1400, 0, KnownResamplers.Bicubic);
-            }
-
-            var enableFade = portraitConfig?.EnableGradientFade ?? true;
-            if (enableFade &&
-                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
-                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
-        });
 
         var weaponImage = await weaponImageTask;
 
@@ -263,26 +260,26 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
         background.Mutate(ctx =>
         {
             var backgroundColor = GetBackgroundColor(charInfo.Base.Element ?? "None");
-            ctx.Paint(canvas =>
-            {
-                canvas.Fill(Brushes.Solid(backgroundColor), new Rectangle(0, 0, background.Width, background.Height));
-            });
 
             ctx.Paint(canvas =>
             {
+                canvas.Fill(Brushes.Solid(backgroundColor), new Rectangle(0, 0, background.Width, background.Height));
+
                 _ = canvas.SaveLayer(new GraphicsOptions { ColorBlendingMode = PixelColorBlendingMode.Overlay });
-                canvas.DrawImage(StaticBackground, StaticBackground.Bounds,
+                canvas.DrawImage(m_OverlayImage, m_OverlayImage.Bounds,
                     new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
                 canvas.Restore();
 
                 var textColor = Color.White;
 
-                var offsetX = portraitConfig?.OffsetX ?? 0;
-                var offsetY = portraitConfig?.OffsetY ?? 0;
+                _ = canvas.SaveLayer();
+                var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+                var offsetY = context.PortraitConfig?.OffsetY ?? 0;
                 canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
                     new RectangleF((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY,
                         characterPortrait.Width, characterPortrait.Height),
                     KnownResamplers.Bicubic);
+                canvas.Restore();
 
                 canvas.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
 
@@ -327,7 +324,7 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                });
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 for (var i = 0; i < constellationIcons.Length; i++)
                 {
@@ -469,6 +466,11 @@ internal class GenshinCharacterCardService : CardServiceBase<GenshinCharacterInf
                 }
             });
         });
+    }
+
+    protected override Image<Rgba32> CreateBackground()
+    {
+        return new Image<Rgba32>(3240, 1080, Color.Transparent.ToPixel<Rgba32>());
     }
 
     private void DrawRelicSlotImage(DrawingCanvas canvas, Relic relic, Image relicImage, Point position)

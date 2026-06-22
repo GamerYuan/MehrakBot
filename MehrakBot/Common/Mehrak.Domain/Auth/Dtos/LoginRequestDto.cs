@@ -1,22 +1,15 @@
-﻿namespace Mehrak.Domain.Auth.Dtos;
+﻿using Mehrak.Domain.Shared.Enums;
 
-public class LoginRequestDto
-{
-    public string Username { get; set; } = default!;
-    public string Password { get; set; } = default!;
-}
+namespace Mehrak.Domain.Auth.Dtos;
 
 public class LoginResultDto
 {
     public bool Succeeded { get; init; }
     public string? Error { get; init; }
-    public Guid UserId { get; init; }
-    public string? Username { get; init; }
-    public long DiscordUserId { get; init; }
+    public string DiscordUserId { get; init; } = string.Empty;
     public string? SessionToken { get; init; }
 
     public bool IsSuperAdmin { get; init; }
     public bool IsRootUser { get; init; }
-    public IReadOnlyCollection<string> GameWritePermissions { get; init; } = [];
-    public bool RequiresPasswordReset { get; init; }
+    public IReadOnlyCollection<Game> GameWritePermissions { get; init; } = [];
 }

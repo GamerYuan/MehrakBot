@@ -2,37 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Mehrak.Application",
-      "type": "dotnet",
+      "type": "aspire",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/MehrakBot/Services/Application/Mehrak.Application/Mehrak.Application.csproj",
-      "preLaunchTask": "build-application",
-      "presentation": {
-        "group": "",
-        "order": 1
-      }
-    },
-    {
-      "name": "Mehrak.Bot",
-      "type": "dotnet",
-      "request": "launch",
-      "projectPath": "${workspaceFolder}/MehrakBot/Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj",
-      "preLaunchTask": "build-bot",
-      "presentation": {
-        "group": "",
-        "order": 2
-      }
-    },
-    {
-      "name": "Mehrak.Dashboard",
-      "type": "dotnet",
-      "request": "launch",
-      "projectPath": "${workspaceFolder}/MehrakBot/Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj",
-      "preLaunchTask": "build-dashboard",
-      "presentation": {
-        "group": "",
-        "order": 3
-      }
+      "name": "Aspire: Launch default AppHost",
+      "program": "${workspaceFolder}"
     }
   ]
 }

@@ -121,6 +121,12 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
     {
         const int maxRetries = 3;
 
+        if (update.ArtistAttribution is { Length: > 15 })
+        {
+            m_Logger.LogWarning("ArtistAttribution exceeds 15 characters for {Game} - ServerId {ServerId}", game, serverId);
+            return false;
+        }
+
         for (var attempt = 0; attempt < maxRetries; attempt++)
         {
             using var scope = m_ScopeFactory.CreateScope();
@@ -152,8 +158,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                         OffsetX = update.OffsetX,
                         OffsetY = update.OffsetY,
                         TargetScale = update.TargetScale,
-                        EnableGradientFade = update.EnableGradientFade,
-                        GradientFadeStart = update.GradientFadeStart
+                        FlipX = update.FlipX,
+                        ArtistAttribution = update.ArtistAttribution
                     };
                     context.CharacterPortraitConfigs.Add(entity);
                 }
@@ -163,8 +169,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     entity.OffsetX = update.OffsetX;
                     entity.OffsetY = update.OffsetY;
                     entity.TargetScale = update.TargetScale;
-                    entity.EnableGradientFade = update.EnableGradientFade;
-                    entity.GradientFadeStart = update.GradientFadeStart;
+                    entity.FlipX = update.FlipX;
+                    entity.ArtistAttribution = update.ArtistAttribution;
                 }
 
                 await context.SaveChangesAsync();
@@ -215,8 +221,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
-            EnableGradientFade = entity.EnableGradientFade,
-            GradientFadeStart = entity.GradientFadeStart
+            FlipX = entity.FlipX,
+            ArtistAttribution = entity.ArtistAttribution
         };
     }
 
@@ -228,8 +234,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = cache.OffsetX,
             OffsetY = cache.OffsetY,
             TargetScale = cache.TargetScale,
-            EnableGradientFade = cache.EnableGradientFade,
-            GradientFadeStart = cache.GradientFadeStart
+            FlipX = cache.FlipX,
+            ArtistAttribution = cache.ArtistAttribution
         };
     }
 
@@ -241,8 +247,8 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
-            EnableGradientFade = entity.EnableGradientFade,
-            GradientFadeStart = entity.GradientFadeStart
+            FlipX = entity.FlipX,
+            ArtistAttribution = entity.ArtistAttribution
         };
     }
 
@@ -252,7 +258,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         public int? OffsetX { get; set; }
         public int? OffsetY { get; set; }
         public float? TargetScale { get; set; }
-        public bool? EnableGradientFade { get; set; }
-        public float? GradientFadeStart { get; set; }
+        public bool? FlipX { get; set; }
+        public string? ArtistAttribution { get; set; }
     }
 }

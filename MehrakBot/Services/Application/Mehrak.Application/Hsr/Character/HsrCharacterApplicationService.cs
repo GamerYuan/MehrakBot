@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
@@ -16,6 +17,7 @@ using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr.Types;
@@ -24,6 +26,8 @@ using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.Relic;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
 
 #endregion
 
@@ -44,8 +48,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_CharacterApi;
 
     private readonly IApplicationMetrics m_MetricsService;
-    private readonly RelicDbContext m_RelicContext;
+    private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
 
 
     protected override string CommandName => "HSR Character";
@@ -61,9 +67,11 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
-        RelicDbContext relicContext,
+        IServiceScopeFactory scopeFactory,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
+        IOptions<CommandDispatcherConfig> dispatcherConfig,
         ILogger<HsrCharacterApplicationService> logger) : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
         m_CardService = cardService;
@@ -74,8 +82,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_AliasService = aliasService;
         m_CharacterApi = characterApi;
         m_MetricsService = metricsService;
-        m_RelicContext = relicContext;
+        m_ScopeFactory = scopeFactory;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
+        m_DispatcherConfig = dispatcherConfig;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -161,21 +171,27 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         List<string> attachments = [];
 
-        foreach (var charData in validCharacters.Values)
+        var charList = validCharacters.Values.ToList();
+        var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
+            charList,
+            (charData, ct) => ProcessCharacterAsync(context, server, profile, charData,
+                characterList.RelicWiki, characterList.EquipWiki, ct),
+            m_DispatcherConfig.Value.MaxCharacterParallelism,
+            cancellationToken);
+
+        if (timedOut)
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+
+        for (var i = 0; i < results.Count; i++)
         {
-            var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterList.RelicWiki, characterList.EquipWiki, cancellationToken);
+            var result = results[i];
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
             }
-            else if (result.StatusCode == StatusCode.Timeout)
-            {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            }
             else
             {
-                failureMessages.Add($"{charData.Name}: {result.ErrorMessage}");
+                failureMessages.Add($"{charList[i].Name}: {result.ErrorMessage}");
             }
         }
 
@@ -200,7 +216,13 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         CancellationToken cancellationToken = default
     )
     {
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.HonkaiStarRail, characterInfo.Name, cancellationToken);
+
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, extraData);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
@@ -284,7 +306,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         List<Task<bool>> tasks = [];
 
-        var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f)).Build();
+        var relicProcessor = new ImageProcessorBuilder().Resize(150, 0).AddOperation(x => x.ApplyGradientFade(0.5f, EasingType.InQuint)).Build();
 
         tasks.Add(m_ImageUpdaterService.UpdateImageAsync(characterInfo.ToImageData(),
             ImageProcessors.None, cancellationToken));
@@ -379,17 +401,29 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.HonkaiStarRail, characterInfo.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return Result<string>.Failure(StatusCode.BotError,
-                ResponseMessage.AttachmentStoreError);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return Result<string>.Failure(StatusCode.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
@@ -399,24 +433,45 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     }
     private async Task AddSetName(int setId, string setName)
     {
-        try
+        const int maxRetries = 3;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var existing = await m_RelicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
-            if (existing == null)
+            try
             {
-                var entity = new HsrRelicModel { SetId = setId, SetName = setName };
-                m_RelicContext.HsrRelics.Add(entity);
-                await m_RelicContext.SaveChangesAsync();
-                Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+                using var scope = m_ScopeFactory.CreateScope();
+                await using var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
+                var existing = await relicContext.HsrRelics.AsNoTracking().FirstOrDefaultAsync(x => x.SetId == setId);
+                if (existing == null)
+                {
+                    var entity = new HsrRelicModel { SetId = setId, SetName = setName };
+                    relicContext.HsrRelics.Add(entity);
+                    await relicContext.SaveChangesAsync();
+                    Logger.LogInformation("Inserted relic set mapping: setId {SetId} -> {SetName}", setId, setName);
+                }
+                else
+                {
+                    Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+                }
+                return;
             }
-            else
+            catch (DbUpdateException e) when (e.InnerException is PostgresException pgEx
+                                              && pgEx.SqlState is "23505" or "40001" or "57014")
             {
-                Logger.LogDebug("Relic set mapping for setId {SetId} : {SetName} already exists; skipping overwrite", setId, setName);
+                // 23505 = unique_violation (already inserted by concurrent request)
+                // 40001 = serialization_failure, 57014 = query_canceled — retriable
+                Logger.LogWarning(e, "Retriable DB error inserting relic set {Attempt}/{MaxRetries}: {SetId}", attempt, maxRetries, setId);
+                if (attempt == maxRetries)
+                {
+                    Logger.LogWarning(e, "Failed to insert relic set after {MaxRetries} attempts: {SetId}, {SetName}", maxRetries, setId, setName);
+                    return;
+                }
+                await Task.Delay(100 * attempt);
             }
-        }
-        catch (DbUpdateException e)
-        {
-            Logger.LogWarning(e, "An error occurred while inserting relic {SetId}, {SetName}", setId, setName);
+            catch (DbUpdateException e)
+            {
+                Logger.LogWarning(e, "Non-retriable DB error inserting relic {SetId}, {SetName}", setId, setName);
+                return;
+            }
         }
     }
 }

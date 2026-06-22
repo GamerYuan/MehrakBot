@@ -144,7 +144,7 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
                     var processedMonsterImage = originalMonsterImage.Clone(ctx =>
                     {
                         ctx.Resize(0, 600, KnownResamplers.Bicubic);
-                        ctx.ApplyGradientFade(0.65f);
+                        ctx.ApplyGradientFade(0.65f, EasingType.InQuint);
                         ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-100, -125)));
                     });
                     disposables.Add(processedMonsterImage);

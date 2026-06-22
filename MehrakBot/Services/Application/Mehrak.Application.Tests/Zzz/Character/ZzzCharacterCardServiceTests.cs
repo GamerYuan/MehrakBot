@@ -80,6 +80,95 @@ public class ZzzCharacterCardServiceTests
         Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+
+        var cardService = new ZzzCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<ZzzCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Jane_TestData.json")));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.PortraitImageStream = portraitStream;
+
+        // Act
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the card should render successfully using the provided portrait stream.
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "ZzzCharacter_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
+    }
+
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
+        var cardService = new ZzzCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<ZzzCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Jane_TestData.json")));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets", "Character_Jane_GoldenImage.jpg"));
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var image = await cardService.GetCardAsync(cardContext);
+        Assert.That(image, Is.Not.Null);
+
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        generatedImage.Position = 0;
+        var generatedImageBytes = generatedImage.ToArray();
+
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "ZzzCharacter_DownloadFailFallback_Generated.jpg"),
+            generatedImageBytes);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "ZzzCharacter_DownloadFailFallback_Golden.jpg"),
+            goldenImage);
+
+        Assert.That(generatedImageBytes, Is.Not.Empty);
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(generatedImage, IsImage.IdenticalTo(goldenStream),
+            "Generated fallback image should match the golden image");
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto

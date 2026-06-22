@@ -1,15 +1,35 @@
 <Solution>
-    <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" Id="4a8793d4-3780-4e79-81c4-0962ab50cf72" />
+  <Folder Name="/Common/">
+    <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-    <Project Path="Common/Mehrak.GameApi.Tests/Mehrak.GameApi.Tests.csproj" Id="faae925a-7fbc-4bb2-b49c-1b0aaeae6683" />
+    <Project Path="Common/Mehrak.GameApi.Tests/Mehrak.GameApi.Tests.csproj" />
     <Project Path="Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
     <Project Path="Common/Mehrak.Infrastructure.Tests/Mehrak.Infrastructure.Tests.csproj" />
     <Project Path="Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="Services/Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/Services/Application/">
     <Project Path="Services/Application/Mehrak.Application.Tests/Mehrak.Application.Tests.csproj" />
     <Project Path="Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
+  </Folder>
+  <Folder Name="/Services/Bot/">
     <Project Path="Services/Bot/Mehrak.Bot.Generators/Mehrak.Bot.Generators.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot.Tests/Mehrak.Bot.Tests.csproj" />
     <Project Path="Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
+  </Folder>
+  <Folder Name="/Services/Dashboard/">
     <Project Path="Services/Dashboard/Mehrak.Dashboard.Tests/Mehrak.Dashboard.Tests.csproj" />
     <Project Path="Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+  </Folder>
+  <Folder Name="/Services/ImageProcessor/">
+    <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor.Tests/Mehrak.ImageProcessor.Tests.csproj" />
+    <Project Path="Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+  </Folder>
+  <Folder Name="/Services/MigrationService/">
+    <Project Path="Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
+  </Folder>
+  <Project Path="Mehrak.AppHost/Mehrak.AppHost.csproj" />
+
 </Solution>

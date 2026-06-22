@@ -9,6 +9,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -38,6 +39,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<JsonNode, WikiApiContext> m_WikiApi;
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
     private readonly IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> m_CharacterEntryPageService;
 
 
@@ -56,6 +58,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
         IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> characterEntryPageService,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
@@ -69,6 +72,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_WikiApi = wikiApi;
         m_MetricsService = metricsService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
         m_CharacterEntryPageService = characterEntryPageService;
     }
 
@@ -152,7 +156,13 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var characterData = response.Data;
         var charInfo = characterData.AvatarList[0];
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.ZenlessZoneZero, charInfo.Name, cancellationToken);
+
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var fileName = GetFileName(JsonSerializer.Serialize(characterData), "jpg", gameUid, extraData);
         if (await AttachmentExistsAsync(fileName))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
@@ -253,16 +263,28 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
         cardContext.SetParameter("server", server);
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
-
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            await using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());

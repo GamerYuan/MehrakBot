@@ -6,6 +6,7 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Utility;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -20,12 +21,13 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 #endregion
 
 namespace Mehrak.Application.Hsr.Character;
 
-public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
+public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInformation>
 {
     private readonly IServiceScopeFactory m_ScopeFactory;
     private Dictionary<int, Image> m_StatImages = null!;
@@ -35,6 +37,9 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
     private Image<Rgba32>[] m_RelicStarImages = new Image<Rgba32>[5];
 
     private const string StatsPath = FileNameFormat.Hsr.StatsName;
+
+    protected override int DefaultPortraitWidth => 1000;
+    protected override IResampler PortraitResampler => KnownResamplers.Lanczos3;
 
     public HsrCharacterCardService(IImageRepository imageRepository,
         IServiceScopeFactory scopeFactory,
@@ -92,8 +97,11 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         using var scope = m_ScopeFactory.CreateScope();
         var relicContext = scope.ServiceProvider.GetRequiredService<RelicDbContext>();
 
-        var characterPortraitTask = LoadImageFromRepositoryAsync<Rgba32>(
-            characterInformation.ToImageName(), disposables, cancellationToken);
+        Image characterPortrait = await LoadPortraitAsync(context,
+            () => LoadImageFromRepositoryAsync<Rgba32>(
+                characterInformation.ToImageName(), disposables, cancellationToken),
+            disposables, cancellationToken);
+
         var equipImageTask = characterInformation.Equip == null
             ? LoadImageFromRepositoryAsync<Rgba32>(FileNameFormat.Hsr.LightconeTemplateName, disposables, cancellationToken)
             : LoadImageFromRepositoryAsync<Rgba32>(
@@ -208,26 +216,6 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
 
         var accentColor = GetAccentColor(characterInformation.Element!);
 
-        var characterPortrait = await characterPortraitTask;
-
-        var portraitConfig = context.GetParameter<CharacterPortraitConfig>("portraitConfig");
-        characterPortrait.Mutate(ctx =>
-        {
-            if (portraitConfig?.TargetScale > 0f)
-            {
-                var scale = portraitConfig.TargetScale.Value;
-                ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, KnownResamplers.Lanczos3);
-            }
-            else
-            {
-                ctx.Resize(1000, 0, KnownResamplers.Lanczos3);
-            }
-
-            if (portraitConfig?.EnableGradientFade == true &&
-                (portraitConfig?.GradientFadeStart ?? 0.75f) > 0f)
-                ctx.ApplyGradientFade(portraitConfig?.GradientFadeStart ?? 0.75f);
-        });
-
         var equipImage = await equipImageTask;
         (bool Active, Image Image)[] ranks = [.. (await Task.WhenAll(rankTasks)).Reverse()];
         (Skill Data, Image Image)[] baseSkillImages = [.. await Task.WhenAll(baseSkillTasks)];
@@ -249,8 +237,8 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
         {
             ctx.Paint(canvas =>
             {
-                var offsetX = portraitConfig?.OffsetX ?? 0;
-                var offsetY = portraitConfig?.OffsetY ?? 0;
+                var offsetX = context.PortraitConfig?.OffsetX ?? 0;
+                var offsetY = context.PortraitConfig?.OffsetY ?? 0;
 
                 canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
                     new RectangleF(400 - characterPortrait.Width / 2 + offsetX, 700 - characterPortrait.Height / 2 + offsetY,
@@ -293,7 +281,7 @@ public class HsrCharacterCardService : CardServiceBase<HsrCharacterInformation>
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
-                });
+                }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
                 for (var i = 0; i < ranks.Length; i++)
                 {

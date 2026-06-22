@@ -130,6 +130,94 @@ public class GenshinCharacterCardServiceTests
         };
     }
 
+    [Test]
+    public async Task GenerateCharacterCard_WhenUserHasActivePortrait_UsesUserPortraitImage()
+    {
+        // Arrange - provide a recognizable portrait image (solid red 800x1000 PNG) via the context.
+        await using var portraitStream =
+            PortraitServiceMockFactory.CreateSolidColorPngStream(800, 1000, (255, 0, 0));
+
+        var cardService = new GenshinCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_TestData.json"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(
+            TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+        cardContext.PortraitImageStream = portraitStream;
+
+        // Act
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the card should render successfully using the provided portrait stream.
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+
+        // Save the generated image to the Output folder for visual inspection.
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_UserPortrait_Generated.jpg"),
+            generatedImage.ToArray());
+    }
+
+    [Test]
+    public async Task GenerateCharacterCard_WhenUserPortraitDownloadFails_FallsBackToStockPortrait()
+    {
+        // Arrange - no PortraitImageStream set, simulating a failed download. The card service
+        // should fall back to the stock portrait path.
+        var cardService = new GenshinCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<GenshinCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<GenshinCharacterDetail>(
+                await File.ReadAllTextAsync($"{TestDataPath}/Genshin/Aether_TestData.json"));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(
+            TestUserId, characterDetail.List[0], profile);
+        cardContext.SetParameter("server", Server.Asia);
+        cardContext.SetParameter("ascension", 80);
+
+        // Act - should not throw; falls back to the stock portrait.
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert - the card should match the stock golden image (same test data + params),
+        // proving the fallback path produces a byte-identical result rather than a degraded one.
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin",
+            "TestAssets", "Character_GoldenImage.jpg"));
+
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
+        Directory.CreateDirectory(outputDirectory);
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_DownloadFailFallback_Generated.jpg"),
+            generatedImage.ToArray());
+        await File.WriteAllBytesAsync(
+            Path.Combine(outputDirectory, "GenshinCharacter_DownloadFailFallback_Golden.jpg"),
+            goldenImage);
+
+        generatedImage.Position = 0;
+        using var goldenStream = new MemoryStream(goldenImage);
+        Assert.That(generatedImage, IsImage.IdenticalTo(goldenStream));
+    }
+
     // To be used to generate golden image should the generation algorithm be updated
     [Explicit]
     [Test]

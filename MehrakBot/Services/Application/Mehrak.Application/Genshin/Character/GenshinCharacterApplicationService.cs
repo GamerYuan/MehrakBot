@@ -5,23 +5,29 @@ using System.Text.Json.Nodes;
 using Mehrak.Application.Genshin.Extensions;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
+using Mehrak.Application.Shared.Models;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Image.Models;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Genshin.Types;
 using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.User;
+using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -46,6 +52,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private readonly IApplicationMetrics m_MetricsService;
     private readonly ICharacterStatService m_CharacterStatService;
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
+    private readonly IUserPortraitService m_UserPortraitService;
+    private readonly IMultiImageProcessor m_WeaponImageProcessor;
+    private readonly IOptions<CommandDispatcherConfig> m_DispatcherConfig;
 
 
     protected override string CommandName => "Genshin Character";
@@ -64,6 +73,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         ICharacterStatService characterStatService,
         IAttachmentStorageService attachmentStorage,
         ICharacterPortraitConfigService portraitConfigService,
+        IUserPortraitService userPortraitService,
+        [FromKeyedServices(Mehrak.Domain.Shared.Common.CommandName.ImageProcessor.Weapon)] IMultiImageProcessor weaponImageProcessor,
+        IOptions<CommandDispatcherConfig> dispatcherConfig,
         ILogger<GenshinCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorage, logger)
     {
@@ -77,6 +89,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         m_MetricsService = metricsService;
         m_CharacterStatService = characterStatService;
         m_PortraitConfigService = portraitConfigService;
+        m_UserPortraitService = userPortraitService;
+        m_WeaponImageProcessor = weaponImageProcessor;
+        m_DispatcherConfig = dispatcherConfig;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -178,21 +193,26 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         List<string> attachments = [];
 
-        foreach (var charData in characterInfo.Data.List)
+        var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
+            characterInfo.Data.List,
+            (charData, ct) => ProcessCharacterAsync(context, server, profile, charData,
+                characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki, ct),
+            m_DispatcherConfig.Value.MaxCharacterParallelism,
+            cancellationToken);
+
+        if (timedOut)
+            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+
+        for (var i = 0; i < results.Count; i++)
         {
-            var result = await ProcessCharacterAsync(context, server, profile, charData,
-                characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki, cancellationToken);
+            var result = results[i];
             if (result.IsSuccess)
             {
                 attachments.Add(result.Data);
             }
-            else if (result.StatusCode == StatusCode.Timeout)
-            {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            }
             else
             {
-                failureMessages.Add($"{charData.Base.Name}: {result.ErrorMessage}");
+                failureMessages.Add($"{characterInfo.Data.List[i].Base.Name}: {result.ErrorMessage}");
             }
         }
 
@@ -216,7 +236,13 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         Dictionary<string, string> avatarWiki, Dictionary<string, string> weaponWiki,
         CancellationToken cancellationToken = default)
     {
-        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid);
+        var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
+            m_UserPortraitService, context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
+
+        var extraData = activePortrait != null
+            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+            : null;
+        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, extraData);
         if (await AttachmentExistsAsync(filename))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
@@ -249,7 +275,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             new ImageProcessorBuilder().Resize(100, 0).Build(), cancellationToken)));
         tasks.AddRange(charData.Relics.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
             new ImageProcessorBuilder().Resize(300, 0).AddOperation(ctx => ctx.Pad(300, 300))
-                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f)).Build(), cancellationToken)));
+                .AddOperation(ctx => ctx.ApplyGradientFade(0.5f, EasingType.InQuint)).Build(), cancellationToken)));
 
         try
         {
@@ -289,7 +315,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                         await m_ImageUpdaterService.UpdateMultiImageAsync(
                             new MultiImageData(charData.Weapon.ToAscendedImageName(),
                                 [charData.Weapon.Icon, weapImage.Data]),
-                            new GenshinWeaponImageProcessor(),
+                            m_WeaponImageProcessor,
                             cancellationToken
                         );
                     }
@@ -318,16 +344,29 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
 
-        var portraitConfig = await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id);
-        if (portraitConfig != null)
-            cardContext.SetParameter("portraitConfig", portraitConfig);
+        var resolution = activePortrait != null
+            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
+            : new PortraitResolution(null,
+                await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id));
+        cardContext.PortraitImageStream = resolution.ImageStream;
+        cardContext.PortraitConfig = resolution.Config;
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        try
         {
-            Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
-            return Result<string>.Failure(StatusCode.BotError,
-                ResponseMessage.AttachmentStoreError);
+            using var card = await m_CardService.GetCardAsync(cardContext);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            {
+                Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
+                return Result<string>.Failure(StatusCode.BotError,
+                    ResponseMessage.AttachmentStoreError);
+            }
+        }
+        finally
+        {
+            if (resolution.ImageStream != null)
+                await resolution.ImageStream.DisposeAsync();
         }
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());

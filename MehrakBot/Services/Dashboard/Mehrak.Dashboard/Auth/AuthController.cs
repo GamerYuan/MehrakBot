@@ -1,12 +1,12 @@
 ﻿using System.Security.Claims;
-using Mehrak.Dashboard.Auth.Models;
 using Mehrak.Domain.Auth;
-using Mehrak.Domain.Auth.Dtos;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+using OpenIddict.Abstractions;
+using OpenIddict.Client;
+using OpenIddict.Client.AspNetCore;
 
 namespace Mehrak.Dashboard.Auth;
 
@@ -16,40 +16,73 @@ public class AuthController : ControllerBase
 {
     private const string SessionTokenClaim = "dashboard_session";
     private const string PermissionClaim = "perm";
+    private const string DiscordScheme = "Discord";
     private readonly IDashboardAuthService m_AuthService;
     private readonly ILogger<AuthController> m_Logger;
+    private readonly IConfiguration m_Config;
 
-    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IDashboardAuthService authService, ILogger<AuthController> logger, IConfiguration config)
     {
         m_AuthService = authService;
         m_Logger = logger;
+        m_Config = config;
     }
 
     [AllowAnonymous]
-    [HttpPost("login")]
-    [EnableRateLimiting("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    [HttpGet("discord")]
+    public IActionResult Discord()
     {
-        m_Logger.LogInformation("Login attempt for username {Username}", request.Username.ReplaceLineEndings("").Trim());
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action(nameof(DiscordCallback))
+        };
+        return Challenge(properties, DiscordScheme);
+    }
 
-        var result = await m_AuthService.LoginAsync(
-            new LoginRequestDto { Username = request.Username.ReplaceLineEndings("").Trim(), Password = request.Password },
-            HttpContext.RequestAborted);
+    private string GetFrontendOrigin() =>
+        m_Config["Dashboard:Origin"]
+            ?? throw new ArgumentException("Dashboard:Origin must be set in configuration.");
+
+    [AllowAnonymous]
+    [HttpGet("callback")]
+    public async Task<IActionResult> DiscordCallback()
+    {
+        var frontendOrigin = GetFrontendOrigin();
+
+        var authenticateResult = await HttpContext.AuthenticateAsync(DiscordScheme);
+        if (!authenticateResult.Succeeded || authenticateResult.Principal == null)
+        {
+            m_Logger.LogWarning("Discord authentication failed");
+            return Redirect(frontendOrigin);
+        }
+
+        var discordIdClaim = authenticateResult.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(discordIdClaim) || !long.TryParse(discordIdClaim, out var discordId))
+        {
+            m_Logger.LogWarning("Discord authentication succeeded but no valid Discord ID found");
+            return Redirect(frontendOrigin);
+        }
+
+        m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
+
+        var discordUsername = authenticateResult.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
+        var avatarHash = authenticateResult.Principal.FindFirstValue("avatar");
+        var accessToken = authenticateResult.Properties?.GetTokenValue(OpenIddictClientAspNetCoreConstants.Tokens.BackchannelAccessToken);
+        var loginIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
+        var result = await m_AuthService.LoginByDiscordAsync(discordId, discordUsername, avatarHash, accessToken, loginIp, userAgent, null, HttpContext.RequestAborted);
 
         if (!result.Succeeded || result.SessionToken is null)
         {
-            m_Logger.LogWarning("Login failed for username {Username}: {Reason}", request.Username.ReplaceLineEndings("").Trim(),
-                result.Error ?? "Unknown error");
-            return Unauthorized(new { error = "Invalid credentials" });
+            m_Logger.LogWarning("Discord login failed for DiscordId {DiscordId}: {Reason}", discordId, result.Error ?? "Unknown error");
+            return Redirect(frontendOrigin);
         }
 
-        m_Logger.LogInformation("Login succeeded for user {UserId}", result.UserId);
+        m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, result.UserId.ToString()),
-            new(ClaimTypes.Name, result.Username ?? string.Empty),
-            new("discord_id", result.DiscordUserId.ToString()),
+            new("discord_id", result.DiscordUserId),
             new(SessionTokenClaim, result.SessionToken)
         };
 
@@ -60,7 +93,7 @@ public class AuthController : ControllerBase
             claims.Add(new Claim(ClaimTypes.Role, "rootuser"));
 
         foreach (var game in result.GameWritePermissions)
-            claims.Add(new Claim(PermissionClaim, $"game_write:{game}"));
+            claims.Add(new Claim(PermissionClaim, $"game_write:{game.ToString().ToLowerInvariant()}"));
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
 
@@ -73,93 +106,14 @@ public class AuthController : ControllerBase
                 AllowRefresh = false
             });
 
-
-        return Ok(new
-        {
-            username = result.Username,
-            discordUserId = result.DiscordUserId.ToString(),
-            isSuperAdmin = result.IsSuperAdmin,
-            isRootUser = result.IsRootUser,
-            gameWritePermissions = result.GameWritePermissions,
-            requiresPasswordReset = result.RequiresPasswordReset
-        });
+        return Redirect(frontendOrigin);
     }
 
     [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await HttpContext.SignOutAsync();
         return Ok();
-    }
-
-    [Authorize]
-    [HttpPost("password")]
-    public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest request)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized(new { error = "Invalid user context." });
-
-        var result = await m_AuthService.ChangePasswordAsync(new ChangeDashboardPasswordRequestDto
-        {
-            UserId = userId,
-            CurrentPassword = request.CurrentPassword,
-            NewPassword = request.NewPassword
-        }, HttpContext.RequestAborted);
-
-        if (!result.Succeeded)
-        {
-            m_Logger.LogWarning("Password update failed for user {UserId}: {Reason}", userId, result.Error ?? "Unknown error");
-            return BadRequest(new { error = result.Error ?? "Unable to update password." });
-        }
-
-        m_Logger.LogInformation("Password updated for user {UserId}. Sessions invalidated: {Invalidated}", userId, result.SessionsInvalidated);
-
-
-        if (result.SessionsInvalidated)
-        {
-            await HttpContext.SignOutAsync();
-            // m_Metrics.TrackUserLogout(userId.ToString());
-        }
-
-        return Ok(new { requiresPasswordReset = false });
-    }
-
-    [Authorize]
-    [HttpPost("password/reset")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized(new { error = "Invalid user context." });
-
-        m_Logger.LogInformation("Forced password reset requested for user {UserId}", userId);
-
-        var result = await m_AuthService.ForceResetPasswordAsync(new ForceResetDashboardPasswordRequestDto
-        {
-            UserId = userId,
-            NewPassword = request.NewPassword
-        }, HttpContext.RequestAborted);
-
-        if (!result.Succeeded)
-        {
-            m_Logger.LogWarning("Forced password reset failed for user {UserId}: {Reason}", userId, result.Error ?? "Unknown error");
-            return BadRequest(new { error = result.Error ?? "Unable to reset password." });
-        }
-
-        m_Logger.LogInformation("Forced password reset completed for user {UserId}", userId);
-
-
-        await HttpContext.SignOutAsync();
-        // m_Metrics.TrackUserLogout(userId.ToString());
-        return Ok(new { requiresPasswordReset = false });
     }
 }

@@ -1,11 +1,11 @@
 ﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
-using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
+using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -80,7 +80,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .Where(u => u.Id == (long)Context.User.Id)
                 .Include(u => u.Profiles)
                 .SingleOrDefaultAsync();
-            var isNewUser = user == null;
 
             if (user == null)
             {
@@ -118,19 +117,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            try
-            {
-                await m_UserContext.SaveChangesAsync();
-                if (isNewUser) await m_UserTracker.AdjustUserCountAsync(1);
-            }
-            catch (DbUpdateException e)
-            {
-                m_Logger.LogError(e, "Failed to add profile for user {UserId}", Context.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
-                return;
-            }
+            var hadProfiles = user.Profiles.Count > 0;
 
             UserProfileModel profile = new()
             {
@@ -141,10 +128,20 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
             };
 
-            await m_UserContext.UserProfiles.AddAsync(profile);
+            user.Profiles.Add(profile);
+
             try
             {
                 await m_UserContext.SaveChangesAsync();
+                if (!hadProfiles)
+                    try
+                    {
+                        await m_UserTracker.AdjustUserCountAsync(1);
+                    }
+                    catch (Exception e)
+                    {
+                        m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
+                    }
                 m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)

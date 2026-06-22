@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Mehrak.ImageProcessor": {
+      "commandName": "Project",
+      "workingDirectory": "bin\\Debug\\net10.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+      },
+      "applicationUrl": "http://localhost:13000",
+      "dotnetRunMessages": true
+    }
+  }
+}

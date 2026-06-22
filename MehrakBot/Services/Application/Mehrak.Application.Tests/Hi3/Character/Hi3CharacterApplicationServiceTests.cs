@@ -535,8 +535,7 @@ public class Hi3CharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        Assert.That(capturedContext!.GetParameter<Dictionary<int, CharacterPortraitConfig>>("portraitConfigs"),
-            Is.EqualTo(new Dictionary<int, CharacterPortraitConfig> { { character.Costumes.First().Id, portraitConfig } }));
+        Assert.That(capturedContext!.PortraitConfig, Is.EqualTo(portraitConfig));
     }
 
     #endregion
@@ -614,6 +613,7 @@ public class Hi3CharacterApplicationServiceTests
         var metricsMock = new Mock<IApplicationMetrics>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
+        var portraitServiceMock = new Mock<IUserPortraitService>();
         var loggerMock = new Mock<ILogger<Hi3CharacterApplicationService>>();
 
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -637,6 +637,7 @@ public class Hi3CharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            portraitServiceMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, gameRoleApiMock, imageUpdaterMock, cardServiceMock, metricsMock, attachmentStorageMock, portraitConfigMock, userContext);
@@ -683,6 +684,8 @@ public class Hi3CharacterApplicationServiceTests
 
         var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
 
+        var portraitServiceMock = new Mock<IUserPortraitService>();
+
         var service = new Hi3CharacterApplicationService(
             cardService,
             characterApiMock.Object,
@@ -694,6 +697,7 @@ public class Hi3CharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            portraitServiceMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, gameRoleApiMock, attachmentStorageMock, portraitConfigMock, userContext);

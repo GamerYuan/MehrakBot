@@ -170,10 +170,27 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
         return image;
     }
 
+    protected async Task<Image> LoadImageFromStreamAsync(Stream stream, DisposableBag disposable, CancellationToken cancellationToken = default)
+    {
+        if (stream.CanSeek) stream.Position = 0;
+        var image = await Image.LoadAsync(stream, cancellationToken);
+        disposable.Add(image);
+        return image;
+    }
+
+    protected async Task<Image<T>> LoadImageFromStreamAsync<T>(Stream stream, DisposableBag disposable, CancellationToken cancellationToken = default)
+        where T : unmanaged, IPixel<T>
+    {
+        if (stream.CanSeek) stream.Position = 0;
+        var image = await Image.LoadAsync<T>(stream, cancellationToken);
+        disposable.Add(image);
+        return image;
+    }
+
     protected static FontDefinitions LoadFonts(string fontPath, float titleSize, float normalSize, float? mediumSize = null, float? smallSize = null, float? tinySize = null)
     {
         FontCollection collection = new();
-        var family = collection.Add(fontPath);
+        var family = collection.Add(System.IO.Path.Combine(AppContext.BaseDirectory, fontPath));
 
         var actualMedium = mediumSize ?? normalSize - 4;
         var actualSmall = smallSize ?? actualMedium - 4;

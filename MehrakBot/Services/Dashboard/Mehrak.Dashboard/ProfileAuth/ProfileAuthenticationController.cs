@@ -49,6 +49,7 @@ public sealed class ProfileAuthenticationController : ControllerBase
             DashboardAuthStatus.NotFound => NotFound(new { error = result.Error ?? "Profile not found." }),
             DashboardAuthStatus.InvalidPassphrase => BadRequest(new { error = result.Error ?? "Invalid passphrase." }),
             DashboardAuthStatus.PassphraseRequired => BadRequest(new { error = "Passphrase is required." }),
+            DashboardAuthStatus.RateLimited => StatusCode(StatusCodes.Status429TooManyRequests, new { error = result.Error ?? "Too many attempts. Please try again later." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError,
                 new { error = result.Error ?? "Unable to authenticate profile." })
         };

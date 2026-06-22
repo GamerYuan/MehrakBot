@@ -1,11 +1,13 @@
 ﻿#region
 
 using Amazon.S3;
+using Mehrak.Domain.Auth;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Auth;
+using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.CodeRedeem;
@@ -22,6 +24,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpenIddict.EntityFrameworkCore;
 using StackExchange.Redis;
 
 #endregion
@@ -33,7 +36,10 @@ public static class InfrastructureServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+        {
+            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString);
+            options.UseOpenIddict();
+        });
         services.AddDbContext<CharacterDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
         services.AddDbContext<UserDbContext>((sp, options) =>
@@ -89,6 +95,16 @@ public static class InfrastructureServiceCollectionExtension
 
         services.AddSingleton<ICharacterStatService, CharacterStatService>();
         services.AddSingleton<ICharacterPortraitConfigService, CharacterPortraitConfigService>();
+
+        services.AddScoped<IDashboardSessionService, DashboardSessionService>();
+        services.AddHostedService<SessionCleanupService>();
+
+        services.AddSingleton<UserCountTrackerService>();
+        services.AddHostedService<UserTrackerBackfillService>();
+
+        services.AddSingleton<IUserPortraitService, UserPortraitService>();
+        services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();
+        services.AddSingleton<IPassphraseAttemptRateLimiter, PassphraseAttemptRateLimiter>();
 
         services.AddSingleton<IEncryptionService, CookieEncryptionService>();
 

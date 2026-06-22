@@ -17,20 +17,18 @@ To manually test your changes, follow these steps to build and run Mehrak locall
 
 2. Make a copy of `appsettings.json` in `Services/Application/Mehrak.Application/`, `Services/Bot/Mehrak.Bot`, `Services/Dashboard/Mehrak.Dashboard`, rename them as `appsettings.Development.json`, and setup the appropriate values
 
-3. Start Docker services
+3. Start all services with Aspire
 
 ```
-docker compose -f docker-compose.development.yml up -d postgres redis seaweed-master \
-    seaweed-volume seaweed-filer seaweed-s3
+dotnet run --project MehrakBot/Services/AppHost/Mehrak.AppHost
 ```
 
-4. Build and run from your IDE
+This starts all infrastructure (PostgreSQL, Redis, SeaweedFS, ClickHouse) and application services automatically. The Aspire dashboard opens in your browser.
 
-Alternatively, you can build the docker images and run from docker directly
+Alternatively, you can use the production docker compose directly:
 
 ```
-docker buildx bake -f docker-compose.development.yml
-docker compose up -d --no-build
+docker compose --env-file .env.local up -d
 ```
 
 Once the services are running, you should see the Bot online, and you can start interacting with the Bot through slash commands

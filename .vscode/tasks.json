@@ -43,6 +43,20 @@
       "group": "build",
       "presentation": { "reveal": "silent" },
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build-image-processor",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/MehrakBot/Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "group": "build",
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": "$msCompile"
     }
   ]
 }

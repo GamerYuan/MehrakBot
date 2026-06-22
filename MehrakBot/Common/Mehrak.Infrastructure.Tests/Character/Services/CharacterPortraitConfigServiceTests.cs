@@ -1,4 +1,4 @@
-using Mehrak.Domain.Character;
+﻿using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Character;
@@ -104,8 +104,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity.OffsetX, Is.Null);
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.Null);
-        Assert.That(entity.EnableGradientFade, Is.Null);
-        Assert.That(entity.GradientFadeStart, Is.Null);
+        Assert.That(entity.FlipX, Is.Null);
+        Assert.That(entity.ArtistAttribution, Is.Null);
     }
 
     #endregion
@@ -125,7 +125,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             OffsetX = 10,
             TargetScale = 1.5f,
-            EnableGradientFade = true
+            FlipX = true,
+            ArtistAttribution = "TestArtist"
         };
 
         var result = await m_Service.UpsertConfigAsync(Game.HonkaiStarRail, 200, update);
@@ -140,8 +141,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity!.OffsetX, Is.EqualTo(10));
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.EqualTo(1.5f));
-        Assert.That(entity.EnableGradientFade, Is.True);
-        Assert.That(entity.GradientFadeStart, Is.Null);
+        Assert.That(entity.FlipX, Is.True);
+        Assert.That(entity.ArtistAttribution, Is.EqualTo("TestArtist"));
     }
 
     #endregion
@@ -162,8 +163,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
             OffsetX = 5,
             OffsetY = -3,
             TargetScale = 2.0f,
-            EnableGradientFade = true,
-            GradientFadeStart = 0.5f
+            ArtistAttribution = "InitialArtist"
         };
         await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 300, initialUpdate);
 
@@ -178,8 +178,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         Assert.That(entity!.OffsetX, Is.Null);
         Assert.That(entity.OffsetY, Is.Null);
         Assert.That(entity.TargetScale, Is.Null);
-        Assert.That(entity.EnableGradientFade, Is.Null);
-        Assert.That(entity.GradientFadeStart, Is.Null);
+        Assert.That(entity.FlipX, Is.Null);
+        Assert.That(entity.ArtistAttribution, Is.Null);
     }
 
     #endregion
@@ -253,8 +253,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
             OffsetX = -15,
             OffsetY = 20,
             TargetScale = 3.5f,
-            EnableGradientFade = false,
-            GradientFadeStart = 0.9f
+            FlipX = true,
+            ArtistAttribution = "KianaFan"
         };
 
         var result = await m_Service.UpsertConfigAsync(Game.HonkaiImpact3, 500, update);
@@ -270,8 +270,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
             Assert.That(entity.OffsetX, Is.EqualTo(-15));
             Assert.That(entity.OffsetY, Is.EqualTo(20));
             Assert.That(entity.TargetScale, Is.EqualTo(3.5f));
-            Assert.That(entity.EnableGradientFade, Is.False);
-            Assert.That(entity.GradientFadeStart, Is.EqualTo(0.9f));
+            Assert.That(entity.FlipX, Is.True);
+            Assert.That(entity.ArtistAttribution, Is.EqualTo("KianaFan"));
         });
     }
 
@@ -312,6 +312,36 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
 
     #endregion
 
+    #region ArtistAttribution round-trip
+
+    [Test]
+    public async Task UpsertConfigAsync_ArtistAttribution_SetAndClear()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.Genshin, 750, "Xiao");
+        }
+
+        var setUpdate = new CharacterPortraitConfigUpdate { ArtistAttribution = "XiaoArt" };
+        await m_Service.UpsertConfigAsync(Game.Genshin, 750, setUpdate);
+
+        await using var verifyContext1 = CreateContext();
+        var entity = await verifyContext1.CharacterPortraitConfigs
+            .FirstAsync(c => c.Game == Game.Genshin && c.ServerId == 750);
+        Assert.That(entity.ArtistAttribution, Is.EqualTo("XiaoArt"));
+
+        var clearUpdate = new CharacterPortraitConfigUpdate { ArtistAttribution = null };
+        await m_Service.UpsertConfigAsync(Game.Genshin, 750, clearUpdate);
+
+        await using var verifyContext2 = CreateContext();
+        entity = await verifyContext2.CharacterPortraitConfigs
+            .FirstAsync(c => c.Game == Game.Genshin && c.ServerId == 750);
+        Assert.That(entity.ArtistAttribution, Is.Null);
+    }
+
+    #endregion
+
     #region Idempotency — same update applied twice
 
     [Test]
@@ -327,7 +357,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             OffsetX = 10,
             TargetScale = 2.0f,
-            EnableGradientFade = true
+            FlipX = true,
+            ArtistAttribution = "BennettMain"
         };
 
         await m_Service.UpsertConfigAsync(Game.Genshin, 700, update);
@@ -341,7 +372,8 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         {
             Assert.That(entity.OffsetX, Is.EqualTo(10));
             Assert.That(entity.TargetScale, Is.EqualTo(2.0f));
-            Assert.That(entity.EnableGradientFade, Is.True);
+            Assert.That(entity.FlipX, Is.True);
+            Assert.That(entity.ArtistAttribution, Is.EqualTo("BennettMain"));
         });
     }
 

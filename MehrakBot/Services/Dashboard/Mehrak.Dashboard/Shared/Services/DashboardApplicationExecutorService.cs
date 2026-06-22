@@ -2,7 +2,11 @@
 using Mehrak.Dashboard.Shared.Models;
 using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Shared.Enums;
+using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Dashboard.Shared.Services;
@@ -24,16 +28,19 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly IDashboardProfileAuthenticationService m_ProfileAuthenticationService;
+    private readonly UserDbContext m_UserContext;
     private readonly ILogger<DashboardApplicationExecutorService> m_Logger;
     private readonly List<ParamValidator> m_Validators = [];
 
     public DashboardApplicationExecutorService(
         IServiceProvider serviceProvider,
         IDashboardProfileAuthenticationService profileAuthenticationService,
+        UserDbContext userContext,
         ILogger<DashboardApplicationExecutorService> logger)
     {
         m_ServiceProvider = serviceProvider;
         m_ProfileAuthenticationService = profileAuthenticationService;
+        m_UserContext = userContext;
         m_Logger = logger;
     }
 
@@ -73,31 +80,25 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
             .AuthenticateAsync(DiscordUserId, profileId, null, ct)
             .ConfigureAwait(false);
 
-        switch (authResult.Status)
+        return authResult.Status switch
         {
-            case DashboardAuthStatus.Success:
-                return await ExecuteApplicationAsync(authResult, ct).ConfigureAwait(false);
-            case DashboardAuthStatus.PassphraseRequired:
-                m_Logger.LogInformation(
-                    "Dashboard authentication cache miss for user {UserId}, profile {ProfileId}",
-                    DiscordUserId,
-                    profileId);
-                return DashboardApplicationExecutionResult.AuthenticationRequired(authResult.Error ??
-                    "Authentication expired. Please re-authenticate this profile.");
-            case DashboardAuthStatus.InvalidPassphrase:
-                return DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
-                    "Invalid passphrase. Please try again.");
-            case DashboardAuthStatus.NotFound:
-                return DashboardApplicationExecutionResult.NotFound(authResult.Error ??
-                    "Requested profile could not be found.");
-            default:
-                return DashboardApplicationExecutionResult.Error(authResult.Error ??
-                    "Unable to complete authentication.");
-        }
+            DashboardAuthStatus.Success => await ExecuteApplicationAsync(authResult, profileId, ct).ConfigureAwait(false),
+            DashboardAuthStatus.PassphraseRequired => DashboardApplicationExecutionResult.AuthenticationRequired(authResult.Error ??
+                                "Authentication expired. Please re-authenticate this profile."),
+            DashboardAuthStatus.InvalidPassphrase => DashboardApplicationExecutionResult.AuthenticationFailed(authResult.Error ??
+                                "Invalid passphrase. Please try again."),
+            DashboardAuthStatus.RateLimited => DashboardApplicationExecutionResult.RateLimited(authResult.Error ??
+                                "Too many attempts. Please try again later."),
+            DashboardAuthStatus.NotFound => DashboardApplicationExecutionResult.NotFound(authResult.Error ??
+                                "Requested profile could not be found."),
+            _ => DashboardApplicationExecutionResult.Error(authResult.Error ??
+                                "Unable to complete authentication."),
+        };
     }
 
     private async Task<DashboardApplicationExecutionResult> ExecuteApplicationAsync(
         DashboardProfileAuthenticationResult authResult,
+        int profileId,
         CancellationToken ct)
     {
         // Note: ApplicationContext set logic removed as we use direct params now
@@ -126,7 +127,57 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
 
         ct.ThrowIfCancellationRequested();
 
+        if (commandResult.IsSuccess)
+            await UpdateLastUsedServerAsync(authResult, profileId, ct).ConfigureAwait(false);
+
         return DashboardApplicationExecutionResult.FromCommandResult(commandResult);
+    }
+
+    private async Task UpdateLastUsedServerAsync(DashboardProfileAuthenticationResult authResult, int profileId, CancellationToken ct)
+    {
+        if (authResult.User?.Profiles == null) return;
+        if (!Parameters.TryGetValue("game", out var gameObj) || gameObj is not Game game) return;
+        if (!Parameters.TryGetValue("server", out var serverObj) || serverObj is not string server) return;
+
+        var profileDto = authResult.User.Profiles.FirstOrDefault(p => p.ProfileId == profileId);
+        if (profileDto == null) return;
+
+        var profile = await m_UserContext.UserProfiles
+            .Where(p => p.Id == profileDto.Id)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        if (profile == null) return;
+
+        var region = await m_UserContext.Regions
+            .Where(x => x.ProfileId == profile.Id && x.Game == game)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        try
+        {
+            if (region == null)
+            {
+                await m_UserContext.Regions.AddAsync(new ProfileRegion
+                {
+                    ProfileId = profile.Id,
+                    Game = game,
+                    Region = server
+                }, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                region.Region = server;
+                m_UserContext.Update(region);
+            }
+
+            await m_UserContext.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to update last used server for user {UserId}, profile {ProfileId}, game {Game}",
+                DiscordUserId, profileDto.ProfileId, game);
+        }
     }
 }
 
@@ -137,6 +188,7 @@ public enum DashboardExecutionStatus
     AuthenticationRequired,
     AuthenticationFailed,
     NotFound,
+    RateLimited,
     Error
 }
 
@@ -189,6 +241,11 @@ public sealed class DashboardApplicationExecutionResult
         return new DashboardApplicationExecutionResult(DashboardExecutionStatus.NotFound, errorMessage: message);
     }
 
+    public static DashboardApplicationExecutionResult RateLimited(string message)
+    {
+        return new DashboardApplicationExecutionResult(DashboardExecutionStatus.RateLimited, errorMessage: message);
+    }
+
     public static DashboardApplicationExecutionResult Error(string message)
     {
         return new DashboardApplicationExecutionResult(DashboardExecutionStatus.Error, errorMessage: message);
@@ -224,6 +281,11 @@ public sealed class DashboardApplicationExecutionResult
                 => new ObjectResult(new { error = ErrorMessage ?? "Requested resource was not found." })
                 {
                     StatusCode = StatusCodes.Status404NotFound
+                },
+            DashboardExecutionStatus.RateLimited
+                => new ObjectResult(new { error = ErrorMessage ?? "Too many attempts. Please try again later." })
+                {
+                    StatusCode = StatusCodes.Status429TooManyRequests
                 },
             _
                 => new ObjectResult(new { error = ErrorMessage ?? "Unable to execute command." })

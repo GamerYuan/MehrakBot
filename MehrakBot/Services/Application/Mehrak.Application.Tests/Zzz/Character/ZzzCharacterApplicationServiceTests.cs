@@ -634,13 +634,12 @@ public class ZzzCharacterApplicationServiceTests
 
         // Assert
         Assert.That(capturedContext, Is.Not.Null);
-        var configParam = capturedContext!.GetParameter<CharacterPortraitConfig>("portraitConfig");
-        Assert.That(configParam, Is.Not.Null);
+        Assert.That(capturedContext!.PortraitConfig, Is.Not.Null);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(configParam!.OffsetX, Is.EqualTo(5));
-            Assert.That(configParam.OffsetY, Is.EqualTo(10));
+            Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(5));
+            Assert.That(capturedContext.PortraitConfig.OffsetY, Is.EqualTo(10));
         }
     }
 
@@ -999,6 +998,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             entryPageApiMock.Object,
             loggerMock.Object);
 
@@ -1071,6 +1071,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             loggerMock.Object);
 
@@ -1165,6 +1166,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             Mock.Of<ICharacterPortraitConfigService>(),
+            Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 

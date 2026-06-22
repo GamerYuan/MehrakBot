@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Character;
+﻿using Mehrak.Dashboard.Shared;
+using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
@@ -10,10 +11,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Character;
 
-[ApiController]
 [Authorize]
 [Route("portraits")]
-public class PortraitsController : ControllerBase
+public class PortraitsController : GameWriteController
 {
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly CharacterDbContext m_CharacterContext;
@@ -98,6 +98,7 @@ public class PortraitsController : ControllerBase
     }
 
     [HttpPatch("config")]
+    [Authorize(Policy = "RequireGameWrite")]
     public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] int? serverId,
         [FromBody] CharacterPortraitConfigUpdate update)
     {
@@ -106,9 +107,6 @@ public class PortraitsController : ControllerBase
 
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
-
-        if (!HasGameWriteAccess(game!))
-            return Forbid();
 
         m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} in game {Game}", serverId, gameEnum);
 
@@ -149,36 +147,5 @@ public class PortraitsController : ControllerBase
         }
 
         return NotFound(new { error = $"Portrait image for {serverId.Value} ({gameEnum.ToFriendlyString()}) not found, please generate an image with this character in the Characters tab and try again" });
-    }
-
-    private static bool TryParseGame(string? input, out Game game, out string error)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            error = "Game parameter is required.";
-            game = default;
-            return false;
-        }
-
-        if (!Enum.TryParse<Game>(input, true, out game))
-        {
-            error = "Invalid game parameter.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private bool HasGameWriteAccess(string game)
-    {
-        if (User.IsInRole("superadmin"))
-            return true;
-
-        var normalized = game.Trim().ToLowerInvariant();
-        var claimValue = $"game_write:{normalized}";
-        return User.Claims.Any(c =>
-            string.Equals(c.Type, "perm", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(c.Value, claimValue, StringComparison.OrdinalIgnoreCase));
     }
 }
