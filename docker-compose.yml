@@ -27,6 +27,9 @@ services:
       - ClickHouse__Username=${CLICKHOUSE_USER}
       - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakBot
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -63,6 +66,9 @@ services:
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakDashboard
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
     volumes:
       - ./certificates/server-encryption-certificate.pfx:/app/server-encryption-certificate.pfx:ro
       - ./certificates/server-signing-certificate.pfx:/app/server-signing-certificate.pfx:ro
@@ -93,6 +99,9 @@ services:
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakApplication
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   image-processor:
     image: mehrak-image-processor:latest
@@ -111,6 +120,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://*:13000
       - NsfwClassifier__NsfwThreshold=${NSFW_THRESHOLD:-0.7}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakImageProcessor
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   postgres:
     image: postgres:18.3
