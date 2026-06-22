@@ -503,4 +503,4 @@ sixlabors.lic
 .mimocode
 .opencode
 
-/MehrakBot/Services/Dashboard/Mehrak.Dashboard/certificates/*
+MehrakBot/certificates/

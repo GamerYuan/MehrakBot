@@ -250,8 +250,10 @@ public class Program
                     var signingCertPath = builder.Configuration["Dashboard:SigningCertificatePath"]
                         ?? "server-signing-certificate.pfx";
 
-                    var encryptionCert = X509CertificateLoader.LoadCertificateFromFile(encryptionCertPath);
-                    var signingCert = X509CertificateLoader.LoadCertificateFromFile(signingCertPath);
+                    var encryptionCert = X509CertificateLoader.LoadPkcs12FromFile(encryptionCertPath,
+                        string.Empty, keyStorageFlags: X509KeyStorageFlags.DefaultKeySet);
+                    var signingCert = X509CertificateLoader.LoadPkcs12FromFile(signingCertPath,
+                        string.Empty, keyStorageFlags: X509KeyStorageFlags.DefaultKeySet);
 
                     options
                         .AddEncryptionCertificate(encryptionCert)
