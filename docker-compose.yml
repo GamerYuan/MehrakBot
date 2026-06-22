@@ -54,6 +54,8 @@ services:
       - ASPNETCORE_URLS=http://*:5000
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
       - Dashboard__Origin=${DASHBOARD_ORIGIN}
+      - Discord__ClientId=${DISCORD_CLIENT_ID}
+      - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
