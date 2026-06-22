@@ -74,6 +74,7 @@ jobs:
             mehrak:latest \
             mehrak-dashboard:latest \
             mehrak-application:latest \
+            mehrak-image-processor:latest \
             -o mehrak-images.tar
           chmod 644 mehrak-images.tar
 

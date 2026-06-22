@@ -61,6 +61,9 @@ services:
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
+    volumes:
+      - ./certificates/server-encryption-certificate.pfx:/app/server-encryption-certificate.pfx:ro
+      - ./certificates/server-signing-certificate.pfx:/app/server-signing-certificate.pfx:ro
 
   application:
     image: mehrak-application:latest
