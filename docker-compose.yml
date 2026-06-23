@@ -177,7 +177,7 @@ services:
       - mehrak-network
 
   nginx:
-    image: nginx:1.29
+    image: nginx:1.31.2
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -193,7 +193,7 @@ services:
       - mehrak-network
 
   seaweed-master:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
     restart: unless-stopped
     ports:
@@ -206,7 +206,7 @@ services:
       - seaweed-network
 
   seaweed-volume:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: "volume -mserver=seaweed-master:9333 -dir=/data -ip=seaweed-volume -preStopSeconds=1"
     restart: unless-stopped
     depends_on:
@@ -220,7 +220,7 @@ services:
       - seaweed-network
 
   seaweed-filer:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: 'filer -master="seaweed-master:9333" -ip=seaweed-filer'
     restart: unless-stopped
     depends_on:
@@ -235,7 +235,7 @@ services:
       - seaweed-network
 
   seaweed-s3:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: 's3 -filer="seaweed-filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
     restart: unless-stopped
     depends_on:
@@ -279,7 +279,7 @@ services:
       - mehrak-network
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.146.1
+    image: otel/opentelemetry-collector-contrib:0.154.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
