@@ -10,21 +10,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference
-            Include="../Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
+        <ProjectReference Include="../Services/Application/Mehrak.Application/Mehrak.Application.csproj" />
         <ProjectReference Include="../Services/Bot/Mehrak.Bot/Mehrak.Bot.csproj" />
-        <ProjectReference
-            Include="../Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
-        <ProjectReference
-            Include="../Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
-        <ProjectReference
-            Include="../Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
+        <ProjectReference Include="../Services/Dashboard/Mehrak.Dashboard/Mehrak.Dashboard.csproj" />
+        <ProjectReference Include="../Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
+        <ProjectReference Include="../Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting" Version="13.4.5" />
-        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.5" />
-        <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.5" />
+        <PackageReference Include="Aspire.Hosting" Version="13.4.6" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="13.4.6" />
     </ItemGroup>
 
     <ItemGroup>

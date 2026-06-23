@@ -13,17 +13,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
-        <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.26.0" />
-        <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
-        <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64"
-            Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
-        <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507"
-            Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
+        <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.27.0" />
+        <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260602" />
+        <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
+        <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260602" Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
