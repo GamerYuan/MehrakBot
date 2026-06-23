@@ -297,7 +297,8 @@ public class Program
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Nginx:KnownProxy"] ?? "127.0.0.1"));
+                options.KnownProxies.Clear();
+                options.KnownIPNetworks.Clear();
             });
         }
 
