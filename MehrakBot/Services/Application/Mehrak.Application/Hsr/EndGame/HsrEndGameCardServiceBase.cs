@@ -138,10 +138,12 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     var stageText = GetStageText(gameModeData, floorData, floorNumber);
 
+                    var starShift = floorData.ExtraStarNum > 0 ? floorData.ExtraStarNum * 50 : 0;
+
                     var scoreText = $"Score: {floorData?.TotalScore ?? 0}";
                     var scoreTextWidth = (int)TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal)).Width;
                     var scoreExtrasWidth = GetScoreExtrasWidth(scoreText);
-                    var maxTextWidth = 880 - 40 - 15 - scoreTextWidth - scoreExtrasWidth - 150;
+                    var maxTextWidth = 880 - 40 - 15 - scoreTextWidth - scoreExtrasWidth - 150 - starShift;
                     var bounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
                     canvas.DrawText(new RichTextOptions(bounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
@@ -179,7 +181,6 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
                     var extraRoom = blobHeight - contentEndY;
                     var separator2Y = extraRoom > 0 && !floorData.IsTierce ? blobHeight / 2 : 335;
                     var separator3Y = 605;
-                    var starShift = floorData.ExtraStarNum > 0 ? floorData.ExtraStarNum * 50 : 0;
 
                     var node1Y = Math.Max(85, (65 + separator2Y) / 2 - 125);
                     var section2End = floorData.IsTierce ? separator3Y : blobHeight;
