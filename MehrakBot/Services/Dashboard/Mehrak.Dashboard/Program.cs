@@ -314,7 +314,8 @@ public class Program
                         PermitLimit = 100,
                         Window = TimeSpan.FromMinutes(1),
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
+                        QueueLimit = 0,
+                        SegmentsPerWindow = 10
                     }));
 
             options.AddPolicy("login", httpContext =>
