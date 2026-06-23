@@ -138,7 +138,7 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     var stageText = GetStageText(gameModeData, floorData, floorNumber);
 
-                    var starShift = floorData.ExtraStarNum > 0 ? floorData.ExtraStarNum * 50 : 0;
+                    var starShift = (floorData?.ExtraStarNum ?? 0) > 0 ? floorData!.ExtraStarNum * 50 : 0;
 
                     var scoreText = $"Score: {floorData?.TotalScore ?? 0}";
                     var scoreTextWidth = (int)TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal)).Width;
