@@ -138,7 +138,10 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     var stageText = GetStageText(gameModeData, floorData, floorNumber);
 
-                    var maxTextWidth = floorData?.ExtraStarNum > 0 ? 380 : 450;
+                    var scoreText = $"Score: {floorData?.TotalScore ?? 0}";
+                    var scoreTextWidth = (int)TextMeasurer.MeasureBounds(scoreText, new TextOptions(Fonts.Normal)).Width;
+                    var scoreExtrasWidth = GetScoreExtrasWidth(scoreText);
+                    var maxTextWidth = 880 - 40 - 15 - scoreTextWidth - scoreExtrasWidth - 150;
                     var bounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
                     canvas.DrawText(new RichTextOptions(bounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
@@ -228,7 +231,6 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
                     canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 720 - starShift, yOffset + 10),
                         new PointF(xOffset + 720 - starShift, yOffset + 55)).Build());
-                    var scoreText = $"Score: {floorData.TotalScore}";
                     canvas.DrawText(new RichTextOptions(Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 710 - starShift, yOffset + 34),
@@ -358,6 +360,8 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
     protected virtual void DrawNodeExtras(DrawingCanvas region, HsrEndNodeInformation nodeData)
     { }
+
+    protected virtual int GetScoreExtrasWidth(string scoreText) => 0;
 
     protected virtual void DrawScoreExtras(DrawingCanvas canvas, int xOffset, int yOffset,
         string scoreText, HsrEndFloorDetail floorData, HsrEndInformation gameModeData)
