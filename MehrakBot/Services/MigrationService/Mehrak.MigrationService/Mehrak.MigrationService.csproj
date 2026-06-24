@@ -7,13 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.5" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Common\Mehrak.Infrastructure\Mehrak.Infrastructure.csproj" />
-    <ProjectReference
-      Include="..\..\Mehrak.ServiceDefaults\Mehrak.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Mehrak.ServiceDefaults\Mehrak.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

@@ -68,7 +68,6 @@ public class Program
             .WriteTo.OpenTelemetry(options =>
             {
                 options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
-                    ?? builder.Configuration["Otlp:Endpoint"]
                     ?? "http://localhost:4317";
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
@@ -298,7 +297,8 @@ public class Program
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.KnownProxies.Add(IPAddress.Parse(builder.Configuration["Nginx:KnownProxy"] ?? "127.0.0.1"));
+                options.KnownProxies.Clear();
+                options.KnownIPNetworks.Clear();
             });
         }
 
@@ -306,13 +306,25 @@ public class Program
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 100,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0,
+                        SegmentsPerWindow = 10
+                    }));
+
             options.AddPolicy("login", httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(1),
+                        Window = TimeSpan.FromMinutes(15),
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                         QueueLimit = 0
                     }));

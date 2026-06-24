@@ -76,6 +76,12 @@ internal class HsrPureFictionCardService : HsrEndGameCardServiceBase
         return strBuilder.ToString();
     }
 
+    protected override int GetScoreExtrasWidth(string scoreText)
+    {
+        // ponytail: fixed layout — cycle icon at x=650, separator at x=695
+        return 45;
+    }
+
     protected override void DrawScoreExtras(DrawingCanvas canvas, int xOffset, int yOffset,
         string scoreText, HsrEndFloorDetail floorData, HsrEndInformation gameModeData)
     {

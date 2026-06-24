@@ -27,6 +27,9 @@ services:
       - ClickHouse__Username=${CLICKHOUSE_USER}
       - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakBot
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   dashboard:
     image: mehrak-dashboard:latest
@@ -54,6 +57,8 @@ services:
       - ASPNETCORE_URLS=http://*:5000
       - Dashboard__AdminDiscordId=${DASHBOARD_ADMIN_DISCORD_ID}
       - Dashboard__Origin=${DASHBOARD_ORIGIN}
+      - Discord__ClientId=${DISCORD_CLIENT_ID}
+      - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
@@ -61,6 +66,9 @@ services:
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakDashboard
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
     volumes:
       - ./certificates/server-encryption-certificate.pfx:/app/server-encryption-certificate.pfx:ro
       - ./certificates/server-signing-certificate.pfx:/app/server-signing-certificate.pfx:ro
@@ -91,6 +99,9 @@ services:
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakApplication
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   image-processor:
     image: mehrak-image-processor:latest
@@ -109,6 +120,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://*:13000
       - NsfwClassifier__NsfwThreshold=${NSFW_THRESHOLD:-0.7}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakImageProcessor
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   postgres:
     image: postgres:18.3
@@ -163,7 +177,7 @@ services:
       - mehrak-network
 
   nginx:
-    image: nginx:1.29
+    image: nginx:1.31.2
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -179,7 +193,7 @@ services:
       - mehrak-network
 
   seaweed-master:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
     restart: unless-stopped
     ports:
@@ -192,7 +206,7 @@ services:
       - seaweed-network
 
   seaweed-volume:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: "volume -mserver=seaweed-master:9333 -dir=/data -ip=seaweed-volume -preStopSeconds=1"
     restart: unless-stopped
     depends_on:
@@ -206,7 +220,7 @@ services:
       - seaweed-network
 
   seaweed-filer:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: 'filer -master="seaweed-master:9333" -ip=seaweed-filer'
     restart: unless-stopped
     depends_on:
@@ -221,7 +235,7 @@ services:
       - seaweed-network
 
   seaweed-s3:
-    image: chrislusf/seaweedfs:4.13
+    image: chrislusf/seaweedfs:4.35
     command: 's3 -filer="seaweed-filer:8888" -ip.bind=0.0.0.0 -port=8333 -config=/etc/seaweedfs/s3.json'
     restart: unless-stopped
     depends_on:
@@ -265,7 +279,7 @@ services:
       - mehrak-network
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.146.1
+    image: otel/opentelemetry-collector-contrib:0.154.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml

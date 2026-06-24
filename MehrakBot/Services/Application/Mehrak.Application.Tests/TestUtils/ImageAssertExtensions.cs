@@ -1,5 +1,8 @@
-﻿using CoenM.ImageHash;
-using CoenM.ImageHash.HashAlgorithms;
+﻿// AverageHash ported from Coenm.ImageHash (MIT) — see https://github.com/coenm/ImageHash
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using System.Numerics;
 using NUnit.Framework.Constraints;
 
 namespace Mehrak.Application.Tests.TestUtils;
@@ -40,16 +43,55 @@ public class ImageIdenticalConstraint : Constraint
         using var actualMs = new MemoryStream(actualBytes);
         using var expectedMs = new MemoryStream(m_Expected);
 
-        var hashAlgorithm = new AverageHash();
-        var actualHash = hashAlgorithm.Hash(actualMs);
-        var expectedHash = hashAlgorithm.Hash(expectedMs);
+        var actualHash = AverageHash(actualMs);
+        var expectedHash = AverageHash(expectedMs);
 
-        var actualSimilarity = CompareHash.Similarity(actualHash, expectedHash);
+        var actualSimilarity = Similarity(actualHash, expectedHash);
 
         var isSuccess = actualSimilarity >= m_SimilarityThreshold;
 
         return new ImageConstraintResult(this, actual, isSuccess, actualSimilarity, m_SimilarityThreshold);
     }
+
+    private static ulong AverageHash(Stream stream)
+    {
+        using var image = Image.Load<Rgba32>(stream);
+        image.Mutate(ctx => ctx
+            .Resize(8, 8)
+            .Grayscale(GrayscaleMode.Bt601)
+            .AutoOrient());
+
+        ulong hash = 0;
+
+        image.ProcessPixelRows(accessor =>
+        {
+            uint average = 0;
+            for (var y = 0; y < 8; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < 8; x++)
+                    average += row[x].R;
+            }
+            average /= 64;
+
+            var mask = 1UL << 63;
+            for (var y = 0; y < 8; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (var x = 0; x < 8; x++)
+                {
+                    if (row[x].R >= average)
+                        hash |= mask;
+                    mask >>= 1;
+                }
+            }
+        });
+
+        return hash;
+    }
+
+    private static double Similarity(ulong a, ulong b)
+        => (64 - BitOperations.PopCount(a ^ b)) / 64.0 * 100.0;
 
     private static byte[] ReadStream(Stream stream)
     {

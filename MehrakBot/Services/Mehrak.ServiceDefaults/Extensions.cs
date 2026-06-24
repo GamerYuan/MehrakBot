@@ -69,9 +69,7 @@ public static class Extensions
         where TBuilder : IHostApplicationBuilder
     {
         var useOtlp = !string.IsNullOrWhiteSpace(
-            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"])
-            || !string.IsNullOrWhiteSpace(
-                builder.Configuration["Otlp:Endpoint"]);
+            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         if (useOtlp)
         {

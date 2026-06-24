@@ -8,21 +8,19 @@
 
     <ItemGroup>
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-        <ProjectReference
-            Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
         <ProjectReference Include="../../Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
-        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
+        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient"
-            Version="1.14.0-beta.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.1-beta.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
@@ -41,8 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../../Assets/**/*.*"
-            Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
+        <None Include="../../../Assets/**/*.*" Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>Assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
@@ -60,8 +57,7 @@
         </None>
     </ItemGroup>
 
-    <ItemGroup
-        Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
+    <ItemGroup Condition="'$(Configuration)' == 'Debug' &#xD;&#xA;        and $([System.OperatingSystem]::IsLinux())&#xD;&#xA;        and Exists('appsettings.DockerDev.json')">
         <None Include="appsettings.DockerDev.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
