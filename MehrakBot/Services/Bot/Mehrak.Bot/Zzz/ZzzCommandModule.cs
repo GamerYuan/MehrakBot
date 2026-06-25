@@ -62,6 +62,7 @@ public class ZzzCommandModule : ApplicationCommandModule<ApplicationCommandConte
     }
 
     [SubSlashCommand("character", "Get character card")]
+    [HelpNotes("[List of Aliases](https://mehrakbot.com/docs?tab=alias)")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "character", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(ZzzCharacterAutocompleteProvider))]
