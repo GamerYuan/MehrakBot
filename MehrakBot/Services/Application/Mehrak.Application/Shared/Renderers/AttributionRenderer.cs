@@ -29,7 +29,7 @@ public static class AttributionRenderer
             ShadowColor: Color.FromPixel(new Rgba32(0, 0, 0, 0.75f)))
     );
 
-    private static readonly string[] Lines = ["MehrakBot", "mehrak.yuan-dev.com"];
+    private static readonly string[] Lines = ["MehrakBot", "mehrakbot.com"];
     private static readonly string Text = string.Join("\n", Lines);
 
     public static void DrawAttribution(this DrawingCanvas canvas, RichTextOptions textOptions,
