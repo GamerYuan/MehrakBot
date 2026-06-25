@@ -45,7 +45,8 @@ public static class Extensions
             {
                 tracing
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddGrpcClientInstrumentation();
 
                 if (builder.Services.Any(sd =>
                         sd.ServiceType.FullName?.Contains("GrpcClient") == true))
