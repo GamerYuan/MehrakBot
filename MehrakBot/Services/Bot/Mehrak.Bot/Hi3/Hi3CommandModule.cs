@@ -29,6 +29,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
     }
 
     [SubSlashCommand("battlesuit", "Get character card")]
+    [HelpNotes("[List of Aliases](https://mehrakbot.com/docs?tab=alias)")]
     public async Task CharacterCommand(
         [SlashCommandParameter(Name = "battlesuit", Description = "Character Name (Case-insensitive)",
             AutocompleteProviderType = typeof(Hi3CharacterAutocompleteProvider))]

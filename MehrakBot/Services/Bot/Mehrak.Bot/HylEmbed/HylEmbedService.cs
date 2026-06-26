@@ -184,7 +184,7 @@ internal partial class HylEmbedService : IBotService
             else if (insert.Video is { } video)
             {
                 var section = new ComponentSectionProperties(
-                    new LinkButtonProperties(videoButton, UrlRegex().IsMatch(video.Video) ? video.Video : articleUrl),
+                    new LinkButtonProperties(UrlRegex().IsMatch(video.Video) ? video.Video : articleUrl, videoButton),
                     [new TextDisplayProperties($"[{videoLabel}]")]);
                 components.Add(section);
                 currentLength += videoLabel.Length + 2;
@@ -250,6 +250,9 @@ internal partial class HylEmbedService : IBotService
 
     private static void AppendOrCreateTextDisplay(List<IComponentContainerComponentProperties> components, string content)
     {
+        if (string.IsNullOrWhiteSpace(content))
+            return;
+
         if (components.LastOrDefault() is TextDisplayProperties text)
         {
             text.Content += content;
