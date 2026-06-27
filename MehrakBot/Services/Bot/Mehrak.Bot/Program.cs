@@ -51,8 +51,6 @@ public class Program
 
         try
         {
-            Log.Information("Starting MehrakBot application");
-
             // Database Services
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
             builder.Services.Configure<RedisConfig>(options =>
