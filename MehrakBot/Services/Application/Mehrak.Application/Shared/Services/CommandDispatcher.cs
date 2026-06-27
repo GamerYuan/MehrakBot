@@ -81,7 +81,6 @@ public class CommandDispatcher : BackgroundService
     {
         using var activity = ApplicationTelemetry.ActivitySource.StartActivity(command.Request.CommandName);
         activity?.SetTag("command.name", command.Request.CommandName);
-        activity?.SetTag("user.id", Convert.ToHexString(SHA256.HashData(BitConverter.GetBytes(command.Request.DiscordUserId)))[..16]);
 
         try
         {

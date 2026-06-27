@@ -16,7 +16,6 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
-using OpenTelemetry.Metrics;
 using Serilog;
 
 namespace Mehrak.Bot;
