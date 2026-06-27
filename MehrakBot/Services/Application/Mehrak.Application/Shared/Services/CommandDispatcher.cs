@@ -1,4 +1,5 @@
-﻿using System.Threading.Channels;
+﻿using System.Diagnostics;
+using System.Threading.Channels;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Models;
 using Mehrak.Domain.Command.Models;
@@ -77,6 +78,10 @@ public class CommandDispatcher : BackgroundService
 
     private async Task ProcessCommandAsync(QueuedCommand command)
     {
+        using var activity = ApplicationTelemetry.ActivitySource.StartActivity(command.Request.CommandName);
+        activity?.SetTag("command.name", command.Request.CommandName);
+        activity?.SetTag("user.id", command.Request.DiscordUserId);
+
         try
         {
             if (command.CancellationToken.IsCancellationRequested)
