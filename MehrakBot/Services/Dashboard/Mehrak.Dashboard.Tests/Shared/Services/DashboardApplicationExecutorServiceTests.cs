@@ -4,7 +4,6 @@ using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.InMemory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Proto = Mehrak.Domain.Protobuf;

@@ -1,6 +1,5 @@
 ﻿using System.Security.Claims;
 using System.Security.Cryptography;
-using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;

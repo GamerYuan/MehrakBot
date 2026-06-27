@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Mehrak.Dashboard.User.Models;
+﻿namespace Mehrak.Dashboard.User.Models;
 
 public class UpdateDashboardUserRequest
 {

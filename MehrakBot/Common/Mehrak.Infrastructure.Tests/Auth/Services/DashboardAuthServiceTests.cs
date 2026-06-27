@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Auth;
-using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;

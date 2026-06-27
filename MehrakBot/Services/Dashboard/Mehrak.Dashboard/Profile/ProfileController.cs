@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
-using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;

@@ -10,7 +10,6 @@ using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Zzz;
 using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Common;
-using Proto = Mehrak.Domain.Protobuf;
 
 #endregion
 

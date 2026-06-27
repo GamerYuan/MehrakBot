@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Threading.Channels;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Models;

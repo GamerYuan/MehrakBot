@@ -7,9 +7,6 @@ using Mehrak.Infrastructure.ReleaseNote;
 using Mehrak.Infrastructure.Relic;
 using Mehrak.Infrastructure.User;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
-using OpenTelemetry.Trace;
 
 namespace Mehrak.MigrationService;
 

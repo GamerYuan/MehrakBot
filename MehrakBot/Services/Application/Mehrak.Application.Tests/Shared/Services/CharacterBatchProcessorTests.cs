@@ -1,12 +1,8 @@
 ﻿#region
 
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 using Mehrak.Application.Shared.Services;
-using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
-using NUnit.Framework;
 
 #endregion
 

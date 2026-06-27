@@ -1,7 +1,6 @@
 ﻿#region
 
 using Mehrak.Application.Shared.Renderers;
-using Mehrak.Application.Shared.Renderers.Extensions;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;

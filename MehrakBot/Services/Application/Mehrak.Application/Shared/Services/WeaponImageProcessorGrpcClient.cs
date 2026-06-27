@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Image.Abstractions;
-using Microsoft.Extensions.Logging;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Shared.Services;

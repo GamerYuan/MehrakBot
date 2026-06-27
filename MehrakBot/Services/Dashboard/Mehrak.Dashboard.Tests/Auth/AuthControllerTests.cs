@@ -1,12 +1,9 @@
 ﻿using System.Security.Claims;
 using Mehrak.Dashboard.Auth;
 using Mehrak.Domain.Auth;
-using Mehrak.Domain.Auth.Dtos;
-using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;

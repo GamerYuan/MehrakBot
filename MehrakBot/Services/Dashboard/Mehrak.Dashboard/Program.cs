@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
 using Mehrak.Dashboard.Shared.Auth;
@@ -15,11 +13,9 @@ using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using OpenIddict.Client;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Mehrak.Dashboard;

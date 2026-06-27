@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Shared.Utility;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Shared.Utility;

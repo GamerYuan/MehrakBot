@@ -1,10 +1,8 @@
 ﻿#region
 
-using Mehrak.Application.Shared.Utility;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Processing;
 
 #endregion
 

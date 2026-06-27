@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
