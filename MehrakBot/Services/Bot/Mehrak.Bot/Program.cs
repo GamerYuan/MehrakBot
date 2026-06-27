@@ -18,8 +18,6 @@ using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using OpenTelemetry.Metrics;
 using Serilog;
-using Serilog.Enrichers;
-using Serilog.Extensions;
 
 namespace Mehrak.Bot;
 
@@ -49,9 +47,7 @@ public class Program
             Console.WriteLine("Development environment detected");
         }
 
-        builder.AddSerilogOtlp("MehrakBot", config => config
-            .Enrich.WithRequestQuery()
-            .Enrich.WithRequestBody());
+        builder.AddSerilogOtlp("MehrakBot");
 
         try
         {

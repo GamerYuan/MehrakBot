@@ -141,11 +141,14 @@ public static class Extensions
                 outputTemplate:
                 "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture
-            )
-            .WriteTo.OpenTelemetry(options =>
+            );
+
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            loggerConfig.WriteTo.OpenTelemetry(options =>
             {
-                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
-                    ?? "http://localhost:4317";
+                options.Endpoint = otlpEndpoint;
                 options.Protocol = OtlpProtocol.Grpc;
                 options.ResourceAttributes = new Dictionary<string, object>
                 {
@@ -153,11 +156,14 @@ public static class Extensions
                     ["deployment.environment"] = builder.Environment.EnvironmentName
                 };
             });
+        }
 
         if (builder.Environment.IsDevelopment())
             loggerConfig.MinimumLevel.Debug();
 
         Log.Logger = loggerConfig.CreateLogger();
+
+        Log.Information("Starting {ServiceName}", serviceName);
 
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(dispose: true);
