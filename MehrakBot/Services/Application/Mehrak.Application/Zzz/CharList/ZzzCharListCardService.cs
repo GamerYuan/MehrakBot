@@ -63,31 +63,52 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var attribute in AttributeNames)
+        // ponytail: parallel download — all 19 images are independent
+        var attributeTasks = AttributeNames.Select(async name =>
         {
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(
-                string.Format(FileNameFormat.Zzz.AttributeName, attribute), cancellationToken);
+                string.Format(FileNameFormat.Zzz.AttributeName, name), cancellationToken);
             using var image = await Image.LoadAsync(stream, cancellationToken);
-            m_ElementIcons[attribute] = image.Clone(x => x.Resize(40, 0, KnownResamplers.Bicubic));
-            m_SmallElementIcons[attribute] = image.Clone(x => x.Resize(30, 0, KnownResamplers.Bicubic));
-        }
+            return (Key: name, Large: image.Clone(x => x.Resize(40, 0, KnownResamplers.Bicubic)), Small: image.Clone(x => x.Resize(30, 0, KnownResamplers.Bicubic)));
+        }).ToList();
 
-        foreach (var professionId in Enumerable.Range(1, 6))
+        var professionTasks = Enumerable.Range(1, 6).Select(async professionId =>
         {
             var iconName = string.Format(FileNameFormat.Zzz.ProfessionName, professionId);
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
             var image = await Image.LoadAsync(stream, cancellationToken);
             image.Mutate(x => x.Resize(40, 0, KnownResamplers.Bicubic));
-            m_ProfessionIcons[StatUtils.GetProfessionNameFromId(professionId)] = image;
-        }
+            return (Key: StatUtils.GetProfessionNameFromId(professionId), Image: image);
+        }).ToList();
 
-        foreach (var star in Enumerable.Range(1, 5))
+        var starTasks = Enumerable.Range(1, 5).Select(async star =>
         {
             var iconName = string.Format(FileNameFormat.Zzz.WeaponStarName, star);
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
             var image = await Image.LoadAsync(stream, cancellationToken);
             image.Mutate(x => x.Resize(65, 0, KnownResamplers.Bicubic));
-            m_StarImages[star] = image;
+            return (Key: star, Image: image);
+        }).ToList();
+
+        await Task.WhenAll(attributeTasks.Concat<Task>(professionTasks).Concat<Task>(starTasks));
+
+        foreach (var task in attributeTasks)
+        {
+            var (key, large, small) = task.Result;
+            m_ElementIcons[key] = large;
+            m_SmallElementIcons[key] = small;
+        }
+
+        foreach (var task in professionTasks)
+        {
+            var (key, image) = task.Result;
+            m_ProfessionIcons[key] = image;
+        }
+
+        foreach (var task in starTasks)
+        {
+            var (key, image) = task.Result;
+            m_StarImages[key] = image;
         }
     }
 

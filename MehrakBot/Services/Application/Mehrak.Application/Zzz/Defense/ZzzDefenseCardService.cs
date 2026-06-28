@@ -55,40 +55,40 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         string[] rating = ["S+", "S", "A", "B"];
-        m_RatingImages = await rating.ToAsyncEnumerable()
-            .Select(async (x, token) =>
+        var ratingTask = rating
+            .Select(async x =>
             {
                 var image = await Image.LoadAsync(
-                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RatingName, x), token), token);
+                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RatingName, x), cancellationToken), cancellationToken);
                 image.Mutate(ctx => ctx.Resize(80, 0));
                 return (Rating: x, Image: image);
             })
-            .ToDictionaryAsync(x => x.Rating, x => x.Image, cancellationToken: cancellationToken);
-        m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 40))))
-            .ToDictionary();
-        m_BaseBuddyImage = await Image.LoadAsync(
+            .ToList();
+        var buddyTask = Image.LoadAsync(
             await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base"), cancellationToken),
             cancellationToken);
-
-        StaticBackground = await Image.LoadAsync<Rgba32>(
+        var backgroundTask = Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Zzz.ShiyuBackgroundName, cancellationToken),
             cancellationToken);
+        var rankTasks = Enumerable.Range(1, 5)
+            .Select(async i => await Image.LoadAsync(
+                await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, i), cancellationToken),
+                cancellationToken))
+            .ToList();
 
-        m_RankIcons.Add((199, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 1), cancellationToken),
-            cancellationToken)));
-        m_RankIcons.Add((299, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 2), cancellationToken),
-            cancellationToken)));
-        m_RankIcons.Add((599, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 3), cancellationToken),
-            cancellationToken)));
-        m_RankIcons.Add((2099, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 4), cancellationToken),
-            cancellationToken)));
-        m_RankIcons.Add((int.MaxValue, await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.RankBackgroundName, 5), cancellationToken),
-            cancellationToken)));
+        await Task.WhenAll(ratingTask.Cast<Task>()
+            .Append(buddyTask)
+            .Append(backgroundTask)
+            .Concat(rankTasks.Cast<Task>()));
+
+        m_RatingImages = ratingTask.ToDictionary(x => x.Result.Rating, x => x.Result.Image);
+        m_SmallRatingImages = m_RatingImages.Select(x => (x.Key, x.Value.Clone(y => y.Resize(0, 40))))
+            .ToDictionary();
+        m_BaseBuddyImage = buddyTask.Result;
+        StaticBackground = backgroundTask.Result;
+
+        int[] boundaries = [199, 299, 599, 2099, (int.MaxValue)];
+        m_RankIcons.AddRange(boundaries.Zip(rankTasks, (boundary, task) => (boundary, task.Result)));
     }
 
     protected override Image<Rgba32> CreateBackground()
@@ -110,35 +110,42 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             throw new CommandException("No clear records found for Defense");
         }
 
-        var avatarImages = await data.FifthLayerDetail.LayerChallengeInfoList
+        var avatarTasks = data.FifthLayerDetail.LayerChallengeInfoList
             .SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+            .Select(async x =>
             {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var avatar = new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(stream, token));
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+                var avatar = new ZzzAvatar(x.Id, x.Level, x.Rarity[0], x.Rank, await Image.LoadAsync(stream, cancellationToken));
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
-        var buddyImages = await data.FifthLayerDetail.LayerChallengeInfoList
+            .ToList();
+        var buddyTasks = data.FifthLayerDetail.LayerChallengeInfoList
             .Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x!.Id),
-                async (x, token) =>
-                {
-                    var buddyImg = await LoadImageFromRepositoryAsync(x!.ToImageName(), disposables, token);
-                    buddyImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-45, 0))));
-                    return buddyImg;
-                }, cancellationToken: cancellationToken);
-        var bossImages = await data.FifthLayerDetail.LayerChallengeInfoList
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.LayerId),
-                async (x, token) => await LoadImageFromRepositoryAsync(
-                    x.ToMonsterImageName(), disposables, token), cancellationToken: cancellationToken);
+            .Select(async x =>
+            {
+                var buddyImg = await LoadImageFromRepositoryAsync(x!.ToImageName(), disposables, cancellationToken);
+                buddyImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-45, 0))));
+                return (BuddyId: x!.Id, Image: buddyImg);
+            })
+            .ToList();
+        var bossEntries = data.FifthLayerDetail.LayerChallengeInfoList.ToList();
+        var bossTasks = bossEntries
+            .Select(async x => await LoadImageFromRepositoryAsync(
+                x.ToMonsterImageName(), disposables, cancellationToken))
+            .ToList();
+
+        await Task.WhenAll(avatarTasks.Cast<Task>()
+            .Concat(buddyTasks.Cast<Task>())
+            .Concat(bossTasks.Cast<Task>()));
+
+        var avatarImages = avatarTasks.ToDictionary(x => x.Result.AvatarId, x => x.Result);
+        var buddyImages = buddyTasks.ToDictionary(x => x.Result.BuddyId, x => x.Result.Image);
+        var bossImages = bossEntries.Zip(bossTasks, (entry, task) => (entry.LayerId, task.Result))
+            .ToDictionary(x => x.LayerId, x => x.Result);
 
         var tzi = context.GetParameter<Server>("server").GetTimeZoneInfo();
 

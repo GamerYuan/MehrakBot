@@ -52,16 +52,25 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        StaticBackground = await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName), cancellationToken);
-        m_StigmataSlot = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName), cancellationToken);
-        m_StarIcon = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName), cancellationToken);
-        m_StarUnlit = m_StarIcon.Clone(x => x.Grayscale());
+        // ponytail: parallel download — all images are independent
+        var backgroundTask = Task.Run(async () =>
+            await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName), cancellationToken), cancellationToken);
+        var stigmataSlotTask = Task.Run(async () =>
+            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName), cancellationToken), cancellationToken);
+        var starIconTask = Task.Run(async () =>
+            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName), cancellationToken), cancellationToken);
 
-        m_CharacterRankIcons = await new int[] { 1, 2, 3, 4, 5 }
-            .ToAsyncEnumerable()
-            .Select(async (rank, token) =>
-                await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hi3.RankName, rank)), token))
-            .ToListAsync(cancellationToken: cancellationToken);
+        var rankTasks = Enumerable.Range(1, 5).Select(async rank =>
+            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hi3.RankName, rank)), cancellationToken)).ToList();
+
+        await Task.WhenAll(backgroundTask, stigmataSlotTask, starIconTask);
+        await Task.WhenAll(rankTasks);
+
+        StaticBackground = await backgroundTask;
+        m_StigmataSlot = await stigmataSlotTask;
+        m_StarIcon = await starIconTask;
+        m_StarUnlit = m_StarIcon.Clone(x => x.Grayscale());
+        m_CharacterRankIcons = rankTasks.Select(t => t.Result).ToList();
     }
 
     public override async Task RenderCardAsync(
