@@ -65,14 +65,24 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        await using var weaponStream = await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.LightconeTemplateName, cancellationToken);
+        // ponytail: parallelize all downloads, process sequentially after
+        var weaponDownloadTask = ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.LightconeTemplateName, cancellationToken);
+
+        var elementDownloadTasks = Elements.ToDictionary(
+            element => element,
+            element => ImageRepository.DownloadFileToStreamAsync(
+                string.Format(FileNameFormat.Hsr.ElementName, element.ToLowerInvariant()),
+                cancellationToken));
+
+        await Task.WhenAll(elementDownloadTasks.Values.Append(weaponDownloadTask));
+
+        await using var weaponStream = weaponDownloadTask.Result;
         m_WeaponPlaceholder = await Image.LoadAsync<Rgba32>(weaponStream, cancellationToken);
         m_WeaponPlaceholder.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
 
-        foreach (var element in Elements)
+        foreach (var (element, streamTask) in elementDownloadTasks)
         {
-            var iconName = string.Format(FileNameFormat.Hsr.ElementName, element.ToLowerInvariant());
-            await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);
+            await using var stream = streamTask.Result;
             using var image = await Image.LoadAsync(stream, cancellationToken);
             m_ElementIcons[element] = image.Clone(ctx => ctx.Resize(40, 0, KnownResamplers.Bicubic));
             m_SmallElementIcons[element] = image.Clone(ctx => ctx.Resize(30, 0, KnownResamplers.Bicubic));

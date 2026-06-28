@@ -55,25 +55,40 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_StatImages = await StatMappingUtility.HsrMapping.Keys.ToAsyncEnumerable().Where(x => x != 8).Select(async (x, token) =>
+        var statKeys = StatMappingUtility.HsrMapping.Keys.Where(x => x != 8).ToList();
+
+        // Start all resource downloads in parallel
+        var statImageTasks = statKeys.Select(async key =>
         {
-            var path = string.Format(StatsPath, x);
-            var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(path), token);
-            return new KeyValuePair<int, Image>(x, image);
-        }).ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken: cancellationToken);
+            var path = string.Format(StatsPath, key);
+            var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(path), cancellationToken);
+            return (Key: key, Image: image);
+        }).ToList();
 
-        m_DimmedStatImages = m_StatImages.ToDictionary(x => x.Key, x => x.Value.Clone(ctx => ctx.Brightness(0.5f)));
+        // ponytail: fire background download early so it runs in parallel with stat/relic tasks
+        var backgroundStreamTask = ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BackgroundName, cancellationToken);
 
-        StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BackgroundName, cancellationToken),
-            cancellationToken);
-
-        for (var i = 1; i <= 6; i++)
+        var relicTemplateTasks = Enumerable.Range(1, 6).Select(async i =>
         {
             var path = string.Format(FileNameFormat.Hsr.RelicTemplateName, i);
-            m_RelicTemplateImages[i] = await Image.LoadAsync<Rgba32>(
+            return await Image.LoadAsync<Rgba32>(
                 await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
+        }).ToList();
+
+        await Task.WhenAll(statImageTasks);
+        StaticBackground = await Image.LoadAsync<Rgba32>(await backgroundStreamTask, cancellationToken);
+        var relicTemplates = await Task.WhenAll(relicTemplateTasks);
+
+        m_StatImages = statKeys
+            .Select((key, i) => new KeyValuePair<int, Image>(key, statImageTasks[i].Result.Image))
+            .ToDictionary(x => x.Key, x => x.Value);
+
+        for (var i = 0; i < relicTemplates.Length; i++)
+        {
+            m_RelicTemplateImages[i + 1] = relicTemplates[i];
         }
+
+        m_DimmedStatImages = m_StatImages.ToDictionary(x => x.Key, x => x.Value.Clone(ctx => ctx.Brightness(0.5f)));
 
         for (var i = 1; i <= 5; i++)
         {
@@ -167,16 +182,21 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
             })
         ];
 
-        Dictionary<string, int> activeRelicSet = [];
-        foreach (var setId in characterInformation.Relics!.Select(x => x.GetSetId()))
+        // ponytail: batch DB lookups in parallel
+        var relicSetIds = characterInformation.Relics!.Select(x => x.GetSetId()).ToList();
+        var relicSetNameTasks = relicSetIds.Select(async setId =>
         {
             var setName = await relicContext.HsrRelics.AsNoTracking()
                 .Where(x => x.SetId == setId)
                 .Select(x => x.SetName)
                 .FirstOrDefaultAsync(cancellationToken);
+            return string.IsNullOrEmpty(setName) ? setId.ToString() : setName;
+        }).ToList();
+        var relicSetNames = await Task.WhenAll(relicSetNameTasks);
 
-            if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
-
+        Dictionary<string, int> activeRelicSet = [];
+        foreach (var setName in relicSetNames)
+        {
             if (!activeRelicSet.TryAdd(setName, 1))
                 activeRelicSet[setName]++;
         }
@@ -185,16 +205,20 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
             .Where(x => x.Value >= 2)
             .ToDictionary(x => x.Key, x => x.Value);
 
-        Dictionary<string, int> activeOrnamentSet = [];
-        foreach (var setId in characterInformation.Ornaments!.Select(x => x.GetSetId()))
+        var ornamentSetIds = characterInformation.Ornaments!.Select(x => x.GetSetId()).ToList();
+        var ornamentSetNameTasks = ornamentSetIds.Select(async setId =>
         {
             var setName = await relicContext.HsrRelics.AsNoTracking()
                 .Where(x => x.SetId == setId)
                 .Select(x => x.SetName)
                 .FirstOrDefaultAsync(cancellationToken);
+            return string.IsNullOrEmpty(setName) ? setId.ToString() : setName;
+        }).ToList();
+        var ornamentSetNames = await Task.WhenAll(ornamentSetNameTasks);
 
-            if (string.IsNullOrEmpty(setName)) setName = setId.ToString();
-
+        Dictionary<string, int> activeOrnamentSet = [];
+        foreach (var setName in ornamentSetNames)
+        {
             if (!activeOrnamentSet.TryAdd(setName, 1))
                 activeOrnamentSet[setName]++;
         }

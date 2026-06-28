@@ -39,22 +39,26 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
-            cancellationToken);
+        var downloadTasks = new[]
+        {
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCBackgroundName, cancellationToken)
+        };
+        await Task.WhenAll(downloadTasks);
+
+        var (starStream, cycleStream, bgStream) = (downloadTasks[0].Result, downloadTasks[1].Result, downloadTasks[2].Result);
+
+        m_StarLit = await Image.LoadAsync(starStream, cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
         m_StarUnlit.Mutate(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
-        m_CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
-            cancellationToken);
+        m_CycleIcon = await Image.LoadAsync(cycleStream, cancellationToken);
 
-        StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCBackgroundName, cancellationToken),
-            cancellationToken);
+        StaticBackground = await Image.LoadAsync<Rgba32>(bgStream, cancellationToken);
         StaticBackground.Mutate(ctx =>
         {
             ctx.Brightness(0.5f);
@@ -75,18 +79,23 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
     {
         var memoryData = context.Data;
 
-        var avatarImages = await memoryData.AllFloorDetail!
+        var avatarData = memoryData.AllFloorDetail!
             .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
             .DistinctBy(x => x.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+            .ToList();
+
+        var avatarTasks = avatarData
+            .Select(async x =>
             {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, token));
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, cancellationToken));
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
+            .ToList();
+        await Task.WhenAll(avatarTasks);
+
+        var avatarImages = avatarTasks.ToDictionary(x => x.Result.AvatarId, x => x.Result);
 
         List<(int FloorNumber, FloorDetail? Data)> floorDetails =
         [
