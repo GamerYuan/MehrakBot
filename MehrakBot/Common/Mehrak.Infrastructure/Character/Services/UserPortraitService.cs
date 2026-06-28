@@ -113,6 +113,36 @@ internal class UserPortraitService : IUserPortraitService
         }
     }
 
+    public async Task<AttachmentDownloadResult?> GetPortraitImageAsync(
+        long discordUserId, string s3Key, Guid uploadId, CancellationToken ct = default)
+    {
+        try
+        {
+            var getReq = new GetObjectRequest
+            {
+                BucketName = m_Bucket,
+                Key = s3Key
+            };
+
+            using var response = await m_S3.GetObjectAsync(getReq, ct);
+
+            if ((int)response.HttpStatusCode >= 300)
+                return null;
+
+            var stream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(stream, ct);
+            stream.Position = 0;
+
+            var contentType = ResolveContentType(s3Key);
+            return new AttachmentDownloadResult(stream, contentType);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogError(e, "Failed to retrieve portrait image from S3: {S3Key}", s3Key);
+            return null;
+        }
+    }
+
     public async Task<UploadPortraitResult> UploadPortraitAsync(
         long discordUserId, Game game, string characterName, Stream imageStream, string sha256, string extension, CancellationToken ct = default)
     {
