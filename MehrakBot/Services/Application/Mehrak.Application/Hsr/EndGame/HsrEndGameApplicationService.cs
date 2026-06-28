@@ -75,7 +75,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var challengeResponse = await m_ApiService.GetAsync(
             new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
