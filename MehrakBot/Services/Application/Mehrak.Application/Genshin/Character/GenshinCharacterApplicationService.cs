@@ -301,22 +301,12 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 var weapImage = await weapImageTask;
                 if (weapImage.IsSuccess)
                 {
-                    // Special case for catalyst
-                    if (charData.Weapon.Type == 10)
-                    {
-                        tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charData.Weapon.ToAscendedImageName(), weapImage.Data),
-                            new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken));
-                    }
-                    else
-                    {
-                        // ignore result from this method
-                        await m_ImageUpdaterService.UpdateMultiImageAsync(
-                            new MultiImageData(charData.Weapon.ToAscendedImageName(),
-                                [charData.Weapon.Icon, weapImage.Data]),
-                            m_WeaponImageProcessor,
-                            cancellationToken
-                        );
-                    }
+                    await m_ImageUpdaterService.UpdateMultiImageAsync(
+                        new MultiImageData(charData.Weapon.ToAscendedImageName(),
+                            [charData.Weapon.Icon, weapImage.Data]),
+                        m_WeaponImageProcessor,
+                        cancellationToken
+                    );
                 }
             }
         }
@@ -456,19 +446,5 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
 
         return Result<string>.Failure(StatusCode.ExternalServerError);
-    }
-
-    private static Action<IImageProcessingContext> GetCatalystIconProcessor()
-    {
-        return ctx =>
-        {
-            ctx.CropTransparentPixels();
-            ctx.Resize(new ResizeOptions()
-            {
-                Size = new Size(180, 180),
-                Mode = ResizeMode.Pad
-            });
-            ctx.Pad(200, 200);
-        };
     }
 }
