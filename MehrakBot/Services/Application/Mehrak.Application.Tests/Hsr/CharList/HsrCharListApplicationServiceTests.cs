@@ -419,7 +419,7 @@ public class HsrCharListApplicationServiceTests
 
     private (
         HsrCharListApplicationService Service,
-        Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>> CharacterApiMock,
+        Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>> CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<IEnumerable<HsrCharacterInformation>>> CardServiceMock,
@@ -430,7 +430,7 @@ public class HsrCharListApplicationServiceTests
     {
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<IEnumerable<HsrCharacterInformation>>>();
-        var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation,
+        var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData,
             CharacterApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var characterCacheMock = new Mock<ICharacterCacheService>();
@@ -459,7 +459,7 @@ public class HsrCharListApplicationServiceTests
 
     private (
         HsrCharListApplicationService Service,
-        Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>> CharacterApiMock,
+        Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>> CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         UserDbContext UserDbContext,
@@ -475,7 +475,7 @@ public class HsrCharListApplicationServiceTests
         cardService.InitializeAsync().GetAwaiter().GetResult();
 
         var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData,
-            HsrCharacterInformation, CharacterApiContext>>();
+            HsrBasicCharacterData, CharacterApiContext>>();
 
         // Use real image updater service
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
