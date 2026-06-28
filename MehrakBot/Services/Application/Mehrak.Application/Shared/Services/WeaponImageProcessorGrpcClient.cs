@@ -40,10 +40,9 @@ internal class WeaponImageProcessorGrpcClient : IMultiImageProcessor
 
             return new MemoryStream(response.ProcessedImage.ToByteArray());
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            m_Logger.LogError(ex, "Failed to process weapon image via gRPC");
-            throw;
+            return Stream.Null;
         }
     }
 }

@@ -89,7 +89,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
     public async Task<bool> UpdateMultiImageAsync(IMultiImageData data, IMultiImageProcessor processor, CancellationToken cancellationToken = default)
     {
-        if (await m_ImageRepository.FileExistsAsync(data.Name))
+        if (await m_ImageRepository.FileExistsAsync(data.Name, cancellationToken))
         {
             return true;
         }
@@ -129,7 +129,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
                 using var processedStream = processor.ProcessImage(streams);
 
-                if (processedStream == Stream.Null || processedStream.Length == 0)
+                if (processedStream.Equals(Stream.Null) || processedStream.Length == 0)
                 {
                     m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
 
