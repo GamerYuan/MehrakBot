@@ -1,4 +1,5 @@
-﻿using System.Threading.Channels;
+﻿using System.Diagnostics;
+using System.Threading.Channels;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Models;
 using Mehrak.Domain.Command.Models;
@@ -77,6 +78,9 @@ public class CommandDispatcher : BackgroundService
 
     private async Task ProcessCommandAsync(QueuedCommand command)
     {
+        using var activity = ApplicationTelemetry.ActivitySource.StartActivity(command.Request.CommandName);
+        activity?.SetTag("command.name", command.Request.CommandName);
+
         try
         {
             if (command.CancellationToken.IsCancellationRequested)
@@ -115,6 +119,7 @@ public class CommandDispatcher : BackgroundService
         }
         catch (Exception e)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, e.Message);
             m_Logger.LogError(e, "An error occurred while dispatching command {CommandName} for user {UserId}",
                 command.Request.CommandName, command.Request.DiscordUserId);
             command.CompletionSource.TrySetException(e);

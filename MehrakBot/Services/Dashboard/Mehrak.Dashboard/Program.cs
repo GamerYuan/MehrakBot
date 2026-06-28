@@ -1,7 +1,4 @@
-﻿using System.Globalization;
-using System.Net;
-using System.Security.Claims;
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
 using Mehrak.Dashboard.Shared.Auth;
@@ -16,14 +13,9 @@ using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using OpenIddict.Client;
-using Serilog;
-using Serilog.Events;
-using Serilog.Sinks.OpenTelemetry;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Mehrak.Dashboard;
@@ -41,51 +33,7 @@ public class Program
             Console.WriteLine("Development environment detected");
         }
 
-        var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
-        var defaultLevel = MapLevel(logLevels["Default"], LogEventLevel.Information);
-
-        var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(defaultLevel);
-
-        foreach (var kvp in logLevels.GetChildren().Where(c => !string.Equals(c.Key, "Default", StringComparison.OrdinalIgnoreCase)))
-            loggerConfig.MinimumLevel.Override(kvp.Key, MapLevel(kvp.Value, defaultLevel));
-
-        loggerConfig
-            .Enrich.FromLogContext()
-            .WriteTo.Console(
-                outputTemplate:
-                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
-                formatProvider: CultureInfo.InvariantCulture
-            )
-            .WriteTo.File(
-                "logs/log-.txt",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 31,
-                outputTemplate:
-                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
-                formatProvider: CultureInfo.InvariantCulture
-            )
-            .WriteTo.OpenTelemetry(options =>
-            {
-                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
-                    ?? "http://localhost:4317";
-                options.Protocol = OtlpProtocol.Grpc;
-                options.ResourceAttributes = new Dictionary<string, object>
-                {
-                    ["service.name"] = "MehrakDashboard",
-                    ["deployment.environment"] = builder.Environment.EnvironmentName
-                };
-            });
-
-        if (builder.Environment.IsDevelopment())
-            loggerConfig.MinimumLevel.Debug();
-
-        Log.Logger = loggerConfig.CreateLogger();
-
-        Log.Information("Starting Mehrak Dashboard");
-
-        builder.Logging.ClearProviders();
-        builder.Logging.AddSerilog(dispose: true);
+        builder.AddSerilogOtlp("MehrakDashboard");
 
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<UserPortraitStorageConfig>(builder.Configuration.GetSection("UserPortraitStorage"));
@@ -393,19 +341,6 @@ public class Program
             // Another instance likely inserted the same permissions concurrently
         }
     }
-
-    private static LogEventLevel MapLevel(string? value, LogEventLevel fallback) =>
-        value?.ToLowerInvariant() switch
-        {
-            "trace" or "verbose" => LogEventLevel.Verbose,
-            "debug" => LogEventLevel.Debug,
-            "information" or "info" => LogEventLevel.Information,
-            "warning" or "warn" => LogEventLevel.Warning,
-            "error" => LogEventLevel.Error,
-            "critical" or "fatal" => LogEventLevel.Fatal,
-            "none" => LogEventLevel.Fatal + 1,
-            _ => fallback
-        };
 
     private static string NormalizeAbsoluteUrl(string configuredValue, string key)
     {

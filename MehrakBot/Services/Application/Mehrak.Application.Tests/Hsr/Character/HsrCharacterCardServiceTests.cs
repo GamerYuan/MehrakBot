@@ -5,7 +5,6 @@ using Mehrak.Application.Hsr.Character;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
-using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;

@@ -1,5 +1,4 @@
 ﻿using Mehrak.Domain.Image.Abstractions;
-using Microsoft.Extensions.Logging;
 using Proto = Mehrak.Domain.Protobuf;
 
 namespace Mehrak.Application.Shared.Services;
@@ -43,8 +42,8 @@ internal class WeaponImageProcessorGrpcClient : IMultiImageProcessor
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to process weapon image via gRPC");
-            throw;
+            m_Logger.LogError(ex, "Failed to process weapon image");
+            return Stream.Null;
         }
     }
 }

@@ -1,13 +1,17 @@
+﻿using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace Mehrak.ServiceDefaults;
 
@@ -47,12 +51,6 @@ public static class Extensions
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddGrpcClientInstrumentation();
-
-                if (builder.Services.Any(sd =>
-                        sd.ServiceType.FullName?.Contains("GrpcClient") == true))
-                {
-                    tracing.AddGrpcClientInstrumentation();
-                }
             })
             .WithMetrics(metrics =>
             {
@@ -108,4 +106,80 @@ public static class Extensions
 
         return app;
     }
+
+    public static TBuilder AddSerilogOtlp<TBuilder>(
+        this TBuilder builder,
+        string serviceName,
+        Action<LoggerConfiguration>? configureLogger = null)
+        where TBuilder : IHostApplicationBuilder
+    {
+        var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
+        var defaultLevel = MapLevel(logLevels["Default"], LogEventLevel.Information);
+
+        var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Is(defaultLevel);
+
+        foreach (var kvp in logLevels.GetChildren().Where(c =>
+            !string.Equals(c.Key, "Default", StringComparison.OrdinalIgnoreCase)))
+            loggerConfig.MinimumLevel.Override(kvp.Key, MapLevel(kvp.Value, defaultLevel));
+
+        loggerConfig.Enrich.FromLogContext();
+
+        configureLogger?.Invoke(loggerConfig);
+
+        loggerConfig
+            .WriteTo.Console(
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+                formatProvider: CultureInfo.InvariantCulture
+            )
+            .WriteTo.File(
+                "logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 31,
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+                formatProvider: CultureInfo.InvariantCulture
+            );
+
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            loggerConfig.WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = otlpEndpoint;
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = serviceName,
+                    ["deployment.environment"] = builder.Environment.EnvironmentName
+                };
+            });
+        }
+
+        if (builder.Environment.IsDevelopment())
+            loggerConfig.MinimumLevel.Debug();
+
+        Log.Logger = loggerConfig.CreateLogger();
+
+        Log.Information("Starting {ServiceName}", serviceName);
+
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSerilog(dispose: true);
+
+        return builder;
+    }
+
+    private static LogEventLevel MapLevel(string? value, LogEventLevel fallback) =>
+        value?.ToLowerInvariant() switch
+        {
+            "trace" or "verbose" => LogEventLevel.Verbose,
+            "debug" => LogEventLevel.Debug,
+            "information" or "info" => LogEventLevel.Information,
+            "warning" or "warn" => LogEventLevel.Warning,
+            "error" => LogEventLevel.Error,
+            "critical" or "fatal" => LogEventLevel.Fatal,
+            "none" => LogEventLevel.Fatal + 1,
+            _ => fallback
+        };
 }

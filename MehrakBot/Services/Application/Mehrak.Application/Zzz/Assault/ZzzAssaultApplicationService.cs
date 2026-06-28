@@ -10,7 +10,6 @@ using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
-using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;

@@ -1,5 +1,4 @@
-﻿using Mehrak.Domain.Shared.Enums;
-using Mehrak.Domain.Shared.Models;
+﻿using Mehrak.Domain.Shared.Models;
 
 namespace Mehrak.Application.Shared.Services;
 

@@ -162,23 +162,12 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                     .Select(x =>
                     {
                         weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
-
-                        // Special case for catalyst
-                        if (x.Data.Weapon.Type == 10)
-                        {
-                            return m_ImageUpdaterService.UpdateImageAsync(new ImageData(x.Data.Weapon.ToAscendedImageName(), x.Url.Data!),
-                                new ImageProcessorBuilder().AddOperation(GetCatalystIconProcessor()).Build(), cancellationToken);
-                        }
-                        else
-                        {
-                            // ignore result from this method
-                            return m_ImageUpdaterService.UpdateMultiImageAsync(
-                                new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
-                                    [x.Data.Weapon.Icon, x.Url.Data!]),
-                                m_WeaponImageProcessor,
-                                cancellationToken
-                            );
-                        }
+                        return m_ImageUpdaterService.UpdateMultiImageAsync(
+                            new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
+                                [x.Data.Weapon.Icon, x.Url.Data!]),
+                            m_WeaponImageProcessor,
+                            cancellationToken
+                        );
                     }).ToListAsync(cancellationToken);
 
                 await Task.WhenAll(result);
@@ -253,19 +242,5 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         }
 
         return Result<string>.Failure(StatusCode.ExternalServerError);
-    }
-
-    private static Action<IImageProcessingContext> GetCatalystIconProcessor()
-    {
-        return ctx =>
-        {
-            ctx.CropTransparentPixels();
-            ctx.Resize(new ResizeOptions()
-            {
-                Size = new Size(180, 180),
-                Mode = ResizeMode.Pad
-            });
-            ctx.Pad(200, 200);
-        };
     }
 }

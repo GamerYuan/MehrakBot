@@ -24,7 +24,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using OpenIddict.EntityFrameworkCore;
 using StackExchange.Redis;
 
 #endregion

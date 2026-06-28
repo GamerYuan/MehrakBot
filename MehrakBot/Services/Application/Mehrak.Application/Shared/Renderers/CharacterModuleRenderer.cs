@@ -2,7 +2,6 @@
 
 using System.Numerics;
 using Mehrak.Application.Shared.Renderers.Extensions;
-using Mehrak.Application.Shared.Utility;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;

@@ -116,7 +116,7 @@ internal class WeaponImageProcessorGrpcClientTests
     }
 
     [Test]
-    public void ProcessImage_GrpcFailure_LogsAndThrows()
+    public void ProcessImage_GrpcFailure_LogsAndReturnsNullStream()
     {
         var rpcException = new RpcException(new Status(StatusCode.Internal, "Server error"));
 
@@ -130,8 +130,8 @@ internal class WeaponImageProcessorGrpcClientTests
         using var stream1 = new MemoryStream(new byte[] { 10, 20 });
         using var stream2 = new MemoryStream(new byte[] { 30, 40 });
 
-        var thrown = Assert.Throws<RpcException>(() => m_Client.ProcessImage([stream1, stream2]));
-        Assert.That(thrown, Is.SameAs(rpcException));
+        var result = m_Client.ProcessImage([stream1, stream2]);
+        Assert.That(result, Is.EqualTo(Stream.Null));
 
         m_MockLogger.Verify(
             x => x.Log(

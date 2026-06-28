@@ -1,10 +1,6 @@
-﻿using Amazon.Runtime;
-using Amazon.S3;
+﻿using Amazon.S3;
 using Amazon.S3.Model;
-using Mehrak.Domain.Character;
-using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
-using Mehrak.Domain.Shared.Services;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Character.Models;
 using Mehrak.Infrastructure.Character.Services;

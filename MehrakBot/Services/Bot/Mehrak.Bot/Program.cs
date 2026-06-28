@@ -1,13 +1,10 @@
-﻿using System.Globalization;
-using Mehrak.Bot.Shared.Modules;
-using Mehrak.Bot.Shared.Services;
+﻿using Mehrak.Bot.Shared.Modules;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
-using OpenTelemetry.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,9 +16,6 @@ using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using Serilog;
-using Serilog.Events;
-using Serilog.Extensions;
-using Serilog.Sinks.OpenTelemetry;
 
 namespace Mehrak.Bot;
 
@@ -51,59 +45,10 @@ public class Program
             Console.WriteLine("Development environment detected");
         }
 
-        var logLevels = builder.Configuration.GetSection("Logging:LogLevel");
-        var defaultLevel = MapLevel(logLevels["Default"], LogEventLevel.Information);
-
-        var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(defaultLevel);
-
-        // apply overrides from config (System, Microsoft, EF, etc.)
-        foreach (var kvp in logLevels.GetChildren().Where(c => !string.Equals(c.Key, "Default", StringComparison.OrdinalIgnoreCase)))
-            loggerConfig.MinimumLevel.Override(kvp.Key, MapLevel(kvp.Value, defaultLevel));
-
-        // Configure Serilog
-        loggerConfig
-            .Enrich.FromLogContext()
-            .Enrich.WithRequestQuery()
-            .Enrich.WithRequestBody()
-            .WriteTo.Console(
-                outputTemplate:
-                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
-                formatProvider: CultureInfo.InvariantCulture
-            )
-            .WriteTo.File(
-                "logs/log-.txt",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 31,
-                outputTemplate:
-                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
-                formatProvider: CultureInfo.InvariantCulture
-            )
-            .WriteTo.OpenTelemetry(options =>
-            {
-                options.Endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
-                    ?? "http://localhost:4317";
-                options.Protocol = OtlpProtocol.Grpc;
-                options.ResourceAttributes = new Dictionary<string, object>
-                {
-                    ["service.name"] = "MehrakBot",
-                    ["deployment.environment"] = builder.Environment.EnvironmentName
-                };
-            });
-
-        if (builder.Environment.IsDevelopment())
-            loggerConfig.MinimumLevel.Debug();
-
-        Log.Logger = loggerConfig.CreateLogger();
+        builder.AddSerilogOtlp("MehrakBot");
 
         try
         {
-            Log.Information("Starting MehrakBot application");
-
-            // Configure logging to use Serilog
-            builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog(dispose: true);
-
             // Database Services
             builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
             builder.Services.Configure<RedisConfig>(options =>
@@ -149,17 +94,4 @@ public class Program
             await Log.CloseAndFlushAsync();
         }
     }
-
-    private static LogEventLevel MapLevel(string? value, LogEventLevel fallback) =>
-        value?.ToLowerInvariant() switch
-        {
-            "trace" or "verbose" => LogEventLevel.Verbose,
-            "debug" => LogEventLevel.Debug,
-            "information" or "info" => LogEventLevel.Information,
-            "warning" or "warn" => LogEventLevel.Warning,
-            "error" => LogEventLevel.Error,
-            "critical" or "fatal" => LogEventLevel.Fatal,
-            "none" => LogEventLevel.Fatal + 1,
-            _ => fallback
-        };
 }
