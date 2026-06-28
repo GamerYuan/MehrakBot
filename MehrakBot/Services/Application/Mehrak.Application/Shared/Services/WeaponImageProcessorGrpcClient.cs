@@ -42,8 +42,8 @@ internal class WeaponImageProcessorGrpcClient : IMultiImageProcessor
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Failed to process weapon image via gRPC");
-            throw;
+            m_Logger.LogError(ex, "Failed to process weapon image");
+            return Stream.Null;
         }
     }
 }
