@@ -37,10 +37,13 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_DifficultyLogo = await Enumerable.Range(0, 7).ToAsyncEnumerable().Select(async (x, ct) =>
-                await Image.LoadAsync<Rgba32>(
-                    await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x), ct), ct))
-            .ToArrayAsync(cancellationToken);
+        // ponytail: parallel image loads, was sequential ToAsyncEnumerable
+        var medalTasks = Enumerable.Range(0, 7).Select(async x =>
+            await Image.LoadAsync<Rgba32>(
+                await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x), cancellationToken),
+                cancellationToken)).ToList();
+        await Task.WhenAll(medalTasks);
+        m_DifficultyLogo = medalTasks.Select(t => t.Result).ToArray();
 
         StaticBackground = await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.StygianBackgroundName, cancellationToken),
@@ -56,34 +59,41 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
         var stygianInfo = context.Data;
 
         var stygianData = stygianInfo.Single;
-        var avatarImages = await stygianData.Challenge!
-            .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
-                var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank, image);
-                disposables.Add(avatar);
-                return avatar;
-            })
-            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
-        var bestAvatarImages = await stygianData.Challenge!.SelectMany(x => x.BestAvatar)
-            .DistinctBy(x => x.AvatarId)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.AvatarId),
-                async (x, token) =>
-                {
-                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                    image.Mutate(i => i.Resize(100, 0, KnownResamplers.Bicubic));
-                    return image;
-                }, cancellationToken: cancellationToken);
-        var monsterImages = await stygianData.Challenge!.Select(x => x.Monster)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.MonsterId),
-                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
-                cancellationToken: cancellationToken);
+        // ponytail: parallel avatar image loads, was sequential ToAsyncEnumerable
+        var avatarItems = stygianData.Challenge!
+            .SelectMany(x => x.Teams).DistinctBy(x => x.AvatarId).ToList();
+        var avatarTasks = avatarItems.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+            var image = await Image.LoadAsync(stream, cancellationToken);
+            var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity, x.Rank, image);
+            disposables.Add(avatar);
+            return avatar;
+        }).ToList();
+        await Task.WhenAll(avatarTasks);
+        var avatarImages = avatarTasks.ToDictionary(t => t.Result, t => t.Result, GenshinAvatarIdComparer.Instance);
+
+        // ponytail: parallel best avatar image loads, was sequential ToAsyncEnumerable
+        var bestAvatarItems = stygianData.Challenge!.SelectMany(x => x.BestAvatar)
+            .DistinctBy(x => x.AvatarId).ToList();
+        var bestAvatarTasks = bestAvatarItems.Select(async x =>
+        {
+            var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
+            image.Mutate(i => i.Resize(100, 0, KnownResamplers.Bicubic));
+            return (x.AvatarId, Image: image);
+        }).ToList();
+        await Task.WhenAll(bestAvatarTasks);
+        var bestAvatarImages = bestAvatarTasks.ToDictionary(t => t.Result.AvatarId, t => t.Result.Image);
+
+        // ponytail: parallel monster image loads, was sequential ToAsyncEnumerable
+        var monsterItems = stygianData.Challenge!.Select(x => x.Monster).ToList();
+        var monsterTasks = monsterItems.Select(async x =>
+        {
+            var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
+            return (x.MonsterId, Image: image);
+        }).ToList();
+        await Task.WhenAll(monsterTasks);
+        var monsterImages = monsterTasks.ToDictionary(t => t.Result.MonsterId, t => t.Result.Image);
 
         var lookup = avatarImages.GetAlternateLookup<int>();
 
