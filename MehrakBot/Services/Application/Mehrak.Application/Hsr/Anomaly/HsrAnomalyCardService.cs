@@ -115,7 +115,7 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         var buffImageTask = bestRecord.BossRecord != null
             ? LoadImageFromRepositoryAsync(
                 bestRecord.BossRecord.Buff.ToImageName(), disposables, cancellationToken)
-            : Task.FromResult<Image?>(null);
+            : Task.FromResult<Image>(null!);
         var medalImageTask = LoadImageFromRepositoryAsync<Rgba32>(
             anomalyData.ToMedalName(), disposables, cancellationToken);
 
