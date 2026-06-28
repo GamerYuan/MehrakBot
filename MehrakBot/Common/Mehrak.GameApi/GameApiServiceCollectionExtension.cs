@@ -52,7 +52,7 @@ public static class GameApiServiceCollectionExtension
 
         // Honkai: Star Rail services
         services
-            .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>,
+            .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>,
                 HsrCharacterApiService>();
         services.AddSingleton<IApiService<HsrMemoryInformation, BaseHoYoApiContext>, HsrMemoryApiService>();
         services.AddSingleton<IApiService<HsrEndInformation, HsrEndGameApiContext>, HsrEndGameApiService>();

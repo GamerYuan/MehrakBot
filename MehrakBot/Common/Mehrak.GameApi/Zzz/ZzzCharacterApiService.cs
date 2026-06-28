@@ -23,6 +23,8 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
     private readonly ILogger<ZzzCharacterApiService> m_Logger;
     private readonly ICacheService m_Cache;
     private const int CacheExpirationMinutes = 10;
+    private const int CharacterDetailCacheMinutes = 2;
+    private const int WikiCacheMinutes = 30;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -145,6 +147,64 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
+            // Try to load avatar data from cache
+            var avatarCacheKey = $"zzz_char:{context.GameUid}:{context.CharacterId}";
+            var cachedAvatar = await m_Cache.GetAsync<ZzzAvatarData>(avatarCacheKey, timeoutCts.Token);
+
+            if (cachedAvatar != null)
+            {
+                // Avatar hit — load wiki entries in parallel using IDs from the cached avatar
+                var avatarWikiTask = m_Cache.GetAsync<string>(
+                    $"zzz_avatar_wiki:{context.CharacterId}", timeoutCts.Token);
+
+                var strategyWikiTask = m_Cache.GetAsync<string>(
+                    $"zzz_strategy_wiki:{context.CharacterId}", timeoutCts.Token);
+
+                var equipWikiTasks = cachedAvatar.Equip
+                    .Select(e => m_Cache.GetAsync<string>($"zzz_equip_wiki:{e.Id}", timeoutCts.Token))
+                    .ToList();
+
+                var weaponWikiTask = cachedAvatar.Weapon != null
+                    ? m_Cache.GetAsync<string>($"zzz_weapon_wiki:{cachedAvatar.Weapon.Id}", timeoutCts.Token)
+                    : Task.FromResult<string?>(null);
+
+                await Task.WhenAll([avatarWikiTask, strategyWikiTask, weaponWikiTask, .. equipWikiTasks]);
+
+                // Assemble wiki dicts from individual cached entries
+                var avatarWiki = new Dictionary<string, string>();
+                var avatarWikiVal = await avatarWikiTask;
+                if (avatarWikiVal != null)
+                    avatarWiki[context.CharacterId.ToString()] = avatarWikiVal;
+
+                var strategyWiki = new Dictionary<string, string>();
+                var strategyWikiVal = await strategyWikiTask;
+                if (strategyWikiVal != null)
+                    strategyWiki[context.CharacterId.ToString()] = strategyWikiVal;
+
+                var equipWiki = new Dictionary<string, string>();
+                for (var i = 0; i < cachedAvatar.Equip.Count; i++)
+                {
+                    var val = await equipWikiTasks[i];
+                    if (val != null)
+                        equipWiki[cachedAvatar.Equip[i].Id.ToString()] = val;
+                }
+
+                var weaponWiki = new Dictionary<string, string>();
+                var weaponVal = await weaponWikiTask;
+                if (weaponVal != null && cachedAvatar.Weapon != null)
+                    weaponWiki[cachedAvatar.Weapon.Id.ToString()] = weaponVal;
+
+                return Result<ZzzFullAvatarData>.Success(new ZzzFullAvatarData
+                {
+                    AvatarList = [cachedAvatar],
+                    AvatarWiki = avatarWiki,
+                    EquipWiki = equipWiki,
+                    WeaponWiki = weaponWiki,
+                    StrategyWiki = strategyWiki
+                });
+            }
+
+            // Cache miss — fetch from API
             var requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}/info?id_list[]={context.CharacterId}&server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
@@ -196,7 +256,64 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            return Result<ZzzFullAvatarData>.Success(json.Data);
+            var data = json.Data;
+
+            // Cache each entry individually
+            foreach (var avatar in data.AvatarList)
+            {
+                await m_Cache.SetAsync(
+                    new CacheEntryBase<ZzzAvatarData>(
+                        $"zzz_char:{context.GameUid}:{avatar.Id}",
+                        avatar,
+                        TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
+                    cancellationToken);
+            }
+
+            if (data.AvatarWiki != null)
+            {
+                foreach (var (id, val) in data.AvatarWiki)
+                {
+                    await m_Cache.SetAsync(
+                        new CacheEntryBase<string>($"zzz_avatar_wiki:{id}", val,
+                            TimeSpan.FromMinutes(WikiCacheMinutes)),
+                        cancellationToken);
+                }
+            }
+
+            if (data.EquipWiki != null)
+            {
+                foreach (var (id, val) in data.EquipWiki)
+                {
+                    await m_Cache.SetAsync(
+                        new CacheEntryBase<string>($"zzz_equip_wiki:{id}", val,
+                            TimeSpan.FromMinutes(WikiCacheMinutes)),
+                        cancellationToken);
+                }
+            }
+
+            if (data.WeaponWiki != null)
+            {
+                foreach (var (id, val) in data.WeaponWiki)
+                {
+                    await m_Cache.SetAsync(
+                        new CacheEntryBase<string>($"zzz_weapon_wiki:{id}", val,
+                            TimeSpan.FromMinutes(WikiCacheMinutes)),
+                        cancellationToken);
+                }
+            }
+
+            if (data.StrategyWiki != null)
+            {
+                foreach (var (id, val) in data.StrategyWiki)
+                {
+                    await m_Cache.SetAsync(
+                        new CacheEntryBase<string>($"zzz_strategy_wiki:{id}", val,
+                            TimeSpan.FromMinutes(WikiCacheMinutes)),
+                        cancellationToken);
+                }
+            }
+
+            return Result<ZzzFullAvatarData>.Success(data);
         }
         catch (OperationCanceledException)
         {

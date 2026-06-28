@@ -7,9 +7,8 @@ public class CommandDispatcherConfig
     /// <summary>
     /// Max number of characters processed concurrently within a single
     /// multi-character command. Caps how much of the dispatcher's global
-    /// concurrency budget one user's request can consume. Default 2 keeps a
-    /// 4-character request from monopolizing workers while still cutting
-    /// wall-clock time roughly in half.
+    /// concurrency budget one user's request can consume. Default 4 balances
+    /// throughput against resource usage for typical multi-character requests.
     /// </summary>
-    public int MaxCharacterParallelism { get; set; } = 2;
+    public int MaxCharacterParallelism { get; set; } = 4;
 }

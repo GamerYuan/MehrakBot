@@ -28,7 +28,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
     private readonly ICardService<IEnumerable<HsrCharacterInformation>> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
-    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
 
@@ -38,7 +38,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
         IImageUpdaterService imageUpdaterService,
-        ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
+        ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ICharacterCacheService characterCache,
