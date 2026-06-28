@@ -40,8 +40,9 @@ internal class WeaponImageProcessorGrpcClient : IMultiImageProcessor
 
             return new MemoryStream(response.ProcessedImage.ToByteArray());
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            m_Logger.LogError(ex, "Failed to process weapon image");
             return Stream.Null;
         }
     }
