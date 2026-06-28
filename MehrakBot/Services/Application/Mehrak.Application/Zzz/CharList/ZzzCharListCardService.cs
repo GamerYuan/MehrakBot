@@ -124,57 +124,57 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
 
         var renderer = new CharacterModuleRenderer(moduleStyle);
 
-        var charModuleDataTask = charData
+        var sortedCharData = charData
             .OrderByDescending(x => x.Level)
             .ThenBy(x => x.ElementType)
             .ThenByDescending(x => x.SubElementType)
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
-                disposables.Add(image);
-                return (x, new CharacterModuleData(
-                    x.Name,
-                    x.Level,
-                    MapRarity(x.Rarity),
-                    image,
-                    x.Rank,
-                    Icon: m_SmallElementIcons.GetValueOrDefault(StatUtils.GetElementNameFromId(x.ElementType, x.SubElementType)),
-                    Weapon: null));
-            })
-            .ToListAsync(cancellationToken: cancellationToken);
+            .ToList();
 
-        var buddyModuleDataTask = buddyData
+        var charModuleTasks = sortedCharData.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+            var image = await Image.LoadAsync(stream, cancellationToken);
+            disposables.Add(image);
+            return (x, new CharacterModuleData(
+                x.Name,
+                x.Level,
+                MapRarity(x.Rarity),
+                image,
+                x.Rank,
+                Icon: m_SmallElementIcons.GetValueOrDefault(StatUtils.GetElementNameFromId(x.ElementType, x.SubElementType)),
+                Weapon: null));
+        }).ToList();
+
+        var sortedBuddyData = buddyData
             .OrderByDescending(x => x.Level)
             .ThenByDescending(x => x.Star)
             .ThenBy(x => x.Name)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
-                image.Mutate(ctx => ctx.Crop(new Rectangle(45, 20, image.Width - 45, image.Height - 20)));
-                disposables.Add(image);
-                return new CharacterModuleData(
-                    x.Name,
-                    x.Level,
-                    MapRarity(x.Rarity),
-                    image,
-                    ConstellationNum: 0,
-                    Icon: m_StarImages.GetValueOrDefault(x.Star),
-                    Weapon: null);
-            })
-            .ToListAsync(cancellationToken: cancellationToken);
+            .ToList();
 
-        var charModules = await charModuleDataTask;
-        var buddyModules = await buddyModuleDataTask;
+        var buddyModuleTasks = sortedBuddyData.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), cancellationToken);
+            var image = await Image.LoadAsync(stream, cancellationToken);
+            image.Mutate(ctx => ctx.Crop(new Rectangle(45, 20, image.Width - 45, image.Height - 20)));
+            disposables.Add(image);
+            return new CharacterModuleData(
+                x.Name,
+                x.Level,
+                MapRarity(x.Rarity),
+                image,
+                ConstellationNum: 0,
+                Icon: m_StarImages.GetValueOrDefault(x.Star),
+                Weapon: null);
+        }).ToList();
+
+        var charModules = await Task.WhenAll(charModuleTasks);
+        var buddyModules = await Task.WhenAll(buddyModuleTasks);
 
         var layout = ImageUtility.CalculateSplitGridLayout(
-            charModules.Count,
-            buddyModules.Count,
+            charModules.Length,
+            buddyModules.Length,
             renderer.CanvasSize.Width,
             renderer.CanvasSize.Height,
             [170, 50, 120, 50],
@@ -237,10 +237,10 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                 renderer.RenderHeader(canvas, outputWidth,
                     $"{context.GameProfile.Nickname} · IK {context.GameProfile.Level}", context.GameProfile.GameUid!);
 
-                for (var i = 0; i < charModules.Count + buddyModules.Count; i++)
+                for (var i = 0; i < charModules.Length + buddyModules.Length; i++)
                 {
                     var pos = layout.ImagePositions[i];
-                    if (i < charModules.Count)
+                    if (i < charModules.Length)
                     {
                         (var character, var moduleData) = charModules[i];
                         renderer.Render(canvas, moduleData, new Point(pos.X, pos.Y),
@@ -248,7 +248,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
                     }
                     else
                     {
-                        renderer.Render(canvas, buddyModules[i - charModules.Count], new Point(pos.X, pos.Y), Color.LightGray);
+                        renderer.Render(canvas, buddyModules[i - charModules.Length], new Point(pos.X, pos.Y), Color.LightGray);
                     }
                 }
 

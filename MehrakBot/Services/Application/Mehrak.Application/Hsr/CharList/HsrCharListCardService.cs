@@ -90,15 +90,20 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
         Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
             context.GameProfile.GameUid, charData.Count);
 
-        var weaponImages = await charData.Where(x => x.Equip is not null).Select(x => x.Equip)
-            .DistinctBy(x => x!.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                var image = await LoadImageFromRepositoryAsync(x!.ToIconImageName(), disposables, token);
-                image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
-                return (x!.Id, Image: image);
-            }).ToDictionaryAsync(x => x.Id, x => x.Image);
+        // Load all distinct weapon images in parallel
+        var weaponEntries = charData.Where(x => x.Equip is not null).Select(x => x.Equip!)
+            .DistinctBy(x => x.Id)
+            .ToList();
+
+        var weaponTasks = weaponEntries.ToDictionary(
+            x => x.Id,
+            x => LoadWeaponImageAsync(x, disposables, cancellationToken));
+
+        await Task.WhenAll(weaponTasks.Values);
+
+        var weaponImages = weaponTasks.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Result);
 
         var moduleStyle = new CharacterModuleStyle(
             Fonts,
@@ -112,30 +117,30 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             FooterTextColor: Color.White,
             PlaceholderWeaponIcon: m_WeaponPlaceholder);
 
-        var avatarDataTask = charData
+        var sortedCharData = charData
             .OrderByDescending(x => x.Level)
             .ThenBy(x => Elements.IndexOf(x.Element, StringComparer.OrdinalIgnoreCase))
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                var avatarImage = await LoadImageFromRepositoryAsync(x.ToAvatarImageName(), disposables, token);
-                var moduleData = new CharacterModuleData(
-                    x.Name,
-                    x.Level,
-                    x.Rarity!.Value - 1,
-                    avatarImage,
-                    x.Rank,
-                    Icon: m_SmallElementIcons[x.Element],
-                    Weapon: x.Equip is null ? null : new WeaponModuleData(
-                        x.Equip.Level,
-                        x.Equip.Rarity - 1,
-                        x.Equip.Rank,
-                        weaponImages[x.Equip.Id]));
-                return (Character: x, ModuleData: moduleData);
-            })
-            .ToListAsync(cancellationToken: cancellationToken);
+            .ToList();
+
+        var avatarTasks = sortedCharData.Select(async x =>
+        {
+            var avatarImage = await LoadImageFromRepositoryAsync(x.ToAvatarImageName(), disposables, cancellationToken);
+            var moduleData = new CharacterModuleData(
+                x.Name,
+                x.Level,
+                x.Rarity!.Value - 1,
+                avatarImage,
+                x.Rank,
+                Icon: m_SmallElementIcons[x.Element],
+                Weapon: x.Equip is null ? null : new WeaponModuleData(
+                    x.Equip.Level,
+                    x.Equip.Rarity - 1,
+                    x.Equip.Rank,
+                    weaponImages[x.Equip.Id]));
+            return (Character: x, ModuleData: moduleData);
+        }).ToList();
 
         var charCountByElem = charData.GroupBy(x => x.Element!)
             .OrderBy(x => Array.IndexOf(Elements, x.Key))
@@ -144,11 +149,11 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
             .OrderBy(x => x.Key)
             .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-        var avatarDataList = await avatarDataTask;
+        var avatarDataList = await Task.WhenAll(avatarTasks);
 
         var renderer = new CharacterModuleRenderer(moduleStyle);
         var layout =
-            ImageUtility.CalculateGridLayout(avatarDataList.Count,
+            ImageUtility.CalculateGridLayout(avatarDataList.Length,
                 renderer.CanvasSize.Width, renderer.CanvasSize.Height, [170, 50, 120, 50]);
 
         var outputWidth = layout.OutputWidth;
@@ -194,5 +199,12 @@ internal class HsrCharListCardService : CardServiceBase<IEnumerable<HsrCharacter
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
             context.GameProfile.GameUid, charData.Count);
+    }
+
+    private async Task<Image> LoadWeaponImageAsync(Equip weapon, DisposableBag disposables, CancellationToken cancellationToken)
+    {
+        var image = await LoadImageFromRepositoryAsync(weapon.ToIconImageName(), disposables, cancellationToken);
+        image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
+        return image;
     }
 }
