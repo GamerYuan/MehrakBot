@@ -57,7 +57,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
             if (processor.ShouldProcess)
             {
-                using var processedStream = processor.ProcessImage(stream);
+                using var processedStream = await Task.Run(() => processor.ProcessImage(stream), cancellationToken);
 
                 if (processedStream == Stream.Null || processedStream.Length == 0)
                 {
