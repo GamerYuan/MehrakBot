@@ -81,11 +81,22 @@ public class DailyCheckInService : IApplicationService
             }
 
             var checkInResults = new List<(bool, string)>();
-            foreach (var game in gameRecords.Select(x => x.Game))
-            {
-                CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
-                var checkInResponse = await m_ApiService.GetAsync(apiContext, cancellationToken);
 
+            var checkInTasks = gameRecords.Select(x =>
+            {
+                var apiContext = new CheckInApiContext(context.UserId, context.LtUid, context.LToken, x.Game);
+                return (x.Game, m_ApiService.GetAsync(apiContext, cancellationToken));
+            }).ToList();
+
+            var checkInResponses = await Task.WhenAll(checkInTasks.Select(async task =>
+            {
+                var (game, responseTask) = task;
+                var response = await responseTask;
+                return (game, response);
+            }));
+
+            foreach (var (game, checkInResponse) in checkInResponses)
+            {
                 if (checkInResponse.IsSuccess)
                 {
                     switch (checkInResponse.Data)
