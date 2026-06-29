@@ -134,6 +134,9 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         var existenceResults = await Task.WhenAll(existenceChecks);
         var temp = existenceResults.Where(x => x.NeedsAscended || x.LevelExact40).Select(x => x.Character).ToList();
 
+        foreach (var result in existenceResults.Where(x => x.Character.Weapon.Level > 40 && !x.NeedsAscended))
+            result.Character.Weapon.Ascended = true;
+
         var weaponDict = temp.DistinctBy(x => x.Id!.Value).ToDictionary(x => x.Id!.Value, x => x);
         var charToFetch = temp.Select(x => x.Id!.Value).Distinct().ToList();
 

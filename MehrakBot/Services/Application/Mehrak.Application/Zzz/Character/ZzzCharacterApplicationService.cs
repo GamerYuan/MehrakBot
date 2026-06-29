@@ -305,10 +305,16 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         }
 
         var otherLocales = Enum.GetValues<WikiLocales>().Where(x => x != WikiLocales.CN);
+        var bestStatus = StatusCode.ExternalServerError;
         var tasks = otherLocales.Select(async locale =>
         {
             var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale), cancellationToken);
-            if (!result.IsSuccess) return null;
+            if (!result.IsSuccess)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                return null;
+            }
             return ParseZzzCharacterImageUrl(result.Data);
         }).ToList();
 
@@ -317,7 +323,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         if (string.IsNullOrEmpty(url))
         {
-            return Result<string>.Failure(StatusCode.ExternalServerError, "Character image not found");
+            return Result<string>.Failure(bestStatus, "Character image not found");
         }
 
         return Result<string>.Success(url);

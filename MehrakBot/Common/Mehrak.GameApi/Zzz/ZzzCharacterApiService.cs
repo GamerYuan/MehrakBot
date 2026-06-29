@@ -171,37 +171,38 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 await Task.WhenAll([avatarWikiTask, strategyWikiTask, weaponWikiTask, .. equipWikiTasks]);
 
                 // Assemble wiki dicts from individual cached entries
-                var avatarWiki = new Dictionary<string, string>();
                 var avatarWikiVal = await avatarWikiTask;
-                if (avatarWikiVal != null)
-                    avatarWiki[context.CharacterId.ToString()] = avatarWikiVal;
-
-                var strategyWiki = new Dictionary<string, string>();
-                var strategyWikiVal = await strategyWikiTask;
-                if (strategyWikiVal != null)
-                    strategyWiki[context.CharacterId.ToString()] = strategyWikiVal;
-
-                var equipWiki = new Dictionary<string, string>();
-                for (var i = 0; i < cachedAvatar.Equip.Count; i++)
+                if (avatarWikiVal != null) // ponytail: wiki cache miss means stale cache, re-fetch from API
                 {
-                    var val = await equipWikiTasks[i];
-                    if (val != null)
-                        equipWiki[cachedAvatar.Equip[i].Id.ToString()] = val;
+                    var avatarWiki = new Dictionary<string, string> { [context.CharacterId.ToString()] = avatarWikiVal };
+
+                    var strategyWiki = new Dictionary<string, string>();
+                    var strategyWikiVal = await strategyWikiTask;
+                    if (strategyWikiVal != null)
+                        strategyWiki[context.CharacterId.ToString()] = strategyWikiVal;
+
+                    var equipWiki = new Dictionary<string, string>();
+                    for (var i = 0; i < cachedAvatar.Equip.Count; i++)
+                    {
+                        var val = await equipWikiTasks[i];
+                        if (val != null)
+                            equipWiki[cachedAvatar.Equip[i].Id.ToString()] = val;
+                    }
+
+                    var weaponWiki = new Dictionary<string, string>();
+                    var weaponVal = await weaponWikiTask;
+                    if (weaponVal != null && cachedAvatar.Weapon != null)
+                        weaponWiki[cachedAvatar.Weapon.Id.ToString()] = weaponVal;
+
+                    return Result<ZzzFullAvatarData>.Success(new ZzzFullAvatarData
+                    {
+                        AvatarList = [cachedAvatar],
+                        AvatarWiki = avatarWiki,
+                        EquipWiki = equipWiki,
+                        WeaponWiki = weaponWiki,
+                        StrategyWiki = strategyWiki
+                    });
                 }
-
-                var weaponWiki = new Dictionary<string, string>();
-                var weaponVal = await weaponWikiTask;
-                if (weaponVal != null && cachedAvatar.Weapon != null)
-                    weaponWiki[cachedAvatar.Weapon.Id.ToString()] = weaponVal;
-
-                return Result<ZzzFullAvatarData>.Success(new ZzzFullAvatarData
-                {
-                    AvatarList = [cachedAvatar],
-                    AvatarWiki = avatarWiki,
-                    EquipWiki = equipWiki,
-                    WeaponWiki = weaponWiki,
-                    StrategyWiki = strategyWiki
-                });
             }
 
             // Cache miss — fetch from API
@@ -268,7 +269,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                         $"zzz_char:{context.GameUid}:{avatar.Id}",
                         avatar,
                         TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             }
 
             if (data.AvatarWiki != null)
@@ -278,7 +279,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_avatar_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken));
+                        timeoutCts.Token));
                 }
             }
 
@@ -289,7 +290,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_equip_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken));
+                        timeoutCts.Token));
                 }
             }
 
@@ -300,7 +301,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_weapon_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken));
+                        timeoutCts.Token));
                 }
             }
 
@@ -311,7 +312,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                     cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_strategy_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken));
+                        timeoutCts.Token));
                 }
             }
 

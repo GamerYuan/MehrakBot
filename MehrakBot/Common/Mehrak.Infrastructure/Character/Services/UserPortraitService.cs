@@ -116,6 +116,17 @@ internal class UserPortraitService : IUserPortraitService
     public async Task<AttachmentDownloadResult?> GetPortraitImageAsync(
         long discordUserId, string s3Key, Guid uploadId, CancellationToken ct = default)
     {
+        // Validate ownership before S3 fetch
+        using var scope = m_ScopeFactory.CreateScope();
+        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        var exists = await context.UserPortraitUploads
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId && u.S3Key == s3Key, ct);
+
+        if (!exists)
+            return null;
+
         try
         {
             var getReq = new GetObjectRequest

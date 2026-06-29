@@ -264,12 +264,12 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                     var wikiTasks = allLocales.Select(async locale =>
                     {
                         var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
-                        if (!result.IsSuccess) return (locale, (JsonNode?)null);
-                        return (locale, result.Data);
+                        if (!result.IsSuccess) return (Locale: locale, Data: (JsonNode?)null, Status: result.StatusCode);
+                        return (Locale: locale, Data: result.Data, Status: StatusCode.OK);
                     }).ToList();
 
                     var wikiResults = await Task.WhenAll(wikiTasks);
-                    foreach (var (locale, data) in wikiResults)
+                    foreach (var (locale, data, _) in wikiResults)
                     {
                         if (data == null) continue;
 
@@ -288,7 +288,20 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                         }
                     }
 
-                    if (string.IsNullOrEmpty(jsonStr)) return null;
+                    if (string.IsNullOrEmpty(jsonStr))
+                    {
+                        var bestStatus = StatusCode.ExternalServerError;
+                        foreach (var (_, _, status) in wikiResults)
+                        {
+                            if (status == StatusCode.Cancelled) { bestStatus = StatusCode.Cancelled; break; }
+                            if (status == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                        }
+
+                        if (bestStatus == StatusCode.Cancelled)
+                            throw new OperationCanceledException();
+
+                        return null;
+                    }
 
                     return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
                 });
@@ -323,10 +336,16 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 string? iconUrl = null;
 
                 var allLocales = Enum.GetValues<WikiLocales>();
+                var bestStatus = StatusCode.ExternalServerError;
                 var equipTasks = allLocales.Select(async locale =>
                 {
                     var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
-                    if (!result.IsSuccess) return (JsonNode?)null;
+                    if (!result.IsSuccess)
+                    {
+                        if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                        else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                        return (JsonNode?)null;
+                    }
                     return result.Data;
                 }).ToList();
 
@@ -342,7 +361,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 {
                     Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
                         "Failed to retrieve Icon Url");
-                    return Result<string>.Failure(StatusCode.ExternalServerError,
+                    return Result<string>.Failure(bestStatus,
                         string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 

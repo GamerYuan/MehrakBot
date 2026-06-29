@@ -258,7 +258,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                         $"genshin_char:{context.GameUid}:{charInfo.Base.Id}",
                         charInfo,
                         TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             }
 
             foreach (var kvp in json.Data.AvatarWiki)
@@ -268,7 +268,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                         $"genshin_avatar_wiki:{kvp.Key}",
                         kvp.Value,
                         TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             }
 
             foreach (var kvp in json.Data.WeaponWiki)
@@ -278,7 +278,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                         $"genshin_weapon_wiki:{kvp.Key}",
                         kvp.Value,
                         TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             }
 
             await Task.WhenAll(cacheWriteTasks);

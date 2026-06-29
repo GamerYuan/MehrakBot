@@ -252,7 +252,7 @@ public class
                         $"hsr_char:{context.GameUid}:{avatar.Id}",
                         avatar,
                         TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             await Task.WhenAll(charCacheTasks);
 
             // Cache equip wiki entries
@@ -262,7 +262,7 @@ public class
                         $"hsr_equip_wiki:{kvp.Key}",
                         kvp.Value,
                         TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             await Task.WhenAll(equipWikiCacheTasks);
 
             // Cache relic wiki entries
@@ -272,7 +272,7 @@ public class
                         $"hsr_relic_wiki:{kvp.Key}",
                         kvp.Value,
                         TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    cancellationToken));
+                    timeoutCts.Token));
             await Task.WhenAll(relicWikiCacheTasks);
 
             // Find and return the requested character

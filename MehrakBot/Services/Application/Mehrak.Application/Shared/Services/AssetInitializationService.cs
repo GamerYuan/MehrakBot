@@ -18,16 +18,25 @@ public class AssetInitializationService : IHostedService
 
         var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets");
 
+        var semaphore = new SemaphoreSlim(8);
         var tasks = Directory.EnumerateFiles(assetsRoot, "*.png", SearchOption.AllDirectories)
             .Select(async image =>
                 {
                     if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) return;
 
-                    var key = GetAssetKey(assetsRoot, image);
-                    if (await imageRepo.FileExistsAsync(key, cancellationToken)) return;
+                    await semaphore.WaitAsync(cancellationToken);
+                    try
+                    {
+                        var key = GetAssetKey(assetsRoot, image);
+                        if (await imageRepo.FileExistsAsync(key, cancellationToken)) return;
 
-                    await using var stream = File.OpenRead(image);
-                    await imageRepo.UploadFileAsync(key, stream, FileNameFormat.PngContentType, cancellationToken);
+                        await using var stream = File.OpenRead(image);
+                        await imageRepo.UploadFileAsync(key, stream, FileNameFormat.PngContentType, cancellationToken);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 });
 
         await Task.WhenAll(tasks);

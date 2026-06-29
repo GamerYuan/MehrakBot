@@ -91,10 +91,13 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         var anomalyData = context.Data;
 
         var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
-            ? anomalyData.ChallengeRecords.First(
+            ? anomalyData.ChallengeRecords.FirstOrDefault(
                 x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
                     && x.MobStars == anomalyData.BestRecord.MobStars)
-            : anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+            : anomalyData.ChallengeRecords.FirstOrDefault(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+
+        if (bestRecord is null)
+            throw new InvalidOperationException("No matching challenge record found for the best record configuration");
 
         var avatarData = bestRecord.MobRecords.SelectMany(x => x.Avatars)
             .Concat(bestRecord.BossRecord?.Avatars ?? [])
