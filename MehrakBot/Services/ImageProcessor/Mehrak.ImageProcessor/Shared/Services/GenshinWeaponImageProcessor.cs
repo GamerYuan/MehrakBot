@@ -1,11 +1,16 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.Features2D;
-using OpenCvSharp.Flann;
 
 namespace Mehrak.ImageProcessor.Shared.Services;
 
 public class GenshinWeaponImageProcessor
 {
+    private const double RatioThreshold = 0.75;
+    private const int MinKeypoints = 4;
+    private const int MinGoodMatches = 4;
+    private const double RansacReprojThreshold = 5.0;
+    private const double IouAcceptThreshold = 0.80;
+
     public virtual Stream ProcessImage(IEnumerable<Stream> images)
     {
         if (images.Count() < 2)
@@ -15,177 +20,236 @@ public class GenshinWeaponImageProcessor
 
         var imageList = images.Select(StreamToMat).ToList();
 
-        using var icon = imageList[0];
-        using var ascended = new Mat();
-
-        if (imageList[1].Size().Width > 800 || imageList[1].Size().Height > 800)
+        try
         {
-            var scaleFactor = Math.Min(
-                (double)800 / imageList[1].Width,
-                (double)800 / imageList[1].Height
-            );
-            Cv2.Resize(imageList[1], ascended,
-                new Size(imageList[1].Size().Width * scaleFactor, imageList[1].Size().Height * scaleFactor),
-                interpolation: InterpolationFlags.Cubic);
-        }
-        else
-        {
-            imageList[1].CopyTo(ascended);
-        }
+            using var icon = imageList[0];
+            using var ascended = new Mat();
 
-        imageList[1].Dispose();
+            // Normalize both images to max 512px on longest side
+            NormalizeToMax512(icon);
+            NormalizeToMax512(imageList[1]);
 
-        if (icon.Empty() || ascended.Empty())
-            return Stream.Null;
-
-        using var iconAlpha = icon.ExtractChannel(3);
-        using var ascendedAlpha = ascended.ExtractChannel(3);
-
-        var homography = FindHomography(ascendedAlpha, iconAlpha);
-
-        // Validate homography from alpha; if invalid, try grayscale matching
-        if (!IsHomographyValid(homography, ascended.Size(), icon.Size()))
-        {
-            using var ascendedGray = new Mat();
-            using var iconGray = new Mat();
-
-            Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
-            Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
-
-            homography.Dispose();
-            homography = FindHomography(ascendedGray, iconGray);
-
-            if (!IsHomographyValid(homography, ascended.Size(), icon.Size()))
+            // Dispose any extra images beyond the two we need
+            for (int i = 2; i < imageList.Count; i++)
             {
-                homography.Dispose();
+                imageList[i].Dispose();
+            }
+
+            Cv2.CopyTo(imageList[1], ascended);
+            imageList[1].Dispose();
+
+            if (icon.Empty() || ascended.Empty())
                 return Stream.Null;
-            }
-        }
 
-        // 2. Warp the Ascended Image
-        // This applies Rotation, Scale, and Translation in one step.
-        // The result will be the Ascended image transformed so that the target object
-        // aligns perfectly with the Icon's dimensions and position.
-        using var warpedAscended = new Mat();
+            // Extract alpha channels
+            using var iconAlpha = icon.ExtractChannel(3);
+            using var ascendedAlpha = ascended.ExtractChannel(3);
 
-        // WarpPerspective automatically handles the geometric transformation.
-        // We set the destination size to the Icon's size, effectively cropping it simultaneously.
-        Cv2.WarpPerspective(ascended, warpedAscended, homography, new Size(icon.Width, icon.Height));
+            // AKAZE feature detection on alpha images
+            using var akaze = AKAZE.Create();
+            using var ascendedDesc = new Mat();
+            using var iconDesc = new Mat();
 
-        using var final = new Mat();
-        Cv2.Resize(warpedAscended, final, new Size(200, 200));
+            akaze.DetectAndCompute(ascendedAlpha, null, out var ascendedKps, ascendedDesc);
+            akaze.DetectAndCompute(iconAlpha, null, out var iconKps, iconDesc);
 
-        homography.Dispose();
+            if (ascendedDesc.Empty() || iconDesc.Empty()
+                || ascendedKps.Length < MinKeypoints || iconKps.Length < MinKeypoints)
+                return Stream.Null;
 
-        // 3. Encode and Return
-        return new MemoryStream(final.ImEncode(".png"));
-    }
+            // BFMatcher with Hamming norm for binary descriptors
+            using var matcher = new BFMatcher(NormTypes.Hamming, crossCheck: false);
+            var knnMatches = matcher.KnnMatch(ascendedDesc, iconDesc, k: 2);
 
-    private static Mat FindHomography(Mat src, Mat dst)
-    {
-        // 1. SIFT Feature Detector
-        // nFeatures: 0 means find as many as possible.
-        // nOctaveLayers: 3 is standard.
-        // contrastThreshold: 0.04 is standard.
-        // edgeThreshold: 10 is standard.
-        // sigma: 1.6 is standard.
-        using var sift = SIFT.Create();
-
-        using var descriptorsSrc = new Mat();
-        using var descriptorsDst = new Mat();
-
-        // Detect and Compute
-        sift.DetectAndCompute(src, null, out var keypointsSrc, descriptorsSrc);
-        sift.DetectAndCompute(dst, null, out var keypointsDst, descriptorsDst);
-
-        if (keypointsSrc.Length < 4 || keypointsDst.Length < 4)
-            return new Mat();
-
-        // 2. FLANN Matcher
-        // FLANN parameters for SIFT (KD-Tree algorithm)
-        var indexParams = new KDTreeIndexParams(trees: 5);
-        var searchParams = new SearchParams(checks: 50);
-
-        using var matcher = new FlannBasedMatcher(indexParams, searchParams);
-
-        // KNN Match (k=2) is standard for SIFT to apply Lowe's Ratio Test
-        var knnMatches = matcher.KnnMatch(descriptorsSrc, descriptorsDst, k: 2);
-
-        // 3. Filter Matches (Lowe's Ratio Test)
-        // This filters out ambiguous matches where the best match is not significantly better than the second best.
-        List<DMatch> goodMatches = [];
-        var ratioThresh = 0.75f;
-
-        foreach (var matchSet in knnMatches)
-        {
-            if (matchSet.Length >= 2 && matchSet[0].Distance < ratioThresh * matchSet[1].Distance)
+            // Lowe's ratio test
+            var goodMatches = new List<DMatch>();
+            foreach (var matchSet in knnMatches)
             {
-                goodMatches.Add(matchSet[0]);
+                if (matchSet.Length >= 2 && matchSet[0].Distance < RatioThreshold * matchSet[1].Distance)
+                {
+                    goodMatches.Add(matchSet[0]);
+                }
+            }
+
+            if (goodMatches.Count < MinGoodMatches)
+                return Stream.Null;
+
+            // Extract matched point pairs
+            var srcPoints = goodMatches.Select(m => ascendedKps[m.QueryIdx].Pt).ToArray();
+            var dstPoints = goodMatches.Select(m => iconKps[m.TrainIdx].Pt).ToArray();
+
+            // Estimate affine transform
+            using var affineMat = Cv2.EstimateAffinePartial2D(
+                InputArray.Create(srcPoints), InputArray.Create(dstPoints), null,
+                RobustEstimationAlgorithms.RANSAC,
+                ransacReprojThreshold: RansacReprojThreshold);
+
+            if (affineMat is null || affineMat.Empty())
+                return Stream.Null;
+
+            // Validate determinant (no flip, no near-singular)
+            var det = affineMat.At<double>(0, 0) * affineMat.At<double>(1, 1)
+                    - affineMat.At<double>(0, 1) * affineMat.At<double>(1, 0);
+
+            if (det <= 0 || det <= 0.01)
+                return Stream.Null;
+
+            // Warp ascended image
+            using var warpedAscended = new Mat();
+            Cv2.WarpAffine(ascended, warpedAscended, affineMat,
+                new Size(icon.Width, icon.Height),
+                borderValue: new Scalar(0, 0, 0, 0));
+
+            // IoU after initial affine warp
+            using var warpedAlpha = new Mat();
+            Cv2.WarpAffine(ascendedAlpha, warpedAlpha, affineMat,
+                new Size(icon.Width, icon.Height));
+
+            var iou = ComputeIoU(warpedAlpha, iconAlpha);
+
+            if (iou < IouAcceptThreshold)
+            {
+                // ECC refinement on the original ascended (not the already-warped image)
+                iou = AttemptEccRefinement(ascended, ascendedAlpha, icon, iconAlpha, affineMat);
+
+                if (iou < IouAcceptThreshold)
+                    return Stream.Null;
+
+                // Re-warp with refined transform for final output
+                Cv2.WarpAffine(ascended, warpedAscended, affineMat,
+                    new Size(icon.Width, icon.Height),
+                    borderValue: new Scalar(0, 0, 0, 0));
+            }
+
+            // Final resize and encode
+            using var final = new Mat();
+            Cv2.Resize(warpedAscended, final, new Size(200, 200), interpolation: InterpolationFlags.Cubic);
+
+            return new MemoryStream(final.ImEncode(".png"));
+        }
+        finally
+        {
+            foreach (var mat in imageList)
+            {
+                if (!mat.IsDisposed)
+                    mat.Dispose();
             }
         }
-
-        if (goodMatches.Count < 4)
-            return new Mat();
-
-        // 4. Extract Points for Homography
-        List<Point2f> srcPoints = [];
-        List<Point2f> dstPoints = [];
-
-        foreach (var m in goodMatches)
-        {
-            srcPoints.Add(keypointsSrc[m.QueryIdx].Pt);
-            dstPoints.Add(keypointsDst[m.TrainIdx].Pt);
-        }
-
-        // 5. Find Homography with RANSAC
-        return Cv2.FindHomography(
-            InputArray.Create(srcPoints),
-            InputArray.Create(dstPoints),
-            HomographyMethods.Ransac,
-            ransacReprojThreshold: 5.0
-        );
     }
 
-    private static bool IsHomographyValid(Mat h, Size srcSize, Size dstSize)
+    private static void NormalizeToMax512(Mat src)
     {
-        if (h.Empty()) return false;
+        var maxDim = Math.Max(src.Width, src.Height);
+        if (maxDim <= 512)
+            return;
 
-        // 1. Check Determinant of the top-left 2x2 matrix (Rotation/Scale)
-        // This detects if the image is flipping (negative det) or collapsing (near zero).
-        var det = h.At<double>(0, 0) * h.At<double>(1, 1) - h.At<double>(1, 0) * h.At<double>(0, 1);
+        var scaleFactor = 512.0 / maxDim;
+        using var resized = new Mat();
+        Cv2.Resize(src, resized,
+            new Size((int)(src.Width * scaleFactor), (int)(src.Height * scaleFactor)),
+            interpolation: InterpolationFlags.Cubic);
+        resized.CopyTo(src);
+    }
 
-        if (det < 0) return false; // Image is flipped (mirror), likely invalid for icons
-        if (Math.Abs(det) < 0.0001) return false; // Matrix is singular/collapsing
+    private static double ComputeIoU(Mat warpedAlpha, Mat iconAlpha)
+    {
+        using var binaryWarped = new Mat();
+        using var binaryIcon = new Mat();
+        using var intersection = new Mat();
+        using var union = new Mat();
 
-        // 2. Check Geometric Distortion
-        // Transform the 4 corners of the source image to see where they land
-        var srcCorners = new[]
+        Cv2.Threshold(warpedAlpha, binaryWarped, 128, 255, ThresholdTypes.Binary);
+        Cv2.Threshold(iconAlpha, binaryIcon, 128, 255, ThresholdTypes.Binary);
+
+        Cv2.BitwiseAnd(binaryWarped, binaryIcon, intersection);
+        Cv2.BitwiseOr(binaryWarped, binaryIcon, union);
+
+        var interCount = Cv2.CountNonZero(intersection);
+        var unionCount = Cv2.CountNonZero(union);
+
+        return unionCount == 0 ? 0 : interCount / (double)unionCount;
+    }
+
+    private static double AttemptEccRefinement(
+        Mat ascended, Mat ascendedAlpha,
+        Mat icon, Mat iconAlpha,
+        Mat affineMat)
+    {
+        using var ascendedGray = new Mat();
+        using var iconGray = new Mat();
+
+        Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
+        Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
+
+        // Warp ascended grayscale using current affine, then let ECC find residual
+        using var warpedGray = new Mat();
+        Cv2.WarpAffine(ascendedGray, warpedGray, affineMat,
+            new Size(icon.Width, icon.Height));
+
+        // Initialize residual as identity (Euclidean: translation + rotation + uniform scale)
+        using var warpMatrix = new Mat(2, 3, MatType.CV_64F);
+        warpMatrix.Set(0, 0, 1.0);
+        warpMatrix.Set(0, 1, 0.0);
+        warpMatrix.Set(0, 2, 0.0);
+        warpMatrix.Set(1, 0, 0.0);
+        warpMatrix.Set(1, 1, 1.0);
+        warpMatrix.Set(1, 2, 0.0);
+
+        try
         {
-            new Point2f(0, 0),
-            new Point2f(srcSize.Width, 0),
-            new Point2f(srcSize.Width, srcSize.Height),
-            new Point2f(0, srcSize.Height)
-        };
+            Cv2.FindTransformECC(
+                iconGray, warpedGray, warpMatrix,
+                MotionTypes.Euclidean,
+                new TermCriteria(CriteriaTypes.Count | CriteriaTypes.Eps, 10, 1e-4));
 
-        var dstCorners = Cv2.PerspectiveTransform(srcCorners, h);
+            // Compose: refined = residual × initial
+            ComposeAffine(affineMat, warpMatrix, affineMat);
 
-        // A. Convexity Check
-        // If the transformed shape is "twisted" (bowtie shape), IsContourConvex returns false
-        if (!Cv2.IsContourConvex(dstCorners)) return false;
+            // Re-warp alpha and recompute IoU
+            using var refinedAlpha = new Mat();
+            Cv2.WarpAffine(ascendedAlpha, refinedAlpha, affineMat,
+                new Size(icon.Width, icon.Height));
 
-        // B. Scale/Area Check
-        // Calculate the area of the transformed corners
-        var area = Cv2.ContourArea(dstCorners);
+            return ComputeIoU(refinedAlpha, iconAlpha);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
 
-        // Define limits relative to the destination icon size
-        // e.g., The warped image shouldn't be smaller than 1% of the icon
-        // or larger than 100x the icon.
-        double iconArea = dstSize.Width * dstSize.Height;
+    /// <summary>
+    /// Composes two 2x3 affine transforms: dst = residual × src.
+    /// residual is 2x3 (Euclidean), src is 2x3, result stored in dst (can alias src).
+    /// </summary>
+    private static void ComposeAffine(Mat residual, Mat src, Mat dst)
+    {
+        // Extract residual components
+        var rCos = residual.At<double>(0, 0);
+        var rSin = residual.At<double>(1, 0);
+        var rTx = residual.At<double>(0, 2);
+        var rTy = residual.At<double>(1, 2);
 
-        if (area < iconArea * 0.01) return false; // Too small (imploded)
-        if (area > iconArea * 100.0) return false; // Too big (exploded to infinity)
+        // Extract source components
+        var sCos = src.At<double>(0, 0);
+        var sSin = src.At<double>(1, 0);
+        var sTx = src.At<double>(0, 2);
+        var sTy = src.At<double>(1, 2);
 
-        return true;
+        // Compose: new rotation = residual * source
+        var cos = rCos * sCos - rSin * sSin;
+        var sin = rSin * sCos + rCos * sSin;
+
+        // Compose: new translation = residual.rotate(source.translation) + residual.translation
+        var tx = rCos * sTx - rSin * sTy + rTx;
+        var ty = rSin * sTx + rCos * sTy + rTy;
+
+        dst.Set(0, 0, cos);
+        dst.Set(0, 1, -sin);
+        dst.Set(0, 2, tx);
+        dst.Set(1, 0, sin);
+        dst.Set(1, 1, cos);
+        dst.Set(1, 2, ty);
     }
 
     private static Mat StreamToMat(Stream stream)
