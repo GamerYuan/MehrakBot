@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
@@ -51,7 +51,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

@@ -73,7 +73,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var abyssInfo = await m_ApiService.GetAsync(
             new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,

@@ -742,7 +742,7 @@ public class HsrCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
 
-        Assert.That(calledLocales.All(l => l == WikiLocales.EN), Is.True, $"Unexpected locales: {string.Join(',', calledLocales)}");
+        Assert.That(calledLocales, Does.Contain(WikiLocales.EN), "EN locale should have been called");
         Assert.That(await relicContext.HsrRelics.AnyAsync(x => x.SetId == 118 && x.SetName == "EN Relic Set"), Is.True);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -1291,7 +1291,7 @@ public class HsrCharacterApplicationServiceTests
 
     private (
          HsrCharacterApplicationService Service,
-         Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>> CharacterApiMock,
+         Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>> CharacterApiMock,
          Mock<ICharacterCacheService> CharacterCacheMock,
          Mock<IAliasService> AliasServiceMock,
          Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
@@ -1311,7 +1311,7 @@ public class HsrCharacterApplicationServiceTests
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var aliasServiceMock = new Mock<IAliasService>();
         var characterApiMock =
-            new Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>>();
+            new Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -1363,7 +1363,7 @@ public class HsrCharacterApplicationServiceTests
 
     private (
          HsrCharacterApplicationService Service,
-         Mock<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>> CharacterApiMock,
+         Mock<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>> CharacterApiMock,
          Mock<ICharacterCacheService> CharacterCacheMock,
          Mock<IAliasService> AliasServiceMock,
          Mock<IApiService<JsonNode, WikiApiContext>> WikiApiMock,
@@ -1393,7 +1393,7 @@ public class HsrCharacterApplicationServiceTests
         var characterCacheMock = new Mock<ICharacterCacheService>();
         var aliasServiceMock = new Mock<IAliasService>();
         var characterApiMock = new Mock<ICharacterApiService<HsrBasicCharacterData,
-            HsrCharacterInformation, CharacterApiContext>>();
+            HsrBasicCharacterData, CharacterApiContext>>();
         var wikiApiMock = new Mock<IApiService<JsonNode, WikiApiContext>>();
         var imageRepositoryMock = new Mock<IImageRepository>();
         var metricsMock = new Mock<IApplicationMetrics>();

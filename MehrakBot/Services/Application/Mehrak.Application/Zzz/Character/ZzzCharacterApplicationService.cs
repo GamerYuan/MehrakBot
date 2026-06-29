@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -95,7 +95,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -296,44 +296,50 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,
         ZzzAvatarData charInfo, string entryPage, CancellationToken cancellationToken = default)
     {
-        string? url = null;
-
-        foreach (var locale in Enum.GetValues<WikiLocales>())
+        var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, WikiLocales.CN), cancellationToken);
+        if (cnResult.IsSuccess)
         {
-            var wikiResponse =
-                await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale), cancellationToken);
-
-            if (!wikiResponse.IsSuccess)
-            {
-                if (wikiResponse.StatusCode == StatusCode.Cancelled)
-                {
-                    throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Character wiki request was cancelled");
-                }
-                if (wikiResponse.StatusCode == StatusCode.Timeout)
-                {
-                    return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Character wiki request timed out");
-                }
-                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, gameUid, wikiResponse);
-                continue;
-            }
-
-            url = JsonNode.Parse(wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                .SelectMany(x => x?["components"]?.AsArray() ?? [])
-                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
-                ?["data"]?.GetValue<string>() ?? "")
-                ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
-
-            if (!string.IsNullOrEmpty(url)) break;
-
-            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
-                charInfo.Name, locale, wikiResponse.Data.ToJsonString());
+            var cnUrl = ParseZzzCharacterImageUrl(cnResult.Data);
+            if (!string.IsNullOrEmpty(cnUrl))
+                return Result<string>.Success(cnUrl);
         }
+
+        var otherLocales = Enum.GetValues<WikiLocales>().Where(x => x != WikiLocales.CN);
+        var bestStatus = StatusCode.ExternalServerError;
+        var tasks = otherLocales.Select(async locale =>
+        {
+            var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, locale), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                return null;
+            }
+            return ParseZzzCharacterImageUrl(result.Data);
+        }).ToList();
+
+        var results = await Task.WhenAll(tasks);
+        var url = results.FirstOrDefault(x => !string.IsNullOrEmpty(x));
 
         if (string.IsNullOrEmpty(url))
         {
-            return Result<string>.Failure(StatusCode.ExternalServerError, "Character image not found");
+            return Result<string>.Failure(bestStatus, "Character image not found");
         }
 
         return Result<string>.Success(url);
+    }
+
+    private static string? ParseZzzCharacterImageUrl(JsonNode data)
+    {
+        var jsonStr = data["data"]?["page"]?["modules"]?.AsArray()
+            .SelectMany(x => x?["components"]?.AsArray() ?? [])
+            .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
+            ?["data"]?.GetValue<string>();
+
+        if (string.IsNullOrWhiteSpace(jsonStr))
+            return null;
+
+        return JsonNode.Parse(jsonStr)
+            ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
     }
 }

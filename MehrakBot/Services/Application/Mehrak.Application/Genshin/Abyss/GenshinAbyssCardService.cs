@@ -67,45 +67,63 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
 
         var floorData = abyssData.Floors!.First(x => x.Index == floor);
 
-        var portraitAvatars = await floorData.Levels!
+        var portraitAvatarItems = floorData.Levels!
             .SelectMany(y => y.Battles!)
-            .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToAsyncEnumerable()
-            .Select(
-                async (x, token) =>
-                {
-                    await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                    var image = await Image.LoadAsync(stream, token);
-                    var avatar = new GenshinAvatar(x.Id, x.Level, x.Rarity, constMap[x.Id], image);
-                    disposables.Add(avatar);
-                    return avatar;
-                })
-            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+            .SelectMany(x => x.Avatars!).DistinctBy(x => x.Id).ToList();
+
+        var portraitAvatarTasks = portraitAvatarItems
+            .Select(async x =>
+            {
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+                var image = await Image.LoadAsync(stream, cancellationToken);
+                var avatar = new GenshinAvatar(x.Id, x.Level, x.Rarity, constMap[x.Id], image);
+                disposables.Add(avatar);
+                return avatar;
+            }).ToList();
+
+        await Task.WhenAll(portraitAvatarTasks);
+
+        var portraitAvatars = portraitAvatarTasks
+            .Select(t => t.Result)
+            .ToDictionary(x => x, x => x, GenshinAvatarIdComparer.Instance);
 
         var lookup = portraitAvatars.GetAlternateLookup<int>();
 
-        var sideAvatarImages = await abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
+        var sideAvatarItems = abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
             .Concat(abyssData.EnergySkillRank!)
             .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.AvatarId),
-                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
-                cancellationToken: cancellationToken);
+            .ToList();
 
-        var revealRankAvatars = await abyssData.RevealRank!
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+        var sideAvatarTasks = sideAvatarItems
+            .Select(async x => (x.AvatarId, Image: await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken)))
+            .ToList();
+
+        await Task.WhenAll(sideAvatarTasks);
+
+        var sideAvatarImages = sideAvatarTasks
+            .Select(t => t.Result)
+            .ToDictionary(x => x.AvatarId, x => x.Image);
+
+        var revealRankItems = abyssData.RevealRank!.ToList();
+
+        var revealRankTasks = revealRankItems
+            .Select(async x =>
             {
-                var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), cancellationToken);
+                var image = await Image.LoadAsync(stream, cancellationToken);
                 var avatar = new GenshinAvatar(x.AvatarId, 0, x.Rarity, constMap[x.AvatarId], image);
                 disposables.Add(avatar);
                 return (RevealRankAvatar: x, GenshinAvatar: avatar);
-            })
-            .ToDictionaryAsync(
+            }).ToList();
+
+        await Task.WhenAll(revealRankTasks);
+
+        var revealRankAvatars = revealRankTasks
+            .Select(t => t.Result)
+            .ToDictionary(
                 x => x.GenshinAvatar,
                 x => (x.GenshinAvatar, Text: x.RevealRankAvatar.Value.ToString()!),
-                GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
+                GenshinAvatarIdComparer.Instance);
 
         var tzi = server.GetTimeZoneInfo();
 

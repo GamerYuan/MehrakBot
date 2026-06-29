@@ -43,9 +43,16 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_StarLitImage = await Image.LoadAsync(
+        var starTask = Image.LoadAsync(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Zzz.AssaultStarName, cancellationToken),
             cancellationToken);
+        var buddyTask = Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base"), cancellationToken),
+            cancellationToken);
+
+        await Task.WhenAll(starTask, buddyTask);
+
+        m_StarLitImage = starTask.Result;
         m_StarLitSmall = m_StarLitImage.Clone(ctx => ctx.Resize(0, 35));
         m_StarUnlitSmall = m_StarLitImage.Clone(ctx =>
         {
@@ -54,9 +61,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             ctx.Resize(0, 35);
         });
 
-        m_BaseBuddyImage = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Zzz.BuddyName, "base"), cancellationToken),
-            cancellationToken);
+        m_BaseBuddyImage = buddyTask.Result;
         m_BaseBuddyImage.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-45, 0))));
     }
 
@@ -74,46 +79,56 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
         var data = context.Data;
         var height = data.List.Count * 270 + 230;
 
-        var avatarImages = await data.List.SelectMany(x => x.AvatarList)
+        var avatarTasks = data.List.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+            .Select(async x =>
             {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+                var image = await Image.LoadAsync(stream, cancellationToken);
                 ZzzAvatar avatar = new(x.Id, x.Level, x.Rarity[0], x.Rank, image);
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
+            .ToList();
 
-        var buddyImages = await data.List.Select(x => x.Buddy)
+        var buddyTasks = data.List.Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+            .Select(async x =>
             {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x!.ToImageName(), cancellationToken);
+                var image = await Image.LoadAsync(stream, cancellationToken);
                 disposables.Add(image);
                 image.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-45, 0))));
                 return (BuddyId: x!.Id, Image: image);
             })
-            .ToDictionaryAsync(x => x.BuddyId, x => x.Image, cancellationToken: cancellationToken);
+            .ToList();
 
-        var bossImages = await data.List.SelectMany(x => x.Boss)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.Name),
-                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
-                cancellationToken: cancellationToken);
-
-        var buffImages = await data.List.SelectMany(x => x.Buff)
+        var bossEntries = data.List.SelectMany(x => x.Boss)
             .DistinctBy(x => x.Name)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.Name),
-                async (x, token) => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token),
-                cancellationToken: cancellationToken);
+            .ToList();
+        var bossTasks = bossEntries
+            .Select(async x => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken))
+            .ToList();
+
+        var buffEntries = data.List.SelectMany(x => x.Buff)
+            .DistinctBy(x => x.Name)
+            .ToList();
+        var buffTasks = buffEntries
+            .Select(async x => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken))
+            .ToList();
+
+        await Task.WhenAll(avatarTasks.Cast<Task>()
+            .Concat(buddyTasks.Cast<Task>())
+            .Concat(bossTasks.Cast<Task>())
+            .Concat(buffTasks.Cast<Task>()));
+
+        var avatarImages = avatarTasks.ToDictionary(x => x.Result.AvatarId, x => x.Result);
+        var buddyImages = buddyTasks.ToDictionary(x => x.Result.BuddyId, x => x.Result.Image);
+        var bossImages = bossEntries.Zip(bossTasks, (entry, task) => (entry.Name, task.Result))
+            .ToDictionary(x => x.Name, x => x.Result);
+        var buffImages = buffEntries.Zip(buffTasks, (entry, task) => (entry.Name, task.Result))
+            .ToDictionary(x => x.Name, x => x.Result);
 
         background.Mutate(ctx =>
         {

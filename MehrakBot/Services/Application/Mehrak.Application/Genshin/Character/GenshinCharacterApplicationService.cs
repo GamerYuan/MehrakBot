@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -118,7 +118,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -322,7 +322,17 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
         }
 
-        var (baseVal, maxAscVal) = await m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, charData.Base.Name);
+        var statTask = m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, charData.Base.Name);
+        var portraitTask = activePortrait != null
+            ? PortraitResolutionHelper.ResolveActivePortraitAsync(
+                m_UserPortraitService, context.UserId, activePortrait,
+                () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
+            : m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id).ContinueWith(t => new PortraitResolution(null, t.Result), cancellationToken);
+
+        await Task.WhenAll(statTask, portraitTask);
+
+        var (baseVal, maxAscVal) = statTask.Result;
+        var resolution = portraitTask.Result;
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId, charData, profile);
         cardContext.SetParameter("server", server);
@@ -331,13 +341,6 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         {
             cardContext.SetParameter("ascension", ascLevel.Value);
         }
-
-        var resolution = activePortrait != null
-            ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
-                m_UserPortraitService, context.UserId, activePortrait,
-                () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
-            : new PortraitResolution(null,
-                await m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id));
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;
 
@@ -365,86 +368,89 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,
         GenshinCharacterInformation charData, string wikiEntry, CancellationToken cancellationToken = default)
     {
-        string? url = null;
+        var bestStatus = StatusCode.ExternalServerError;
 
-        // Prio to CN locale
-        foreach (var locale in Enum.GetValues<WikiLocales>().OrderBy(x => x == WikiLocales.CN ? 0 : 1))
+        var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, WikiLocales.CN), cancellationToken);
+        if (cnResult.IsSuccess)
         {
-            var charWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
+            var cnUrl = cnResult.Data["data"]?["page"]?["header_img_url"]?.ToString();
+            if (!string.IsNullOrEmpty(cnUrl))
+                return Result<string>.Success(cnUrl);
+        }
 
-            if (!charWiki.IsSuccess)
+        var otherLocales = Enum.GetValues<WikiLocales>().Where(x => x != WikiLocales.CN);
+        var tasks = otherLocales.Select(async locale =>
+        {
+            var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
+            if (!result.IsSuccess) return (Result: result, Url: (string?)null);
+            return (Result: result, Url: result.Data["data"]?["page"]?["header_img_url"]?.ToString());
+        }).ToList();
+
+        var results = await Task.WhenAll(tasks);
+        var url = results.FirstOrDefault(x => x.Url is { Length: > 0 });
+
+        if (url.Url == null)
+        {
+            foreach (var (result, _) in results)
             {
-                if (charWiki.StatusCode == StatusCode.Cancelled)
-                {
-                    throw new OperationCanceledException(charWiki.ErrorMessage ?? "Character wiki request was cancelled");
-                }
-                if (charWiki.StatusCode == StatusCode.Timeout)
-                {
-                    return Result<string>.Failure(StatusCode.Timeout, charWiki.ErrorMessage ?? "Character wiki request timed out");
-                }
-                Logger.LogWarning(LogMessage.ApiError, "Character Wiki", context.UserId, profile.GameUid, charWiki);
-                continue;
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled)
+                    bestStatus = StatusCode.Timeout;
             }
-
-            url = charWiki.Data["data"]?["page"]?["header_img_url"]?.ToString();
-
-            if (!string.IsNullOrEmpty(url)) break;
-
-            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
-                charData.Base.Id, locale, charWiki.Data.ToJsonString());
+            return Result<string>.Failure(bestStatus);
         }
 
-        if (string.IsNullOrEmpty(url))
-        {
-            return Result<string>.Failure(StatusCode.ExternalServerError);
-        }
-
-        return Result<string>.Success(url);
+        return Result<string>.Success(url.Url);
     }
 
     private async Task<Result<string>>
         GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
             GenshinCharacterInformation charData, string wikiEntry, CancellationToken cancellationToken = default)
     {
-        foreach (var locale in Enum.GetValues<WikiLocales>())
+        var bestStatus = StatusCode.ExternalServerError;
+
+        var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, WikiLocales.CN), cancellationToken);
+        if (cnResult.IsSuccess)
         {
-            var weapWiki = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
-
-            if (!weapWiki.IsSuccess)
-            {
-                if (weapWiki.StatusCode == StatusCode.Cancelled)
-                {
-                    throw new OperationCanceledException(weapWiki.ErrorMessage ?? "Weapon wiki request was cancelled");
-                }
-                if (weapWiki.StatusCode == StatusCode.Timeout)
-                {
-                    return Result<string>.Failure(StatusCode.Timeout, weapWiki.ErrorMessage ?? "Weapon wiki request timed out");
-                }
-                Logger.LogWarning(LogMessage.ApiError, "Weapon Wiki", context.UserId, profile.GameUid, weapWiki);
-                continue;
-            }
-
-            List<string> ascendedUrls = [];
-
-            var jsonStr = weapWiki.Data["data"]?["page"]?["modules"]?.AsArray().SelectMany(x => x?["components"]?.AsArray() ?? [])
-                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")?["data"]?.GetValue<string>();
-
-            if (!string.IsNullOrEmpty(jsonStr))
-            {
-                var json = JsonNode.Parse(jsonStr);
-                ascendedUrls.AddRange(json?["list"]?.AsArray().Select(x => x?["img"]?.GetValue<string>())
-                    .Where(x => !string.IsNullOrEmpty(x)).Cast<string>() ?? []);
-            }
-
-            if (ascendedUrls.Count == 2)
-            {
-                return Result<string>.Success(ascendedUrls[1]);
-            }
-
-            Logger.LogWarning("Character wiki image URL is empty for CharacterId: {CharacterId}, Locale: {Locale}, Data:\n{Data}",
-                charData.Base.Id, locale, weapWiki.Data.ToJsonString());
+            var cnUrls = ParseWeaponAscendedUrls(cnResult.Data);
+            if (cnUrls.Count == 2)
+                return Result<string>.Success(cnUrls[1]);
         }
 
-        return Result<string>.Failure(StatusCode.ExternalServerError);
+        var otherLocales = Enum.GetValues<WikiLocales>().Where(x => x != WikiLocales.CN);
+        var tasks = otherLocales.Select(async locale =>
+        {
+            var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
+            if (!result.IsSuccess) return (Result: result, Parsed: (List<string>?)null);
+            return (Result: result, Parsed: ParseWeaponAscendedUrls(result.Data));
+        }).ToList();
+
+        var results = await Task.WhenAll(tasks);
+        var urls = results.FirstOrDefault(x => x.Parsed is { Count: 2 });
+
+        if (urls.Parsed == null)
+        {
+            foreach (var (result, _) in results)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled)
+                    bestStatus = StatusCode.Timeout;
+            }
+            return Result<string>.Failure(bestStatus);
+        }
+
+        return Result<string>.Success(urls.Parsed[1]);
+    }
+
+    private static List<string> ParseWeaponAscendedUrls(JsonNode data)
+    {
+        var jsonStr = data["data"]?["page"]?["modules"]?.AsArray().SelectMany(x => x?["components"]?.AsArray() ?? [])
+            .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")?["data"]?.GetValue<string>();
+
+        if (string.IsNullOrEmpty(jsonStr)) return [];
+
+        var json = JsonNode.Parse(jsonStr);
+        return json?["list"]?.AsArray().Select(x => x?["img"]?.GetValue<string>())
+            .Where(x => !string.IsNullOrEmpty(x)).Cast<string>().ToList() ?? [];
     }
 }

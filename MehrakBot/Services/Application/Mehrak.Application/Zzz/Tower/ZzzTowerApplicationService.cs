@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
@@ -63,13 +63,18 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
-        var towerResponse =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
+        var towerTask = m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+            gameUid, region), cancellationToken);
+        var charTask = m_CharacterApi.GetAllCharactersAsync(
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+
+        await Task.WhenAll(towerTask, charTask);
+
+        var towerResponse = towerTask.Result;
         if (!towerResponse.IsSuccess)
         {
             if (towerResponse.StatusCode == StatusCode.Cancelled)
@@ -91,9 +96,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-
-        var characterResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        var characterResponse = charTask.Result;
 
         if (!characterResponse.IsSuccess)
         {

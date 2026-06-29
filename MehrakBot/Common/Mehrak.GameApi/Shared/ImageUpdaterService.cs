@@ -57,7 +57,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
             if (processor.ShouldProcess)
             {
-                using var processedStream = processor.ProcessImage(stream);
+                using var processedStream = await Task.Run(() => processor.ProcessImage(stream), cancellationToken);
 
                 if (processedStream == Stream.Null || processedStream.Length == 0)
                 {
@@ -127,7 +127,7 @@ public class ImageUpdaterService : IImageUpdaterService
                 streams.AddRange(await responses.ToAsyncEnumerable().Select(async (x, token) =>
                     await x.Content.ReadAsStreamAsync(token)).ToListAsync(cancellationToken: timeoutCts.Token));
 
-                using var processedStream = processor.ProcessImage(streams);
+                using var processedStream = await Task.Run(() => processor.ProcessImage(streams), cancellationToken);
 
                 if (processedStream.Equals(Stream.Null) || processedStream.Length == 0)
                 {

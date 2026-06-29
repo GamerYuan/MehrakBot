@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
 using Mehrak.Application.Shared.Services;
@@ -67,13 +67,18 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
-        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+        var charTask = m_CharacterApi.GetAllCharactersAsync(
             new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        var buddyApiTask = m_BuddyApi.GetAsync(
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
+        await Task.WhenAll(charTask, buddyApiTask);
+
+        var charResponse = charTask.Result;
         if (!charResponse.IsSuccess)
         {
             if (charResponse.StatusCode == StatusCode.Cancelled)
@@ -89,9 +94,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-        var buddyResponse = await m_BuddyApi.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
-
+        var buddyResponse = buddyApiTask.Result;
         if (!buddyResponse.IsSuccess)
         {
             if (buddyResponse.StatusCode == StatusCode.Cancelled)

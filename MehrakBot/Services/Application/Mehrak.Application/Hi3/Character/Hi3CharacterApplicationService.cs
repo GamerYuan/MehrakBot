@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
@@ -80,7 +80,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString(), cancellationToken);
+        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

@@ -122,7 +122,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
         }
 
         if (successfulCodes.Count > 0)
-            await UpdateCodesAsync(game, successfulCodes).ConfigureAwait(false);
+            _ = UpdateCodesAsync(game, successfulCodes);
 
         return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
     }

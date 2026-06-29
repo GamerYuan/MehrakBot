@@ -107,6 +107,10 @@ public abstract class BaseApplicationService : IApplicationService
             else
             {
                 var gameUidEntry = profile.GameUids[0];
+                if (gameUidEntry.GameUid == gameUid && gameUidEntry.Region == server)
+                {
+                    return; // No change, skip DB write
+                }
                 gameUidEntry.GameUid = gameUid;
                 gameUidEntry.Region = server;
                 m_UserContext.GameUids.Update(gameUidEntry);

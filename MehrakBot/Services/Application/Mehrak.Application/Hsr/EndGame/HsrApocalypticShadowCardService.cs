@@ -28,13 +28,18 @@ internal class HsrApocalypticShadowCardService : HsrEndGameCardServiceBase
 
     protected override async Task LoadModeResourcesAsync(CancellationToken cancellationToken)
     {
-        m_AsBackground = await Image.LoadAsync<Rgba32>(
+        var backgroundTask = Task.Run(async () => await Image.LoadAsync<Rgba32>(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ASBackgroundName, cancellationToken),
-            cancellationToken);
+            cancellationToken), cancellationToken);
 
-        m_BossCheckmark = await Image.LoadAsync(
+        var checkmarkTask = Task.Run(async () => await Image.LoadAsync(
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.BossCheckName, cancellationToken),
-            cancellationToken);
+            cancellationToken), cancellationToken);
+
+        await Task.WhenAll(backgroundTask, checkmarkTask);
+
+        m_AsBackground = await backgroundTask;
+        m_BossCheckmark = await checkmarkTask;
         m_BossCheckmark.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(0, -2))));
     }
 

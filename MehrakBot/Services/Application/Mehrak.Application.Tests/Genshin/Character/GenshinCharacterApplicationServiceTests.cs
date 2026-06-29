@@ -930,8 +930,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 
@@ -963,18 +963,22 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin/weapon_"))))
             .ReturnsAsync(true);
 
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"));
+
         var cnEmpty = JsonNode.Parse("""
                                     { "data": { "page": { "header_img_url": "" } } }
                                     """);
         wikiApiMock
-            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<JsonNode>.Success(cnEmpty!));
 
         var enResponse = JsonNode.Parse("""
                                        { "data": { "page": { "header_img_url": "https://example.com/en_character.png" } } }
                                        """);
         wikiApiMock
-            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
 
         imageUpdaterMock
@@ -990,8 +994,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 

@@ -44,31 +44,37 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        m_StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
-            cancellationToken);
+        var downloadTasks = new[]
+        {
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AnomalyStarName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AABackgroundName, cancellationToken)
+        };
+        await Task.WhenAll(downloadTasks);
+
+        await using var starStream = downloadTasks[0].Result;
+        await using var bossStarStream = downloadTasks[1].Result;
+        await using var cycleStream = downloadTasks[2].Result;
+        await using var bgStream = downloadTasks[3].Result;
+
+        m_StarLit = await Image.LoadAsync(starStream, cancellationToken);
         m_StarUnlit = m_StarLit.Clone(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
 
-        m_BossStarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AnomalyStarName, cancellationToken),
-            cancellationToken);
+        m_BossStarLit = await Image.LoadAsync(bossStarStream, cancellationToken);
         m_BossStarUnlit = m_BossStarLit.Clone(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
 
-        m_CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
-            cancellationToken);
+        m_CycleIcon = await Image.LoadAsync(cycleStream, cancellationToken);
 
-        StaticBackground = await Image.LoadAsync<Rgba32>(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.AABackgroundName, cancellationToken),
-            cancellationToken);
+        StaticBackground = await Image.LoadAsync<Rgba32>(bgStream, cancellationToken);
     }
 
     protected override Image<Rgba32> CreateBackground()
@@ -85,33 +91,49 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         var anomalyData = context.Data;
 
         var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
-            ? anomalyData.ChallengeRecords.First(
+            ? anomalyData.ChallengeRecords.FirstOrDefault(
                 x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars
                     && x.MobStars == anomalyData.BestRecord.MobStars)
-            : anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+            : anomalyData.ChallengeRecords.FirstOrDefault(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
 
-        var avatarImages = await bestRecord.MobRecords.SelectMany(x => x.Avatars)
+        if (bestRecord is null)
+            throw new InvalidOperationException("No matching challenge record found for the best record configuration");
+
+        var avatarData = bestRecord.MobRecords.SelectMany(x => x.Avatars)
             .Concat(bestRecord.BossRecord?.Avatars ?? [])
             .DistinctBy(x => x.Id)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
+            .ToList();
+
+        var avatarTasks = avatarData
+            .Select(async x =>
             {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+                var image = await Image.LoadAsync(stream, cancellationToken);
                 var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, image);
                 disposables.Add(avatar);
                 return avatar;
             })
-            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
+            .ToList();
 
-        var bossImage = await LoadImageFromRepositoryAsync(
+        var bossImageTask = LoadImageFromRepositoryAsync(
             bestRecord.BossInfo.ToImageName(), disposables, cancellationToken);
-        var buffImage = bestRecord.BossRecord != null
-            ? await LoadImageFromRepositoryAsync(
+        var buffImageTask = bestRecord.BossRecord != null
+            ? LoadImageFromRepositoryAsync(
                 bestRecord.BossRecord.Buff.ToImageName(), disposables, cancellationToken)
-            : null;
-        var medalImage = await LoadImageFromRepositoryAsync<Rgba32>(
+            : Task.FromResult<Image>(null!);
+        var medalImageTask = LoadImageFromRepositoryAsync<Rgba32>(
             anomalyData.ToMedalName(), disposables, cancellationToken);
+
+        var allTasks = avatarTasks.Cast<Task>()
+            .Append(bossImageTask)
+            .Append(buffImageTask)
+            .Append(medalImageTask);
+        await Task.WhenAll(allTasks);
+
+        var avatarImages = avatarTasks.ToDictionary(x => x.Result.AvatarId, x => x.Result);
+        var bossImage = bossImageTask.Result;
+        var buffImage = buffImageTask.Result;
+        var medalImage = medalImageTask.Result;
 
         background.Mutate(ctx =>
         {
