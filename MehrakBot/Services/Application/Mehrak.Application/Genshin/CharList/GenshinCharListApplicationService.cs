@@ -205,15 +205,20 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         // Process all ascended weapons in parallel
         var updateTasks = wikiResults
             .Where(x => x.Url.IsSuccess)
-            .Select(x =>
+            .Select(async x =>
             {
-                weaponDict[x.Data.Base.Id!].Weapon.Ascended = true;
-                return m_ImageUpdaterService.UpdateMultiImageAsync(
+                var updated = await m_ImageUpdaterService.UpdateMultiImageAsync(
                     new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
                         [x.Data.Weapon.Icon, x.Url.Data!]),
                     m_WeaponImageProcessor,
                     cancellationToken
                 );
+                if (updated)
+                {
+                    foreach (var character in weaponDict.Values.Where(c => c.Weapon.Id == x.Data.Weapon.Id))
+                        character.Weapon.Ascended = true;
+                }
+                return updated;
             }).ToList();
 
         await Task.WhenAll(updateTasks);
@@ -223,6 +228,8 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
             string weaponName, string wikiEntry, CancellationToken cancellationToken = default)
     {
+        var bestStatus = StatusCode.ExternalServerError;
+
         var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, WikiLocales.CN), cancellationToken);
         if (cnResult.IsSuccess)
         {
@@ -235,17 +242,25 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         var tasks = otherLocales.Select(async locale =>
         {
             var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
-            if (!result.IsSuccess) return null;
-            return ParseWeaponAscendedUrls(result.Data);
+            if (!result.IsSuccess) return (Result: result, Parsed: (List<string>?)null);
+            return (Result: result, Parsed: ParseWeaponAscendedUrls(result.Data));
         }).ToList();
 
         var results = await Task.WhenAll(tasks);
-        var urls = results.FirstOrDefault(x => x is { Count: 2 });
+        var urls = results.FirstOrDefault(x => x.Parsed is { Count: 2 });
 
-        if (urls == null)
-            return Result<string>.Failure(StatusCode.ExternalServerError);
+        if (urls.Parsed == null)
+        {
+            foreach (var (result, _) in results)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled)
+                    bestStatus = StatusCode.Timeout;
+            }
+            return Result<string>.Failure(bestStatus);
+        }
 
-        return Result<string>.Success(urls[1]);
+        return Result<string>.Success(urls.Parsed[1]);
     }
 
     private static List<string> ParseWeaponAscendedUrls(JsonNode data)

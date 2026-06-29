@@ -105,6 +105,7 @@ internal class ZzzAssaultCardService : CardServiceBase<ZzzAssaultData>
             .ToList();
 
         var bossEntries = data.List.SelectMany(x => x.Boss)
+            .DistinctBy(x => x.Name)
             .ToList();
         var bossTasks = bossEntries
             .Select(async x => await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken))

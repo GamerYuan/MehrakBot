@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -325,10 +325,15 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
     private static string? ParseZzzCharacterImageUrl(JsonNode data)
     {
-        return JsonNode.Parse(data["data"]?["page"]?["modules"]?.AsArray()
+        var jsonStr = data["data"]?["page"]?["modules"]?.AsArray()
             .SelectMany(x => x?["components"]?.AsArray() ?? [])
             .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "gallery_character")
-            ?["data"]?.GetValue<string>() ?? "")
+            ?["data"]?.GetValue<string>();
+
+        if (string.IsNullOrWhiteSpace(jsonStr))
+            return null;
+
+        return JsonNode.Parse(jsonStr)
             ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
     }
 }

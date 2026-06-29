@@ -39,9 +39,10 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
     {
         // ponytail: parallel image loads, was sequential ToAsyncEnumerable
         var medalTasks = Enumerable.Range(0, 7).Select(async x =>
-            await Image.LoadAsync<Rgba32>(
-                await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x), cancellationToken),
-                cancellationToken)).ToList();
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Genshin.StygianMedalName, x), cancellationToken);
+            return await Image.LoadAsync<Rgba32>(stream, cancellationToken);
+        }).ToList();
         await Task.WhenAll(medalTasks);
         m_DifficultyLogo = medalTasks.Select(t => t.Result).ToArray();
 

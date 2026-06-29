@@ -930,8 +930,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 
@@ -994,8 +994,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 

@@ -61,7 +61,8 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
         var statImageTasks = statKeys.Select(async key =>
         {
             var path = string.Format(StatsPath, key);
-            var image = await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(path), cancellationToken);
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(path);
+            var image = await Image.LoadAsync(stream, cancellationToken);
             return (Key: key, Image: image);
         }).ToList();
 
@@ -71,12 +72,13 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
         var relicTemplateTasks = Enumerable.Range(1, 6).Select(async i =>
         {
             var path = string.Format(FileNameFormat.Hsr.RelicTemplateName, i);
-            return await Image.LoadAsync<Rgba32>(
-                await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken), cancellationToken);
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(path, cancellationToken);
+            return await Image.LoadAsync<Rgba32>(stream, cancellationToken);
         }).ToList();
 
         await Task.WhenAll(statImageTasks);
-        StaticBackground = await Image.LoadAsync<Rgba32>(await backgroundStreamTask, cancellationToken);
+        await using var bgStream = await backgroundStreamTask;
+        StaticBackground = await Image.LoadAsync<Rgba32>(bgStream, cancellationToken);
         var relicTemplates = await Task.WhenAll(relicTemplateTasks);
 
         m_StatImages = statKeys
@@ -182,21 +184,19 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
             })
         ];
 
-        // ponytail: batch DB lookups in parallel
-        var relicSetIds = characterInformation.Relics!.Select(x => x.GetSetId()).ToList();
-        var relicSetNameTasks = relicSetIds.Select(async setId =>
-        {
-            var setName = await relicContext.HsrRelics.AsNoTracking()
-                .Where(x => x.SetId == setId)
-                .Select(x => x.SetName)
-                .FirstOrDefaultAsync(cancellationToken);
-            return string.IsNullOrEmpty(setName) ? setId.ToString() : setName;
-        }).ToList();
-        var relicSetNames = await Task.WhenAll(relicSetNameTasks);
+        // ponytail: single batched DB lookup (EF DbContext is not thread-safe)
+        var allSetIds = characterInformation.Relics!.Select(x => x.GetSetId())
+            .Concat(characterInformation.Ornaments!.Select(x => x.GetSetId()))
+            .Distinct().ToList();
+        var setNameMap = await relicContext.HsrRelics.AsNoTracking()
+            .Where(x => allSetIds.Contains(x.SetId))
+            .ToDictionaryAsync(x => x.SetId, x => x.SetName, cancellationToken);
 
         Dictionary<string, int> activeRelicSet = [];
-        foreach (var setName in relicSetNames)
+        foreach (var relic in characterInformation.Relics!)
         {
+            var setName = setNameMap.TryGetValue(relic.GetSetId(), out var name) && !string.IsNullOrEmpty(name)
+                ? name : relic.GetSetId().ToString();
             if (!activeRelicSet.TryAdd(setName, 1))
                 activeRelicSet[setName]++;
         }
@@ -205,20 +205,11 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
             .Where(x => x.Value >= 2)
             .ToDictionary(x => x.Key, x => x.Value);
 
-        var ornamentSetIds = characterInformation.Ornaments!.Select(x => x.GetSetId()).ToList();
-        var ornamentSetNameTasks = ornamentSetIds.Select(async setId =>
-        {
-            var setName = await relicContext.HsrRelics.AsNoTracking()
-                .Where(x => x.SetId == setId)
-                .Select(x => x.SetName)
-                .FirstOrDefaultAsync(cancellationToken);
-            return string.IsNullOrEmpty(setName) ? setId.ToString() : setName;
-        }).ToList();
-        var ornamentSetNames = await Task.WhenAll(ornamentSetNameTasks);
-
         Dictionary<string, int> activeOrnamentSet = [];
-        foreach (var setName in ornamentSetNames)
+        foreach (var ornament in characterInformation.Ornaments!)
         {
+            var setName = setNameMap.TryGetValue(ornament.GetSetId(), out var name) && !string.IsNullOrEmpty(name)
+                ? name : ornament.GetSetId().ToString();
             if (!activeOrnamentSet.TryAdd(setName, 1))
                 activeOrnamentSet[setName]++;
         }

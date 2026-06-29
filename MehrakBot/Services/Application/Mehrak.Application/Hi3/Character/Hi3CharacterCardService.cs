@@ -53,15 +53,24 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
         // ponytail: parallel download — all images are independent
-        var backgroundTask = Task.Run(async () =>
-            await Image.LoadAsync<Rgba32>(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.BackgroundName), cancellationToken), cancellationToken);
-        var stigmataSlotTask = Task.Run(async () =>
-            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StigmataSlotName), cancellationToken), cancellationToken);
-        var starIconTask = Task.Run(async () =>
-            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hi3.StarIconName), cancellationToken), cancellationToken);
+        async Task<Image<Rgba32>> LoadRgbaAsync(string name)
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(name, cancellationToken);
+            return await Image.LoadAsync<Rgba32>(stream, cancellationToken);
+        }
+
+        async Task<Image> LoadAsync(string name)
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(name, cancellationToken);
+            return await Image.LoadAsync(stream, cancellationToken);
+        }
+
+        var backgroundTask = LoadRgbaAsync(FileNameFormat.Hi3.BackgroundName);
+        var stigmataSlotTask = LoadAsync(FileNameFormat.Hi3.StigmataSlotName);
+        var starIconTask = LoadAsync(FileNameFormat.Hi3.StarIconName);
 
         var rankTasks = Enumerable.Range(1, 5).Select(async rank =>
-            await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(string.Format(FileNameFormat.Hi3.RankName, rank)), cancellationToken)).ToList();
+            await LoadAsync(string.Format(FileNameFormat.Hi3.RankName, rank))).ToList();
 
         await Task.WhenAll(backgroundTask, stigmataSlotTask, starIconTask);
         await Task.WhenAll(rankTasks);

@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -368,6 +368,8 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,
         GenshinCharacterInformation charData, string wikiEntry, CancellationToken cancellationToken = default)
     {
+        var bestStatus = StatusCode.ExternalServerError;
+
         var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, WikiLocales.CN), cancellationToken);
         if (cnResult.IsSuccess)
         {
@@ -380,25 +382,33 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var tasks = otherLocales.Select(async locale =>
         {
             var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
-            if (!result.IsSuccess) return null;
-            return result.Data["data"]?["page"]?["header_img_url"]?.ToString();
+            if (!result.IsSuccess) return (Result: result, Url: (string?)null);
+            return (Result: result, Url: result.Data["data"]?["page"]?["header_img_url"]?.ToString());
         }).ToList();
 
         var results = await Task.WhenAll(tasks);
-        var url = results.FirstOrDefault(x => !string.IsNullOrEmpty(x));
+        var url = results.FirstOrDefault(x => x.Url is { Length: > 0 });
 
-        if (string.IsNullOrEmpty(url))
+        if (url.Url == null)
         {
-            return Result<string>.Failure(StatusCode.ExternalServerError);
+            foreach (var (result, _) in results)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled)
+                    bestStatus = StatusCode.Timeout;
+            }
+            return Result<string>.Failure(bestStatus);
         }
 
-        return Result<string>.Success(url);
+        return Result<string>.Success(url.Url);
     }
 
     private async Task<Result<string>>
         GetWeaponUrlsAsync(IApplicationContext context, GameProfileDto profile,
             GenshinCharacterInformation charData, string wikiEntry, CancellationToken cancellationToken = default)
     {
+        var bestStatus = StatusCode.ExternalServerError;
+
         var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, WikiLocales.CN), cancellationToken);
         if (cnResult.IsSuccess)
         {
@@ -411,19 +421,25 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var tasks = otherLocales.Select(async locale =>
         {
             var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.Genshin, wikiEntry, locale), cancellationToken);
-            if (!result.IsSuccess) return null;
-            return ParseWeaponAscendedUrls(result.Data);
+            if (!result.IsSuccess) return (Result: result, Parsed: (List<string>?)null);
+            return (Result: result, Parsed: ParseWeaponAscendedUrls(result.Data));
         }).ToList();
 
         var results = await Task.WhenAll(tasks);
-        var urls = results.FirstOrDefault(x => x is { Count: 2 });
+        var urls = results.FirstOrDefault(x => x.Parsed is { Count: 2 });
 
-        if (urls == null)
+        if (urls.Parsed == null)
         {
-            return Result<string>.Failure(StatusCode.ExternalServerError);
+            foreach (var (result, _) in results)
+            {
+                if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled)
+                    bestStatus = StatusCode.Timeout;
+            }
+            return Result<string>.Failure(bestStatus);
         }
 
-        return Result<string>.Success(urls[1]);
+        return Result<string>.Success(urls.Parsed[1]);
     }
 
     private static List<string> ParseWeaponAscendedUrls(JsonNode data)

@@ -150,11 +150,12 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
             // Atomic per-entry cache lookups
-            var cacheKeys = context.CharacterIds.ToDictionary(
+            var requestedIds = context.CharacterIds.Distinct().ToList();
+            var cacheKeys = requestedIds.ToDictionary(
                 id => id,
                 id => $"genshin_char:{context.GameUid}:{id}");
 
-            var cacheTasks = context.CharacterIds
+            var cacheTasks = requestedIds
                 .Select(id => m_Cache.GetAsync<GenshinCharacterInformation>(cacheKeys[id], timeoutCts.Token))
                 .ToList();
 
@@ -163,12 +164,12 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             var cachedEntries = new List<GenshinCharacterInformation>();
             var uncachedIds = new List<int>();
 
-            for (int i = 0; i < context.CharacterIds.Count; i++)
+            for (int i = 0; i < requestedIds.Count; i++)
             {
                 if (cacheTasks[i].Result != null)
                     cachedEntries.Add(cacheTasks[i].Result!);
                 else
-                    uncachedIds.Add(context.CharacterIds[i]);
+                    uncachedIds.Add(requestedIds[i]);
             }
 
             if (uncachedIds.Count == 0)
@@ -291,7 +292,12 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             var cachedWeaponWiki = await LoadCachedWiki(cachedWeaponIds, "genshin_weapon_wiki", timeoutCts.Token);
 
             // Merge cached entries with API response
-            var mergedList = cachedEntries.Concat(json.Data.List).ToList();
+            var mergedById = cachedEntries.Concat(json.Data.List)
+                .ToDictionary(c => c.Base.Id);
+            var mergedList = requestedIds
+                .Where(mergedById.ContainsKey)
+                .Select(id => mergedById[id])
+                .ToList();
 
             var mergedAvatarWiki = new Dictionary<string, string>(cachedAvatarWiki);
             foreach (var kvp in json.Data.AvatarWiki)

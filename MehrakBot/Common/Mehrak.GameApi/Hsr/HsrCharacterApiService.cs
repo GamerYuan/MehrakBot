@@ -63,7 +63,7 @@ public class
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
+            using HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri(requestUri),
@@ -77,7 +77,7 @@ public class
                 }
             };
 
-            var response = await client.SendAsync(request, timeoutCts.Token);
+            using var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -166,18 +166,18 @@ public class
                 }
 
                 var relicWiki = new Dictionary<string, string>();
-                var relicIds = cachedChar.Relics.Select(r => r.GetSetId())
-                    .Concat(cachedChar.Ornaments.Select(r => r.GetSetId()))
-                    .Distinct();
+                var relicIds = cachedChar.Relics.Select(r => r.Id)
+                    .Concat(cachedChar.Ornaments.Select(r => r.Id))
+                    .Distinct().ToArray();
 
                 var relicTasks = relicIds.Select(id =>
                     m_Cache.GetAsync<string>($"hsr_relic_wiki:{id}", timeoutCts.Token));
                 var relicResults = await Task.WhenAll(relicTasks);
 
-                for (var i = 0; i < relicIds.Count(); i++)
+                for (var i = 0; i < relicIds.Length; i++)
                 {
                     if (relicResults[i] != null)
-                        relicWiki[relicIds.ElementAt(i).ToString()] = relicResults[i]!;
+                        relicWiki[relicIds[i].ToString()] = relicResults[i]!;
                 }
 
                 return Result<HsrBasicCharacterData>.Success(new HsrBasicCharacterData
@@ -195,7 +195,7 @@ public class
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
+            using HttpRequestMessage request = new()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri(requestUri),
@@ -209,7 +209,7 @@ public class
                 }
             };
 
-            var response = await client.SendAsync(request, timeoutCts.Token);
+            using var response = await client.SendAsync(request, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {

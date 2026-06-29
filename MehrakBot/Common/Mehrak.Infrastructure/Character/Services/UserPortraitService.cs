@@ -136,6 +136,10 @@ internal class UserPortraitService : IUserPortraitService
             var contentType = ResolveContentType(s3Key);
             return new AttachmentDownloadResult(stream, contentType);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to retrieve portrait image from S3: {S3Key}", s3Key);

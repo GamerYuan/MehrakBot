@@ -109,7 +109,7 @@ internal class GenshinAbyssCardService : CardServiceBase<GenshinAbyssInformation
         var revealRankTasks = revealRankItems
             .Select(async x =>
             {
-                var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), cancellationToken);
+                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToAvatarImageName(), cancellationToken);
                 var image = await Image.LoadAsync(stream, cancellationToken);
                 var avatar = new GenshinAvatar(x.AvatarId, 0, x.Rarity, constMap[x.AvatarId], image);
                 disposables.Add(avatar);

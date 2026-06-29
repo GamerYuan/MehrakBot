@@ -53,8 +53,10 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         };
         await Task.WhenAll(downloadTasks);
 
-        var (starStream, bossStarStream, cycleStream, bgStream) = (
-            downloadTasks[0].Result, downloadTasks[1].Result, downloadTasks[2].Result, downloadTasks[3].Result);
+        await using var starStream = downloadTasks[0].Result;
+        await using var bossStarStream = downloadTasks[1].Result;
+        await using var cycleStream = downloadTasks[2].Result;
+        await using var bgStream = downloadTasks[3].Result;
 
         m_StarLit = await Image.LoadAsync(starStream, cancellationToken);
         m_StarUnlit = m_StarLit.Clone(ctx =>

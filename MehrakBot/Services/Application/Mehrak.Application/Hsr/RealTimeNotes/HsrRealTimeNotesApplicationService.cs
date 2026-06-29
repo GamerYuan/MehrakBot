@@ -1,4 +1,4 @@
-﻿#region
+#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;

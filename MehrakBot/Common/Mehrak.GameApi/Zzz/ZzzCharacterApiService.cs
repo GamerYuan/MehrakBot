@@ -259,24 +259,26 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             var data = json.Data;
 
             // Cache each entry individually
+            var cacheTasks = new List<Task>();
+
             foreach (var avatar in data.AvatarList)
             {
-                await m_Cache.SetAsync(
+                cacheTasks.Add(m_Cache.SetAsync(
                     new CacheEntryBase<ZzzAvatarData>(
                         $"zzz_char:{context.GameUid}:{avatar.Id}",
                         avatar,
                         TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    cancellationToken);
+                    cancellationToken));
             }
 
             if (data.AvatarWiki != null)
             {
                 foreach (var (id, val) in data.AvatarWiki)
                 {
-                    await m_Cache.SetAsync(
+                    cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_avatar_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken);
+                        cancellationToken));
                 }
             }
 
@@ -284,10 +286,10 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             {
                 foreach (var (id, val) in data.EquipWiki)
                 {
-                    await m_Cache.SetAsync(
+                    cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_equip_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken);
+                        cancellationToken));
                 }
             }
 
@@ -295,10 +297,10 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             {
                 foreach (var (id, val) in data.WeaponWiki)
                 {
-                    await m_Cache.SetAsync(
+                    cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_weapon_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken);
+                        cancellationToken));
                 }
             }
 
@@ -306,12 +308,14 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             {
                 foreach (var (id, val) in data.StrategyWiki)
                 {
-                    await m_Cache.SetAsync(
+                    cacheTasks.Add(m_Cache.SetAsync(
                         new CacheEntryBase<string>($"zzz_strategy_wiki:{id}", val,
                             TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        cancellationToken);
+                        cancellationToken));
                 }
             }
+
+            await Task.WhenAll(cacheTasks);
 
             return Result<ZzzFullAvatarData>.Success(data);
         }
