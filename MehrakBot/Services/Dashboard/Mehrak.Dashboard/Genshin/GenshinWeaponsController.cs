@@ -1,10 +1,11 @@
-﻿using System.Buffers.Binary;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
+using Grpc.Core;
 using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp;
 
 namespace Mehrak.Dashboard.Genshin;
 
@@ -40,20 +41,14 @@ public partial class GenshinWeaponsController : GameWriteController
     {
         var match = WeaponKeyRegex().Match(key);
         if (!match.Success) return null;
-        return (match.Groups[1].Value, int.Parse(match.Groups[2].Value));
+        if (!int.TryParse(match.Groups[2].Value, out var id)) return null;
+        return (match.Groups[1].Value, id);
     }
 
     private static (int Width, int Height)? ReadPngDimensions(Stream stream)
     {
-        Span<byte> header = stackalloc byte[24];
-        if (stream.Read(header) < 24) return null;
-
-        ReadOnlySpan<byte> signature = [137, 80, 78, 71, 13, 10, 26, 10];
-        if (!header[..8].SequenceEqual(signature)) return null;
-
-        var width = BinaryPrimitives.ReadInt32BigEndian(header[16..20]);
-        var height = BinaryPrimitives.ReadInt32BigEndian(header[20..24]);
-        return (width, height);
+        var info = Image.Identify(stream);
+        return info is null ? null : (info.Width, info.Height);
     }
 
     [HttpGet("list")]
@@ -100,7 +95,7 @@ public partial class GenshinWeaponsController : GameWriteController
             Response.Headers.CacheControl = "public, max-age=86400";
             return File(stream, PngContentType);
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return NotFound(new { error = "Image not found." });
         }
@@ -122,7 +117,8 @@ public partial class GenshinWeaponsController : GameWriteController
         if (ascendedImage.Length > MaxUploadBytes)
             return BadRequest(new { error = "File size must be under 4MB." });
 
-        if (ascendedImage.ContentType != PngContentType)
+        if (ascendedImage.ContentType is null ||
+            !ascendedImage.ContentType.StartsWith(PngContentType, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { error = "Only PNG images are allowed." });
 
         var baseKey = GenshinPrefix + $"weapon_base_{weaponId}.png";
@@ -130,16 +126,24 @@ public partial class GenshinWeaponsController : GameWriteController
         if (!await m_ImageRepository.FileExistsAsync(baseKey, ct))
             return NotFound(new { error = $"Base icon not found for weapon {weaponId}." });
 
-        var baseStream = await m_ImageRepository.DownloadFileToStreamAsync(baseKey, ct);
+        using var baseStream = await m_ImageRepository.DownloadFileToStreamAsync(baseKey, ct);
 
         var request = new ProcessWeaponImageRequest();
-        using (baseStream)
-        {
-            request.Images.Add(Google.Protobuf.ByteString.FromStream(baseStream));
-        }
-        request.Images.Add(Google.Protobuf.ByteString.FromStream(ascendedImage.OpenReadStream()));
+        request.Images.Add(Google.Protobuf.ByteString.FromStream(baseStream));
 
-        var response = await m_ImageProcessorClient.ProcessWeaponImageAsync(request, cancellationToken: ct);
+        using var ascendedStream = ascendedImage.OpenReadStream();
+        request.Images.Add(Google.Protobuf.ByteString.FromStream(ascendedStream));
+
+        ProcessWeaponImageResponse response;
+        try
+        {
+            response = await m_ImageProcessorClient.ProcessWeaponImageAsync(request, cancellationToken: ct);
+        }
+        catch (RpcException ex)
+        {
+            m_Logger.LogError(ex, "gRPC error processing weapon image for weapon {WeaponId}", weaponId);
+            return StatusCode(502, new { error = "Image processing service unavailable." });
+        }
 
         if (response.ProcessedImage.IsEmpty)
             return StatusCode(422, new { error = "Image processing failed. The images could not be aligned." });
@@ -162,7 +166,8 @@ public partial class GenshinWeaponsController : GameWriteController
         if (image is null || image.Length == 0)
             return BadRequest(new { error = "No file uploaded." });
 
-        if (image.ContentType != PngContentType)
+        if (image.ContentType is null ||
+            !image.ContentType.StartsWith(PngContentType, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { error = "Only PNG images are allowed." });
 
         await using var stream = image.OpenReadStream();

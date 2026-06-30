@@ -41,6 +41,10 @@ public class GenshinWeaponImageProcessor
             if (icon.Empty() || ascended.Empty())
                 return Stream.Null;
 
+            // Guard: ExtractChannel(3) requires 4-channel BGRA input
+            if (icon.Channels() < 4 || ascended.Channels() < 4)
+                return Stream.Null;
+
             // Extract alpha channels
             using var iconAlpha = icon.ExtractChannel(3);
             using var ascendedAlpha = ascended.ExtractChannel(3);
@@ -212,7 +216,7 @@ public class GenshinWeaponImageProcessor
 
             return ComputeIoU(refinedAlpha, iconAlpha);
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return 0;
         }
