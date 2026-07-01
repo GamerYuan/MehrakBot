@@ -1,10 +1,12 @@
 ﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
@@ -181,9 +183,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
                     }
                 m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
+
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties($"Added profile successfully! Found {gameProfilesResult.Data.Count} game profile(s).")));
+                        .AddComponents(new TextDisplayProperties(
+                            $"Added profile successfully!\nProfile Information:"),
+                            new ComponentContainerProperties().AddComponents(new TextDisplayProperties(profile.ToDisplayString()))));
             }
             catch (DbUpdateException e)
             {
