@@ -106,9 +106,9 @@ From `.editorconfig` — these differ from C# defaults:
 ## Technology Stack
 
 - **.NET 10.0** (all projects; source generator targets `netstandard2.0`)
-- **Discord:** NetCord 1.0.0-alpha.461
-- **gRPC:** Grpc.AspNetCore 2.76.0 / Google.Protobuf 3.34.1
-- **Images:** SixLabors.ImageSharp 3.1.12 + OpenCvSharp4 4.11.0 (ImageProcessor also uses Microsoft.ML.OnnxRuntime)
+- **Discord:** NetCord 1.0.0-beta.7
+- **gRPC:** Grpc.AspNetCore 2.80.0 / Google.Protobuf 3.35.1
+- **Images:** SixLabors.ImageSharp 4 + OpenCvSharp4 4.13.0 (ImageProcessor also uses Microsoft.ML.OnnxRuntime)
 - **DB:** PostgreSQL via EF Core + Npgsql; **Cache:** StackExchange.Redis; **Object storage:** AWSSDK.S3 (SeaweedFS in dev); **Analytics:** ClickHouse
 
 ## Testing
