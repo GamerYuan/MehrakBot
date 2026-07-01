@@ -43,4 +43,16 @@ public static class GameEnumExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(gameName), gameName, null)
         };
     }
+
+    public static Game FromGameBizString(string gameBiz)
+    {
+        return gameBiz switch
+        {
+            "hk4e_global" => Game.Genshin,
+            "hkrpg_global" => Game.HonkaiStarRail,
+            "nap_global" => Game.ZenlessZoneZero,
+            "bh3_global" => Game.HonkaiImpact3,
+            _ => Game.Unsupported
+        };
+    }
 }
