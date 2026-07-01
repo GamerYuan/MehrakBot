@@ -36,7 +36,8 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IApiService<CodeRedeemResult, CodeRedeemApiContext>, CodeRedeemApiService>();
         services.AddSingleton<IApiService<CheckInStatus, CheckInApiContext>, DailyCheckInApiService>();
         services.AddSingleton<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>, GameRecordApiService>();
-        services.AddSingleton<IApiService<GameProfileDto, GameRoleApiContext>, GameRoleApiService>();
+        services.AddSingleton<GameRoleApiService>();
+        services.AddSingleton<IApiService<GameProfileDto, GameRoleApiContext>>(sp => sp.GetRequiredService<GameRoleApiService>());
         services.AddSingleton<IApiService<JsonNode, WikiApiContext>, WikiApiService>();
         services.AddSingleton<IImageUpdaterService, ImageUpdaterService>();
 
