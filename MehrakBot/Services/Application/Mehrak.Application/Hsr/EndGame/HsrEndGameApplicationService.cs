@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
@@ -30,6 +30,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     protected override string CommandName => "End Game";
+    protected override bool RequiresLevel => true;
     protected override string CardName => Mode switch
     {
         HsrEndGameMode.PureFiction => "Pure Fiction",
@@ -62,7 +63,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -74,8 +75,6 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var challengeResponse = await m_ApiService.GetAsync(
             new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,

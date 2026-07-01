@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mehrak.Application.Services.Hi3;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
@@ -35,6 +35,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "HI3 Character";
     protected override string CardName => "Character";
+    protected override bool RequiresLevel => false;
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
@@ -67,7 +68,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -79,8 +80,6 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

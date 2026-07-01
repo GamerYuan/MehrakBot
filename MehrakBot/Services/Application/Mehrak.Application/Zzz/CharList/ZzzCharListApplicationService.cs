@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Builders;
 using Mehrak.Application.Shared.Services;
@@ -30,6 +30,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "CharList";
     protected override string CardName => "Character List";
+    protected override bool RequiresLevel => true;
     public ZzzCharListApplicationService(
         ICardService<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -54,7 +55,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -66,8 +67,6 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

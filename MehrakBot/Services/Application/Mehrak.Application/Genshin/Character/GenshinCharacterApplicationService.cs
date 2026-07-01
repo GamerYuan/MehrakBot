@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -56,6 +56,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
 
     protected override string CommandName => "Genshin Character";
+    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -106,7 +107,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         }
 
         var profileResult =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -117,8 +118,6 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

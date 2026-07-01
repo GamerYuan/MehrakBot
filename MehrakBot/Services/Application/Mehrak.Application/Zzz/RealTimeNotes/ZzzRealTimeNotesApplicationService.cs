@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
@@ -22,6 +22,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Notes";
+    protected override bool RequiresLevel => true;
 
     public ZzzRealTimeNotesApplicationService(
         IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> apiService,
@@ -38,7 +39,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -50,8 +51,6 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

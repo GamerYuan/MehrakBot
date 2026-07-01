@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
@@ -23,6 +23,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Notes";
+    protected override bool RequiresLevel => true;
 
     public HsrRealTimeNotesApplicationService(
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,
@@ -39,7 +40,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -51,8 +52,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

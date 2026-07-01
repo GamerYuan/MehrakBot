@@ -25,6 +25,7 @@ public abstract class BaseApplicationService : IApplicationService
     protected readonly ILogger<BaseApplicationService> Logger;
 
     protected virtual string CommandName => "Undefined";
+    protected virtual bool RequiresLevel => false;
 
     protected BaseApplicationService(IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -58,17 +59,65 @@ public abstract class BaseApplicationService : IApplicationService
 
     protected abstract Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default);
 
-    protected async Task<Result<GameProfileDto>> GetGameProfileAsync(ulong userId, ulong ltuid, string ltoken, Game game,
-        string region, CancellationToken cancellationToken = default)
+    protected async Task<Result<GameProfileDto>> GetOrFetchGameProfileAsync(ulong userId, ulong ltuid, string ltoken,
+        Game game, string region, CancellationToken cancellationToken = default)
+    {
+        // Try DB first for GameUid (never changes per LtUid+Game+Region)
+        var cachedProfile = await GetCachedGameProfileAsync(userId, ltuid, game, region, cancellationToken);
+
+        if (cachedProfile != null)
+        {
+            var maxLevel = game.GetMaxLevel();
+            if (!RequiresLevel || cachedProfile.Level >= maxLevel)
+            {
+                // Best case: DB hit, no API call needed
+                return Result<GameProfileDto>.Success(cachedProfile);
+            }
+
+            // Need fresh level — fetch from API (cached in Redis for 10 min anyway)
+            var freshResult = await FetchGameProfileAsync(userId, ltuid, ltoken, game, region, cancellationToken);
+            if (!freshResult.IsSuccess) return freshResult;
+
+            // Update stored level
+            await UpdateStoredLevelAsync(userId, ltuid, game, region, freshResult.Data.Level, cancellationToken);
+
+            return freshResult;
+        }
+
+        // No cached GameUid — full API fetch (happens on first command after profile add, or if DB data was lost)
+        var result = await FetchGameProfileAsync(userId, ltuid, ltoken, game, region, cancellationToken);
+        if (result.IsSuccess)
+        {
+            await SaveGameProfileAsync(userId, ltuid, game, region, result.Data.GameUid, result.Data.Level, cancellationToken);
+        }
+        return result;
+    }
+
+    private async Task<GameProfileDto?> GetCachedGameProfileAsync(ulong userId, ulong ltuid, Game game, string region,
+        CancellationToken cancellationToken)
+    {
+        var entry = await m_UserContext.UserProfiles
+            .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
+            .SelectMany(p => p.GameUids)
+            .Where(g => g.Game == game && g.Region == region)
+            .Select(g => new { g.GameUid, g.Level })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (entry == null || string.IsNullOrEmpty(entry.GameUid))
+            return null;
+
+        return new GameProfileDto { GameUid = entry.GameUid, Level = entry.Level };
+    }
+
+    private async Task<Result<GameProfileDto>> FetchGameProfileAsync(ulong userId, ulong ltuid, string ltoken,
+        Game game, string region, CancellationToken cancellationToken)
     {
         var gameProfileResult =
             await m_GameRoleApi.GetAsync(new GameRoleApiContext(userId, ltuid, ltoken, game, region), cancellationToken);
         if (!gameProfileResult.IsSuccess)
         {
             if (gameProfileResult.StatusCode is StatusCode.Cancelled or StatusCode.Timeout)
-            {
                 return Result<GameProfileDto>.Failure(gameProfileResult.StatusCode, gameProfileResult.ErrorMessage);
-            }
 
             Logger.LogError(
                 "Failed to fetch game profile for User {UserId}, Game {Game}, Region {Region}, Result {@Result}",
@@ -79,54 +128,44 @@ public abstract class BaseApplicationService : IApplicationService
         return Result<GameProfileDto>.Success(gameProfileResult.Data);
     }
 
-    protected async Task UpdateGameUidAsync(ulong userId, ulong ltuid, Game game, string gameUid, string server,
-        CancellationToken cancellationToken = default)
+    private async Task SaveGameProfileAsync(ulong userId, ulong ltuid, Game game, string region, string gameUid,
+        int level, CancellationToken cancellationToken)
     {
         var profile = await m_UserContext.UserProfiles
             .Where(p => p.UserId == (long)userId && p.LtUid == (long)ltuid)
-            .Select(p => new
-            {
-                p.Id,
-                p.ProfileId,
-                GameUids = p.GameUids.Where(x => x.Game == game && x.Region == server).ToList()
-            })
+            .Select(p => new { p.Id })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (profile != null)
-        {
-            if (profile.GameUids.Count == 0)
-            {
-                m_UserContext.GameUids.Add(new ProfileGameUid
-                {
-                    ProfileId = profile.Id,
-                    Game = game,
-                    GameUid = gameUid,
-                    Region = server
-                });
-            }
-            else
-            {
-                var gameUidEntry = profile.GameUids[0];
-                if (gameUidEntry.GameUid == gameUid && gameUidEntry.Region == server)
-                {
-                    return; // No change, skip DB write
-                }
-                gameUidEntry.GameUid = gameUid;
-                gameUidEntry.Region = server;
-                m_UserContext.GameUids.Update(gameUidEntry);
-            }
+        if (profile == null) return;
 
-            try
-            {
-                await m_UserContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException e)
-            {
-                Logger.LogError(e,
-                    "Failed to update GameUid for User {UserId}, LtUid {LtUid}, Game {Game}, GameUid {GameUid}, Server {Server}",
-                    userId, ltuid, game, gameUid, server);
-            }
+        m_UserContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = profile.Id,
+            Game = game,
+            Region = region,
+            GameUid = gameUid,
+            Level = level
+        });
+
+        try
+        {
+            await m_UserContext.SaveChangesAsync(cancellationToken);
         }
+        catch (DbUpdateException e)
+        {
+            Logger.LogError(e,
+                "Failed to save GameUid for User {UserId}, LtUid {LtUid}, Game {Game}, GameUid {GameUid}",
+                userId, ltuid, game, gameUid);
+        }
+    }
+
+    private async Task UpdateStoredLevelAsync(ulong userId, ulong ltuid, Game game, string region, int level,
+        CancellationToken cancellationToken)
+    {
+        await m_UserContext.GameUids
+            .Where(g => g.UserProfile.UserId == (long)userId && g.UserProfile.LtUid == (long)ltuid
+                        && g.Game == game && g.Region == region)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.Level, level), cancellationToken);
     }
 }
 
