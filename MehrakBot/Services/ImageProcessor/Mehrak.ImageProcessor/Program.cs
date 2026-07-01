@@ -1,4 +1,4 @@
-using Mehrak.ImageProcessor.Shared.Services;
+﻿using Mehrak.ImageProcessor.Shared.Services;
 using Mehrak.ServiceDefaults;
 
 public class Program
