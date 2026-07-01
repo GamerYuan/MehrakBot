@@ -124,7 +124,8 @@ public sealed class ProfileController : ControllerBase
             if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
             {
                 m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", discordUserId, request.LtUid);
-                return Unauthorized(new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
             }
 
             m_Logger.LogWarning("Failed to validate profile for user {UserId}: {Error}", discordUserId, gameProfilesResult.ErrorMessage);
