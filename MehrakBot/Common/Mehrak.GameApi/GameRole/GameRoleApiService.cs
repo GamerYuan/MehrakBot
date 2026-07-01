@@ -338,6 +338,13 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             .Where(x => x.Profile != null)
             .ToList();
 
+        if (result.Count == 0)
+        {
+            m_Logger.LogWarning("No supported game profiles found for User {UserId} LtUid {LtUid}", userId, ltuid);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "No supported game information found. Please use the correct account", requestUri);
+        }
+
         return Result<List<GameRoleInfo>>.Success(result, requestUri: requestUri);
     }
 

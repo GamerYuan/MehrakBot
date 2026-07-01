@@ -132,6 +132,12 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status502BadGateway, new { error = "Failed to validate profile with HoYoLAB. Please try again later." });
         }
 
+        if (gameProfilesResult.Data.Count == 0)
+        {
+            m_Logger.LogWarning("No supported game profiles found for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
+            return BadRequest(new { error = "No supported game profiles were found for this HoYoLAB account." });
+        }
+
         string encryptedLToken;
         try
         {

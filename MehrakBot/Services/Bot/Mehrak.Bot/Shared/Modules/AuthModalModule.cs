@@ -147,6 +147,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
+            if (gameProfilesResult.Data.Count == 0)
+            {
+                m_Logger.LogWarning("No supported game profiles found for user {UserId}, UID {LtUid}", Context.User.Id, ltuid);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("No supported game profiles were found for this HoYoLAB account.")));
+                return;
+            }
+
             UserProfileModel profile = new()
             {
                 UserId = (long)Context.User.Id,

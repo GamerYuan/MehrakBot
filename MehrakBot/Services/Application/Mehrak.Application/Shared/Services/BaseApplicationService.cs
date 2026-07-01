@@ -81,8 +81,21 @@ public abstract class BaseApplicationService : IApplicationService
             var freshResult = await FetchGameProfileAsync(userId, ltuid, ltoken, game, region, cancellationToken);
             if (!freshResult.IsSuccess) return freshResult;
 
-            // Update stored level
-            await UpdateStoredLevelAsync(userId, ltuid, game, serverRegion, freshResult.Data.Level, cancellationToken);
+            // Update stored level (non-critical cache write — don't abort the command if it fails)
+            try
+            {
+                await UpdateStoredLevelAsync(userId, ltuid, game, serverRegion, freshResult.Data.Level, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e,
+                    "Failed to update stored Level for User {UserId}, LtUid {LtUid}, Game {Game}, Region {Region}",
+                    userId, ltuid, game, serverRegion);
+            }
 
             return freshResult;
         }
