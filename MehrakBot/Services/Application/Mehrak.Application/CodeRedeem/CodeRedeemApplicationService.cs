@@ -29,7 +29,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
     private readonly int m_RedeemDelay = 5500;
 
     protected override string CommandName => "Codes";
-    protected override bool RequiresLevel => true;
+    protected override bool RequiresLevel => false;
 
     public CodeRedeemApplicationService(
         CodeRedeemDbContext codeContext,

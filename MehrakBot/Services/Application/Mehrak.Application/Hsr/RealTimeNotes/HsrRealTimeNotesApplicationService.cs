@@ -23,7 +23,7 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Notes";
-    protected override bool RequiresLevel => true;
+    protected override bool RequiresLevel => false;
 
     public HsrRealTimeNotesApplicationService(
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,

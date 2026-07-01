@@ -22,7 +22,7 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Notes";
-    protected override bool RequiresLevel => true;
+    protected override bool RequiresLevel => false;
 
     public ZzzRealTimeNotesApplicationService(
         IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext> apiService,

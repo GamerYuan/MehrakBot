@@ -23,7 +23,7 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Genshin Notes";
-    protected override bool RequiresLevel => true;
+    protected override bool RequiresLevel => false;
 
     public GenshinRealTimeNotesApplicationService(
         IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> apiService,
