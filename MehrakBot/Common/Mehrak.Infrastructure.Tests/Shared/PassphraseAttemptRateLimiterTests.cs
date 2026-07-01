@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Shared;
+﻿using Mehrak.Infrastructure.Shared;
 using Moq;
 using StackExchange.Redis;
 

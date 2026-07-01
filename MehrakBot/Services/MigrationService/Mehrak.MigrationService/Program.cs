@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Auth;
+﻿using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.CodeRedeem;
 using Mehrak.Infrastructure.Documentation;

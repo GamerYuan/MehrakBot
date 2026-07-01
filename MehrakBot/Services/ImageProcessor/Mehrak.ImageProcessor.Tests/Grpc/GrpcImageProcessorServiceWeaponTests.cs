@@ -1,7 +1,7 @@
-using Google.Protobuf;
+﻿using Google.Protobuf;
 using Grpc.Core;
-using Mehrak.ImageProcessor.Shared.Services;
 using Mehrak.Domain.Protobuf;
+using Mehrak.ImageProcessor.Shared.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 
