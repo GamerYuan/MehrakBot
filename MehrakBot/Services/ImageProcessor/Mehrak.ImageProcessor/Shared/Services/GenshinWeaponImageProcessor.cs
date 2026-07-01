@@ -13,12 +13,13 @@ public class GenshinWeaponImageProcessor
 
     public virtual Stream ProcessImage(IEnumerable<Stream> images)
     {
-        if (images.Count() < 2)
+        var imageList = images.Take(2).Select(StreamToMat).ToList();
+
+        if (imageList.Count < 2)
         {
+            foreach (var mat in imageList) mat.Dispose();
             throw new ArgumentException("At least two images are required: Icon and Ascended Image", nameof(images));
         }
-
-        var imageList = images.Select(StreamToMat).ToList();
 
         try
         {
@@ -28,12 +29,6 @@ public class GenshinWeaponImageProcessor
             // Normalize both images to max 512px on longest side
             NormalizeToMax512(icon);
             NormalizeToMax512(imageList[1]);
-
-            // Dispose any extra images beyond the two we need
-            for (int i = 2; i < imageList.Count; i++)
-            {
-                imageList[i].Dispose();
-            }
 
             Cv2.CopyTo(imageList[1], ascended);
             imageList[1].Dispose();
@@ -207,7 +202,7 @@ public class GenshinWeaponImageProcessor
                 new TermCriteria(CriteriaTypes.Count | CriteriaTypes.Eps, 10, 1e-4));
 
             // Compose: refined = residual × initial
-            ComposeAffine(affineMat, warpMatrix, affineMat);
+            ComposeAffine(warpMatrix, affineMat, affineMat);
 
             // Re-warp alpha and recompute IoU
             using var refinedAlpha = new Mat();
