@@ -31,7 +31,7 @@ public class ImageRepository : IImageRepository
     public async Task<bool> UploadFileAsync(string fileName, Stream sourceStream,
         string? contentType = null, CancellationToken cancellationToken = default)
     {
-        m_Logger.LogDebug("Uploading file to S3: {FileName}", fileName);
+        m_Logger.LogDebug("Uploading file to S3: {FileName}", Sanitize(fileName));
 
         if (sourceStream.CanSeek) sourceStream.Position = 0;
 
@@ -58,7 +58,7 @@ public class ImageRepository : IImageRepository
         }
         else
         {
-            m_Logger.LogError("Failed to upload file {FileName} to S3. Status code: {StatusCode}", fileName, response.HttpStatusCode);
+            m_Logger.LogError("Failed to upload file {FileName} to S3. Status code: {StatusCode}", Sanitize(fileName), response.HttpStatusCode);
         }
 
         return success;
@@ -68,7 +68,7 @@ public class ImageRepository : IImageRepository
     {
         try
         {
-            m_Logger.LogDebug("Downloading file from S3: {FileName}", fileName);
+            m_Logger.LogDebug("Downloading file from S3: {FileName}", Sanitize(fileName));
 
             var getReq = new GetObjectRequest
             {
@@ -88,7 +88,7 @@ public class ImageRepository : IImageRepository
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            m_Logger.LogWarning("File {FileName} not found in S3 bucket {Bucket}", fileName, m_Bucket);
+            m_Logger.LogWarning("File {FileName} not found in S3 bucket {Bucket}", Sanitize(fileName), m_Bucket);
             m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
             throw new ImageNotFoundException(fileName);
         }
@@ -178,7 +178,7 @@ public class ImageRepository : IImageRepository
 
     public void InvalidateCache(string fileName)
     {
-        m_Logger.LogDebug("Invalidating cache for file: {FileName}", fileName);
+        m_Logger.LogDebug("Invalidating cache for file: {FileName}", Sanitize(fileName));
         m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
     }
 
@@ -189,4 +189,8 @@ public class ImageRepository : IImageRepository
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         };
     }
+
+    // ponytail: strips CR/LF to prevent log forging. Full sanitization (Unicode line separators, etc.) if audit requires it.
+    private static string Sanitize(string value) =>
+        value.Replace("\r", "").Replace("\n", "");
 }
