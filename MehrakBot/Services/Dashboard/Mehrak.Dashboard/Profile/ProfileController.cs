@@ -53,7 +53,7 @@ public sealed class ProfileController : ControllerBase
             .AsNoTracking()
             .Where(u => u.Id == (long)discordUserId)
             .Include(u => u.Profiles)
-                .ThenInclude(p => p.GameUids)
+                .ThenInclude(p => p.GameUids.OrderBy(g => g.Game).ThenBy(g => g.GameUid))
             .Include(u => u.Profiles)
                 .ThenInclude(p => p.LastUsedRegions)
             .FirstOrDefaultAsync(HttpContext.RequestAborted);

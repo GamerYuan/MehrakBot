@@ -170,6 +170,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             user.Profiles.Add(profile);
 
+            profile.GameUids.Sort((a, b) => a.GameUid.CompareTo(b.GameUid));
+
             try
             {
                 await m_UserContext.SaveChangesAsync();
@@ -187,7 +189,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties(
-                            $"Added profile successfully!\nProfile Information:"),
+                            $"Added profile successfully!"),
                             new ComponentContainerProperties().AddComponents(new TextDisplayProperties(profile.ToDisplayString()))));
             }
             catch (DbUpdateException e)

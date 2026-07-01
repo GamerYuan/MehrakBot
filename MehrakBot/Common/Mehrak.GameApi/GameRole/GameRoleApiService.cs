@@ -261,7 +261,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             return cachedJson?.Data?.List
                 .Select(p => (Game: GameEnumExtensions.FromGameBizString(p.GameBiz ?? ""), Region: p.Region, Profile: MapToGameProfileDto(p)))
                 .Where(x => x.Game != Game.Unsupported && !string.IsNullOrEmpty(x.Region))
-                .Select(x => new GameRoleInfo(x.Game, x.Region!, x.Profile!))
+                .Select(x => new GameRoleInfo(x.Game, x.Game.RegionToServerString(x.Region!), x.Profile!))
                 .Where(x => x.Profile != null)
                 .ToList() ?? [];
         }
@@ -334,7 +334,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         var result = json.Data.List
             .Select(p => (Game: GameEnumExtensions.FromGameBizString(p.GameBiz ?? ""), Region: p.Region, Profile: MapToGameProfileDto(p)))
             .Where(x => x.Game != Game.Unsupported && !string.IsNullOrEmpty(x.Region))
-            .Select(x => new GameRoleInfo(x.Game, x.Region!, x.Profile!))
+            .Select(x => new GameRoleInfo(x.Game, x.Game.RegionToServerString(x.Region!), x.Profile!))
             .Where(x => x.Profile != null)
             .ToList();
 

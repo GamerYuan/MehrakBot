@@ -153,7 +153,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         var user = await m_UserContext.Users
                 .AsNoTracking()
                 .Include(u => u.Profiles)
-                    .ThenInclude(p => p.GameUids)
+                    .ThenInclude(p => p.GameUids.OrderBy(g => g.Game).ThenBy(g => g.GameUid))
                 .Include(u => u.Profiles)
                     .ThenInclude(p => p.LastUsedRegions)
                 .SingleOrDefaultAsync(u => u.Id == (long)Context.User.Id);
