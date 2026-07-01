@@ -62,8 +62,11 @@ public abstract class BaseApplicationService : IApplicationService
     protected async Task<Result<GameProfileDto>> GetOrFetchGameProfileAsync(ulong userId, ulong ltuid, string ltoken,
         Game game, string region, CancellationToken cancellationToken = default)
     {
+        // Convert raw API region string to server enum name for DB storage/lookup
+        var serverRegion = GameEnumExtensions.RegionToServerString(game, region);
+
         // Try DB first for GameUid (never changes per LtUid+Game+Region)
-        var cachedProfile = await GetCachedGameProfileAsync(userId, ltuid, game, region, cancellationToken);
+        var cachedProfile = await GetCachedGameProfileAsync(userId, ltuid, game, serverRegion, cancellationToken);
 
         if (cachedProfile != null)
         {
@@ -79,7 +82,7 @@ public abstract class BaseApplicationService : IApplicationService
             if (!freshResult.IsSuccess) return freshResult;
 
             // Update stored level
-            await UpdateStoredLevelAsync(userId, ltuid, game, region, freshResult.Data.Level, cancellationToken);
+            await UpdateStoredLevelAsync(userId, ltuid, game, serverRegion, freshResult.Data.Level, cancellationToken);
 
             return freshResult;
         }
@@ -88,7 +91,7 @@ public abstract class BaseApplicationService : IApplicationService
         var result = await FetchGameProfileAsync(userId, ltuid, ltoken, game, region, cancellationToken);
         if (result.IsSuccess)
         {
-            await SaveGameProfileAsync(userId, ltuid, game, region, result.Data.GameUid, result.Data.Level, cancellationToken);
+            await SaveGameProfileAsync(userId, ltuid, game, serverRegion, result.Data.GameUid, result.Data.Level, cancellationToken);
         }
         return result;
     }
