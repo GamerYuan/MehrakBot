@@ -9,11 +9,11 @@ on:
       opencv_version:
         description: "OpenCV version to build"
         required: true
-        default: "4.12.0"
+        default: "4.13.0"
       opencvsharp_version:
         description: "OpenCvSharp release tag"
         required: true
-        default: "4.11.0.20250507"
+        default: "4.13.0.20260627"
 
 jobs:
   build-base:
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./MehrakBot
-          file: ./MehrakBot/Services/Application/Dockerfile.base
+          file: ./MehrakBot/Services/ImageProcessor/Dockerfile.base
           push: true
           tags: |
             ghcr.io/gameryuan/mehrak-app-base:opencv-${{ inputs.opencv_version }}
