@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Services.Types;
@@ -28,6 +28,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Simulated Battle Trial";
     protected override string CardName => "Simulated Battle Trial";
+    protected override bool RequiresLevel => true;
     public ZzzTowerApplicationService(
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -50,7 +51,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -62,8 +63,6 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

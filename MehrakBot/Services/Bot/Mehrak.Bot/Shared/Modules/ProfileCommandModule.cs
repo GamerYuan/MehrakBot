@@ -5,6 +5,7 @@ using Mehrak.Bot.Shared.Attributes;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
@@ -152,7 +153,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         var user = await m_UserContext.Users
                 .AsNoTracking()
                 .Include(u => u.Profiles)
-                    .ThenInclude(p => p.GameUids)
+                    .ThenInclude(p => p.GameUids.OrderBy(g => g.Game).ThenBy(g => g.GameUid))
                 .Include(u => u.Profiles)
                     .ThenInclude(p => p.LastUsedRegions)
                 .SingleOrDefaultAsync(u => u.Id == (long)Context.User.Id);
@@ -168,22 +169,9 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         ComponentContainerProperties container = [];
 
-        var sb = new StringBuilder();
         for (var i = 0; i < user.Profiles.Count; i++)
         {
-            var profile = user.Profiles[i];
-            sb.Append($"## Profile {profile.ProfileId}\n**HoYoLAB UID:** {profile.LtUid}\n### Games: \n");
-            foreach (var gameUid in profile.GameUids.GroupBy(x => x.Game, (key, g) => new { Key = key, Grouping = g }))
-            {
-                sb.AppendLine($"**{gameUid.Key.ToFriendlyString()}**");
-                foreach (var g in gameUid.Grouping)
-                {
-                    sb.AppendLine($"- {g.Region}: {g.GameUid}");
-                }
-            }
-            container.AddComponents([new TextDisplayProperties(sb.ToString())]);
-            sb.Clear();
-
+            container.AddComponents([new TextDisplayProperties(user.Profiles[i].ToDisplayString())]);
             if (i + 1 < user.Profiles.Count) container.AddComponents([new ComponentSeparatorProperties()]);
         }
 

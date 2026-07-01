@@ -1,9 +1,9 @@
 ﻿// AverageHash ported from Coenm.ImageHash (MIT) — see https://github.com/coenm/ImageHash
+using System.Numerics;
+using NUnit.Framework.Constraints;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Numerics;
-using NUnit.Framework.Constraints;
 
 namespace Mehrak.Application.Tests.TestUtils;
 

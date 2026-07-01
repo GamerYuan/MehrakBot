@@ -6,6 +6,7 @@ using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Auth.Entities;
@@ -54,6 +55,7 @@ public class Program
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services.AddInfrastructureServices();
+        builder.Services.AddSingleton<GameRoleApiService>();
 
         builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>
             new HttpClientHandler

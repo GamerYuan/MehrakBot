@@ -1,9 +1,12 @@
 ﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
@@ -52,12 +55,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly UserCountTrackerService m_UserTracker;
+    private readonly GameRoleApiService m_GameRoleApi;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
         UserCountTrackerService userTracker,
+        GameRoleApiService gameRoleApi,
         ILogger<AuthModalModule> logger)
     {
         m_Logger = logger;
@@ -65,6 +70,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
         m_UserTracker = userTracker;
+        m_GameRoleApi = gameRoleApi;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -119,6 +125,37 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             var hadProfiles = user.Profiles.Count > 0;
 
+            // Validate cookie and fetch all game profiles before saving
+            var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
+                Context.User.Id, ltuid, inputs["ltoken"]);
+
+            if (!gameProfilesResult.IsSuccess)
+            {
+                if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
+                {
+                    m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", Context.User.Id, ltuid);
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                    return;
+                }
+
+                m_Logger.LogWarning("Failed to validate profile for user {UserId}: {Error}", Context.User.Id, gameProfilesResult.ErrorMessage);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to validate profile. Please try again later.")));
+                return;
+            }
+
+            if (gameProfilesResult.Data.Count == 0)
+            {
+                m_Logger.LogWarning("No supported game profiles found for user {UserId}, UID {LtUid}", Context.User.Id, ltuid);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("No supported game profiles were found for this HoYoLAB account.")));
+                return;
+            }
+
             UserProfileModel profile = new()
             {
                 UserId = (long)Context.User.Id,
@@ -128,7 +165,21 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
             };
 
+            // Save all game UIDs from validation
+            foreach (var gameRole in gameProfilesResult.Data)
+            {
+                profile.GameUids.Add(new ProfileGameUid
+                {
+                    Game = gameRole.Game,
+                    Region = gameRole.Region,
+                    GameUid = gameRole.Profile.GameUid,
+                    Level = gameRole.Profile.Level
+                });
+            }
+
             user.Profiles.Add(profile);
+
+            profile.GameUids.Sort((a, b) => a.GameUid.CompareTo(b.GameUid));
 
             try
             {
@@ -142,10 +193,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     {
                         m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
                     }
-                m_Logger.LogInformation("User {UserId} added new profile", Context.User.Id);
+                m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
+
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Added profile successfully!")));
+                        .AddComponents(new TextDisplayProperties(
+                            $"Added profile successfully!"),
+                            new ComponentContainerProperties().AddComponents(new TextDisplayProperties(profile.ToDisplayString()))));
             }
             catch (DbUpdateException e)
             {

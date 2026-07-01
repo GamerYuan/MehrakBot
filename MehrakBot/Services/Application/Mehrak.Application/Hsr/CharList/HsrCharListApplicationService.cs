@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
@@ -34,6 +34,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "CharList";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Character List";
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
@@ -57,7 +58,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -69,8 +70,6 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -55,6 +55,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "HSR Character";
+    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -101,7 +102,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -113,8 +114,6 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

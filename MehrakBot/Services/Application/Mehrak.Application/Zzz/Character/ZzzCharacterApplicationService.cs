@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -44,6 +44,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "ZZZ Character";
     protected override string CardName => "Character";
+    protected override bool RequiresLevel => false;
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -82,7 +83,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -94,8 +95,6 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

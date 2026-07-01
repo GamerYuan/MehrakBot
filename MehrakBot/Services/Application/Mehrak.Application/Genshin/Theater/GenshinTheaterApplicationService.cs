@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Genshin;
@@ -38,6 +38,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Theater";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Imaginarium Theater";
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
@@ -63,7 +64,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         var region = server.ToRegion();
 
         var profileResult =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -74,8 +75,6 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

@@ -43,6 +43,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
 
 
     protected override string CommandName => "CharList";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Character List";
     public GenshinCharListApplicationService(
         IImageUpdaterService imageUpdaterService,
@@ -73,7 +74,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         var region = server.ToRegion();
 
         var profileResult =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -84,8 +85,6 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

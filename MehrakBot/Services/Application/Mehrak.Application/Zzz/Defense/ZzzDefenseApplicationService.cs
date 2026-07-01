@@ -1,4 +1,4 @@
-#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
@@ -32,6 +32,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Defense";
     protected override string CardName => "Shiyu Defense";
+    protected override bool RequiresLevel => true;
     public ZzzDefenseApplicationService(
         ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -52,7 +53,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -64,8 +65,6 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        _ = UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
