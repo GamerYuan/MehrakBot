@@ -21,7 +21,10 @@ public class Program
         builder.Services.AddSingleton<INsfwClassifier, NsfwClassifier>();
         builder.Services.AddSingleton<GenshinWeaponImageProcessor>();
 
-        builder.Services.AddGrpc();
+        builder.Services.AddGrpc(options =>
+        {
+            options.MaxReceiveMessageSize = 12 * 1024 * 1024;
+        });
 
         var app = builder.Build();
 
