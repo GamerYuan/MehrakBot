@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
@@ -21,6 +22,7 @@ public sealed class ProfileController : ControllerBase
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
     private readonly UserCountTrackerService m_UserTracker;
+    private readonly GameRoleApiService m_GameRoleApi;
     private readonly ILogger<ProfileController> m_Logger;
 
     public ProfileController(
@@ -28,12 +30,14 @@ public sealed class ProfileController : ControllerBase
         IEncryptionService encryptionService,
         ICacheService cacheService,
         UserCountTrackerService userTracker,
+        GameRoleApiService gameRoleApi,
         ILogger<ProfileController> logger)
     {
         m_UserContext = userContext;
         m_EncryptionService = encryptionService;
         m_CacheService = cacheService;
         m_UserTracker = userTracker;
+        m_GameRoleApi = gameRoleApi;
         m_Logger = logger;
     }
 
@@ -49,7 +53,7 @@ public sealed class ProfileController : ControllerBase
             .AsNoTracking()
             .Where(u => u.Id == (long)discordUserId)
             .Include(u => u.Profiles)
-                .ThenInclude(p => p.GameUids)
+                .ThenInclude(p => p.GameUids.OrderBy(g => g.Game).ThenBy(g => g.GameUid))
             .Include(u => u.Profiles)
                 .ThenInclude(p => p.LastUsedRegions)
             .FirstOrDefaultAsync(HttpContext.RequestAborted);
@@ -111,6 +115,29 @@ public sealed class ProfileController : ControllerBase
 
         var hadProfiles = user.Profiles.Count > 0;
 
+        // Validate cookie and fetch all game profiles before saving
+        var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
+            discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted);
+
+        if (!gameProfilesResult.IsSuccess)
+        {
+            if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
+            {
+                m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", discordUserId, request.LtUid);
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+            }
+
+            m_Logger.LogWarning("Failed to validate profile for user {UserId}: {Error}", discordUserId, gameProfilesResult.ErrorMessage);
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "Failed to validate profile with HoYoLAB. Please try again later." });
+        }
+
+        if (gameProfilesResult.Data.Count == 0)
+        {
+            m_Logger.LogWarning("No supported game profiles found for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
+            return BadRequest(new { error = "No supported game profiles were found for this HoYoLAB account." });
+        }
+
         string encryptedLToken;
         try
         {
@@ -132,6 +159,18 @@ public sealed class ProfileController : ControllerBase
             LToken = encryptedLToken
         };
 
+        // Save all game UIDs from validation
+        foreach (var gameRole in gameProfilesResult.Data)
+        {
+            profile.GameUids.Add(new ProfileGameUid
+            {
+                Game = gameRole.Game,
+                Region = gameRole.Region,
+                GameUid = gameRole.Profile.GameUid,
+                Level = gameRole.Profile.Level
+            });
+        }
+
         user.Profiles.Add(profile);
 
         try
@@ -151,10 +190,13 @@ public sealed class ProfileController : ControllerBase
 
         if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
 
+        m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", discordUserId, gameProfilesResult.Data.Count);
+
         return CreatedAtAction(nameof(ListProfiles), new
         {
             profileId = profile.ProfileId,
-            ltUid = request.LtUid
+            ltUid = request.LtUid,
+            gameProfileCount = gameProfilesResult.Data.Count
         });
     }
 

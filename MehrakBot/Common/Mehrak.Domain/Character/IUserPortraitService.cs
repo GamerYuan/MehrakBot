@@ -9,6 +9,7 @@ public interface IUserPortraitService
     Task<IReadOnlyCollection<UserPortraitUploadDto>> GetUserPortraitsAsync(long discordUserId, Game game, string? characterName, CancellationToken ct = default);
     Task<UserPortraitUploadDto?> GetPortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);
     Task<AttachmentDownloadResult?> GetPortraitImageAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);
+    Task<AttachmentDownloadResult?> GetPortraitImageAsync(long discordUserId, string s3Key, Guid uploadId, CancellationToken ct = default);
     Task<UploadPortraitResult> UploadPortraitAsync(long discordUserId, Game game, string characterName, Stream imageStream, string sha256, string extension, CancellationToken ct = default);
     Task<bool> UpdatePortraitConfigAsync(long discordUserId, Guid uploadId, UserPortraitConfigDto config, CancellationToken ct = default);
     Task<bool> SetActivePortraitAsync(long discordUserId, Guid uploadId, CancellationToken ct = default);

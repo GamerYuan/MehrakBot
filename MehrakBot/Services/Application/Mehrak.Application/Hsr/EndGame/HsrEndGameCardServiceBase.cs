@@ -39,25 +39,42 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        StarLit = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
-            cancellationToken);
-        StarUnlit = StarLit.CloneAs<Rgba32>();
-        StarUnlit.Mutate(ctx =>
+        var starTask = Task.Run(async () =>
+        {
+            var image = await Image.LoadAsync(
+                await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
+                cancellationToken);
+            return (StarLit: image, StarUnlit: CloneAsUnlit(image));
+        });
+
+        var modeTask = LoadModeResourcesAsync(cancellationToken);
+
+        var cycleTask = Task.Run(async () => await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
+            cancellationToken), cancellationToken);
+
+        var extraStarTask = Task.Run(async () => await Image.LoadAsync(
+            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ExtraStarName, cancellationToken),
+            cancellationToken), cancellationToken);
+
+        await Task.WhenAll(starTask, modeTask, cycleTask, extraStarTask);
+
+        var (starLit, starUnlit) = await starTask;
+        StarLit = starLit;
+        StarUnlit = starUnlit;
+        CycleIcon = await cycleTask;
+        ExtraStar = await extraStarTask;
+    }
+
+    private static Image CloneAsUnlit(Image source)
+    {
+        var clone = source.CloneAs<Rgba32>();
+        clone.Mutate(ctx =>
         {
             ctx.Grayscale();
             ctx.Brightness(0.7f);
         });
-
-        await LoadModeResourcesAsync(cancellationToken);
-
-        CycleIcon = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
-            cancellationToken);
-
-        ExtraStar = await Image.LoadAsync(
-            await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ExtraStarName, cancellationToken),
-            cancellationToken);
+        return clone;
     }
 
     protected abstract Task LoadModeResourcesAsync(CancellationToken cancellationToken);
@@ -82,28 +99,31 @@ internal abstract class HsrEndGameCardServiceBase : CardServiceBase<HsrEndInform
     {
         var gameModeData = context.Data;
 
-        var avatarImages = await gameModeData.AllFloorDetail
+        var avatarEntries = gameModeData.AllFloorDetail
             .SelectMany(x =>
                 (x.Node1?.Avatars ?? []).Concat(x.Node2?.Avatars ?? []).Concat(x.Node3?.Avatars ?? []))
-            .DistinctBy(x => x.Id).ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, token));
-                disposables.Add(avatar);
-                return avatar;
-            })
-            .ToDictionaryAsync(x => x.AvatarId, x => x, cancellationToken: cancellationToken);
+            .DistinctBy(x => x.Id)
+            .ToList();
 
-        var buffImages = await gameModeData.AllFloorDetail
+        var avatarImages = (await Task.WhenAll(avatarEntries.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+            var avatar = new HsrAvatar(x.Id, x.Level, x.Rarity, x.Rank, await Image.LoadAsync<Rgba32>(stream, cancellationToken));
+            disposables.Add(avatar);
+            return avatar;
+        }))).ToDictionary(x => x.AvatarId, x => x);
+
+        var buffEntries = gameModeData.AllFloorDetail
             .SelectMany(x => new[] { x.Node1?.Buff, x.Node2?.Buff, x.Node3?.Buff })
             .OfType<HsrEndBuff>()
             .DistinctBy(x => x.Id)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.Id),
-                async (x, token) => await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, token),
-                cancellationToken: cancellationToken);
+            .ToList();
+
+        var buffImages = (await Task.WhenAll(buffEntries.Select(async x =>
+        {
+            var image = await LoadImageFromRepositoryAsync<Rgba32>(x.ToImageName(), disposables, cancellationToken);
+            return (x.Id, Image: image);
+        }))).ToDictionary(x => x.Id, x => x.Image);
 
         var floorDetails = GetFloorDetails(gameModeData);
         var pairBlobHeights = Enumerable.Range(0, 2)

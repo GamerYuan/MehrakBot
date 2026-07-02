@@ -35,6 +35,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     protected override string CommandName => "Abyss";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Spiral Abyss";
 
     public GenshinAbyssApplicationService(
@@ -60,7 +61,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -72,8 +73,6 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var abyssInfo = await m_ApiService.GetAsync(
             new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,

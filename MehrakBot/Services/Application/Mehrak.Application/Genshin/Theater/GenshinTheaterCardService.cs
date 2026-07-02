@@ -65,44 +65,53 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
         var constMap = context.GetParameter<Dictionary<int, int>>("constMap")
             ?? throw new CommandException("constMap parameter is missing for Theater card generation");
 
-        var avatarImages = await theaterData.Detail.RoundsData
+        var avatarRoundItems = theaterData.Detail.RoundsData
             .SelectMany(x => x.Avatars)
             .DistinctBy(x => x.AvatarId)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync(stream, token);
-                var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity,
-                    x.AvatarType == 1 ? constMap[x.AvatarId] : 0, image, x.AvatarType);
-                disposables.Add(avatar);
-                return avatar;
-            })
-            .ToDictionaryAsync(x => x, x => x, GenshinAvatarIdComparer.Instance, cancellationToken: cancellationToken);
-        var buffImages = await theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.Name),
-                async (x, token) =>
-                {
-                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                    image.Mutate(ctx => ctx.Resize(50, 0));
-                    return image;
-                }, cancellationToken: cancellationToken);
+            .ToList();
+
+        var avatarTasks = avatarRoundItems.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+            var image = await Image.LoadAsync(stream, cancellationToken);
+            var avatar = new GenshinAvatar(x.AvatarId, x.Level, x.Rarity,
+                x.AvatarType == 1 ? constMap[x.AvatarId] : 0, image, x.AvatarType);
+            disposables.Add(avatar);
+            return avatar;
+        }).ToList();
+
+        var avatarImages = (await Task.WhenAll(avatarTasks))
+            .ToDictionary(x => x, x => x, GenshinAvatarIdComparer.Instance);
+
+        var buffList = theaterData.Detail.RoundsData[0].SplendourBuff!.Buffs.ToList();
+
+        var buffTasks = buffList.Select(async x =>
+        {
+            var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
+            image.Mutate(ctx => ctx.Resize(50, 0));
+            return (x.Name, Image: image);
+        }).ToList();
+
+        var buffImages = (await Task.WhenAll(buffTasks))
+            .ToDictionary(x => x.Name, x => x.Image);
+
         ItRankAvatar[] fightStats =
         [
             theaterData.Detail.FightStatistic.MaxDamageAvatar,
             theaterData.Detail.FightStatistic.MaxTakeDamageAvatar, theaterData.Detail.FightStatistic.MaxDefeatAvatar
         ];
 
-        var sideAvatarImages = await fightStats.DistinctBy(x => x.AvatarId).ToAsyncEnumerable()
-            .ToDictionaryAsync((x, token) => ValueTask.FromResult(x.AvatarId),
-                async (x, token) =>
-                {
-                    var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                    image.Mutate(ctx => ctx.Resize(100, 0));
-                    return image;
-                }, cancellationToken: cancellationToken);
+        var sideAvatarList = fightStats.DistinctBy(x => x.AvatarId).ToList();
+
+        var sideAvatarTasks = sideAvatarList.Select(async x =>
+        {
+            var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
+            image.Mutate(ctx => ctx.Resize(100, 0));
+            return (x.AvatarId, Image: image);
+        }).ToList();
+
+        var sideAvatarImages = (await Task.WhenAll(sideAvatarTasks))
+            .ToDictionary(x => x.AvatarId, x => x.Image);
 
         var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
 

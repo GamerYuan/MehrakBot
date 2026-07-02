@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Mehrak.Infrastructure.Auth;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.CodeRedeem;

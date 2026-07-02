@@ -15,9 +15,11 @@
     <ItemGroup>
         <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
         <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.27.0" />
-        <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260602" />
-        <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" Version="4.11.0.20250507" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
-        <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260602" Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
+        <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260627" />
+        <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64"
+            Version="4.13.0.20260627" Condition="$([MSBuild]::IsOsPlatform('Linux'))" />
+        <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627"
+            Condition="$([MSBuild]::IsOsPlatform('Windows'))" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />

@@ -30,6 +30,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Memory of Chaos";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Memory of Chaos";
     public HsrMemoryApplicationService(
         ICardService<HsrMemoryInformation> cardService,
@@ -51,7 +52,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken,
             Game.HonkaiStarRail, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -63,8 +64,6 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
         var memoryResult =

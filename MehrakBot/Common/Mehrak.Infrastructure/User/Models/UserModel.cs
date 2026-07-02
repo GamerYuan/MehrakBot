@@ -40,6 +40,7 @@ public class ProfileGameUid
     public Game Game { get; set; }
     public string Region { get; set; } = string.Empty;
     public string GameUid { get; set; } = string.Empty;
+    public int Level { get; set; }
 }
 
 public class ProfileRegion

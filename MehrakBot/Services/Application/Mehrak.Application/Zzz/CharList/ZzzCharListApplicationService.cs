@@ -30,6 +30,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "CharList";
     protected override string CardName => "Character List";
+    protected override bool RequiresLevel => true;
     public ZzzCharListApplicationService(
         ICardService<(IEnumerable<ZzzBasicAvatarData>, IEnumerable<ZzzBuddyData>)> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -54,7 +55,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -67,13 +68,16 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
-
         var gameUid = profile.GameUid;
 
-        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
+        var charTask = m_CharacterApi.GetAllCharactersAsync(
             new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        var buddyApiTask = m_BuddyApi.GetAsync(
+            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
 
+        await Task.WhenAll(charTask, buddyApiTask);
+
+        var charResponse = charTask.Result;
         if (!charResponse.IsSuccess)
         {
             if (charResponse.StatusCode == StatusCode.Cancelled)
@@ -89,9 +93,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-        var buddyResponse = await m_BuddyApi.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
-
+        var buddyResponse = buddyApiTask.Result;
         if (!buddyResponse.IsSuccess)
         {
             if (buddyResponse.StatusCode == StatusCode.Cancelled)

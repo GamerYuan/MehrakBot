@@ -44,7 +44,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterCacheService m_CharacterCacheService;
     private readonly IAliasService m_AliasService;
 
-    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>
         m_CharacterApi;
 
     private readonly IApplicationMetrics m_MetricsService;
@@ -55,6 +55,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "HSR Character";
+    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -63,7 +64,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         IImageRepository imageRepository,
         ICharacterCacheService characterCacheService,
         IAliasService aliasService,
-        ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
+        ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext> characterApi,
         IApplicationMetrics metricsService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -101,7 +102,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -113,8 +114,6 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 
@@ -260,44 +259,48 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
                     var setId = x.GetSetId();
 
-                    foreach (var locale in Enum.GetValues<WikiLocales>())
+                    var allLocales = Enum.GetValues<WikiLocales>();
+                    var wikiTasks = allLocales.Select(async locale =>
                     {
-                        var wikiResponse =
-                            await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail,
-                                entryPage, locale), cancellationToken);
-                        if (!wikiResponse.IsSuccess)
-                        {
-                            if (wikiResponse.StatusCode == StatusCode.Cancelled)
-                            {
-                                throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Relic wiki request was cancelled");
-                            }
-                            if (wikiResponse.StatusCode == StatusCode.Timeout)
-                            {
-                                Logger.LogWarning("Relic wiki request timed out for RelicId: {RelicId}", setId);
-                                return null;
-                            }
-                            Logger.LogWarning(LogMessage.ApiError, "Relic Wiki", context.UserId, profile.GameUid, wikiResponse);
-                            continue;
-                        }
+                        var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
+                        if (!result.IsSuccess) return (Locale: locale, Data: (JsonNode?)null, Status: result.StatusCode);
+                        return (Locale: locale, Data: result.Data, Status: StatusCode.OK);
+                    }).ToList();
+
+                    var wikiResults = await Task.WhenAll(wikiTasks);
+                    foreach (var (locale, data, _) in wikiResults)
+                    {
+                        if (data == null) continue;
 
                         if (locale == WikiLocales.EN)
                         {
-                            var setName = wikiResponse.Data["data"]?["page"]?["name"]?.GetValue<string>();
+                            var setName = data["data"]?["page"]?["name"]?.GetValue<string>();
                             if (setName != null) await AddSetName(setId, setName);
                         }
 
-                        jsonStr = wikiResponse.Data["data"]?["page"]?["modules"]?.AsArray()
-                            .SelectMany(x => x?["components"]?.AsArray() ?? [])
-                            .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "set")
-                            ?["data"]?.GetValue<string>();
-
-                        if (!string.IsNullOrEmpty(jsonStr)) break;
-
-                        Logger.LogWarning("Character wiki image URL is empty for RelicId: {RelicId}, Locale: {Locale}, Data:\n{Data}",
-                            setId, locale, wikiResponse.Data.ToJsonString());
+                        if (string.IsNullOrEmpty(jsonStr))
+                        {
+                            jsonStr = data["data"]?["page"]?["modules"]?.AsArray()
+                                .SelectMany(x => x?["components"]?.AsArray() ?? [])
+                                .FirstOrDefault(x => x?["component_id"]?.GetValue<string>() == "set")
+                                ?["data"]?.GetValue<string>();
+                        }
                     }
 
-                    if (string.IsNullOrEmpty(jsonStr)) return null;
+                    if (string.IsNullOrEmpty(jsonStr))
+                    {
+                        var bestStatus = StatusCode.ExternalServerError;
+                        foreach (var (_, _, status) in wikiResults)
+                        {
+                            if (status == StatusCode.Cancelled) { bestStatus = StatusCode.Cancelled; break; }
+                            if (status == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                        }
+
+                        if (bestStatus == StatusCode.Cancelled)
+                            throw new OperationCanceledException();
+
+                        return null;
+                    }
 
                     return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
                 });
@@ -331,38 +334,33 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 var entryPage = wikiEntry.Split('/')[^1];
                 string? iconUrl = null;
 
-                foreach (var locale in Enum.GetValues<WikiLocales>())
+                var allLocales = Enum.GetValues<WikiLocales>();
+                var bestStatus = StatusCode.ExternalServerError;
+                var equipTasks = allLocales.Select(async locale =>
                 {
-                    var wikiResponse =
-                        await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
-
-                    if (!wikiResponse.IsSuccess)
+                    var result = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.HonkaiStarRail, entryPage, locale), cancellationToken);
+                    if (!result.IsSuccess)
                     {
-                        if (wikiResponse.StatusCode == StatusCode.Cancelled)
-                        {
-                            throw new OperationCanceledException(wikiResponse.ErrorMessage ?? "Equip wiki request was cancelled");
-                        }
-                        if (wikiResponse.StatusCode == StatusCode.Timeout)
-                        {
-                            return Result<string>.Failure(StatusCode.Timeout, wikiResponse.ErrorMessage ?? "Equip wiki request timed out");
-                        }
-                        Logger.LogWarning(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid, wikiResponse);
-                        continue;
+                        if (result.StatusCode == StatusCode.Cancelled) bestStatus = StatusCode.Cancelled;
+                        else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
+                        return (JsonNode?)null;
                     }
+                    return result.Data;
+                }).ToList();
 
-                    iconUrl = wikiResponse.Data["data"]?["page"]?["icon_url"]?.GetValue<string>();
-
+                var equipResults = await Task.WhenAll(equipTasks);
+                foreach (var data in equipResults)
+                {
+                    if (data == null) continue;
+                    iconUrl = data["data"]?["page"]?["icon_url"]?.GetValue<string>();
                     if (!string.IsNullOrEmpty(iconUrl)) break;
-
-                    Logger.LogWarning("Character wiki image URL is empty for EquipId: {EquipId}, Locale: {Locale}, Data:\n{Data}",
-                        characterInfo.Equip.Id, locale, wikiResponse.Data.ToJsonString());
                 }
 
                 if (string.IsNullOrEmpty(iconUrl))
                 {
                     Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
                         "Failed to retrieve Icon Url");
-                    return Result<string>.Failure(StatusCode.ExternalServerError,
+                    return Result<string>.Failure(bestStatus,
                         string.Format(ResponseMessage.ApiError, "Light Cone Data"));
                 }
 

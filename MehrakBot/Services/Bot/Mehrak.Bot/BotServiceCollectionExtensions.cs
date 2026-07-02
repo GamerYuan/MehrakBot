@@ -6,6 +6,8 @@ using Mehrak.Bot.Shared.Builders;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.User.Models;
+using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hoyolab;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +43,7 @@ internal static class BotServiceCollectionExtensions
 
         // Bot specific game api services
         services.AddSingleton<IApiService<HylPost, HylPostApiContext>, HylPostApiService>();
+        services.AddSingleton<GameRoleApiService>();
 
         return services;
     }

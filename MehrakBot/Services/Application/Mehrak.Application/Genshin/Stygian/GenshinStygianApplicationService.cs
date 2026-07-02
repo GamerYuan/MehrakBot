@@ -30,6 +30,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Stygian";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Stygian Onslaught";
     public GenshinStygianApplicationService(
         IImageUpdaterService imageUpdaterService,
@@ -52,7 +53,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         var region = server.ToRegion();
 
         var profileResult =
-            await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -63,8 +64,6 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.Genshin, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

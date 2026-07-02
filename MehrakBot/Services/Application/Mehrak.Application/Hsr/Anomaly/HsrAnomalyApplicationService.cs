@@ -28,6 +28,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Anomaly Arbitration";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Anomaly Arbitration";
     public HsrAnomalyApplicationService(
         ICardService<HsrAnomalyInformation> cardService,
@@ -49,7 +50,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken,
             Game.HonkaiStarRail, region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -61,8 +62,6 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
         var anomalyResult =

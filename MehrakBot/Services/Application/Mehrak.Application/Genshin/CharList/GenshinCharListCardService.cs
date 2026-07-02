@@ -86,32 +86,21 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         Logger.LogInformation("Generating character list card for user {UserId} with {CharCount} characters",
             context.GameProfile.GameUid, charData.Count);
 
-        var weaponImages = await charData
+        // Load all distinct weapon images in parallel
+        var weaponEntries = charData
             .Select(x => (Key: GetWeaponKey(x.Weapon), x.Weapon))
             .DistinctBy(x => x.Key)
-            .ToAsyncEnumerable()
-            .ToDictionaryAsync(
-                (x, token) => ValueTask.FromResult(x.Key),
-                async (x, token) =>
-                {
-                    Image image;
-                    if (x.Weapon.Ascended.Value && await ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), token))
-                    {
-                        image = await LoadImageFromRepositoryAsync(x.Weapon.ToAscendedImageName(), disposables, token);
-                    }
-                    else
-                    {
-                        if (x.Weapon.Ascended.Value)
-                        {
-                            Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon",
-                                x.Weapon.Name);
-                        }
-                        image = await LoadImageFromRepositoryAsync(x.Weapon.ToBaseImageName(), disposables, token);
-                    }
+            .ToList();
 
-                    image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
-                    return image;
-                }, cancellationToken: cancellationToken);
+        var weaponTasks = weaponEntries.ToDictionary(
+            x => x.Key,
+            x => LoadWeaponImageAsync(x.Weapon, disposables, cancellationToken));
+
+        await Task.WhenAll(weaponTasks.Values);
+
+        var weaponImages = weaponTasks.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Result);
 
         var moduleStyle = new CharacterModuleStyle(
             Fonts,
@@ -124,30 +113,30 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             GoldConstTextColor: Color.FromPixel(new Rgb24(138, 101, 0)),
             FooterTextColor: Color.White);
 
-        var avatarDataTask = charData
+        var sortedCharData = charData
             .OrderByDescending(x => x.Level)
             .ThenBy(x => Elements.IndexOf(x.Element, StringComparer.OrdinalIgnoreCase))
             .ThenByDescending(x => x.Rarity)
             .ThenBy(x => x.Name)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, token);
-                var moduleData = new CharacterModuleData(
-                    x.Name,
-                    x.Level!.Value,
-                    x.Rarity!.Value,
-                    avatarImage,
-                    x.ActivedConstellationNum,
-                    Icon: m_SmallElementIcons.TryGetValue(x.Element!, out var value) ? value : null,
-                    Weapon: new WeaponModuleData(
-                        x.Weapon.Level!.Value,
-                        x.Weapon.Rarity!.Value,
-                        x.Weapon.AffixLevel,
-                        weaponImages[GetWeaponKey(x.Weapon)]));
-                return (Character: x, ModuleData: moduleData);
-            })
-            .ToListAsync(cancellationToken: cancellationToken);
+            .ToList();
+
+        var avatarTasks = sortedCharData.Select(async x =>
+        {
+            var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
+            var moduleData = new CharacterModuleData(
+                x.Name,
+                x.Level!.Value,
+                x.Rarity!.Value,
+                avatarImage,
+                x.ActivedConstellationNum,
+                Icon: m_SmallElementIcons.TryGetValue(x.Element!, out var value) ? value : null,
+                Weapon: new WeaponModuleData(
+                    x.Weapon.Level!.Value,
+                    x.Weapon.Rarity!.Value,
+                    x.Weapon.AffixLevel,
+                    weaponImages[GetWeaponKey(x.Weapon)]));
+            return (Character: x, ModuleData: moduleData);
+        }).ToList();
 
         var charCountByElem = charData.GroupBy(x => x.Element!)
             .OrderBy(x => Array.IndexOf(Elements, x.Key))
@@ -156,11 +145,11 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .OrderBy(x => x.Key)
             .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-        var avatarDataList = await avatarDataTask;
+        var avatarDataList = await Task.WhenAll(avatarTasks);
 
         var renderer = new CharacterModuleRenderer(moduleStyle);
         var layout =
-            ImageUtility.CalculateGridLayout(avatarDataList.Count,
+            ImageUtility.CalculateGridLayout(avatarDataList.Length,
                 renderer.CanvasSize.Width, renderer.CanvasSize.Height, [170, 50, 120, 50]);
 
         var outputWidth = layout.OutputWidth;
@@ -206,6 +195,26 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
 
         Logger.LogInformation("Completed character list card for user {UserId} with {CharCount} characters",
             context.GameProfile.GameUid, charData.Count);
+    }
+
+    private async Task<Image> LoadWeaponImageAsync(Weapon weapon, DisposableBag disposables, CancellationToken cancellationToken)
+    {
+        Image image;
+        if (weapon.Ascended.Value && await ImageRepository.FileExistsAsync(weapon.ToAscendedImageName(), cancellationToken))
+        {
+            image = await LoadImageFromRepositoryAsync(weapon.ToAscendedImageName(), disposables, cancellationToken);
+        }
+        else
+        {
+            if (weapon.Ascended.Value)
+            {
+                Logger.LogInformation("Ascended icon not found for Weapon {Weapon}, falling back to default icon", weapon.Name);
+            }
+            image = await LoadImageFromRepositoryAsync(weapon.ToBaseImageName(), disposables, cancellationToken);
+        }
+
+        image.Mutate(ctx => ctx.Resize(150, 0, KnownResamplers.Bicubic));
+        return image;
     }
 
     private static string GetWeaponKey(Weapon weapon)

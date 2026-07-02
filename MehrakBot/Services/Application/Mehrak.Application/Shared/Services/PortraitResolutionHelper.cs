@@ -45,7 +45,7 @@ public static class PortraitResolutionHelper
         CancellationToken cancellationToken = default)
     {
         var portraitResult = await portraitService.GetPortraitImageAsync(
-            (long)userId, portrait.Id, cancellationToken);
+            (long)userId, portrait.Key, portrait.Id, cancellationToken);
 
         if (portraitResult == null)
         {

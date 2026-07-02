@@ -28,17 +28,18 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
     private readonly ICardService<IEnumerable<HsrCharacterInformation>> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
-    private readonly ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>
+    private readonly ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>
         m_CharacterApi;
     private readonly ICharacterCacheService m_CharacterCache;
 
 
     protected override string CommandName => "CharList";
+    protected override bool RequiresLevel => true;
     protected override string CardName => "Character List";
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
         IImageUpdaterService imageUpdaterService,
-        ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext> characterApi,
+        ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext> characterApi,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         ICharacterCacheService characterCache,
@@ -57,7 +58,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -69,8 +70,6 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, profile.GameUid, server.ToString(), cancellationToken);
 
         var gameUid = profile.GameUid;
 

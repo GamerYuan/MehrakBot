@@ -26,6 +26,8 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
     private readonly ILogger<GenshinCharacterApiService> m_Logger;
     private readonly ICacheService m_Cache;
     private const int CacheExpirationMinutes = 10;
+    private const int CharacterDetailCacheMinutes = 2;
+    private const int WikiCacheMinutes = 30;
 
     public GenshinCharacterApiService(ICacheService cache,
         IHttpClientFactory httpClientFactory,
@@ -147,6 +149,48 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
 
+            // Atomic per-entry cache lookups
+            var requestedIds = context.CharacterIds.Distinct().ToList();
+            var cacheKeys = requestedIds.ToDictionary(
+                id => id,
+                id => $"genshin_char:{context.GameUid}:{id}");
+
+            var cacheTasks = requestedIds
+                .Select(id => m_Cache.GetAsync<GenshinCharacterInformation>(cacheKeys[id], timeoutCts.Token))
+                .ToList();
+
+            await Task.WhenAll(cacheTasks);
+
+            var cachedEntries = new List<GenshinCharacterInformation>();
+            var uncachedIds = new List<int>();
+
+            for (int i = 0; i < requestedIds.Count; i++)
+            {
+                if (cacheTasks[i].Result != null)
+                    cachedEntries.Add(cacheTasks[i].Result!);
+                else
+                    uncachedIds.Add(requestedIds[i]);
+            }
+
+            if (uncachedIds.Count == 0)
+            {
+                // All characters cached — load wiki entries from cache
+                var avatarWiki = await LoadCachedWiki(cachedEntries.Select(c => c.Base.Id).ToList(),
+                    "genshin_avatar_wiki", timeoutCts.Token);
+
+                var weaponIds = cachedEntries.Select(c => c.Weapon.Id)
+                    .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+                var weaponWiki = await LoadCachedWiki(weaponIds, "genshin_weapon_wiki", timeoutCts.Token);
+
+                return Result<GenshinCharacterDetail>.Success(new GenshinCharacterDetail
+                {
+                    List = cachedEntries,
+                    AvatarWiki = avatarWiki,
+                    WeaponWiki = weaponWiki
+                });
+            }
+
+            // Fetch only uncached IDs from API
             var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
@@ -155,7 +199,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 RoleId = context.GameUid,
                 Server = context.Region,
-                CharacterIds = [.. context.CharacterIds]
+                CharacterIds = [.. uncachedIds]
             };
             var httpClient = m_HttpClientFactory.CreateClient("Default");
 
@@ -204,7 +248,71 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
             }
 
-            return Result<GenshinCharacterDetail>.Success(json!.Data, requestUri: requestUri);
+            // Cache each new entry individually
+            var cacheWriteTasks = new List<Task>();
+
+            foreach (var charInfo in json.Data.List)
+            {
+                cacheWriteTasks.Add(m_Cache.SetAsync(
+                    new CacheEntryBase<GenshinCharacterInformation>(
+                        $"genshin_char:{context.GameUid}:{charInfo.Base.Id}",
+                        charInfo,
+                        TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
+                    timeoutCts.Token));
+            }
+
+            foreach (var kvp in json.Data.AvatarWiki)
+            {
+                cacheWriteTasks.Add(m_Cache.SetAsync(
+                    new CacheEntryBase<string>(
+                        $"genshin_avatar_wiki:{kvp.Key}",
+                        kvp.Value,
+                        TimeSpan.FromMinutes(WikiCacheMinutes)),
+                    timeoutCts.Token));
+            }
+
+            foreach (var kvp in json.Data.WeaponWiki)
+            {
+                cacheWriteTasks.Add(m_Cache.SetAsync(
+                    new CacheEntryBase<string>(
+                        $"genshin_weapon_wiki:{kvp.Key}",
+                        kvp.Value,
+                        TimeSpan.FromMinutes(WikiCacheMinutes)),
+                    timeoutCts.Token));
+            }
+
+            await Task.WhenAll(cacheWriteTasks);
+
+            // Load cached wiki entries for already-cached characters
+            var cachedAvatarWiki = await LoadCachedWiki(cachedEntries.Select(c => c.Base.Id).ToList(),
+                "genshin_avatar_wiki", timeoutCts.Token);
+
+            var cachedWeaponIds = cachedEntries.Select(c => c.Weapon.Id)
+                .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+            var cachedWeaponWiki = await LoadCachedWiki(cachedWeaponIds, "genshin_weapon_wiki", timeoutCts.Token);
+
+            // Merge cached entries with API response
+            var mergedById = cachedEntries.Concat(json.Data.List)
+                .ToDictionary(c => c.Base.Id);
+            var mergedList = requestedIds
+                .Where(mergedById.ContainsKey)
+                .Select(id => mergedById[id])
+                .ToList();
+
+            var mergedAvatarWiki = new Dictionary<string, string>(cachedAvatarWiki);
+            foreach (var kvp in json.Data.AvatarWiki)
+                mergedAvatarWiki[kvp.Key] = kvp.Value;
+
+            var mergedWeaponWiki = new Dictionary<string, string>(cachedWeaponWiki);
+            foreach (var kvp in json.Data.WeaponWiki)
+                mergedWeaponWiki[kvp.Key] = kvp.Value;
+
+            return Result<GenshinCharacterDetail>.Success(new GenshinCharacterDetail
+            {
+                List = mergedList,
+                AvatarWiki = mergedAvatarWiki,
+                WeaponWiki = mergedWeaponWiki
+            }, requestUri: requestUri);
         }
         catch (OperationCanceledException)
         {
@@ -217,6 +325,20 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             return Result<GenshinCharacterDetail>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving character data");
         }
+    }
+
+    private async Task<Dictionary<string, string>> LoadCachedWiki(IReadOnlyList<int> ids, string prefix, CancellationToken cancellationToken)
+    {
+        var tasks = ids.Select(id => m_Cache.GetAsync<string>($"{prefix}:{id}", cancellationToken)).ToList();
+        await Task.WhenAll(tasks);
+
+        var result = new Dictionary<string, string>();
+        for (int i = 0; i < ids.Count; i++)
+        {
+            if (tasks[i].Result != null)
+                result[ids[i].ToString()] = tasks[i].Result!;
+        }
+        return result;
     }
 
     private sealed class CharacterListPayload

@@ -54,14 +54,19 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
 
     public override async Task LoadStaticResourcesAsync(CancellationToken cancellationToken = default)
     {
-        using (var medalStream = await ImageRepository.DownloadFileToStreamAsync(
-            string.Format(FileNameFormat.Zzz.TowerMedal, "s3"), cancellationToken))
+        var medalTask = ImageRepository.DownloadFileToStreamAsync(
+            string.Format(FileNameFormat.Zzz.TowerMedal, "s3"), cancellationToken);
+        var mvpTask = ImageRepository.DownloadFileToStreamAsync(
+            string.Format("zzz/tower_mvp.png"), cancellationToken);
+
+        await Task.WhenAll(medalTask, mvpTask);
+
+        using (var medalStream = medalTask.Result)
         {
             m_MedalIcon = await Image.LoadAsync(medalStream, cancellationToken);
         }
 
-        using (var mvpStream = await ImageRepository.DownloadFileToStreamAsync(
-            string.Format("zzz/tower_mvp.png"), cancellationToken))
+        using (var mvpStream = mvpTask.Result)
         {
             m_MvpIcon = await Image.LoadAsync(mvpStream, cancellationToken);
         }
@@ -86,19 +91,21 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
             throw new ArgumentNullException(nameof(charMap));
         }
 
-        var avatarImages = await context.Data.DisplayAvatarRankList
+        var sortedAvatars = context.Data.DisplayAvatarRankList
             .OrderByDescending(x => x.Score)
-            .ToAsyncEnumerable()
-            .Select(async (x, token) =>
-            {
-                await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), token);
-                var image = await Image.LoadAsync<Rgba32>(stream, token);
-                var (level, rarity) = charMap.GetValueOrDefault(x.AvatarId, (0, 0));
-                var avatar = new ZzzAvatar(x.AvatarId, level, x.Rarity[0], rarity, image);
-                disposables.Add(avatar);
-                return (x, avatar);
-            })
-            .ToListAsync(cancellationToken);
+            .ToList();
+
+        var avatarTasks = sortedAvatars.Select(async x =>
+        {
+            await using var stream = await ImageRepository.DownloadFileToStreamAsync(x.ToImageName(), cancellationToken);
+            var image = await Image.LoadAsync<Rgba32>(stream, cancellationToken);
+            var (level, rarity) = charMap.GetValueOrDefault(x.AvatarId, (0, 0));
+            var avatar = new ZzzAvatar(x.AvatarId, level, x.Rarity[0], rarity, image);
+            disposables.Add(avatar);
+            return (x, avatar);
+        });
+
+        var avatarImages = (await Task.WhenAll(avatarTasks)).ToList();
 
         const int width = 2 * DisplayEntryWidth + 150;
         var height = 540 + (int)Math.Ceiling(context.Data.DisplayAvatarRankList.Count / 2f) * DisplayEntryHeight;

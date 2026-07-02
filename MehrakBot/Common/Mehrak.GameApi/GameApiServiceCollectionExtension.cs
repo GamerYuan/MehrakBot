@@ -36,7 +36,8 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IApiService<CodeRedeemResult, CodeRedeemApiContext>, CodeRedeemApiService>();
         services.AddSingleton<IApiService<CheckInStatus, CheckInApiContext>, DailyCheckInApiService>();
         services.AddSingleton<IApiService<IEnumerable<GameRecordDto>, GameRecordApiContext>, GameRecordApiService>();
-        services.AddSingleton<IApiService<GameProfileDto, GameRoleApiContext>, GameRoleApiService>();
+        services.AddSingleton<GameRoleApiService>();
+        services.AddSingleton<IApiService<GameProfileDto, GameRoleApiContext>>(sp => sp.GetRequiredService<GameRoleApiService>());
         services.AddSingleton<IApiService<JsonNode, WikiApiContext>, WikiApiService>();
         services.AddSingleton<IImageUpdaterService, ImageUpdaterService>();
 
@@ -52,7 +53,7 @@ public static class GameApiServiceCollectionExtension
 
         // Honkai: Star Rail services
         services
-            .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrCharacterInformation, CharacterApiContext>,
+            .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>,
                 HsrCharacterApiService>();
         services.AddSingleton<IApiService<HsrMemoryInformation, BaseHoYoApiContext>, HsrMemoryApiService>();
         services.AddSingleton<IApiService<HsrEndInformation, HsrEndGameApiContext>, HsrEndGameApiService>();

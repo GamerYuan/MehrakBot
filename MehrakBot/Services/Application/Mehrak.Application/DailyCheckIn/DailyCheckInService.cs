@@ -81,11 +81,24 @@ public class DailyCheckInService : IApplicationService
             }
 
             var checkInResults = new List<(bool, string)>();
-            foreach (var game in gameRecords.Select(x => x.Game))
-            {
-                CheckInApiContext apiContext = new(context.UserId, context.LtUid, context.LToken, game);
-                var checkInResponse = await m_ApiService.GetAsync(apiContext, cancellationToken);
 
+            var checkInTasks = gameRecords.Select(x =>
+            {
+                var apiContext = new CheckInApiContext(context.UserId, context.LtUid, context.LToken, x.Game);
+                return (x.Game, m_ApiService.GetAsync(apiContext, cancellationToken));
+            }).ToList();
+
+            var checkInResponses = await Task.WhenAll(checkInTasks.Select(async task =>
+            {
+                var (game, responseTask) = task;
+                var response = await responseTask;
+                return (game, response);
+            }));
+
+            var hasTimeout = false;
+
+            foreach (var (game, checkInResponse) in checkInResponses)
+            {
                 if (checkInResponse.IsSuccess)
                 {
                     switch (checkInResponse.Data)
@@ -112,7 +125,11 @@ public class DailyCheckInService : IApplicationService
                     if (checkInResponse.StatusCode == StatusCode.Cancelled)
                         throw new OperationCanceledException(checkInResponse.ErrorMessage ?? "Cancelled");
                     if (checkInResponse.StatusCode == StatusCode.Timeout)
-                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                    {
+                        hasTimeout = true;
+                        checkInResults.Add((false, $"{game.ToFriendlyString()}: Check-in timed out."));
+                        continue;
+                    }
                     m_Logger.LogError(LogMessage.ApiError, $"Check In {game}", context.UserId, "N/A", checkInResponse);
                     checkInResults.Add((false, $"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}"));
                 }
@@ -135,6 +152,10 @@ public class DailyCheckInService : IApplicationService
             }
 
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
+
+            if (hasTimeout && checkInResults.All(x => !x.Item1))
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+
             return CommandResult.Success([new CommandText(resultContent)]);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

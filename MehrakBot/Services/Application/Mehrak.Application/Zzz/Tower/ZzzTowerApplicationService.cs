@@ -28,6 +28,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Simulated Battle Trial";
     protected override string CardName => "Simulated Battle Trial";
+    protected override bool RequiresLevel => true;
     public ZzzTowerApplicationService(
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
@@ -50,7 +51,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
@@ -63,13 +64,16 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        await UpdateGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, profile.GameUid, server.ToString(), cancellationToken);
-
         var gameUid = profile.GameUid;
 
-        var towerResponse =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
+        var towerTask = m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+            gameUid, region), cancellationToken);
+        var charTask = m_CharacterApi.GetAllCharactersAsync(
+            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+
+        await Task.WhenAll(towerTask, charTask);
+
+        var towerResponse = towerTask.Result;
         if (!towerResponse.IsSuccess)
         {
             if (towerResponse.StatusCode == StatusCode.Cancelled)
@@ -91,9 +95,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-
-        var characterResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        var characterResponse = charTask.Result;
 
         if (!characterResponse.IsSuccess)
         {

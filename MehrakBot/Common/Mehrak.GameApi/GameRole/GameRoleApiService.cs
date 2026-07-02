@@ -202,6 +202,152 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         return Result<GameProfileDto>.Success(dto, requestUri: requestUri);
     }
 
+    public async Task<Result<List<GameRoleInfo>>> GetAllGameProfilesAsync(ulong userId, ulong ltuid, string ltoken,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+
+            var cacheKey = $"gameProfile:{userId}:{ltuid}";
+
+            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                var profiles = TryDeserializeAll(cachedData);
+                if (profiles.Count > 0)
+                    return Result<List<GameRoleInfo>>.Success(profiles);
+            }
+
+            var semaphore = GetOrCreateLock(cacheKey);
+            await semaphore.WaitAsync(timeoutCts.Token);
+
+            try
+            {
+                cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    var profiles = TryDeserializeAll(cachedData);
+                    if (profiles.Count > 0)
+                        return Result<List<GameRoleInfo>>.Success(profiles);
+                }
+
+                return await FetchAndCacheAllGameRolesAsync(cacheKey, userId, ltuid, ltoken, timeoutCts.Token);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<List<GameRoleInfo>>.FromCancellation(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogError(ex, LogMessages.ExceptionOccurred,
+                $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}", userId);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.BotError,
+                "An error occurred while processing the request");
+        }
+    }
+
+    private List<GameRoleInfo> TryDeserializeAll(string cachedData)
+    {
+        try
+        {
+            var cachedJson = JsonSerializer.Deserialize<ApiResponse<GameProfileResponse>>(cachedData);
+            return cachedJson?.Data?.List
+                .Select(p => (Game: GameEnumExtensions.FromGameBizString(p.GameBiz ?? ""), Region: p.Region, Profile: MapToGameProfileDto(p)))
+                .Where(x => x.Game != Game.Unsupported && !string.IsNullOrEmpty(x.Region))
+                .Select(x => new GameRoleInfo(x.Game, x.Game.RegionToServerString(x.Region!), x.Profile!))
+                .Where(x => x.Profile != null)
+                .ToList() ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private async Task<Result<List<GameRoleInfo>>> FetchAndCacheAllGameRolesAsync(
+        string cacheKey, ulong userId, ulong ltuid, string ltoken, CancellationToken cancellationToken)
+    {
+        var requestUri = $"{HoYoLabDomains.AccountApi}{GameUserRoleApiPath}";
+
+        m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+
+        var httpClient = m_HttpClientFactory.CreateClient("Default");
+        HttpRequestMessage request = new()
+        {
+            Method = HttpMethod.Get,
+            RequestUri = new Uri(requestUri)
+        };
+        request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={ltuid}");
+
+        var response = await httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "API returned error status code", requestUri);
+        }
+
+        var json = await response.Content.ReadFromJsonAsync<ApiResponse<GameProfileResponse>>(cancellationToken);
+
+        if (json == null)
+        {
+            m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, userId);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "An error occurred while retrieving profile information", requestUri);
+        }
+
+        if (json.Retcode == -100)
+        {
+            m_Logger.LogError(LogMessages.InvalidCredentials, userId);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.Unauthorized,
+                "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+        }
+
+        if (json.Retcode != 0)
+        {
+            m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, userId, requestUri, json);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "An error occurred while retrieving profile information", requestUri);
+        }
+
+        if (json.Data?.List == null || json.Data.List.Count == 0)
+        {
+            m_Logger.LogWarning("No game data found for User {UserId} profile LtUid {LtUid}", userId, ltuid);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "No game information found. Please use the correct account", requestUri);
+        }
+
+        // Cache raw JSON so subsequent GetAsync calls benefit
+        await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey,
+            JsonSerializer.Serialize(json), TimeSpan.FromMinutes(10)), cancellationToken);
+
+        m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, 0, userId);
+
+        var result = json.Data.List
+            .Select(p => (Game: GameEnumExtensions.FromGameBizString(p.GameBiz ?? ""), Region: p.Region, Profile: MapToGameProfileDto(p)))
+            .Where(x => x.Game != Game.Unsupported && !string.IsNullOrEmpty(x.Region))
+            .Select(x => new GameRoleInfo(x.Game, x.Game.RegionToServerString(x.Region!), x.Profile!))
+            .Where(x => x.Profile != null)
+            .ToList();
+
+        if (result.Count == 0)
+        {
+            m_Logger.LogWarning("No supported game profiles found for User {UserId} LtUid {LtUid}", userId, ltuid);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.ExternalServerError,
+                "No supported game information found. Please use the correct account", requestUri);
+        }
+
+        return Result<List<GameRoleInfo>>.Success(result, requestUri: requestUri);
+    }
+
     private static GameProfileDto? MapToGameProfileDto(GameProfile? profile)
     {
         if (profile == null)
@@ -244,6 +390,8 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         [JsonPropertyName("is_official")] public bool? IsOfficial { get; init; }
     }
 }
+
+public record GameRoleInfo(Game Game, string Region, GameProfileDto Profile);
 
 public class GameRoleApiContext : IApiContext
 {

@@ -930,8 +930,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 
@@ -963,18 +963,22 @@ public class GenshinCharacterApplicationServiceTests
             .Setup(x => x.FileExistsAsync(It.Is<string>(x => x.StartsWith("genshin/weapon_"))))
             .ReturnsAsync(true);
 
+        wikiApiMock
+            .Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"));
+
         var cnEmpty = JsonNode.Parse("""
                                     { "data": { "page": { "header_img_url": "" } } }
                                     """);
         wikiApiMock
-            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)))
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<JsonNode>.Success(cnEmpty!));
 
         var enResponse = JsonNode.Parse("""
                                        { "data": { "page": { "header_img_url": "https://example.com/en_character.png" } } }
                                        """);
         wikiApiMock
-            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)))
+            .Setup(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<JsonNode>.Success(enResponse!));
 
         imageUpdaterMock
@@ -990,8 +994,8 @@ public class GenshinCharacterApplicationServiceTests
 
         Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN)), Times.Once);
-        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN)), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
+        wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url == "https://example.com/en_character.png"), It.IsAny<IImageProcessor>()), Times.Once);
     }
 
@@ -1203,6 +1207,71 @@ public class GenshinCharacterApplicationServiceTests
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_MultipleCharacters_ImageProcessorFailsForOne_ReturnsOtherCharacterImages()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, attachmentStorageMock, _, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateMultiCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await CreateDistinctMultiCharacterDetailAsync();
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        // Default: image processor succeeds
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        // Override: image processor fails for Jean's images (skill names contain her avatar ID)
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(
+                It.Is<IImageData>(d => d.Name.Contains("skill_10000003")),
+                It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(false);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test",
+            ("character", "Traveler,Jean"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert — command succeeds with partial results
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data!.IsEphemeral, Is.False);
+            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(result.Data.EphemeralMessage, Does.Contain("Jean"));
+        }
+
+        // Only Traveler's card should be generated and stored
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        // Metrics tracked only for the successful character
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "traveler"), Times.Once);
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "jean"), Times.Never);
     }
 
     [Test]
@@ -1819,6 +1888,27 @@ public class GenshinCharacterApplicationServiceTests
         return new GenshinCharacterDetail
         {
             List = [detail.List[0], cloned],
+            AvatarWiki = detail.AvatarWiki,
+            WeaponWiki = detail.WeaponWiki
+        };
+    }
+
+    /// <summary>
+    /// Creates a two-character detail where the second entry (Jean) has a different Base.Id,
+    /// so image names differ and can be selectively mocked.
+    /// </summary>
+    private static async Task<GenshinCharacterDetail> CreateDistinctMultiCharacterDetailAsync()
+    {
+        var detail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        var json = JsonSerializer.Serialize(detail.List[0]);
+        var jean = JsonSerializer.Deserialize<GenshinCharacterInformation>(json)!;
+
+        typeof(BaseCharacterDetail).GetProperty("Id")!.SetValue(jean.Base, 10000003);
+        typeof(BaseCharacterDetail).GetProperty("Name")!.SetValue(jean.Base, "Jean");
+
+        return new GenshinCharacterDetail
+        {
+            List = [detail.List[0], jean],
             AvatarWiki = detail.AvatarWiki,
             WeaponWiki = detail.WeaponWiki
         };
