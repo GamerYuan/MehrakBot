@@ -111,7 +111,7 @@ services:
       context: ./MehrakBot
       dockerfile: Services/ImageProcessor/Dockerfile
       args:
-        BASE_IMAGE_TAG: ${BASE_IMAGE_TAG:-opencv-4.12.0-ocvsharp-4.11.0.20250507}
+        BASE_IMAGE_TAG: ${BASE_IMAGE_TAG:-opencv-4.13.0-ocvsharp-4.13.0.20260627}
         VERSION: ${VERSION:-0.0.1}
     depends_on:
       seaweed-s3:
