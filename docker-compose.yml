@@ -38,6 +38,8 @@ services:
       dockerfile: Services/Dashboard/Dockerfile
       args:
         VERSION: ${VERSION:-0.0.1}
+      secrets:
+        - sixlabors-license
     depends_on:
       application:
         condition: service_started
