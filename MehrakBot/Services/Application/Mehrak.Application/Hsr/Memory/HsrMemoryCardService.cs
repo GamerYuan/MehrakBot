@@ -197,7 +197,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     var extraStarShift = (floorData?.ExtraStarNum ?? 0) * 50;
                     var roundNumberText = floorData?.RoundNum.ToString() ?? "";
                     var roundNumberWidth = (int)TextMeasurer.MeasureBounds(roundNumberText, new TextOptions(Fonts.Normal)).Width;
-                    var maxTextWidth = 680 - 15 - roundNumberWidth - 150 - extraStarShift;
+                    var maxTextWidth = 680 - 15 - roundNumberWidth - m_CycleIcon.Width - 150 - extraStarShift;
 
                     var stageTextBounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
                     canvas.DrawText(new RichTextOptions(stageTextBounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
@@ -208,12 +208,26 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         WrappingLength = maxTextWidth
                     }, stageText, Brushes.Solid(Color.White), null);
 
-                    for (var i = 0; i < 3; i++)
+                    var starX = xOffset + 630;
+
+                    if (floorData?.ExtraStarNum > 0)
+                    {
+                        for (var i = 0; i < floorData.ExtraStarNum; i++)
+                        {
+                            canvas.DrawImage(m_ExtraStar, m_ExtraStar.Bounds,
+                                new RectangleF(starX, yOffset + 5, m_ExtraStar.Width, m_ExtraStar.Height),
+                                KnownResamplers.Bicubic);
+                            starX -= 50;
+                        }
+                    }
+
+                    for (var i = 2; i >= 0; i--)
                     {
                         var starImage = i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit;
                         canvas.DrawImage(starImage, starImage.Bounds,
-                            new RectangleF(xOffset + 530 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                            new RectangleF(starX, yOffset + 5, starImage.Width, starImage.Height),
                             KnownResamplers.Bicubic);
+                        starX -= 50;
                     }
 
                     if (floorData == null || floorData.IsFast)
@@ -253,16 +267,16 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         }
 
                         canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
-                            new PointF(xOffset + 520, yOffset + 10),
-                            new PointF(xOffset + 520, yOffset + 55)).Build());
+                            new PointF(xOffset + 520 - extraStarShift, yOffset + 10),
+                            new PointF(xOffset + 520 - extraStarShift, yOffset + 55)).Build());
                         canvas.DrawText(new RichTextOptions(Fonts.Normal)
                         {
-                            Origin = new PointF(xOffset + 470, yOffset + 20),
+                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + 20),
                             HorizontalAlignment = HorizontalAlignment.Right,
                             VerticalAlignment = VerticalAlignment.Top
                         }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
                         canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                            new RectangleF(xOffset + 470, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
+                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
                             KnownResamplers.Bicubic);
                     }
 
