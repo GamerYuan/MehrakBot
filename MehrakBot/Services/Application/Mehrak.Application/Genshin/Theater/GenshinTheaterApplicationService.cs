@@ -38,7 +38,6 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Theater";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Imaginarium Theater";
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
@@ -63,43 +62,33 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogInformation(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, theaterResult) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.Genshin, region,
+            uid => m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
 
-        var theaterDataResult =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
-        if (!theaterDataResult.IsSuccess)
+        if (!theaterResult.IsSuccess)
         {
-            if (theaterDataResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(theaterDataResult.ErrorMessage ?? "Cancelled");
-            if (theaterDataResult.StatusCode == StatusCode.Timeout)
+            if (theaterResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(theaterResult.ErrorMessage ?? "Cancelled");
+            if (theaterResult.StatusCode == StatusCode.Timeout)
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            if (theaterDataResult.StatusCode == StatusCode.Unauthorized)
+            if (theaterResult.StatusCode == StatusCode.Unauthorized)
             {
                 Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
                     gameUid);
                 return CommandResult.Success([new CommandText("Imaginarium Theater is not unlocked")]);
             }
 
-            Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterDataResult);
+            Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Imaginarium Theater data"));
         }
 
-        var theaterData = theaterDataResult.Data;
+        var theaterData = theaterResult.Data;
 
         if (!theaterData.HasDetailData)
         {

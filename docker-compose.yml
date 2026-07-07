@@ -104,6 +104,8 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakApplication
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
+    volumes:
+      - ./MehrakBot/Assets:/app/Assets:ro
 
   image-processor:
     image: mehrak-image-processor:latest
@@ -125,6 +127,8 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakImageProcessor
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
+    volumes:
+      - ./MehrakBot/Assets:/app/Assets:ro
 
   postgres:
     image: postgres:18.3

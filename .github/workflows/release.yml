@@ -1,6 +1,7 @@
 name: Create Release
 permissions:
   contents: write
+  actions: write
 on:
   push:
     tags:
@@ -13,11 +14,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.ASSETS_PAT }}
-          lfs: true
           submodules: recursive
 
-      - name: Checkout LFS
-        run: git lfs pull
+      - name: Get submodule SHA for LFS cache key
+        id: submod
+        run: echo "sha=$(git -C MehrakBot/Assets rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Cache LFS objects
+        id: lfs-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .git/lfs
+            .git/modules/**/lfs
+          key: lfs-${{ runner.os }}-${{ steps.submod.outputs.sha }}
+          restore-keys: |
+            lfs-${{ runner.os }}-
+
+      - name: Pull LFS objects
+        if: steps.lfs-cache.outputs.cache-hit != 'true'
+        run: |
+          git lfs pull
+          git submodule foreach --recursive 'git lfs pull'
 
       - name: Create Assets Archive
         env:
