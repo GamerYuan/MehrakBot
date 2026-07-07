@@ -260,8 +260,8 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                         {
                             var sep2Y = contentStart + sectionHeight * 2;
                             canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
-                                new PointF(xOffset + 40, yOffset + sep2Y),
-                                new PointF(xOffset + 660, yOffset + sep2Y)).Build());
+                                new PointF(xOffset + 20, yOffset + sep2Y),
+                                new PointF(xOffset + 680, yOffset + sep2Y)).Build());
                             DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep2Y + 15),
                                 floorData.Node3, avatarImages);
                         }
