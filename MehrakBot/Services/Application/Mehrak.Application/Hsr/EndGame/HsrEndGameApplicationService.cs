@@ -62,39 +62,12 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
-        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, cancellationToken);
-        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region, cancellationToken);
-
-        Task<Result<HsrEndInformation>>? primaryTask = null;
-        if (cachedGameUid != null)
-        {
-            primaryTask = m_ApiService.GetAsync(
-                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region,
-                    mode), cancellationToken);
-        }
-
-        var profileResult = await profileTask;
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
-
-        if (cachedGameUid == null)
-        {
-            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, profile.GameUid, profile.Level, cancellationToken);
-            primaryTask = m_ApiService.GetAsync(
-                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
-                    mode), cancellationToken);
-        }
-
-        var challengeResponse = await primaryTask!;
+        var (profile, challengeResponse) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region,
+            uid => m_ApiService.GetAsync(
+                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, uid, region,
+                    mode), cancellationToken),
+            cancellationToken);
         if (!challengeResponse.IsSuccess)
         {
             if (challengeResponse.StatusCode == StatusCode.Cancelled)

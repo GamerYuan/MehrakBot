@@ -49,6 +49,10 @@ public abstract class BaseApplicationService : IApplicationService
         {
             return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
         }
+        catch (UnauthorizedAccessException)
+        {
+            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
@@ -130,6 +134,48 @@ public abstract class BaseApplicationService : IApplicationService
         }
     }
 
+    /// <summary>
+    /// Fetches the game profile and a primary API result in parallel when a cached GameUid is available.
+    /// On first use (no cached GameUid), fetches profile sequentially, saves the GameUid, then fetches primary.
+    /// Throws OperationCanceledException on cancelled/timeout, UnauthorizedAccessException on auth failure.
+    /// </summary>
+    protected async Task<(GameProfileDto Profile, Result<T> Primary)> FetchProfileAndPrimaryAsync<T>(
+        ulong userId, ulong ltuid, string ltoken, Game game, string region,
+        Func<string, Task<Result<T>>> primaryFetch,
+        CancellationToken cancellationToken = default)
+    {
+        var cachedGameUid = await GetCachedGameUidAsync(userId, ltuid, game, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(userId, ltuid, ltoken, game, region, cancellationToken);
+
+        Task<Result<T>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = primaryFetch(cachedGameUid);
+        }
+
+        var profileResult = await profileTask;
+        if (!profileResult.IsSuccess)
+        {
+            if (profileResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
+            if (profileResult.StatusCode == StatusCode.Timeout)
+                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Timeout");
+            Logger.LogWarning(LogMessage.InvalidLogin, userId);
+            throw new UnauthorizedAccessException(ResponseMessage.AuthError);
+        }
+
+        var profile = profileResult.Data;
+
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(userId, ltuid, game, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = primaryFetch(profile.GameUid);
+        }
+
+        var primaryResult = await primaryTask!;
+        return (profile, primaryResult);
+    }
+
 }
 
 public abstract class BaseAttachmentApplicationService : BaseApplicationService
@@ -180,6 +226,10 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
                 Logger.LogError(ex, "Command error for User {UserId}, Command {CommandName}: {Message}",
                     context.UserId, CommandName, ex.Message);
                 return CommandResult.Failure(CommandFailureReason.BotError, ex.Message);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
             }
             catch (Exception ex)
             {

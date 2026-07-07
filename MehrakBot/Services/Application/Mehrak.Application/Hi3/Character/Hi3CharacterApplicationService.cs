@@ -67,37 +67,11 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, region, cancellationToken);
-        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
-            region, cancellationToken);
-
-        Task<Result<IEnumerable<Hi3CharacterDetail>>>? charTask = null;
-        if (cachedGameUid != null)
-        {
-            charTask = m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
-        }
-
-        var profileResult = await profileTask;
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
-
-        if (cachedGameUid == null)
-        {
-            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, region, profile.GameUid, profile.Level, cancellationToken);
-            charTask = m_CharacterApi.GetAllCharactersAsync(
-                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
-        }
-
-        var charResult = await charTask!;
+        var (profile, charResult) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3, region,
+            uid => m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         if (!charResult.IsSuccess)
         {
