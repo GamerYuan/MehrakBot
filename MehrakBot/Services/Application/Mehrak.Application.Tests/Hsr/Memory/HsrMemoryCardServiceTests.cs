@@ -43,6 +43,9 @@ public class HsrMemoryCardServiceTests
     [TestCase("Moc_TestData_4.json")]
     [TestCase("Moc_TestData_5.json")]
     [TestCase("Moc_TestData_6.json")]
+    [TestCase("Moc_TestData_7.json")]
+    [TestCase("Moc_TestData_8.json")]
+    [TestCase("Moc_TestData_9.json")]
     public async Task GetTheaterCardAsync_AllTestData_MatchesGoldenImage(string testDataFileName)
     {
         var testData =
@@ -101,8 +104,10 @@ public class HsrMemoryCardServiceTests
     [TestCase("Moc_TestData_4.json", "Moc_GoldenImage_4.jpg")]
     [TestCase("Moc_TestData_5.json", "Moc_GoldenImage_5.jpg")]
     [TestCase("Moc_TestData_6.json", "Moc_GoldenImage_6.jpg")]
-    public async
-    Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
+    [TestCase("Moc_TestData_7.json", "Moc_GoldenImage_7.jpg")]
+    [TestCase("Moc_TestData_8.json", "Moc_GoldenImage_8.jpg")]
+    [TestCase("Moc_TestData_9.json", "Moc_GoldenImage_9.jpg")]
+    public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var testData = await JsonSerializer.DeserializeAsync<HsrMemoryInformation>(
             File.OpenRead(Path.Combine(AppContext.BaseDirectory, "TestData", "Hsr", testDataFileName)));

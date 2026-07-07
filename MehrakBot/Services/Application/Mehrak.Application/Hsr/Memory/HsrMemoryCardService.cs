@@ -24,6 +24,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
     private Image m_StarLit = null!;
     private Image m_StarUnlit = null!;
     private Image m_CycleIcon = null!;
+    private Image m_ExtraStar = null!;
 
     public HsrMemoryCardService(IImageRepository imageRepository,
         ILogger<HsrMemoryCardService> logger,
@@ -43,11 +44,13 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
         {
             ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCStarName, cancellationToken),
             ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.HourglassName, cancellationToken),
-            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCBackgroundName, cancellationToken)
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.MoCBackgroundName, cancellationToken),
+            ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Hsr.ExtraStarName, cancellationToken)
         };
         await Task.WhenAll(downloadTasks);
 
-        var (starStream, cycleStream, bgStream) = (downloadTasks[0].Result, downloadTasks[1].Result, downloadTasks[2].Result);
+        var (starStream, cycleStream, bgStream, extraStarStream) =
+            (downloadTasks[0].Result, downloadTasks[1].Result, downloadTasks[2].Result, downloadTasks[3].Result);
 
         m_StarLit = await Image.LoadAsync(starStream, cancellationToken);
         m_StarUnlit = m_StarLit.CloneAs<Rgba32>();
@@ -57,6 +60,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
             ctx.Brightness(0.7f);
         });
         m_CycleIcon = await Image.LoadAsync(cycleStream, cancellationToken);
+        m_ExtraStar = await Image.LoadAsync(extraStarStream, cancellationToken);
 
         StaticBackground = await Image.LoadAsync<Rgba32>(bgStream, cancellationToken);
         StaticBackground.Mutate(ctx =>
@@ -80,7 +84,8 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
         var memoryData = context.Data;
 
         var avatarData = memoryData.AllFloorDetail!
-            .SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+            .SelectMany(x =>
+                (x.Node1?.Avatars ?? []).Concat(x.Node2?.Avatars ?? []).Concat(x.Node3?.Avatars ?? []))
             .DistinctBy(x => x.Id)
             .ToList();
 
@@ -107,8 +112,13 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     return (FloorNumber: floorIndex, Data: floorData);
                 })
         ];
-        var height = 210 + floorDetails.Chunk(2)
-            .Sum(x => x.All(y => y.Data == null || IsSmallBlob(y.Data)) ? 200 : 520);
+
+        var pairBlobHeights = Enumerable.Range(0, 6)
+            .Select(pairIndex => Math.Max(
+                GetBlobHeight(floorDetails[pairIndex * 2].Data),
+                GetBlobHeight(floorDetails[pairIndex * 2 + 1].Data)))
+            .ToArray();
+        var height = 210 + (20 * 6) + pairBlobHeights.Sum();
 
         background.Mutate(ctx =>
         {
@@ -148,6 +158,16 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     new RectangleF((int)bounds.Right + 5, 30, m_StarLit.Width, m_StarLit.Height),
                     KnownResamplers.Bicubic);
 
+                if (memoryData.ExtraStarNum > 0)
+                {
+                    textOptions.Origin = new Vector2((int)bounds.Right + 5 + m_StarLit.Width + 10, 80);
+                    bounds = TextMeasurer.MeasureBounds($"{memoryData.ExtraStarNum}", textOptions);
+                    canvas.DrawText(textOptions, $"{memoryData.ExtraStarNum}", Brushes.Solid(Color.White), null);
+                    canvas.DrawImage(m_ExtraStar, m_ExtraStar.Bounds,
+                        new RectangleF((int)bounds.Right + 5, 30, m_ExtraStar.Width, m_ExtraStar.Height),
+                        KnownResamplers.Bicubic);
+                }
+
                 canvas.DrawText(new RichTextOptions(Fonts.Normal)
                 {
                     Origin = new Vector2(1500, 80),
@@ -166,102 +186,101 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                 foreach ((var floorNumber, var floorData) in floorDetails)
                 {
                     var xOffset = floorNumber % 2 * 750 + 50;
+                    var blobHeight = pairBlobHeights[floorNumber / 2];
 
-                    if (floorData == null || floorData.IsFast)
-                    {
-                        if ((floorNumber % 2 == 0 && floorNumber + 1 < floorDetails.Count &&
-                             !IsSmallBlob(floorDetails[floorNumber + 1].Data)) ||
-                            (floorNumber % 2 == 1 && floorNumber - 1 >= 0 &&
-                             !IsSmallBlob(floorDetails[floorNumber - 1].Data)))
-                        {
-                            canvas.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
-                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                            {
-                                Origin = new PointF(xOffset + 350, yOffset + 280),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
-                        }
-                        else
-                        {
-                            canvas.DrawRoundedRectangleOverlay(700, 180, new PointF(xOffset, yOffset),
-                                new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                            canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                            {
-                                Origin = new PointF(xOffset + 350, yOffset + 110),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center
-                            }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records", Brushes.Solid(Color.White), null);
-                        }
-
-                        var stageText =
-                            $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)})";
-                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                        {
-                            Origin = new PointF(xOffset + 20, yOffset + 20),
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            VerticalAlignment = VerticalAlignment.Top
-                        }, floorData?.Name ?? stageText, Brushes.Solid(Color.White), null);
-
-                        for (var i = 0; i < 3; i++)
-                        {
-                            var starImage = i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit;
-                            canvas.DrawImage(starImage, starImage.Bounds,
-                                new RectangleF(xOffset + 530 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
-                                KnownResamplers.Bicubic);
-                        }
-
-                        if (floorNumber % 2 == 1)
-                        {
-                            var leftIsFull = floorNumber - 1 >= 0 && !IsSmallBlob(floorDetails[floorNumber - 1].Data);
-                            yOffset += leftIsFull ? 520 : 200;
-                        }
-
-                        continue;
-                    }
-
-                    canvas.DrawRoundedRectangleOverlay(700, 500, new PointF(xOffset, yOffset),
+                    canvas.DrawRoundedRectangleOverlay(700, blobHeight, new PointF(xOffset, yOffset),
                         new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
+
+                    var stageText =
+                        $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)}){(floorData?.IsTierce == true ? " Starward Mode" : "")}";
+
+                    var extraStarShift = (floorData?.ExtraStarNum ?? 0) * 50;
+                    var roundNumberText = floorData?.RoundNum.ToString() ?? "";
+                    var roundNumberWidth = (int)TextMeasurer.MeasureBounds(roundNumberText, new TextOptions(Fonts.Normal)).Width;
+                    var maxTextWidth = 680 - 15 - roundNumberWidth - m_CycleIcon.Width - 150 - extraStarShift;
+
+                    var stageTextBounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
+                    canvas.DrawText(new RichTextOptions(stageTextBounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
                         Origin = new PointF(xOffset + 20, yOffset + 20),
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, floorData.Name, Brushes.Solid(Color.White), null);
+                        VerticalAlignment = VerticalAlignment.Top,
+                        WrappingLength = maxTextWidth
+                    }, stageText, Brushes.Solid(Color.White), null);
 
-                    RosterImageBuilder.Draw(
-                        floorData.Node1.Avatars.Select(x => avatarImages[x.Id]),
-                        new RosterLayout(MaxSlots: 4),
-                        new Point(xOffset + 25, yOffset + 65),
-                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
-                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 20, yOffset + 270),
-                        new PointF(xOffset + 680, yOffset + 270)).Build());
-                    RosterImageBuilder.Draw(
-                        floorData.Node2.Avatars.Select(x => avatarImages[x.Id]),
-                        new RosterLayout(MaxSlots: 4),
-                        new Point(xOffset + 25, yOffset + 295),
-                        (point, avatar) => avatar.DrawStyledAvatarImage(canvas, point));
+                    var starX = xOffset + 630;
 
-                    for (var i = 0; i < 3; i++)
+                    if (floorData?.ExtraStarNum > 0)
                     {
-                        var starImage = i < floorData.StarNum ? m_StarLit : m_StarUnlit;
+                        for (var i = 0; i < floorData.ExtraStarNum; i++)
+                        {
+                            canvas.DrawImage(m_ExtraStar, m_ExtraStar.Bounds,
+                                new RectangleF(starX, yOffset + 5, m_ExtraStar.Width, m_ExtraStar.Height),
+                                KnownResamplers.Bicubic);
+                            starX -= 50;
+                        }
+                    }
+
+                    for (var i = 2; i >= 0; i--)
+                    {
+                        var starImage = i < (floorData?.StarNum ?? 0) ? m_StarLit : m_StarUnlit;
                         canvas.DrawImage(starImage, starImage.Bounds,
-                            new RectangleF(xOffset + 530 + i * 50, yOffset + 5, starImage.Width, starImage.Height),
+                            new RectangleF(starX, yOffset + 5, starImage.Width, starImage.Height),
+                            KnownResamplers.Bicubic);
+                        starX -= 50;
+                    }
+
+                    if (floorData == null || floorData.IsFast)
+                    {
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new PointF(xOffset + 350, yOffset + blobHeight / 2 + 10),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center
+                        }, floorData?.IsFast ?? false ? "Quick Clear" : "No Clear Records",
+                            Brushes.Solid(Color.White), null);
+                    }
+                    else
+                    {
+                        const int contentStart = 65;
+                        var sectionHeight = (blobHeight - contentStart) / (floorData.IsTierce ? 3 : 2);
+
+                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + contentStart + 10),
+                            floorData.Node1, avatarImages);
+
+                        var sep1Y = contentStart + sectionHeight;
+                        canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
+                            new PointF(xOffset + 20, yOffset + sep1Y),
+                            new PointF(xOffset + 680, yOffset + sep1Y)).Build());
+
+                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep1Y + 15),
+                            floorData.Node2, avatarImages);
+
+                        if (floorData.IsTierce)
+                        {
+                            var sep2Y = contentStart + sectionHeight * 2;
+                            canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
+                                new PointF(xOffset + 20, yOffset + sep2Y),
+                                new PointF(xOffset + 680, yOffset + sep2Y)).Build());
+                            DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep2Y + 15),
+                                floorData.Node3, avatarImages);
+                        }
+
+                        canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
+                            new PointF(xOffset + 520 - extraStarShift, yOffset + 10),
+                            new PointF(xOffset + 520 - extraStarShift, yOffset + 55)).Build());
+                        canvas.DrawText(new RichTextOptions(Fonts.Normal)
+                        {
+                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + 20),
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            VerticalAlignment = VerticalAlignment.Top
+                        }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
+                        canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
+                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
                             KnownResamplers.Bicubic);
                     }
-                    canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(new PointF(xOffset + 520, yOffset + 10),
-                        new PointF(xOffset + 520, yOffset + 55)).Build());
-                    canvas.DrawText(new RichTextOptions(Fonts.Normal)
-                    {
-                        Origin = new PointF(xOffset + 470, yOffset + 20),
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        VerticalAlignment = VerticalAlignment.Top
-                    }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
-                    canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                        new RectangleF(xOffset + 470, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
-                        KnownResamplers.Bicubic);
-                    if (floorNumber % 2 == 1) yOffset += 520;
+
+                    if (floorNumber % 2 == 1) yOffset += blobHeight + 20;
                 }
 
                 canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
@@ -276,8 +295,36 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
         });
     }
 
-    private static bool IsSmallBlob(FloorDetail? floor)
+    private void DrawNodeInformation(
+        DrawingCanvas canvas,
+        Point point,
+        NodeInformation? nodeData,
+        Dictionary<int, HsrAvatar> avatarImages)
     {
-        return floor == null || floor.IsFast;
+        using var region = canvas.CreateRegion(new Rectangle(point, new Size(650, 200)));
+
+        if (nodeData == null)
+        {
+            region.DrawText(new RichTextOptions(Fonts.Normal)
+            {
+                Origin = new PointF(325, 100),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }, "No Clear Record", Brushes.Solid(Color.White), null);
+            return;
+        }
+
+        RosterImageBuilder.Draw(
+            nodeData.Avatars.Select(x => avatarImages[x.Id]),
+            new RosterLayout(MaxSlots: 4),
+            new Point(10, 5),
+            (point, avatar) => avatar.DrawStyledAvatarImage(region, point));
+    }
+
+    private static int GetBlobHeight(FloorDetail? floor)
+    {
+        if (floor == null || floor.IsFast) return 180;
+        if (floor.IsTierce) return 730;
+        return 500;
     }
 }
