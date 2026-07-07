@@ -1,0 +1,750 @@
+﻿{
+  "schedule_id": 1032,
+  "begin_time": {
+    "year": 2026,
+    "month": 5,
+    "day": 25,
+    "hour": 4,
+    "minute": 0
+  },
+  "end_time": {
+    "year": 2026,
+    "month": 7,
+    "day": 6,
+    "hour": 4,
+    "minute": 0
+  },
+  "star_num": 36,
+  "max_floor": "Duty Action (XII)Starward Mode",
+  "battle_num": 3,
+  "has_data": true,
+  "max_floor_detail": null,
+  "all_floor_detail": [
+    {
+      "name": "Duty Action (XII)Starward Mode",
+      "round_num": 4,
+      "star_num": 3,
+      "extra_star_num": 1,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 10,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 10,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "node_3": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 10,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "maze_id": 5112,
+      "is_fast": false,
+      "is_chaos": true,
+      "is_tierce": true
+    },
+    {
+      "name": "Duty Action (XI)",
+      "round_num": 3,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 10,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 10,
+          "minute": 44
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "is_chaos": true,
+      "maze_id": 5111,
+      "is_fast": false,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (X)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 36
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 36
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "is_chaos": true,
+      "maze_id": 5110,
+      "is_fast": false,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (IX)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": [
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1308,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/e0f8a27fe8d3051531b29ada40244bb3.png",
+            "rarity": 5,
+            "element": "lightning",
+            "rank": 6
+          },
+          {
+            "id": 1301,
+            "level": 80,
+            "icon": "https://act-webstatic.hoyoverse.com/darkmatter/hkrpg/prod_gf_cn/item_icon_u732fd/426b6a8c84d009713b13b2c224c21666.png",
+            "rarity": 4,
+            "element": "fire",
+            "rank": 6
+          }
+        ]
+      },
+      "is_chaos": true,
+      "maze_id": 5109,
+      "is_fast": false,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (VIII)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5108,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (VII)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5107,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (VI)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5106,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (V)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5105,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (IV)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5104,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (III)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5103,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (II)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5102,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    },
+    {
+      "name": "Duty Action (I)",
+      "round_num": 0,
+      "star_num": 3,
+      "node_1": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "node_2": {
+        "challenge_time": {
+          "year": 2026,
+          "month": 5,
+          "day": 25,
+          "hour": 9,
+          "minute": 5
+        },
+        "avatars": []
+      },
+      "is_chaos": true,
+      "maze_id": 5101,
+      "is_fast": true,
+      "node_3": null,
+      "extra_star_num": 0,
+      "is_tierce": false
+    }
+  ],
+  "max_floor_id": 5111,
+  "groups": [
+    {
+      "schedule_id": 1033,
+      "begin_time": {
+        "year": 2026,
+        "month": 7,
+        "day": 6,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2026,
+        "month": 8,
+        "day": 17,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "New",
+      "name_mi18n": "Academy Ghost Story",
+      "upper_boss": null,
+      "lower_boss": null,
+      "tierce_boss": null
+    },
+    {
+      "schedule_id": 1032,
+      "begin_time": {
+        "year": 2026,
+        "month": 5,
+        "day": 25,
+        "hour": 4,
+        "minute": 0
+      },
+      "end_time": {
+        "year": 2026,
+        "month": 7,
+        "day": 6,
+        "hour": 4,
+        "minute": 0
+      },
+      "status": "End",
+      "name_mi18n": "Duty Action",
+      "upper_boss": null,
+      "lower_boss": null,
+      "tierce_boss": null
+    }
+  ],
+  "extra_star_num": 1
+}
