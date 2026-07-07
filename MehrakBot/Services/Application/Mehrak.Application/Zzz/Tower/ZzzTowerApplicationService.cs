@@ -88,7 +88,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 
         await Task.WhenAll(towerTask!, charTask!);
 
-        var towerResponse = towerTask.Result;
+        var towerResponse = towerTask!.Result;
         if (!towerResponse.IsSuccess)
         {
             if (towerResponse.StatusCode == StatusCode.Cancelled)
@@ -110,7 +110,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var characterResponse = charTask.Result;
+        var characterResponse = charTask!.Result;
 
         if (!characterResponse.IsSuccess)
         {

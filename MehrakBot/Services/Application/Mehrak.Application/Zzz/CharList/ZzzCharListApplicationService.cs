@@ -93,7 +93,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
         await Task.WhenAll(charTask!, buddyApiTask!);
 
-        var charResponse = charTask.Result;
+        var charResponse = charTask!.Result;
         if (!charResponse.IsSuccess)
         {
             if (charResponse.StatusCode == StatusCode.Cancelled)
@@ -109,7 +109,7 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
         _ = m_CharacterCacheService.UpsertCharacters(Game.ZenlessZoneZero,
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-        var buddyResponse = buddyApiTask.Result;
+        var buddyResponse = buddyApiTask!.Result;
         if (!buddyResponse.IsSuccess)
         {
             if (buddyResponse.StatusCode == StatusCode.Cancelled)
