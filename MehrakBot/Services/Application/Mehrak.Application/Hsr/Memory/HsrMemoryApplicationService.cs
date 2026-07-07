@@ -109,7 +109,8 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
                 true);
         }
 
-        var tasks = memoryData.AllFloorDetail!.SelectMany(x => x.Node1.Avatars.Concat(x.Node2.Avatars))
+        var tasks = memoryData.AllFloorDetail!
+            .SelectMany(x => (x.Node1?.Avatars ?? []).Concat(x.Node2?.Avatars ?? []).Concat(x.Node3?.Avatars ?? []))
             .DistinctBy(x => x.Id)
             .Select(x =>
                 m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));

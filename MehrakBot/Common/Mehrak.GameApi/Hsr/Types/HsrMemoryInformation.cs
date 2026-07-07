@@ -15,15 +15,19 @@ public class FloorDetail
 
     [JsonPropertyName("star_num")] public int StarNum { get; set; }
 
-    [JsonPropertyName("node_1")] public required NodeInformation Node1 { get; set; }
-
-    [JsonPropertyName("node_2")] public required NodeInformation Node2 { get; set; }
+    [JsonPropertyName("node_1")] public NodeInformation? Node1 { get; set; }
+    [JsonPropertyName("node_2")] public NodeInformation? Node2 { get; set; }
+    [JsonPropertyName("node_3")] public NodeInformation? Node3 { get; set; }
 
     [JsonPropertyName("is_chaos")] public bool IsChaos { get; set; }
 
     [JsonPropertyName("maze_id")] public int MazeId { get; set; }
 
     [JsonPropertyName("is_fast")] public bool IsFast { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
+
+    [JsonPropertyName("is_tierce")] public bool IsTierce { get; set; }
 }
 
 public class HsrMemoryInformation
@@ -49,6 +53,8 @@ public class HsrMemoryInformation
     [JsonPropertyName("max_floor_id")] public int MaxFloorId { get; set; }
 
     [JsonPropertyName("groups")] public required List<HsrEndGroup> Groups { get; set; }
+
+    [JsonPropertyName("extra_star_num")] public int ExtraStarNum { get; set; }
 }
 
 public class NodeInformation
