@@ -28,7 +28,6 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Anomaly Arbitration";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Anomaly Arbitration";
     public HsrAnomalyApplicationService(
         ICardService<HsrAnomalyInformation> cardService,
@@ -50,8 +49,18 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken,
-            Game.HonkaiStarRail, region, cancellationToken);
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+            region, cancellationToken);
+
+        Task<Result<HsrAnomalyInformation>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -62,11 +71,16 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
         var gameUid = profile.GameUid;
-        var anomalyResult =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
+
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
+
+        var anomalyResult = await primaryTask!;
         if (!anomalyResult.IsSuccess)
         {
             if (anomalyResult.StatusCode == StatusCode.Cancelled)

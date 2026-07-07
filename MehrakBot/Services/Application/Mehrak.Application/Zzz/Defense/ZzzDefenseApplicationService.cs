@@ -32,7 +32,6 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Defense";
     protected override string CardName => "Shiyu Defense";
-    protected override bool RequiresLevel => true;
     public ZzzDefenseApplicationService(
         ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -53,8 +52,18 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
+
+        Task<Result<ZzzDefenseDataV2>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -68,9 +77,14 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
         var gameUid = profile.GameUid;
 
-        var defenseResponse =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
+
+        var defenseResponse = await primaryTask!;
 
         if (!defenseResponse.IsSuccess)
         {

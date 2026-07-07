@@ -55,7 +55,6 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "HSR Character";
-    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public HsrCharacterApplicationService(
         ICardService<HsrCharacterInformation> cardService,
@@ -102,8 +101,18 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
+
+        Task<Result<IEnumerable<HsrBasicCharacterData>>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -114,12 +123,16 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
         var gameUid = profile.GameUid;
 
-        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
 
+        var charResponse = await primaryTask!;
         if (!charResponse.IsSuccess)
         {
             if (charResponse.StatusCode == StatusCode.Cancelled)

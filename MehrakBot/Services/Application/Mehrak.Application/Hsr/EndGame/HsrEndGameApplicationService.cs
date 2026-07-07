@@ -30,7 +30,6 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     protected override string CommandName => "End Game";
-    protected override bool RequiresLevel => true;
     protected override string CardName => Mode switch
     {
         HsrEndGameMode.PureFiction => "Pure Fiction",
@@ -63,8 +62,19 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
+
+        Task<Result<HsrEndInformation>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region,
+                    mode), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -76,9 +86,15 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        var challengeResponse = await m_ApiService.GetAsync(
-            new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
-                mode), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
+                    mode), cancellationToken);
+        }
+
+        var challengeResponse = await primaryTask!;
         if (!challengeResponse.IsSuccess)
         {
             if (challengeResponse.StatusCode == StatusCode.Cancelled)

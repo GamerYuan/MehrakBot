@@ -56,7 +56,6 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
 
     protected override string CommandName => "Genshin Character";
-    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -106,8 +105,10 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 isEphemeral: true);
         }
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -120,6 +121,11 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var profile = profileResult.Data;
 
         var gameUid = profile.GameUid;
+
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, profile.GameUid, profile.Level, cancellationToken);
+        }
 
         var charListResponse = await
             m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,

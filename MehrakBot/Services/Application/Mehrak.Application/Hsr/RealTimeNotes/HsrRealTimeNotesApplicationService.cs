@@ -23,7 +23,6 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Notes";
-    protected override bool RequiresLevel => false;
 
     public HsrRealTimeNotesApplicationService(
         IApiService<HsrRealTimeNotesData, BaseHoYoApiContext> apiService,
@@ -40,8 +39,18 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
             region, cancellationToken);
+
+        Task<Result<HsrRealTimeNotesData>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -52,12 +61,16 @@ internal class HsrRealTimeNotesApplicationService : BaseApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
         var gameUid = profile.GameUid;
 
-        var notesResult = await m_ApiService.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiStarRail, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
 
+        var notesResult = await primaryTask!;
         if (!notesResult.IsSuccess)
         {
             if (notesResult.StatusCode == StatusCode.Cancelled)

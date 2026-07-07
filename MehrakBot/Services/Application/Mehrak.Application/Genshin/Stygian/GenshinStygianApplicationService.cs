@@ -30,7 +30,6 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Stygian";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Stygian Onslaught";
     public GenshinStygianApplicationService(
         IImageUpdaterService imageUpdaterService,
@@ -52,8 +51,17 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+
+        Task<Result<GenshinStygianInformation>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+                cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -67,9 +75,14 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 
         var gameUid = profile.GameUid;
 
-        var stygianInfo =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
                 gameUid, region), cancellationToken);
+        }
+
+        var stygianInfo = await primaryTask!;
         if (!stygianInfo.IsSuccess)
         {
             if (stygianInfo.StatusCode == StatusCode.Cancelled)

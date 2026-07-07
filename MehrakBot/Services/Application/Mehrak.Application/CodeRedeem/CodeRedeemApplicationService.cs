@@ -29,7 +29,6 @@ public class CodeRedeemApplicationService : BaseApplicationService
     private readonly int m_RedeemDelay = 5500;
 
     protected override string CommandName => "Codes";
-    protected override bool RequiresLevel => false;
 
     public CodeRedeemApplicationService(
         CodeRedeemDbContext codeContext,
@@ -49,8 +48,9 @@ public class CodeRedeemApplicationService : BaseApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion(game);
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, game, region, cancellationToken);
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, game, region, cancellationToken);
+        var profileResult = await FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, game,
+            region, cancellationToken);
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -61,8 +61,12 @@ public class CodeRedeemApplicationService : BaseApplicationService
             return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
         }
         var profile = profileResult.Data;
-
         var gameUid = profile.GameUid;
+
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, game, region, gameUid, profile.Level, cancellationToken);
+        }
 
         var codeStr = context.GetParameter("code");
 

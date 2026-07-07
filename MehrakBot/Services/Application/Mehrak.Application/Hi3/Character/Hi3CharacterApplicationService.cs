@@ -35,7 +35,6 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "HI3 Character";
     protected override string CardName => "Character";
-    protected override bool RequiresLevel => false;
     public Hi3CharacterApplicationService(
         ICardService<Hi3CharacterDetail> cardService,
         ICharacterApiService<Hi3CharacterDetail, Hi3CharacterDetail, CharacterApiContext> characterApi,
@@ -68,8 +67,18 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Hi3Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiImpact3,
             region, cancellationToken);
+
+        Task<Result<IEnumerable<Hi3CharacterDetail>>>? charTask = null;
+        if (cachedGameUid != null)
+        {
+            charTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -81,23 +90,27 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        var gameUid = profile.GameUid;
-
-        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
-
-        if (!charResponse.IsSuccess)
+        if (cachedGameUid == null)
         {
-            if (charResponse.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
-            if (charResponse.StatusCode == StatusCode.Timeout)
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.HonkaiImpact3, region, profile.GameUid, profile.Level, cancellationToken);
+            charTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
+
+        var charResult = await charTask!;
+
+        if (!charResult.IsSuccess)
+        {
+            if (charResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charResult.ErrorMessage ?? "Cancelled");
+            if (charResult.StatusCode == StatusCode.Timeout)
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
+            Logger.LogError(LogMessage.ApiError, "Character", context.UserId, profile.GameUid, charResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character data"));
         }
 
-        var characterList = charResponse.Data.ToList();
+        var characterList = charResult.Data.ToList();
         _ = m_CharacterCacheService.UpsertCharacters(Game.HonkaiImpact3,
             characterList.SelectMany(x => x.Costumes.Select(c =>
                 new CharacterUpsertEntry(x.Avatar.Name, c.Id))));
@@ -112,7 +125,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
                 (characterInfo = characterList.FirstOrDefault(x =>
                     x.Avatar.Name.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
             {
-                Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
+                Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, profile.GameUid);
                 return CommandResult.Success([
                     new CommandText(
                             string.Format(ResponseMessage.CharacterNotFound, characterName))

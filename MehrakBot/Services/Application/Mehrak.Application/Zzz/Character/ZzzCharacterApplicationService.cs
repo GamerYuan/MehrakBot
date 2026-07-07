@@ -44,7 +44,6 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "ZZZ Character";
     protected override string CardName => "Character";
-    protected override bool RequiresLevel => false;
     public ZzzCharacterApplicationService(
         ICardService<ZzzFullAvatarData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -83,8 +82,18 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
+
+        Task<Result<IEnumerable<ZzzBasicAvatarData>>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -98,8 +107,14 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         var gameUid = profile.GameUid;
 
-        var charResponse = await m_CharacterApi.GetAllCharactersAsync(
-            new CharacterApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.ZenlessZoneZero, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
+
+        var charResponse = await primaryTask!;
 
         if (!charResponse.IsSuccess)
         {

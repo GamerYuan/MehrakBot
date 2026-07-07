@@ -35,7 +35,6 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     protected override string CommandName => "Abyss";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Spiral Abyss";
 
     public GenshinAbyssApplicationService(
@@ -61,8 +60,18 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
             region, cancellationToken);
+
+        Task<Result<GenshinAbyssInformation>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -74,9 +83,14 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         }
         var profile = profileResult.Data;
 
-        var abyssInfo = await m_ApiService.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                region), cancellationToken);
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
+
+        var abyssInfo = await primaryTask!;
         if (!abyssInfo.IsSuccess)
         {
             if (abyssInfo.StatusCode == StatusCode.Cancelled)

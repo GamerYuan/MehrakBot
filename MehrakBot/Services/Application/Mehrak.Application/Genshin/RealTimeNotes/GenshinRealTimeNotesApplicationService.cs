@@ -23,7 +23,6 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
     private readonly IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Genshin Notes";
-    protected override bool RequiresLevel => false;
 
     public GenshinRealTimeNotesApplicationService(
         IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext> apiService,
@@ -40,8 +39,17 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+        var cachedGameUid = await GetCachedGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, cancellationToken);
+        var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
+
+        Task<Result<GenshinRealTimeNotesData>>? primaryTask = null;
+        if (cachedGameUid != null)
+        {
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, cachedGameUid, region), cancellationToken);
+        }
+
+        var profileResult = await profileTask;
         if (!profileResult.IsSuccess)
         {
             if (profileResult.StatusCode == StatusCode.Cancelled)
@@ -53,10 +61,14 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
         }
         var profile = profileResult.Data;
 
-        var gameUid = profile.GameUid;
+        if (cachedGameUid == null)
+        {
+            await SaveGameUidAsync(context.UserId, context.LtUid, Game.Genshin, region, profile.GameUid, profile.Level, cancellationToken);
+            primaryTask = m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region), cancellationToken);
+        }
 
-        var notesResult = await m_ApiService.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region), cancellationToken);
+        var notesResult = await primaryTask!;
 
         if (!notesResult.IsSuccess)
         {
@@ -64,12 +76,12 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
                 throw new OperationCanceledException(notesResult.ErrorMessage ?? "Cancelled");
             if (notesResult.StatusCode == StatusCode.Timeout)
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
+            Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, profile.GameUid, notesResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
         }
 
-        return await BuildRealTimeNotes(notesResult.Data, server, gameUid);
+        return await BuildRealTimeNotes(notesResult.Data, server, profile.GameUid);
 
     }
 
