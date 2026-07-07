@@ -16,6 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.9" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="OpenIddict.Client" Version="7.5.0" />
     <PackageReference Include="OpenIddict.Client.AspNetCore" Version="7.5.0" />
     <PackageReference Include="OpenIddict.Client.WebIntegration" Version="7.5.0" />
@@ -41,12 +42,12 @@
     <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-        <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
-        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
-        <ProjectReference Include="../../Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
+    <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
+    <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+    <ProjectReference Include="../../Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="appsettings.json" Condition="Exists('appsettings.json')">
