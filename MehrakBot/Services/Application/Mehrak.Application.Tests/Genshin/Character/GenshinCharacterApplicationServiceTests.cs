@@ -875,6 +875,94 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ProfileApiTimeout_ReturnsTimeoutError()
+    {
+        // Arrange
+        var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Timeout, "timed out"));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.Timeout));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AlwaysFetchesProfileAndUsesCachedUid_WhenGameUidCached()
+    {
+        // Arrange
+        var (service, characterApiMock, characterCacheMock, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, userContext, _, _) = SetupMocks();
+
+        const string cachedUid = "777777777";
+        const string apiUid = "800000000";
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(new GameProfileDto
+            {
+                GameUid = apiUid,
+                Nickname = "TestPlayer",
+                Level = 60
+            }));
+
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.Genshin,
+            Region = Server.Asia.ToString(),
+            GameUid = cachedUid
+        });
+        await userContext.SaveChangesAsync();
+
+        var charList = CreateTestCharacterList();
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>())).ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            // Intended behavior: the GameRole profile API is always called, even when the GameUid is cached.
+            gameRoleApiMock.Verify(x => x.GetAsync(It.IsAny<GameRoleApiContext>()), Times.Once);
+            // The cached GameUid is used to start the primary call in parallel with the profile fetch.
+            characterApiMock.Verify(x => x.GetAllCharactersAsync(
+                It.Is<GenshinCharacterApiContext>(c => c.GameUid == cachedUid)), Times.Once);
+            // GameUid is not re-saved when it is already cached.
+            Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+        }
+
+        characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_WikiFallback_WhenCnFails_UsesAlternateLocale()
     {
         var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,

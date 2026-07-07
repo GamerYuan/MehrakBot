@@ -509,6 +509,91 @@ public class GenshinCharListApplicationServiceTests
         Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
     }
 
+    [Test]
+    public async Task ExecuteAsync_ProfileApiTimeout_ReturnsTimeoutError()
+    {
+        // Arrange
+        var (service, _, _, gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Failure(StatusCode.Timeout, "timed out"));
+
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.Timeout));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AlwaysFetchesProfileAndUsesCachedUid_WhenGameUidCached()
+    {
+        // Arrange
+        var (service, characterApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, imageRepositoryMock,
+            _, attachmentStorageMock, userContext) = SetupMocks();
+
+        const string cachedUid = "777777777";
+        const string apiUid = "800000000";
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(new GameProfileDto
+            {
+                GameUid = apiUid,
+                Nickname = "TestPlayer",
+                Level = 60
+            }));
+
+        var seededProfile = SeedUserProfile(userContext, 1ul, 1, 1ul);
+        userContext.GameUids.Add(new ProfileGameUid
+        {
+            ProfileId = seededProfile.Id,
+            Game = Game.Genshin,
+            Region = Server.Asia.ToString(),
+            GameUid = cachedUid
+        });
+        await userContext.SaveChangesAsync();
+
+        var charList = await LoadTestDataAsync<CharacterListData>("CharList_TestData_1.json");
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList.List!));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>())).ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            // Intended behavior: the GameRole profile API is always called, even when the GameUid is cached.
+            gameRoleApiMock.Verify(x => x.GetAsync(It.IsAny<GameRoleApiContext>()), Times.Once);
+            // The cached GameUid is used to start the primary call in parallel with the profile fetch.
+            characterApiMock.Verify(x => x.GetAllCharactersAsync(
+                It.Is<GenshinCharacterApiContext>(c => c.GameUid == cachedUid)), Times.Once);
+            // GameUid is not re-saved when it is already cached.
+            Assert.That(await userContext.GameUids.CountAsync(), Is.EqualTo(1));
+        }
+
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
 
     #region Integration Tests
