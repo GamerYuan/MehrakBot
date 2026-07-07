@@ -45,7 +45,6 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Assault";
     protected override string CardName => "Deadly Assault";
-    protected override bool RequiresLevel => true;
     public ZzzAssaultApplicationService(
         ICardService<ZzzAssaultData> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -66,24 +65,13 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, assaultResponse) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero, region,
+            uid => m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
-
-        var assaultResponse =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
 
         if (!assaultResponse.IsSuccess)
         {

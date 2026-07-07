@@ -30,7 +30,6 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "Memory of Chaos";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Memory of Chaos";
     public HsrMemoryApplicationService(
         ICardService<HsrMemoryInformation> cardService,
@@ -52,23 +51,13 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken,
-            Game.HonkaiStarRail, region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, memoryResult) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region,
+            uid => m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
-        var memoryResult =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
         if (!memoryResult.IsSuccess)
         {
             if (memoryResult.StatusCode == StatusCode.Cancelled)

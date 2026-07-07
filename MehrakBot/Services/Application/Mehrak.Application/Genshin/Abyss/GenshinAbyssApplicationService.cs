@@ -35,7 +35,6 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
     protected override string CommandName => "Abyss";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Spiral Abyss";
 
     public GenshinAbyssApplicationService(
@@ -61,35 +60,25 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin,
-            region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, abyssResult) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.Genshin, region,
+            uid => m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
-        var abyssInfo = await m_ApiService.GetAsync(
-            new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                region), cancellationToken);
-        if (!abyssInfo.IsSuccess)
+        if (!abyssResult.IsSuccess)
         {
-            if (abyssInfo.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(abyssInfo.ErrorMessage ?? "Cancelled");
-            if (abyssInfo.StatusCode == StatusCode.Timeout)
+            if (abyssResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(abyssResult.ErrorMessage ?? "Cancelled");
+            if (abyssResult.StatusCode == StatusCode.Timeout)
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError,
-                "Abyss Data", context.UserId, profile.GameUid, abyssInfo);
+                "Abyss Data", context.UserId, profile.GameUid, abyssResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Spiral Abyss data"));
         }
 
-        var abyssData = abyssInfo.Data;
+        var abyssData = abyssResult.Data;
         var floorData = abyssData.Floors!.FirstOrDefault(x => x.Index == floor);
 
         if (floorData == null)

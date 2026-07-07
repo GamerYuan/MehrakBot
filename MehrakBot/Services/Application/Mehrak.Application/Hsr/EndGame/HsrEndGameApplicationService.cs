@@ -30,7 +30,6 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
     private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
 
     protected override string CommandName => "End Game";
-    protected override bool RequiresLevel => true;
     protected override string CardName => Mode switch
     {
         HsrEndGameMode.PureFiction => "Pure Fiction",
@@ -63,22 +62,12 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
-
-        var challengeResponse = await m_ApiService.GetAsync(
-            new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid, region,
-                mode), cancellationToken);
+        var (profile, challengeResponse) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region,
+            uid => m_ApiService.GetAsync(
+                new HsrEndGameApiContext(context.UserId, context.LtUid, context.LToken, uid, region,
+                    mode), cancellationToken),
+            cancellationToken);
         if (!challengeResponse.IsSuccess)
         {
             if (challengeResponse.StatusCode == StatusCode.Cancelled)

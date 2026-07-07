@@ -34,7 +34,6 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
 
 
     protected override string CommandName => "CharList";
-    protected override bool RequiresLevel => true;
     protected override string CardName => "Character List";
     public HsrCharListApplicationService(
         ICardService<IEnumerable<HsrCharacterInformation>> cardService,
@@ -58,25 +57,13 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail,
-            region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, charResponse) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.HonkaiStarRail, region,
+            uid => m_CharacterApi.GetAllCharactersAsync(
+                new CharacterApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
-
-        var charResponse = await
-            m_CharacterApi.GetAllCharactersAsync(new CharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region), cancellationToken);
-
         if (!charResponse.IsSuccess)
         {
             if (charResponse.StatusCode == StatusCode.Cancelled)

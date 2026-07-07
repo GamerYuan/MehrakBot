@@ -32,7 +32,6 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 
     protected override string CommandName => "Defense";
     protected override string CardName => "Shiyu Defense";
-    protected override bool RequiresLevel => true;
     public ZzzDefenseApplicationService(
         ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
@@ -53,24 +52,13 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var region = server.ToRegion();
 
-        var profileResult = await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
-            region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, defenseResponse) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero, region,
+            uid => m_ApiService.GetAsync(
+                new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
-
-        var defenseResponse =
-            await m_ApiService.GetAsync(new BaseHoYoApiContext(context.UserId, context.LtUid, context.LToken,
-                gameUid, region), cancellationToken);
 
         if (!defenseResponse.IsSuccess)
         {

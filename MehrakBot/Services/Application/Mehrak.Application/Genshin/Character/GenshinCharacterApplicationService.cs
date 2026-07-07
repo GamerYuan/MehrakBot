@@ -56,7 +56,6 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
 
     protected override string CommandName => "Genshin Character";
-    protected override bool RequiresLevel => false;
     protected override string CardName => "Character";
     public GenshinCharacterApplicationService(
         ICardService<GenshinCharacterInformation> cardService,
@@ -106,37 +105,27 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                 isEphemeral: true);
         }
 
-        var profileResult =
-            await GetOrFetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.Genshin, region, cancellationToken);
-        if (!profileResult.IsSuccess)
-        {
-            if (profileResult.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
-            if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-            Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
-        }
-        var profile = profileResult.Data;
+        var (profile, charListResult) = await FetchProfileAndPrimaryAsync(
+            context.UserId, context.LtUid, context.LToken, Game.Genshin, region,
+            uid => m_CharacterApi.GetAllCharactersAsync(
+                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, uid, region), cancellationToken),
+            cancellationToken);
 
         var gameUid = profile.GameUid;
 
-        var charListResponse = await
-            m_CharacterApi.GetAllCharactersAsync(new GenshinCharacterApiContext(context.UserId, context.LtUid,
-                context.LToken, gameUid, region), cancellationToken);
-        if (!charListResponse.IsSuccess)
+        if (!charListResult.IsSuccess)
         {
-            if (charListResponse.StatusCode == StatusCode.Cancelled)
-                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
-            if (charListResponse.StatusCode == StatusCode.Timeout)
+            if (charListResult.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResult.ErrorMessage ?? "Cancelled");
+            if (charListResult.StatusCode == StatusCode.Timeout)
                 return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid,
-                charListResponse);
+                charListResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
                 string.Format(ResponseMessage.ApiError, "Character List"));
         }
 
-        var characters = charListResponse.Data;
+        var characters = charListResult.Data;
         _ = m_CharacterCacheService.UpsertCharacters(Game.Genshin,
             characters.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
