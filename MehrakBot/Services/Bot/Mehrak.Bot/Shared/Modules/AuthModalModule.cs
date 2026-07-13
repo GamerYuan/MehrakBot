@@ -260,6 +260,40 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
+            // Invalidate cached game profiles so validation actually tests the new cookie
+            await m_GameRoleApi.InvalidateGameProfileCacheAsync(Context.User.Id, profile.LtUid);
+
+            // Validate the new cookie against HoYoLAB before saving
+            var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
+                Context.User.Id, profile.LtUid, inputs["ltoken"]);
+
+            if (!gameProfilesResult.IsSuccess)
+            {
+                if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
+                {
+                    m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid} during update", Context.User.Id, profile.LtUid);
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                    return;
+                }
+
+                m_Logger.LogWarning("Failed to validate profile for user {UserId} during update: {Error}", Context.User.Id, gameProfilesResult.ErrorMessage);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Failed to validate profile. Please try again later.")));
+                return;
+            }
+
+            if (gameProfilesResult.Data.Count == 0)
+            {
+                m_Logger.LogWarning("No supported game profiles found for user {UserId}, UID {LtUid} during update", Context.User.Id, profile.LtUid);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("No supported game profiles were found for this HoYoLAB account.")));
+                return;
+            }
+
             var newLToken = await Task.Run(() => m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]));
 
             try

@@ -253,6 +253,13 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         }
     }
 
+    public async Task InvalidateGameProfileCacheAsync(ulong userId, ulong ltuid,
+        CancellationToken cancellationToken = default)
+    {
+        var cacheKey = $"gameProfile:{userId}:{ltuid}";
+        await m_CacheService.RemoveAsync(cacheKey, cancellationToken);
+    }
+
     private List<GameRoleInfo> TryDeserializeAll(string cachedData)
     {
         try
