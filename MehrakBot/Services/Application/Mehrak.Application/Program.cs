@@ -5,6 +5,7 @@ using Mehrak.Application.Shared.Services;
 using Mehrak.GameApi;
 using Mehrak.Infrastructure;
 using Mehrak.Infrastructure.Shared.Config;
+using Mehrak.Infrastructure.Shared.Storage;
 using Mehrak.ServiceDefaults;
 using Proto = Mehrak.Domain.Protobuf;
 
@@ -47,7 +48,9 @@ public class Program
         // Add services to the container.
         builder.Services.AddGrpc();
         builder.Services.AddGameApiServices();
+        builder.Services.Configure<AttachmentStorageConfig>(builder.Configuration.GetSection("AttachmentStorage"));
         builder.Services.AddInfrastructureServices();
+        builder.Services.AddHostedService<AttachmentExpirationBackgroundService>();
         builder.Services.AddApplicationServices();
 
         builder.Services.AddGrpcClient<Proto.ImageProcessorService.ImageProcessorServiceClient>(options =>

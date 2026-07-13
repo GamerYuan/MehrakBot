@@ -83,6 +83,7 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<IImageRepository, ImageRepository>();
 
         services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
+        services.AddHostedService<AttachmentStorageInitializer>();
 
         services.AddSingleton<ICacheService, RedisCacheService>();
 
