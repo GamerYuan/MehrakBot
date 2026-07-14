@@ -218,6 +218,29 @@ public sealed class ProfileController : ControllerBase
         if (profile == null)
             return NotFound(new { error = $"No profile with ID {profileId} found." });
 
+        // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
+        var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
+            discordUserId, (ulong)profile.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
+
+        if (!gameProfilesResult.IsSuccess)
+        {
+            if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
+            {
+                m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid} during update", discordUserId, profile.LtUid);
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+            }
+
+            m_Logger.LogWarning("Failed to validate profile for user {UserId} during update: {Error}", discordUserId, gameProfilesResult.ErrorMessage);
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "Failed to validate profile with HoYoLAB. Please try again later." });
+        }
+
+        if (gameProfilesResult.Data.Count == 0)
+        {
+            m_Logger.LogWarning("No supported game profiles found for user {UserId}, LtUid {LtUid} during update", discordUserId, profile.LtUid);
+            return BadRequest(new { error = "No supported game profiles were found for this HoYoLAB account." });
+        }
+
         var newLToken = await Task.Run(
             () => m_EncryptionService.Encrypt(request.LToken, request.Passphrase),
             HttpContext.RequestAborted);
