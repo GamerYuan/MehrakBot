@@ -75,18 +75,19 @@ public class AttachmentExpirationBackgroundService : BackgroundService
 
             // In this SDK, both object versions and delete markers are returned in Versions,
             // distinguished by IsDeleteMarker. Find the IsLatest entry per key.
-            var latestByKey = new Dictionary<string, (bool IsDeleteMarker, DateTime LastModified)>();
+            var latestByKey = new Dictionary<string, (bool IsDeleteMarker, DateTime LastModified, string? VersionId)>();
             foreach (var v in response.Versions ?? Enumerable.Empty<S3ObjectVersion>())
             {
                 if (v.IsLatest != true)
                     continue;
 
-                latestByKey[v.Key] = (v.IsDeleteMarker == true, v.LastModified ?? DateTime.MinValue);
+                // ponytail: pin to the listed version so a concurrent re-upload can't be tombstoned
+                latestByKey[v.Key] = (v.IsDeleteMarker == true, v.LastModified ?? DateTime.MinValue, v.VersionId);
             }
 
             foreach (var kvp in latestByKey)
             {
-                var (isDeleteMarker, lastModified) = kvp.Value;
+                var (isDeleteMarker, lastModified, versionId) = kvp.Value;
                 if (isDeleteMarker)
                     continue; // already tombstoned -> idempotent skip
 
@@ -94,9 +95,12 @@ public class AttachmentExpirationBackgroundService : BackgroundService
                 {
                     try
                     {
-                        // DeleteObject without a VersionId under versioning creates a delete marker (tombstone)
+                        // Delete the specific expired version. Pinning VersionId avoids tombstoning a
+                        // newer version that may have been uploaded after listing; once the current
+                        // version is removed GET returns 404, and old noncurrent versions are purged
+                        // by the lifecycle rule.
                         await m_S3.DeleteObjectAsync(
-                            new DeleteObjectRequest { BucketName = bucket, Key = kvp.Key },
+                            new DeleteObjectRequest { BucketName = bucket, Key = kvp.Key, VersionId = versionId },
                             cancellationToken).ConfigureAwait(false);
                         tombstoned++;
                     }

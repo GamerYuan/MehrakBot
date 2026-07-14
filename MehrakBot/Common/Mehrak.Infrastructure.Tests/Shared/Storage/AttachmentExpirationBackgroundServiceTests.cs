@@ -64,7 +64,7 @@ internal sealed class AttachmentExpirationBackgroundServiceTests
 
         m_S3.Verify(
             x => x.DeleteObjectAsync(
-                It.Is<DeleteObjectRequest>(r => r.BucketName == "test-bucket" && r.Key == "expired.png"),
+                It.Is<DeleteObjectRequest>(r => r.BucketName == "test-bucket" && r.Key == "expired.png" && r.VersionId == "expired.png-v1"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         m_S3.Verify(

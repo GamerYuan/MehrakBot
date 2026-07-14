@@ -37,9 +37,10 @@ public class AttachmentStorageInitializer : IHostedService
             {
                 await m_S3.PutBucketAsync(new PutBucketRequest { BucketName = bucket }, cancellationToken).ConfigureAwait(false);
             }
-            catch (AmazonS3Exception)
+            catch (AmazonS3Exception ex)
             {
                 // Bucket already exists (or backend auto-creates) -> proceed with versioning/lifecycle
+                m_Logger.LogDebug(ex, "PutBucket for {Bucket} failed; may already exist or be auto-created", bucket);
             }
 
             // 2. Enable versioning (DELETE creates soft-delete tombstones; PUT creates new active versions)
@@ -53,9 +54,10 @@ public class AttachmentStorageInitializer : IHostedService
                     },
                     cancellationToken).ConfigureAwait(false);
             }
-            catch (AmazonS3Exception)
+            catch (AmazonS3Exception ex)
             {
                 // Ignore if versioning is already configured
+                m_Logger.LogDebug(ex, "PutBucketVersioning for {Bucket} failed; versioning may already be enabled", bucket);
             }
 
             // 3. Apply lifecycle rules (hard purge of old data + orphan tombstones, >= 1 day granularity)
