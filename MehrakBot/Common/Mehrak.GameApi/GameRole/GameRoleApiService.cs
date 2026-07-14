@@ -203,7 +203,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
     }
 
     public async Task<Result<List<GameRoleInfo>>> GetAllGameProfilesAsync(ulong userId, ulong ltuid, string ltoken,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool bypassCache = false)
     {
         try
         {
@@ -212,12 +212,15 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             var cacheKey = $"gameProfile:{userId}:{ltuid}";
 
-            var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
-            if (!string.IsNullOrEmpty(cachedData))
+            if (!bypassCache)
             {
-                var profiles = TryDeserializeAll(cachedData);
-                if (profiles.Count > 0)
-                    return Result<List<GameRoleInfo>>.Success(profiles);
+                var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    var profiles = TryDeserializeAll(cachedData);
+                    if (profiles.Count > 0)
+                        return Result<List<GameRoleInfo>>.Success(profiles);
+                }
             }
 
             var semaphore = GetOrCreateLock(cacheKey);
@@ -225,12 +228,15 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
 
             try
             {
-                cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
-                if (!string.IsNullOrEmpty(cachedData))
+                if (!bypassCache)
                 {
-                    var profiles = TryDeserializeAll(cachedData);
-                    if (profiles.Count > 0)
-                        return Result<List<GameRoleInfo>>.Success(profiles);
+                    var cachedData = await m_CacheService.GetAsync<string>(cacheKey, timeoutCts.Token);
+                    if (!string.IsNullOrEmpty(cachedData))
+                    {
+                        var profiles = TryDeserializeAll(cachedData);
+                        if (profiles.Count > 0)
+                            return Result<List<GameRoleInfo>>.Success(profiles);
+                    }
                 }
 
                 return await FetchAndCacheAllGameRolesAsync(cacheKey, userId, ltuid, ltoken, timeoutCts.Token);
@@ -251,13 +257,6 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             return Result<List<GameRoleInfo>>.Failure(StatusCode.BotError,
                 "An error occurred while processing the request");
         }
-    }
-
-    public async Task InvalidateGameProfileCacheAsync(ulong userId, ulong ltuid,
-        CancellationToken cancellationToken = default)
-    {
-        var cacheKey = $"gameProfile:{userId}:{ltuid}";
-        await m_CacheService.RemoveAsync(cacheKey, cancellationToken);
     }
 
     private List<GameRoleInfo> TryDeserializeAll(string cachedData)

@@ -260,12 +260,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            // Invalidate cached game profiles so validation actually tests the new cookie
-            await m_GameRoleApi.InvalidateGameProfileCacheAsync(Context.User.Id, profile.LtUid);
-
-            // Validate the new cookie against HoYoLAB before saving
+            // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, profile.LtUid, inputs["ltoken"]);
+                Context.User.Id, profile.LtUid, inputs["ltoken"], bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {

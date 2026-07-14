@@ -218,12 +218,9 @@ public sealed class ProfileController : ControllerBase
         if (profile == null)
             return NotFound(new { error = $"No profile with ID {profileId} found." });
 
-        // Invalidate cached game profiles so validation actually tests the new cookie
-        await m_GameRoleApi.InvalidateGameProfileCacheAsync(discordUserId, (ulong)profile.LtUid);
-
-        // Validate the new cookie against HoYoLAB before saving
+        // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-            discordUserId, (ulong)profile.LtUid, request.LToken, HttpContext.RequestAborted);
+            discordUserId, (ulong)profile.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
 
         if (!gameProfilesResult.IsSuccess)
         {
