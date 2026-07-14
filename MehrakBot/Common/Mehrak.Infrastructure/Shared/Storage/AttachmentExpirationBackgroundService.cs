@@ -76,7 +76,7 @@ public class AttachmentExpirationBackgroundService : BackgroundService
             // In this SDK, both object versions and delete markers are returned in Versions,
             // distinguished by IsDeleteMarker. Find the IsLatest entry per key.
             var latestByKey = new Dictionary<string, (bool IsDeleteMarker, DateTime LastModified)>();
-            foreach (var v in response.Versions)
+            foreach (var v in response.Versions ?? Enumerable.Empty<S3ObjectVersion>())
             {
                 if (v.IsLatest != true)
                     continue;

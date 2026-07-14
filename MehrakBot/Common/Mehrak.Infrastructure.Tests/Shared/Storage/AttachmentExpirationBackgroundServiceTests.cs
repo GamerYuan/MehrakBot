@@ -106,4 +106,24 @@ internal sealed class AttachmentExpirationBackgroundServiceTests
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Test]
+    public async Task ScanAsync_HandlesNullVersionsCollection_WithoutThrowing()
+    {
+        var response = new ListVersionsResponse
+        {
+            Versions = null,
+            IsTruncated = false
+        };
+
+        m_S3.Setup(x => x.ListVersionsAsync(It.IsAny<ListVersionsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        var service = CreateService();
+        await service.ScanAsync(CancellationToken.None);
+
+        m_S3.Verify(
+            x => x.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }

@@ -18,7 +18,9 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
     public AttachmentStorageService(IAmazonS3 s3, IOptions<AttachmentStorageConfig> attachmentConfig, ILogger<AttachmentStorageService> logger)
     {
         m_S3 = s3;
-        m_Bucket = attachmentConfig.Value.Bucket ?? throw new ArgumentNullException("AttachmentStorage:Bucket");
+        m_Bucket = attachmentConfig.Value.Bucket;
+        if (string.IsNullOrEmpty(m_Bucket))
+            throw new InvalidOperationException("AttachmentStorage:Bucket is not configured");
         m_Logger = logger;
     }
 
