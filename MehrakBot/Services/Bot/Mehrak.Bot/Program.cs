@@ -60,6 +60,7 @@ public class Program
                 options.ConnectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? options.ConnectionString);
             builder.Services.Configure<ClickhouseConfig>(builder.Configuration.GetSection("Clickhouse"));
             builder.Services.Configure<RateLimiterConfig>(builder.Configuration.GetSection("RateLimit"));
+            builder.Services.Configure<AttachmentStorageConfig>(builder.Configuration.GetSection("AttachmentStorage"));
 
             builder.Services.AddInfrastructureServices();
             builder.Services.AddBotServices();
