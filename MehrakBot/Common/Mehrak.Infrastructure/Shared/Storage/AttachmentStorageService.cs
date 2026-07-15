@@ -1,8 +1,11 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Shared.Services;
-using Microsoft.Extensions.Configuration;
+using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.IO;
+using System.Net.Http;
 
 namespace Mehrak.Infrastructure.Shared.Storage;
 
@@ -12,10 +15,12 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
     private readonly string m_Bucket;
     private readonly ILogger<AttachmentStorageService> m_Logger;
 
-    public AttachmentStorageService(IAmazonS3 s3, IConfiguration config, ILogger<AttachmentStorageService> logger)
+    public AttachmentStorageService(IAmazonS3 s3, IOptions<AttachmentStorageConfig> attachmentConfig, ILogger<AttachmentStorageService> logger)
     {
         m_S3 = s3;
-        m_Bucket = config["AttachmentStorage:Bucket"] ?? throw new ArgumentNullException("AttachmentStorage:Bucket");
+        m_Bucket = attachmentConfig.Value.Bucket;
+        if (string.IsNullOrEmpty(m_Bucket))
+            throw new InvalidOperationException("AttachmentStorage:Bucket is not configured");
         m_Logger = logger;
     }
 
@@ -71,15 +76,41 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
             Key = objectKey,
         };
 
-        using var response = await m_S3.GetObjectAsync(getReq, cancellationToken).ConfigureAwait(false);
         MemoryStream stream = new();
 
-        if ((int)response.HttpStatusCode >= 300) return null;
+        try
+        {
+            using var response = await m_S3.GetObjectAsync(getReq, cancellationToken).ConfigureAwait(false);
 
-        await response.ResponseStream.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+            if ((int)response.HttpStatusCode >= 300)
+            {
+                await stream.DisposeAsync().ConfigureAwait(false);
+                return null;
+            }
+
+            await response.ResponseStream.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            return null;
+        }
+        catch (HttpIOException)
+        {
+            // Metadata exists (HEAD 200) but the backing data was reclaimed; treat as unavailable.
+            m_Logger.LogDebug("Attachment {FileName} metadata exists but data is unavailable", storageFileName);
+            await stream.DisposeAsync().ConfigureAwait(false);
+            return null;
+        }
+        catch (IOException)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+            return null;
+        }
+
         stream.Position = 0;
 
-        if (stream == Stream.Null || stream.Length == 0)
+        if (stream.Length == 0)
         {
             await stream.DisposeAsync().ConfigureAwait(false);
             return null;

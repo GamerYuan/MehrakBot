@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       # Install .NET 9.0 SDK (preview until GA release)
       - name: Setup .NET 10.0 SDK

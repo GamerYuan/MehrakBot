@@ -197,14 +197,14 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     var extraStarShift = (floorData?.ExtraStarNum ?? 0) * 50;
                     var roundNumberText = floorData?.RoundNum.ToString() ?? "";
                     var roundNumberWidth = (int)TextMeasurer.MeasureBounds(roundNumberText, new TextOptions(Fonts.Normal)).Width;
-                    var maxTextWidth = 680 - 15 - roundNumberWidth - m_CycleIcon.Width - 150 - extraStarShift;
+                    var maxTextWidth = 680 - 35 - roundNumberWidth - m_CycleIcon.Width - 150 - extraStarShift;
 
                     var stageTextBounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
                     canvas.DrawText(new RichTextOptions(stageTextBounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
-                        Origin = new PointF(xOffset + 20, yOffset + 20),
+                        Origin = new PointF(xOffset + 20, yOffset + 25),
                         HorizontalAlignment = HorizontalAlignment.Left,
-                        VerticalAlignment = VerticalAlignment.Top,
+                        VerticalAlignment = VerticalAlignment.Center,
                         WrappingLength = maxTextWidth
                     }, stageText, Brushes.Solid(Color.White), null);
 
@@ -243,26 +243,29 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     else
                     {
                         const int contentStart = 65;
+                        const int regionHeight = 200;
                         var sectionHeight = (blobHeight - contentStart) / (floorData.IsTierce ? 3 : 2);
 
-                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + contentStart + 10),
+                        var sep1Y = contentStart + sectionHeight;
+                        var sep2Y = contentStart + sectionHeight * 2;
+
+                        var nodeSectionOffset = (sectionHeight - regionHeight) / 2;
+                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + contentStart + nodeSectionOffset),
                             floorData.Node1, avatarImages);
 
-                        var sep1Y = contentStart + sectionHeight;
                         canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
                             new PointF(xOffset + 20, yOffset + sep1Y),
                             new PointF(xOffset + 680, yOffset + sep1Y)).Build());
 
-                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep1Y + 15),
+                        DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep1Y + nodeSectionOffset),
                             floorData.Node2, avatarImages);
 
                         if (floorData.IsTierce)
                         {
-                            var sep2Y = contentStart + sectionHeight * 2;
                             canvas.Draw(Pens.Solid(Color.White, 2f), new PathBuilder().AddLine(
                                 new PointF(xOffset + 20, yOffset + sep2Y),
                                 new PointF(xOffset + 680, yOffset + sep2Y)).Build());
-                            DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep2Y + 15),
+                            DrawNodeInformation(canvas, new Point(xOffset + 25, yOffset + sep2Y + nodeSectionOffset),
                                 floorData.Node3, avatarImages);
                         }
 
@@ -271,12 +274,12 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                             new PointF(xOffset + 520 - extraStarShift, yOffset + 55)).Build());
                         canvas.DrawText(new RichTextOptions(Fonts.Normal)
                         {
-                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + 20),
+                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + 25),
                             HorizontalAlignment = HorizontalAlignment.Right,
-                            VerticalAlignment = VerticalAlignment.Top
+                            VerticalAlignment = VerticalAlignment.Center
                         }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
                         canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + 10, m_CycleIcon.Width, m_CycleIcon.Height),
+                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + 25 - m_CycleIcon.Height / 2, m_CycleIcon.Width, m_CycleIcon.Height),
                             KnownResamplers.Bicubic);
                     }
 

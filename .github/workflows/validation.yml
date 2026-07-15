@@ -19,29 +19,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          token: ${{ secrets.ASSETS_PAT }}
+          fetch-depth: 1
+          submodules: false
 
-      - name: Get submodule SHA for LFS cache key
-        id: submod
-        run: echo "sha=$(git -C MehrakBot/Assets rev-parse HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Cache LFS objects
-        id: lfs-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            .git/lfs
-            .git/modules/**/lfs
-          key: lfs-${{ runner.os }}-${{ steps.submod.outputs.sha }}
-          restore-keys: |
-            lfs-${{ runner.os }}-
-
-      - name: Pull LFS objects
-        if: steps.lfs-cache.outputs.cache-hit != 'true'
+      - name: Setup Git Credentials
+        env: 
+          ASSETS_PAT: ${{ secrets.ASSETS_PAT }}
         run: |
-          git lfs pull
-          git submodule foreach --recursive 'git lfs pull'
+          git config --global url."https://GamerYuan:${ASSETS_PAT}@git.yuan-dev.com/".insteadOf "https://git.yuan-dev.com/"
+          git config --global credential.helper store
+          echo "https://GamerYuan:${ASSETS_PAT}@git.yuan-dev.com" > ~/.git-credentials
+          git lfs install
+          git config --global lfs.transfer.enableHrefRewrite true
+
+      - name: Checkout Submodule and Pull LFS
+        run: |
+          git submodule update --init --recursive
 
       - name: Setup SixLabors License
         env:
