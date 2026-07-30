@@ -26,7 +26,9 @@ internal static partial class StatUtils
                 201 => "fire",
                 202 => "ice",
                 203 => "electric",
+                204 => "wind",
                 205 => "ether",
+                300 => "lumiflux",
                 _ => throw new ArgumentOutOfRangeException(nameof(elementId), elementId, null)
             };
         else
