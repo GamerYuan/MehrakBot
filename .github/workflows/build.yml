@@ -1,0 +1,86 @@
+name: Build Docker Images
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    concurrency:
+      group: build-release-${{ github.ref_name }}
+      cancel-in-progress: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-application
+            dockerfile: ./MehrakBot/Services/Application/Dockerfile
+
+          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-bot
+            dockerfile: ./MehrakBot/Services/Bot/Dockerfile
+
+          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-dashboard
+            dockerfile: ./MehrakBot/Services/Dashboard/Dockerfile
+
+          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-image-processor
+            dockerfile: ./MehrakBot/Services/ImageProcessor/Dockerfile
+
+    steps:
+      - name: Derive build version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup SixLabors License
+        env:
+          SIXLABORS_LICENSE: ${{ secrets.SIXLABORS_LICENSE }}
+        run: printf '%s' "$SIXLABORS_LICENSE" > MehrakBot/sixlabors.lic
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image-name }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,format=short
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Cleanup SixLabors License
+        if: always()
+        run: rm -f MehrakBot/sixlabors.lic
+      
