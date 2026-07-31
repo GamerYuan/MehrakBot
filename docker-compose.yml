@@ -1,7 +1,7 @@
 name: mehrakcore
 services:
   bot:
-    image: ghcr.io/gameryuan/MehrakBot/mehrak-bot:${VERSION:-latest}
+    image: ghcr.io/gameryuan/mehrakbot/mehrak-bot:${VERSION:-latest}
     build:
       context: ./MehrakBot
       dockerfile: Services/Bot/Dockerfile
@@ -32,7 +32,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
 
   dashboard:
-    image: ghcr.io/gameryuan/MehrakBot/mehrak-dashboard:${VERSION:-latest}
+    image: ghcr.io/gameryuan/mehrakbot/mehrak-dashboard:${VERSION:-latest}
     build:
       context: ./MehrakBot
       dockerfile: Services/Dashboard/Dockerfile
@@ -76,7 +76,7 @@ services:
       - ./certificates/server-signing-certificate.pfx:/app/server-signing-certificate.pfx:ro
 
   application:
-    image: ghcr.io/gameryuan/MehrakBot/mehrak-application:${VERSION:-latest}
+    image: ghcr.io/gameryuan/mehrakbot/mehrak-application:${VERSION:-latest}
     build:
       context: ./MehrakBot
       dockerfile: Services/Application/Dockerfile
@@ -108,7 +108,7 @@ services:
       - ./MehrakBot/Assets:/app/Assets:ro
 
   image-processor:
-    image: ghcr.io/gameryuan/MehrakBot/mehrak-image-processor:${VERSION:-latest}
+    image: ghcr.io/gameryuan/mehrakbot/mehrak-image-processor:${VERSION:-latest}
     build:
       context: ./MehrakBot
       dockerfile: Services/ImageProcessor/Dockerfile

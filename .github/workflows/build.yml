@@ -23,16 +23,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-application
+          - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-application
             dockerfile: ./MehrakBot/Services/Application/Dockerfile
 
-          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-bot
+          - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-bot
             dockerfile: ./MehrakBot/Services/Bot/Dockerfile
 
-          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-dashboard
+          - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-dashboard
             dockerfile: ./MehrakBot/Services/Dashboard/Dockerfile
 
-          - image-name: ghcr.io/gameryuan/MehrakBot/mehrak-image-processor
+          - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-image-processor
             dockerfile: ./MehrakBot/Services/ImageProcessor/Dockerfile
 
     steps:
@@ -43,6 +43,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          persist-credentials: false
+
+      - name: Extract OpenCvSharp version
+        run: |
+          OPENCVSHARP_VERSION=$(grep -oP '(?<=<PackageReference Include="OpenCvSharp4" Version=")[^"]+' MehrakBot/Services/ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj)
+          OPENCV_VERSION=$(echo "$OPENCVSHARP_VERSION" | cut -d. -f1-3)
+          echo "OPENCV_VERSION=$OPENCV_VERSION" >> $GITHUB_ENV
+          echo "OPENCVSHARP_VERSION=$OPENCVSHARP_VERSION" >> $GITHUB_ENV
+          echo "BASE_IMAGE_TAG=opencv-${OPENCV_VERSION}-ocvsharp-${OPENCVSHARP_VERSION}" >> $GITHUB_ENV
 
       - name: Setup SixLabors License
         env:
@@ -71,12 +80,19 @@ jobs:
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
+        env:
+          VERSION: ${{ env.VERSION }}
         with:
-          context: .
+          context: ./MehrakBot
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            ${{ matrix.image-name == 'ghcr.io/gameryuan/mehrakbot/mehrak-image-processor' && format('BASE_IMAGE_TAG={0}', env.BASE_IMAGE_TAG) || '' }}
+          secret-files: |
+            sixlabors-license=MehrakBot/sixlabors.lic
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
