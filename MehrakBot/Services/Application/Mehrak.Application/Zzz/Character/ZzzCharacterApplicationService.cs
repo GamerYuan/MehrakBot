@@ -163,7 +163,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         List<Task<bool>> tasks = [];
 
-        if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
+        if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName(), cancellationToken))
         {
             if (!characterData.AvatarWiki.TryGetValue(charInfo.Id.ToString(), out var avatarWikiUrl))
             {
