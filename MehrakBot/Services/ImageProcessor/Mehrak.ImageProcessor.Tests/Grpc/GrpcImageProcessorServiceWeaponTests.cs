@@ -12,6 +12,7 @@ namespace Mehrak.ImageProcessor.Tests.Grpc;
 internal class GrpcImageProcessorServiceWeaponTests
 {
     private Mock<GenshinWeaponImageProcessor> m_MockWeaponProcessor;
+    private Mock<PortraitImageMatcher> m_MockPortraitMatcher;
     private Mock<INsfwClassifier> m_MockClassifier;
     private Mock<ILogger<GrpcImageProcessorService>> m_MockLogger;
     private GrpcImageProcessorService m_Service;
@@ -20,11 +21,13 @@ internal class GrpcImageProcessorServiceWeaponTests
     public void Setup()
     {
         m_MockWeaponProcessor = new Mock<GenshinWeaponImageProcessor>();
+        m_MockPortraitMatcher = new Mock<PortraitImageMatcher>();
         m_MockClassifier = new Mock<INsfwClassifier>();
         m_MockLogger = new Mock<ILogger<GrpcImageProcessorService>>();
         m_Service = new GrpcImageProcessorService(
             m_MockClassifier.Object,
             m_MockWeaponProcessor.Object,
+            m_MockPortraitMatcher.Object,
             m_MockLogger.Object);
     }
 

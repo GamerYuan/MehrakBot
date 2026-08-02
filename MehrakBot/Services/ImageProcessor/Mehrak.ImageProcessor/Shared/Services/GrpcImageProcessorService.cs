@@ -6,6 +6,7 @@ namespace Mehrak.ImageProcessor.Shared.Services;
 public class GrpcImageProcessorService(
     INsfwClassifier classifier,
     GenshinWeaponImageProcessor weaponImageProcessor,
+    PortraitImageMatcher portraitImageMatcher,
     ILogger<GrpcImageProcessorService> logger) : Proto.ImageProcessorService.ImageProcessorServiceBase
 {
     public override Task<Proto.ClassifyResponse> ClassifyImage(Proto.ClassifyRequest request, ServerCallContext context)
@@ -74,6 +75,39 @@ public class GrpcImageProcessorService(
             {
                 stream.Dispose();
             }
+        }
+    }
+
+    public override Task<Proto.MatchImageResponse> MatchImage(
+        Proto.MatchImageRequest request, ServerCallContext context)
+    {
+        try
+        {
+            if (request.ReferenceImage.IsEmpty || request.CandidateImage.IsEmpty)
+            {
+                return Task.FromResult(new Proto.MatchImageResponse
+                {
+                    IsMatch = false,
+                    Confidence = 0f
+                });
+            }
+
+            var (isMatch, confidence) = portraitImageMatcher.Match(
+                request.ReferenceImage.ToByteArray(), request.CandidateImage.ToByteArray());
+
+            logger.LogDebug("Image match result: IsMatch={IsMatch}, Confidence={Confidence:F4}",
+                isMatch, confidence);
+
+            return Task.FromResult(new Proto.MatchImageResponse
+            {
+                IsMatch = isMatch,
+                Confidence = confidence
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error matching image");
+            throw new RpcException(new Status(StatusCode.Internal, "Image matching failed."));
         }
     }
 }

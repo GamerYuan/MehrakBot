@@ -39,6 +39,8 @@ namespace Mehrak.Application.Tests.Zzz.Character;
 public class ZzzCharacterApplicationServiceTests
 {
     private TestDbContextFactory m_DbFactory = null!;
+    private Mock<IPortraitMatcher> m_PortraitMatcherMock = null!;
+    private Mock<IImageFetcher> m_ImageFetcherMock = null!;
 
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
 
@@ -550,6 +552,309 @@ public class ZzzCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WithEquippedOutfit_MatchesGalleryEntryAndUpdatesOutfitPortrait()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        const string basePortraitName = "zzz/portrait_1261.png";
+        const string outfitPortraitName = "zzz/portrait_1261_8888.png";
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string file, CancellationToken _) =>
+                Task.FromResult(file != basePortraitName && file != outfitPortraitName));
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(cardStream);
+
+        var wikiSuccessNode = JsonNode.Parse("""
+        {
+          "data": {
+            "page": {
+              "modules": [
+                {
+                  "components": [
+                    {
+                      "component_id": "gallery_character",
+                      "data": "{\"list\":[{\"img\":\"https://example.com/base.png\",\"tag_list\":[],\"id\":\"1000000001\"},{\"img\":\"https://example.com/skin_a.png\",\"tag_list\":[],\"id\":\"1000000002\"},{\"img\":\"https://example.com/skin_b.jpg\",\"tag_list\":[],\"id\":\"1000000003\"},{\"img\":\"https://example.com/skin_c.png\",\"tag_list\":[],\"id\":\"1000000004\"}]}\n"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        """)!;
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode));
+
+        m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string url, CancellationToken _) =>
+                url.Contains("skin_a") ? new byte[] { 1 } : url.Contains("skin_c") ? new byte[] { 3 } : new byte[] { 2 });
+
+        m_PortraitMatcherMock
+            .Setup(x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[] reference, byte[] candidate, CancellationToken _) =>
+                (candidate.SequenceEqual(new byte[] { 3 }), 0.9f));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Name == basePortraitName && d.Url == "https://example.com/base.png"),
+            It.IsAny<IImageProcessor>()), Times.Once);
+
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Name == outfitPortraitName && d.Url == "https://example.com/skin_c.png"),
+            It.IsAny<IImageProcessor>()), Times.Once);
+
+        // skin_b.jpg must be skipped (png-only rule); skin_a matched first and rejected, skin_c accepted
+        m_PortraitMatcherMock.Verify(
+            x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WithEquippedOutfit_NoMatchingGalleryEntry_SkipsOutfitPortrait()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(cardStream);
+
+        var wikiSuccessNode = JsonNode.Parse("""
+        {
+          "data": {
+            "page": {
+              "modules": [
+                {
+                  "components": [
+                    {
+                      "component_id": "gallery_character",
+                      "data": "{\"list\":[{\"img\":\"https://example.com/base.png\",\"tag_list\":[],\"id\":\"1000000001\"},{\"img\":\"https://example.com/skin_a.png\",\"tag_list\":[],\"id\":\"1000000002\"}]}\n"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+        """)!;
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiSuccessNode));
+
+        m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 1 });
+
+        m_PortraitMatcherMock
+            .Setup(x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((false, 0.1f));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert - outfit portrait is never updated; the card still renders with the base portrait
+        Assert.That(result.IsSuccess, Is.True);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Name == "zzz/portrait_1261_8888.png"),
+            It.IsAny<IImageProcessor>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenOutfitGalleryFails_UsesExistingBasePortrait()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        const string basePortraitName = "zzz/portrait_1261.png";
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string file, CancellationToken _) => Task.FromResult(file == basePortraitName));
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.Timeout, "Wiki unavailable"));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Name == "zzz/portrait_1261_8888.png"),
+            It.IsAny<IImageProcessor>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenOutfitPortraitUpdateFails_UsesExistingBasePortrait()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        const string outfitPortraitName = "zzz/portrait_1261_8888.png";
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string file, CancellationToken _) => Task.FromResult(file != outfitPortraitName));
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(
+                It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(
+                It.Is<IImageData>(data => data.Name == outfitPortraitName),
+                It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("outfit CDN unavailable"));
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode(
+                "https://example.com/base.png", "https://example.com/outfit.png")));
+        m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 1 });
+        m_PortraitMatcherMock.Setup(x => x.MatchAsync(
+                It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, 1f));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Once);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Name == outfitPortraitName), It.IsAny<IImageProcessor>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenCnBaseGalleryEntryIsInvalid_UsesAlternateLocale()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not found"));
+        wikiApiMock.Setup(x => x.GetAsync(
+                It.Is<WikiApiContext>(x => x.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode(string.Empty)));
+        wikiApiMock.Setup(x => x.GetAsync(
+                It.Is<WikiApiContext>(x => x.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode("https://example.com/en_base.png")));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.True);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(d => d.Url == "https://example.com/en_base.png"),
+            It.IsAny<IImageProcessor>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_FetchesPortraitConfigForCharacter()
     {
         // Arrange
@@ -983,6 +1288,11 @@ public class ZzzCharacterApplicationServiceTests
 
         var entryPageApiMock = new Mock<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>();
 
+        var portraitMatcherMock = new Mock<IPortraitMatcher>();
+        var imageFetcherMock = new Mock<IImageFetcher>();
+        m_PortraitMatcherMock = portraitMatcherMock;
+        m_ImageFetcherMock = imageFetcherMock;
+
         var service = new ZzzCharacterApplicationService(
             cardServiceMock.Object,
             imageUpdaterMock.Object,
@@ -998,6 +1308,8 @@ public class ZzzCharacterApplicationServiceTests
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
             entryPageApiMock.Object,
+            portraitMatcherMock.Object,
+            imageFetcherMock.Object,
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, aliasServiceMock, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock,
@@ -1071,6 +1383,8 @@ public class ZzzCharacterApplicationServiceTests
             portraitConfigMock.Object,
             Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
+            Mock.Of<IPortraitMatcher>(),
+            Mock.Of<IImageFetcher>(),
             loggerMock.Object);
 
         return (service, characterApiMock, characterCacheMock, imageRepositoryMock, gameRoleApiMock, attachmentStorageMock, userContext, portraitConfigMock);
@@ -1166,6 +1480,8 @@ public class ZzzCharacterApplicationServiceTests
             Mock.Of<ICharacterPortraitConfigService>(),
             Mock.Of<IUserPortraitService>(),
             Mock.Of<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>>(),
+            Mock.Of<IPortraitMatcher>(),
+            Mock.Of<IImageFetcher>(),
             Mock.Of<ILogger<ZzzCharacterApplicationService>>());
 
         return (service, attachmentStorageMock.Object, storedAttachments, userContext);
@@ -1233,6 +1549,38 @@ public class ZzzCharacterApplicationServiceTests
         var result = JsonSerializer.Deserialize<ZzzFullAvatarData>(json);
 
         return result ?? throw new InvalidOperationException($"Failed to deserialize {filename}");
+    }
+
+    private static JsonNode CreateWikiGalleryNode(params string[] imageUrls)
+    {
+        var galleryData = JsonSerializer.Serialize(new
+        {
+            list = imageUrls.Select(img => new { img })
+        });
+
+        return new JsonObject
+        {
+            ["data"] = new JsonObject
+            {
+                ["page"] = new JsonObject
+                {
+                    ["modules"] = new JsonArray
+                    {
+                        new JsonObject
+                        {
+                            ["components"] = new JsonArray
+                            {
+                                new JsonObject
+                                {
+                                    ["component_id"] = "gallery_character",
+                                    ["data"] = galleryData
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 
     private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)

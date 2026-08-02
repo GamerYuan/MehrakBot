@@ -169,6 +169,38 @@ public class ZzzCharacterCardServiceTests
             "Generated fallback image should match the golden image");
     }
 
+    [Test]
+    public async Task GenerateCharacterCardAsync_WhenOutfitPortraitMissing_FallsBackToBasePortrait()
+    {
+        // Arrange - equip an outfit whose portrait is not in storage (no portrait_1261_8888.png
+        // asset exists); the card service must fall back to the base portrait_1261.png.
+        var cardService = new ZzzCharacterCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<ZzzCharacterCardService>>(),
+            Mock.Of<IApplicationMetrics>());
+        await cardService.InitializeAsync();
+
+        var characterDetail =
+            JsonSerializer.Deserialize<ZzzFullAvatarData>(
+                await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Jane_TestData.json")));
+        Assert.That(characterDetail, Is.Not.Null);
+
+        characterDetail.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+
+        var profile = GetTestUserGameData();
+        var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(TestUserId, characterDetail, profile);
+        cardContext.SetParameter("server", Server.Asia);
+
+        // Act - must not throw (ImageNotFoundException from the missing outfit portrait is
+        // caught and the base portrait is loaded instead).
+        var image = await cardService.GetCardAsync(cardContext);
+
+        // Assert
+        Assert.That(image, Is.Not.Null);
+        Assert.That(image.Length, Is.GreaterThan(0));
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
