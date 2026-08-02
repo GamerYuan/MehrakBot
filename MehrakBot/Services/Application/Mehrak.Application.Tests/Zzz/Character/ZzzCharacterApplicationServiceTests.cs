@@ -811,6 +811,52 @@ public class ZzzCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenBasePortraitUpdateFailsWithoutFallback_ReturnsImageUpdateError()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        const string basePortraitName = "zzz/portrait_1261.png";
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(
+                It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(
+                It.Is<IImageData>(data => data.Name == basePortraitName),
+                It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode("https://example.com/base.png")));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
+        Assert.That(result.ErrorMessage, Does.Contain("image"));
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Never);
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenCnBaseGalleryEntryIsInvalid_UsesAlternateLocale()
     {
         // Arrange

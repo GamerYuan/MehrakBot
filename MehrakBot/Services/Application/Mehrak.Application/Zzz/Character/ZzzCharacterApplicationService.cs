@@ -285,7 +285,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         }
 
         var requiredImageUpdateFailed = tasks
-            .Where(x => x != basePortraitUpdateTask && x != outfitPortraitUpdateTask)
+            .Where(x => x != outfitPortraitUpdateTask &&
+                (x != basePortraitUpdateTask || !hasExistingPortrait))
             .Any(x => !x.Result);
 
         if (requiredImageUpdateFailed)

@@ -29,6 +29,7 @@ internal class PortraitMatcherGrpcClientTests
         var referenceImage = new byte[] { 1, 2, 3 };
         var candidateImage = new byte[] { 4, 5, 6 };
         MatchImageRequest? capturedRequest = null;
+        DateTime? capturedDeadline = null;
 
         m_MockClient.Setup(x => x.MatchImageAsync(
                 It.IsAny<MatchImageRequest>(),
@@ -36,7 +37,11 @@ internal class PortraitMatcherGrpcClientTests
                 It.IsAny<DateTime?>(),
                 It.IsAny<CancellationToken>()))
             .Callback<MatchImageRequest, Metadata, DateTime?, CancellationToken>(
-                (request, _, _, _) => capturedRequest = request)
+                (request, _, deadline, _) =>
+                {
+                    capturedRequest = request;
+                    capturedDeadline = deadline;
+                })
             .Returns(CreateCall(new MatchImageResponse { IsMatch = true, Confidence = 0.9f }));
 
         var result = await m_Client.MatchAsync(referenceImage, candidateImage);
@@ -46,6 +51,8 @@ internal class PortraitMatcherGrpcClientTests
         Assert.That(capturedRequest, Is.Not.Null);
         Assert.That(capturedRequest!.ReferenceImage.ToByteArray(), Is.EqualTo(referenceImage));
         Assert.That(capturedRequest.CandidateImage.ToByteArray(), Is.EqualTo(candidateImage));
+        Assert.That(capturedDeadline, Is.Not.Null);
+        Assert.That(capturedDeadline, Is.GreaterThan(DateTime.UtcNow));
     }
 
     [Test]
@@ -60,6 +67,22 @@ internal class PortraitMatcherGrpcClientTests
 
         Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await m_Client.MatchAsync([1], [2], new CancellationTokenSource().Token));
+    }
+
+    [Test]
+    public void MatchAsync_WhenRpcFails_PropagatesRpcFailure()
+    {
+        m_MockClient.Setup(x => x.MatchImageAsync(
+                It.IsAny<MatchImageRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Throws(new RpcException(new Status(StatusCode.Unavailable, "ImageProcessor unavailable")));
+
+        var ex = Assert.ThrowsAsync<RpcException>(async () =>
+            await m_Client.MatchAsync([1], [2]));
+
+        Assert.That(ex!.StatusCode, Is.EqualTo(StatusCode.Unavailable));
     }
 
     private static AsyncUnaryCall<MatchImageResponse> CreateCall(MatchImageResponse response)

@@ -29,7 +29,10 @@ internal class PortraitMatcherGrpcClient : IPortraitMatcher
                 CandidateImage = Google.Protobuf.ByteString.CopyFrom(candidateImage)
             };
 
-            var response = await m_Client.MatchImageAsync(request, cancellationToken: cancellationToken);
+            var response = await m_Client.MatchImageAsync(
+                request,
+                deadline: DateTime.UtcNow.AddSeconds(IApiService.MaxTimeoutSeconds),
+                cancellationToken: cancellationToken);
             return (response.IsMatch, response.Confidence);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -39,6 +42,11 @@ internal class PortraitMatcherGrpcClient : IPortraitMatcher
         catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
         {
             throw new OperationCanceledException("Portrait matching was cancelled", ex, cancellationToken);
+        }
+        catch (RpcException ex)
+        {
+            m_Logger.LogError(ex, "Failed to match portrait image through ImageProcessor");
+            throw;
         }
         catch (Exception ex)
         {
