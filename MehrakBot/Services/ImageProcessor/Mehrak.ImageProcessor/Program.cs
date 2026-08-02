@@ -20,6 +20,7 @@ public class Program
 
         builder.Services.AddSingleton<INsfwClassifier, NsfwClassifier>();
         builder.Services.AddSingleton<GenshinWeaponImageProcessor>();
+        builder.Services.AddSingleton<PortraitImageMatcher>();
 
         builder.Services.AddGrpc(options =>
         {

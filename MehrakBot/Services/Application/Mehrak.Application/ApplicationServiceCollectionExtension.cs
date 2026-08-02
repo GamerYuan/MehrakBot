@@ -32,6 +32,8 @@ internal static class ApplicationServiceCollectionExtension
         services.AddHi3ApplicationServices();
 
         services.AddKeyedSingleton<IMultiImageProcessor, WeaponImageProcessorGrpcClient>(CommandName.ImageProcessor.Weapon);
+        services.AddSingleton<IPortraitMatcher, PortraitMatcherGrpcClient>();
+        services.AddSingleton<IImageFetcher, ImageFetcher>();
 
         return services;
     }
