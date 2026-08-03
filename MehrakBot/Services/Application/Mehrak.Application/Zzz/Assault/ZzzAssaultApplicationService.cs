@@ -111,20 +111,25 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                 true);
         }
 
-        var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
+        var floors = assaultData.List
+            .Concat(assaultData.HasHard ? assaultData.HardList : [])
+            .ToList();
+
+        var avatarImageTask = floors.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
             .Select(avatar =>
                 m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
-        var buddyImageTask = assaultData.List.Select(x => x.Buddy)
+        var buddyImageTask = floors.Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                 new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
-        var bossImageTask = assaultData.List
+        var bossImageTask = floors
             .SelectMany(x => x.Boss)
+            .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
                 GetBossImageProcessor(), cancellationToken));
-        var buffImageTask = assaultData.List
+        var buffImageTask = floors
             .SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),

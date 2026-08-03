@@ -80,6 +80,7 @@ public static class FileNameFormat
         public const string RankBackgroundName = "zzz/rank_bg_{0}.png";
         public const string WeaponStarName = "zzz/weapon_star_{0}.png";
         public const string AssaultStarName = "zzz/assault_star.png";
+        public const string AssaultHardStarName = "zzz/assault_star_hard.png";
         public const string RarityName = "zzz/rarity_{0}.png";
         public const string StatName = "zzz/stats_{0}.png";
         public const string AttributeName = "zzz/attribute_{0}.png";
