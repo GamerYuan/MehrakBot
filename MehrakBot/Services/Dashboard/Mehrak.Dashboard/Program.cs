@@ -196,14 +196,16 @@ public class Program
                 else
                 {
                     var encryptionCertPath = builder.Configuration["Dashboard:EncryptionCertificatePath"]
-                        ?? "server-encryption-certificate.pfx";
+                        ?? "server-encryption-certificate.pem";
+                    var encryptionKeyPath = builder.Configuration["Dashboard:EncryptionCertificateKeyPath"]
+                        ?? "server-encryption-key.pem";
                     var signingCertPath = builder.Configuration["Dashboard:SigningCertificatePath"]
-                        ?? "server-signing-certificate.pfx";
+                        ?? "server-signing-certificate.pem";
+                    var signingKeyPath = builder.Configuration["Dashboard:SigningCertificateKeyPath"]
+                        ?? "server-signing-key.pem";
 
-                    var encryptionCert = X509CertificateLoader.LoadPkcs12FromFile(encryptionCertPath,
-                        string.Empty, keyStorageFlags: X509KeyStorageFlags.DefaultKeySet);
-                    var signingCert = X509CertificateLoader.LoadPkcs12FromFile(signingCertPath,
-                        string.Empty, keyStorageFlags: X509KeyStorageFlags.DefaultKeySet);
+                    var encryptionCert = X509Certificate2.CreateFromPemFile(encryptionCertPath, encryptionKeyPath);
+                    var signingCert = X509Certificate2.CreateFromPemFile(signingCertPath, signingKeyPath);
 
                     options
                         .AddEncryptionCertificate(encryptionCert)

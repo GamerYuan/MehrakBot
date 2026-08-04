@@ -72,8 +72,10 @@ services:
       - OTEL_SERVICE_NAME=MehrakDashboard
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
     volumes:
-      - ./certificates/server-encryption-certificate.pfx:/app/server-encryption-certificate.pfx:ro
-      - ./certificates/server-signing-certificate.pfx:/app/server-signing-certificate.pfx:ro
+      - ./certificates/server-encryption-certificate.pem:/app/server-encryption-certificate.pem:ro
+      - ./certificates/server-encryption-key.pem:/app/server-encryption-key.pem:ro
+      - ./certificates/server-signing-certificate.pem:/app/server-signing-certificate.pem:ro
+      - ./certificates/server-signing-key.pem:/app/server-signing-key.pem:ro
 
   application:
     image: ghcr.io/gameryuan/mehrakbot/mehrak-application:${VERSION:-latest}
