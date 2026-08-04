@@ -40,6 +40,7 @@ public class ZzzAssaultCardServiceTests
     [TestCase("Da_TestData_1.json")]
     [TestCase("Da_TestData_2.json")]
     [TestCase("Da_TestData_3.json")]
+    [TestCase("Da_TestData_4.json")]
     public async Task GetAssaultCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
@@ -80,36 +81,6 @@ public class ZzzAssaultCardServiceTests
         Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
-    [Test]
-    public async Task GetAssaultCardAsync_TestData4_ShouldRenderForManualInspection()
-    {
-        var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(await
-            File.ReadAllTextAsync(Path.Combine(TestDataPath, "Da_TestData_4.json")));
-        Assert.That(assaultData, Is.Not.Null);
-
-        var userGameData = GetTestUserGameData();
-
-        var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(TestUserId, assaultData, userGameData);
-        cardContext.SetParameter("server", Server.Asia);
-
-        var image = await m_Service.GetCardAsync(cardContext);
-        Assert.That(image, Is.Not.Null);
-
-        MemoryStream memoryStream = new();
-        await image.CopyToAsync(memoryStream);
-        memoryStream.Position = 0;
-        var generatedImageBytes = memoryStream.ToArray();
-
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output");
-        Directory.CreateDirectory(outputDirectory);
-        await File.WriteAllBytesAsync(
-            Path.Combine(outputDirectory, "ZzzAssault_Data4_Generated.jpg"),
-            generatedImageBytes);
-
-        Assert.That(generatedImageBytes, Is.Not.Null);
-        Assert.That(generatedImageBytes, Is.Not.Empty);
-    }
-
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
@@ -125,6 +96,7 @@ public class ZzzAssaultCardServiceTests
     [TestCase("Da_TestData_1.json", "Da_GoldenImage_1.jpg")]
     [TestCase("Da_TestData_2.json", "Da_GoldenImage_2.jpg")]
     [TestCase("Da_TestData_3.json", "Da_GoldenImage_3.jpg")]
+    [TestCase("Da_TestData_4.json", "Da_GoldenImage_4.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(await
