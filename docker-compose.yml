@@ -169,8 +169,8 @@ services:
     image: grafana/grafana:12.3
     container_name: grafana
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:3000:3000"
+    expose:
+      - "3000"
     volumes:
       - grafana-data:/var/lib/grafana
     environment:
@@ -184,29 +184,13 @@ services:
     networks:
       - mehrak-network
 
-  nginx:
-    image: nginx:1.31.2
-    container_name: nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - grafana
-    networks:
-      - mehrak-network
-
   seaweed-master:
     image: chrislusf/seaweedfs:4.35
     command: "master -mdir=/data -ip=seaweed-master -ip.bind=0.0.0.0"
     restart: unless-stopped
-    ports:
-      - "9333:9333"
-      - "19333:19333"
+    expose:
+      - "9333"
+      - "19333"
     volumes:
       - ./seaweed-master:/data
     networks:
@@ -219,9 +203,9 @@ services:
     restart: unless-stopped
     depends_on:
       - seaweed-master
-    ports:
-      - "8080:8080"
-      - "18080:18080"
+    expose:
+      - "8080"
+      - "18080"
     volumes:
       - ./seaweed-volume:/data
     networks:
@@ -234,9 +218,9 @@ services:
     depends_on:
       - seaweed-master
       - seaweed-volume
-    ports:
-      - "8888:8888"
-      - "18888:18888"
+    expose:
+      - "8888"
+      - "18888"
     volumes:
       - ./seaweed-filer:/data
     networks:
@@ -248,8 +232,8 @@ services:
     restart: unless-stopped
     depends_on:
       - seaweed-filer
-    ports:
-      - "8333:8333"
+    expose:
+      - "8333"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8333/healthz"]
       interval: 5s
