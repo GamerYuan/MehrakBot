@@ -122,6 +122,9 @@ public class ZzzAssaultData
     [JsonPropertyName("has_data")] public bool HasData { get; init; }
     [JsonPropertyName("total_score")] public int TotalScore { get; init; }
     [JsonPropertyName("total_star")] public int TotalStar { get; init; }
+    [JsonPropertyName("has_hard")] public bool HasHard { get; init; }
+    [JsonPropertyName("hard_list")] public List<AssaultFloorDetail> HardList { get; init; } = [];
+    [JsonPropertyName("hard_rank_percent")] public int HardRankPercent { get; init; }
 }
 
 public class RatingData

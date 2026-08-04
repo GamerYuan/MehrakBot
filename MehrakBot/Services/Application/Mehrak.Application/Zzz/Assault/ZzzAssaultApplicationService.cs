@@ -111,20 +111,25 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                 true);
         }
 
-        var avatarImageTask = assaultData.List.SelectMany(x => x.AvatarList)
+        var floors = assaultData.List
+            .Concat(assaultData.HasHard ? assaultData.HardList : [])
+            .ToList();
+
+        var avatarImageTask = floors.SelectMany(x => x.AvatarList)
             .DistinctBy(x => x.Id)
             .Select(avatar =>
                 m_ImageUpdaterService.UpdateImageAsync(avatar.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
-        var buddyImageTask = assaultData.List.Select(x => x.Buddy)
+        var buddyImageTask = floors.Select(x => x.Buddy)
             .Where(x => x is not null)
             .DistinctBy(x => x!.Id)
             .Select(buddy => m_ImageUpdaterService.UpdateImageAsync(buddy!.ToImageData(),
                 new ImageProcessorBuilder().Resize(300, 0).Build(), cancellationToken));
-        var bossImageTask = assaultData.List
+        var bossImageTask = floors
             .SelectMany(x => x.Boss)
+            .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateMultiImageAsync(x.ToImageData(),
                 GetBossImageProcessor(), cancellationToken));
-        var buffImageTask = assaultData.List
+        var buffImageTask = floors
             .SelectMany(x => x.Buff)
             .DistinctBy(x => x.Name)
             .Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
@@ -161,7 +166,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             true);
     }
 
-    private static MultiImageProcessorBase GetBossImageProcessor()
+    internal static MultiImageProcessorBase GetBossImageProcessor()
     {
         var processor = new MultiImageProcessorBase();
         processor.SetOperation(images =>
@@ -169,24 +174,28 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             const int BossImageHeight = 230;
             using var background = images[0];
             var icon = images[1];
-            var image = new Image<Rgba32>(background.Width, background.Height);
-            image.Mutate(ctx =>
+
+            background.Mutate(ctx =>
             {
                 ctx.Paint(canvas =>
                 {
-                    _ = canvas.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, background.Width, background.Height, 15));
-                    canvas.DrawImage(background, background.Bounds,
-                        new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
                     canvas.DrawImage(icon, icon.Bounds,
                         new RectangleF(0, 0, icon.Width, icon.Height), KnownResamplers.Bicubic);
-                    canvas.Restore();
                 });
                 ctx.Resize(0, BossImageHeight);
+            });
 
-                var size = ctx.GetCurrentSize();
-                var border = new RoundedRectanglePolygon(0, 0, size.Width, BossImageHeight, 15);
+            var image = new Image<Rgba32>(background.Width, background.Height);
+
+            image.Mutate(ctx =>
+            {
+                var border = new RoundedRectanglePolygon(0, 0, background.Width, background.Height, 15);
                 ctx.Paint(canvas =>
                 {
+                    _ = canvas.Save(ClipOptions, border);
+                    canvas.DrawImage(background, background.Bounds,
+                        new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
+                    canvas.Restore();
                     canvas.Draw(Pens.Solid(Color.Black, 4f), border);
                 });
             });
