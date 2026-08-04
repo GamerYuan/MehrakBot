@@ -251,8 +251,8 @@ public class ZzzAssaultApplicationServiceTests
     }
 
     [Test]
-    [TestCase("Da_TestData_3.json")]
-    public async Task ExecuteAsync_DuplicateBuff_InvokesBuffImageUpdateOnce(string testDataFile)
+    [TestCase("Da_TestData_1.json")]
+    public async Task ExecuteAsync_NormalAndHardFloors_UpdateEachResourceOnce(string testDataFile)
     {
         // Arrange
         var (service, assaultApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _) = SetupMocks();
@@ -279,9 +279,40 @@ public class ZzzAssaultApplicationServiceTests
         // Act
         await service.ExecuteAsync(context);
 
-        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
-            It.Is<IImageData>(x => x.Name == assaultData.List[0].Buff[0].ToImageName()),
+        Assert.That(assaultData.HasHard, Is.True);
+        Assert.That(assaultData.HardList, Is.Not.Empty);
+
+        var floors = assaultData.List
+            .Concat(assaultData.HasHard ? assaultData.HardList : [])
+            .ToList();
+
+        foreach (var avatar in floors.SelectMany(x => x.AvatarList).DistinctBy(x => x.Id))
+        {
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(x => x.Name == avatar.ToImageName()),
                 It.IsAny<IImageProcessor>()), Times.Once);
+        }
+
+        foreach (var buddy in floors.Select(x => x.Buddy).Where(x => x is not null).DistinctBy(x => x!.Id))
+        {
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(x => x.Name == buddy!.ToImageName()),
+                It.IsAny<IImageProcessor>()), Times.Once);
+        }
+
+        foreach (var boss in floors.SelectMany(x => x.Boss).DistinctBy(x => x.Name))
+        {
+            imageUpdaterMock.Verify(x => x.UpdateMultiImageAsync(
+                It.Is<IMultiImageData>(x => x.Name == boss.ToImageName()),
+                It.IsAny<IMultiImageProcessor>()), Times.Once);
+        }
+
+        foreach (var buff in floors.SelectMany(x => x.Buff).DistinctBy(x => x.Name))
+        {
+            imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(x => x.Name == buff.ToImageName()),
+                It.IsAny<IImageProcessor>()), Times.Once);
+        }
     }
 
     [Test]

@@ -6,6 +6,7 @@ using Mehrak.Application.Shared.Renderers;
 using Mehrak.Application.Shared.Renderers.Extensions;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Models;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.GameApi.Zzz.Types;
@@ -134,7 +135,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
         var character = characterInformation.AvatarList[0];
 
         Image portraitImage = await LoadPortraitAsync(context,
-            () => LoadImageFromRepositoryAsync(character.ToImageName(), disposables, cancellationToken),
+            () => LoadCharacterPortraitAsync(character, disposables, cancellationToken),
             disposables, cancellationToken);
 
         var weaponTask = character.Weapon != null
@@ -332,6 +333,24 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                 }
             });
         });
+    }
+
+    /// <summary>
+    /// Loads the character's outfit portrait, falling back to the base portrait when the
+    /// outfit-specific image has not been stored (e.g. outfit matching failed upstream).
+    /// </summary>
+    private async Task<Image> LoadCharacterPortraitAsync(ZzzAvatarData character, DisposableBag disposables,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await LoadImageFromRepositoryAsync(character.ToImageName(), disposables, cancellationToken);
+        }
+        catch (ImageNotFoundException)
+        {
+            return await LoadImageFromRepositoryAsync(
+                string.Format(FileNameFormat.Zzz.PortraitName, character.Id), disposables, cancellationToken);
+        }
     }
 
     private void DrawWeaponModule(DrawingCanvas canvas, Point position, Weapon? weapon, Image? weaponImage)

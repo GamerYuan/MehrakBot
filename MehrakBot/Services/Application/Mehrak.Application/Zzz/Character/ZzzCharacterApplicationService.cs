@@ -11,6 +11,7 @@ using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
@@ -40,6 +41,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
     private readonly ICharacterPortraitConfigService m_PortraitConfigService;
     private readonly IUserPortraitService m_UserPortraitService;
     private readonly IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> m_CharacterEntryPageService;
+    private readonly IPortraitMatcher m_PortraitMatcher;
+    private readonly IImageFetcher m_ImageFetcher;
+
+    private static readonly TimeSpan OutfitMatchingTimeout = TimeSpan.FromSeconds(60);
 
 
     protected override string CommandName => "ZZZ Character";
@@ -59,6 +64,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         ICharacterPortraitConfigService portraitConfigService,
         IUserPortraitService userPortraitService,
         IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext> characterEntryPageService,
+        IPortraitMatcher portraitMatcher,
+        IImageFetcher imageFetcher,
         ILogger<ZzzCharacterApplicationService> logger)
         : base(gameRoleApi, userContext, attachmentStorageService, logger)
     {
@@ -73,6 +80,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         m_PortraitConfigService = portraitConfigService;
         m_UserPortraitService = userPortraitService;
         m_CharacterEntryPageService = characterEntryPageService;
+        m_PortraitMatcher = portraitMatcher;
+        m_ImageFetcher = imageFetcher;
     }
 
     protected override async Task<CommandResult> ExecuteCommandAsync(IApplicationContext context, CancellationToken cancellationToken = default)
@@ -159,11 +168,21 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             ]);
         }
 
-        Task<Result<string>>? charImageUrlTask = null;
+        Task<Result<JsonArray>>? galleryTask = null;
 
         List<Task<bool>> tasks = [];
+        Task<bool>? basePortraitUpdateTask = null;
+        Task<bool>? outfitPortraitUpdateTask = null;
 
-        if (!await m_ImageRepository.FileExistsAsync(charInfo.ToImageName()))
+        var basePortraitName = string.Format(FileNameFormat.Zzz.PortraitName, charInfo.Id);
+        var portraitName = charInfo.ToImageName();
+        var isOutfitPortrait = !portraitName.Equals(basePortraitName, StringComparison.OrdinalIgnoreCase);
+        var basePortraitMissing = !await m_ImageRepository.FileExistsAsync(basePortraitName, cancellationToken);
+        var outfitPortraitMissing = isOutfitPortrait &&
+            !await m_ImageRepository.FileExistsAsync(portraitName, cancellationToken);
+        var hasExistingPortrait = !basePortraitMissing || (isOutfitPortrait && !outfitPortraitMissing);
+
+        if (basePortraitMissing || outfitPortraitMissing)
         {
             if (!characterData.AvatarWiki.TryGetValue(charInfo.Id.ToString(), out var avatarWikiUrl))
             {
@@ -199,7 +218,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 }
 
                 if (!string.IsNullOrEmpty(entryPage))
-                    charImageUrlTask = GetCharacterImageUrlAsync(context, gameUid, charInfo, entryPage, cancellationToken);
+                    galleryTask = GetCharacterGalleryAsync(context, entryPage, cancellationToken);
             }
         }
 
@@ -214,23 +233,50 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         try
         {
-            if (charImageUrlTask != null)
+            if (galleryTask != null)
             {
-                var charImage = await charImageUrlTask;
-                if (!charImage.IsSuccess)
+                var galleryResult = await galleryTask;
+                if (!galleryResult.IsSuccess)
                 {
-                    if (charImage.StatusCode == StatusCode.Cancelled)
-                        throw new OperationCanceledException(charImage.ErrorMessage ?? "Cancelled");
-                    if (charImage.StatusCode == StatusCode.Timeout)
-                        return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-                    Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
-                    return CommandResult.Failure(CommandFailureReason.ApiError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
-                }
+                    if (galleryResult.StatusCode == StatusCode.Cancelled)
+                        throw new OperationCanceledException(galleryResult.ErrorMessage ?? "Cancelled");
+                    if (!hasExistingPortrait)
+                    {
+                        if (galleryResult.StatusCode == StatusCode.Timeout)
+                            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                        Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
+                        return CommandResult.Failure(CommandFailureReason.ApiError,
+                            string.Format(ResponseMessage.ApiError, "Character Image"));
+                    }
 
-                var url = charImage.Data;
-                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(new ImageData(charInfo.ToImageName(),
-                    url), ImageProcessors.None, cancellationToken));
+                    Logger.LogWarning("Failed to fetch Character {Character} image from wiki; using existing portrait",
+                        charInfo.Name);
+                }
+                else
+                {
+                    var galleryList = galleryResult.Data;
+                    if (basePortraitMissing)
+                    {
+                        var baseUrl = GetGalleryImageUrl(galleryList[0]);
+                        if (!string.IsNullOrEmpty(baseUrl))
+                        {
+                            basePortraitUpdateTask = UpdateOptionalPortraitAsync(
+                                new ImageData(basePortraitName, baseUrl), cancellationToken);
+                            tasks.Add(basePortraitUpdateTask);
+                        }
+                    }
+
+                    if (outfitPortraitMissing)
+                    {
+                        var outfitUrl = await FindOutfitPortraitUrlAsync(galleryList, charInfo, cancellationToken);
+                        if (!string.IsNullOrEmpty(outfitUrl))
+                        {
+                            outfitPortraitUpdateTask = UpdateOptionalPortraitAsync(
+                                new ImageData(portraitName, outfitUrl), cancellationToken);
+                            tasks.Add(outfitPortraitUpdateTask);
+                        }
+                    }
+                }
             }
         }
         finally
@@ -238,9 +284,12 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             await Task.WhenAll(tasks);
         }
 
-        var completed = tasks.Select(x => x.Result).ToArray();
+        var requiredImageUpdateFailed = tasks
+            .Where(x => x != outfitPortraitUpdateTask &&
+                (x != basePortraitUpdateTask || !hasExistingPortrait))
+            .Any(x => !x.Result);
 
-        if (completed.Any(x => !x))
+        if (requiredImageUpdateFailed)
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(charInfo));
@@ -281,15 +330,33 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         ]);
     }
 
-    private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, string gameUid,
-        ZzzAvatarData charInfo, string entryPage, CancellationToken cancellationToken = default)
+    private async Task<bool> UpdateOptionalPortraitAsync(IImageData data,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await m_ImageUpdaterService.UpdateImageAsync(data, ImageProcessors.None, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to update optional portrait {PortraitName}", data.Name);
+            return false;
+        }
+    }
+
+    private async Task<Result<JsonArray>> GetCharacterGalleryAsync(IApplicationContext context,
+        string entryPage, CancellationToken cancellationToken = default)
     {
         var cnResult = await m_WikiApi.GetAsync(new WikiApiContext(context.UserId, Game.ZenlessZoneZero, entryPage, WikiLocales.CN), cancellationToken);
         if (cnResult.IsSuccess)
         {
-            var cnUrl = ParseZzzCharacterImageUrl(cnResult.Data);
-            if (!string.IsNullOrEmpty(cnUrl))
-                return Result<string>.Success(cnUrl);
+            var cnList = ParseZzzCharacterGallery(cnResult.Data);
+            if (HasValidBasePortrait(cnList))
+                return Result<JsonArray>.Success(cnList!);
         }
 
         var otherLocales = Enum.GetValues<WikiLocales>().Where(x => x != WikiLocales.CN);
@@ -303,21 +370,21 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 else if (result.StatusCode == StatusCode.Timeout && bestStatus != StatusCode.Cancelled) bestStatus = StatusCode.Timeout;
                 return null;
             }
-            return ParseZzzCharacterImageUrl(result.Data);
+            return ParseZzzCharacterGallery(result.Data);
         }).ToList();
 
         var results = await Task.WhenAll(tasks);
-        var url = results.FirstOrDefault(x => !string.IsNullOrEmpty(x));
+        var list = results.FirstOrDefault(HasValidBasePortrait);
 
-        if (string.IsNullOrEmpty(url))
+        if (list == null)
         {
-            return Result<string>.Failure(bestStatus, "Character image not found");
+            return Result<JsonArray>.Failure(bestStatus, "Character image not found");
         }
 
-        return Result<string>.Success(url);
+        return Result<JsonArray>.Success(list);
     }
 
-    private static string? ParseZzzCharacterImageUrl(JsonNode data)
+    private static JsonArray? ParseZzzCharacterGallery(JsonNode data)
     {
         var jsonStr = data["data"]?["page"]?["modules"]?.AsArray()
             .SelectMany(x => x?["components"]?.AsArray() ?? [])
@@ -327,7 +394,81 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         if (string.IsNullOrWhiteSpace(jsonStr))
             return null;
 
-        return JsonNode.Parse(jsonStr)
-            ?["list"]?.AsArray().FirstOrDefault()?["img"]?.GetValue<string>();
+        return JsonNode.Parse(jsonStr)?["list"]?.AsArray();
+    }
+
+    private static string? GetGalleryImageUrl(JsonNode? entry)
+    {
+        try
+        {
+            var url = entry?["img"]?.GetValue<string>();
+            return string.IsNullOrWhiteSpace(url) ? null : url;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static bool HasValidBasePortrait(JsonArray? gallery)
+    {
+        return gallery is { Count: > 0 } && GetGalleryImageUrl(gallery[0]) != null;
+    }
+
+    /// <summary>
+    /// Finds which gallery entry matches the character's currently equipped outfit by
+    /// matching its square face crop (<see cref="ZzzAvatarData.RoleSquareUrl"/>) against
+    /// every png gallery entry after the base portrait. Returns the matching image URL or
+    /// <see langword="null"/> when no candidate matches, warranting a manual check.
+    /// </summary>
+    private async Task<string?> FindOutfitPortraitUrlAsync(JsonArray galleryList, ZzzAvatarData charInfo,
+        CancellationToken cancellationToken = default)
+    {
+        var candidates = galleryList.Skip(1)
+            .Select(GetGalleryImageUrl)
+            .Where(x => !string.IsNullOrEmpty(x) &&
+                x.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .Cast<string>()
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            Logger.LogWarning("Cannot find outfit for {CharacterId} when outfit exists, {RoleSquareUrl}",
+                charInfo.Id, charInfo.RoleSquareUrl);
+            return null;
+        }
+
+        using var matchingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        matchingCts.CancelAfter(OutfitMatchingTimeout);
+
+        try
+        {
+            var referenceBytes = await m_ImageFetcher.FetchBytesAsync(charInfo.RoleSquareUrl, matchingCts.Token);
+            if (referenceBytes == null)
+            {
+                Logger.LogWarning("Failed to fetch reference image {RoleSquareUrl} for outfit matching", charInfo.RoleSquareUrl);
+                return null;
+            }
+
+            foreach (var candidate in candidates)
+            {
+                var candidateBytes = await m_ImageFetcher.FetchBytesAsync(candidate, matchingCts.Token);
+                if (candidateBytes == null)
+                    continue;
+
+                var (isMatch, _) = await m_PortraitMatcher.MatchAsync(referenceBytes, candidateBytes, matchingCts.Token);
+                if (isMatch)
+                    return candidate;
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            Logger.LogWarning("Outfit matching timed out for {CharacterId}", charInfo.Id);
+            return null;
+        }
+
+        Logger.LogWarning("Cannot find outfit for {CharacterId} when outfit exists, {RoleSquareUrl}",
+            charInfo.Id, charInfo.RoleSquareUrl);
+        return null;
     }
 }

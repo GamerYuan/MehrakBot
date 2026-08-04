@@ -44,8 +44,9 @@ jobs:
           file: ./MehrakBot/Services/ImageProcessor/Dockerfile.base
           push: true
           tags: |
-            ghcr.io/gameryuan/mehrak-app-base:opencv-${{ inputs.opencv_version }}
-            ghcr.io/gameryuan/mehrak-app-base:opencv-${{ inputs.opencv_version }}-ocvsharp-${{ inputs.opencvsharp_version }}
+            ghcr.io/gameryuan/mehrakbot/mehrak-app-base:opencv-${{ inputs.opencv_version }}
+            ghcr.io/gameryuan/mehrakbot/mehrak-app-base:opencv-${{ inputs.opencv_version }}-ocvsharp-${{ inputs.opencvsharp_version }}
+            ghcr.io/gameryuan/mehrakbot/mehrak-app-base:ocvsharp-${{ inputs.opencvsharp_version }}
           build-args: |
             OPENCV_VERSION=${{ inputs.opencv_version }}
             OPENCVSHARP_VERSION=${{ inputs.opencvsharp_version }}

@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 ARG OPENCV_VERSION
-ARG OPENCVSHARP_VERSION=4.11.0.20250507
+ARG OPENCVSHARP_VERSION=4.13.0.20260627
 
 RUN set -eux; \
     wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip; \

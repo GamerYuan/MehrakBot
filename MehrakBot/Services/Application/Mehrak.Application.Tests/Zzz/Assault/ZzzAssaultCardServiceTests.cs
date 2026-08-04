@@ -40,15 +40,12 @@ public class ZzzAssaultCardServiceTests
     [TestCase("Da_TestData_1.json")]
     [TestCase("Da_TestData_2.json")]
     [TestCase("Da_TestData_3.json")]
+    [TestCase("Da_TestData_4.json")]
     public async Task GetAssaultCardAsync_TestData_ShouldMatchGoldenImage(string testData)
     {
         var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(
             await File.ReadAllTextAsync(Path.Combine(TestDataPath, testData)));
         Assert.That(assaultData, Is.Not.Null);
-
-        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
-            "TestAssets",
-            $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         var userGameData = GetTestUserGameData();
 
@@ -69,6 +66,10 @@ public class ZzzAssaultCardServiceTests
         var outputImagePath = Path.Combine(outputDirectory,
             $"ZzzAssault_Data{Path.GetFileNameWithoutExtension(testData).Last()}_Generated.jpg");
         await File.WriteAllBytesAsync(outputImagePath, generatedImageBytes);
+
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets",
+            $"{Path.GetFileNameWithoutExtension(testData).Replace("TestData", "GoldenImage")}.jpg"));
 
         // Save golden image to output folder for comparison
         var outputGoldenImagePath = Path.Combine(outputDirectory,
@@ -95,6 +96,7 @@ public class ZzzAssaultCardServiceTests
     [TestCase("Da_TestData_1.json", "Da_GoldenImage_1.jpg")]
     [TestCase("Da_TestData_2.json", "Da_GoldenImage_2.jpg")]
     [TestCase("Da_TestData_3.json", "Da_GoldenImage_3.jpg")]
+    [TestCase("Da_TestData_4.json", "Da_GoldenImage_4.jpg")]
     public async Task GenerateGoldenImage(string testDataFileName, string goldenImageFileName)
     {
         var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(await
@@ -114,6 +116,43 @@ public class ZzzAssaultCardServiceTests
         await fileStream.FlushAsync();
 
         Assert.That(image, Is.Not.Null);
+    }
+
+    [Explicit]
+    [Test]
+    [TestCase("Da_TestData_1.json")]
+    public async Task GenerateBossAssets(string testDataFileName)
+    {
+        var assaultData = JsonSerializer.Deserialize<ZzzAssaultData>(await
+            File.ReadAllTextAsync(Path.Combine(TestDataPath, testDataFileName)));
+        Assert.That(assaultData, Is.Not.Null);
+
+        var bosses = assaultData.List
+            .Concat(assaultData.HasHard ? assaultData.HardList : [])
+            .SelectMany(x => x.Boss)
+            .DistinctBy(x => x.ToImageName())
+            .ToList();
+        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "BossAssets");
+        Directory.CreateDirectory(outputDirectory);
+
+        using var httpClient = new HttpClient();
+        foreach (var boss in bosses)
+        {
+            using var background = await httpClient.GetStreamAsync(boss.BgIcon);
+            using var icon = await httpClient.GetStreamAsync(boss.Icon);
+            using var processed = ZzzAssaultApplicationService.GetBossImageProcessor().ProcessImage([background, icon]);
+            var outputPath = Path.Combine(outputDirectory, Path.GetFileName(boss.ToImageName()));
+            await using var output = File.Create(outputPath);
+            await processed.CopyToAsync(output);
+        }
+
+        Assert.That(bosses, Is.Not.Empty);
+        foreach (var boss in bosses)
+        {
+            using var image = await SixLabors.ImageSharp.Image.LoadAsync(
+                Path.Combine(outputDirectory, Path.GetFileName(boss.ToImageName())));
+            Assert.That(image.Size, Is.EqualTo(new SixLabors.ImageSharp.Size(166, 230)));
+        }
     }
 
 }

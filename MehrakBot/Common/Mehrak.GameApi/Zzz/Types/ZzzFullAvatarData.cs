@@ -60,7 +60,7 @@ public class ZzzAvatarData
 
     public string ToImageName()
     {
-        return string.Format(FileNameFormat.Zzz.PortraitName, Id);
+        return this.GetPortraitImageName();
     }
 }
 

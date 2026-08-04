@@ -1,4 +1,4 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package imageprocessor.v1;
 
@@ -22,7 +22,18 @@ message ProcessWeaponImageResponse {
   bytes processed_image = 1;
 }
 
+message MatchImageRequest {
+  bytes reference_image = 1;
+  bytes candidate_image = 2;
+}
+
+message MatchImageResponse {
+  bool is_match = 1;
+  float confidence = 2;
+}
+
 service ImageProcessorService {
   rpc ClassifyImage (ClassifyRequest) returns (ClassifyResponse);
   rpc ProcessWeaponImage (ProcessWeaponImageRequest) returns (ProcessWeaponImageResponse);
+  rpc MatchImage (MatchImageRequest) returns (MatchImageResponse);
 }

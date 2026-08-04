@@ -5,6 +5,24 @@ namespace Mehrak.GameApi.Zzz.Types;
 
 internal static class ZzzAvatarUtility
 {
+    internal static string GetPortraitImageName(this ZzzAvatarData data)
+    {
+        var avatarId = data.Id;
+        var avatarUrl = data.RoleSquareUrl;
+
+        if (string.IsNullOrWhiteSpace(avatarUrl) ||
+            !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri))
+        {
+            return string.Format(FileNameFormat.Zzz.PortraitName, avatarId);
+        }
+
+        var hasSkin = Regex.Match(Path.GetFileNameWithoutExtension(uri.LocalPath), $@".*_({avatarId}_\d+)$");
+        if (hasSkin.Success)
+            return string.Format(FileNameFormat.Zzz.PortraitName, hasSkin.Groups[1].Value);
+        else
+            return string.Format(FileNameFormat.Zzz.PortraitName, avatarId);
+    }
+
     internal static string GetAvatarImageName(int avatarId, string avatarUrl)
     {
         if (string.IsNullOrWhiteSpace(avatarUrl) ||
