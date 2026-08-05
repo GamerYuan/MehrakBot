@@ -1,0 +1,22 @@
+name: mehrakcore
+
+services:
+  migration-service:
+    image: ghcr.io/gameryuan/mehrakbot/mehrak-migration-service:${VERSION:-latest}
+    restart: "no"
+    build:
+      context: ./MehrakBot
+      dockerfile: Services/MigrationService/Dockerfile
+      args:
+        VERSION: ${VERSION:-0.0.1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mehrak-network
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=MehrakMigrationService
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta

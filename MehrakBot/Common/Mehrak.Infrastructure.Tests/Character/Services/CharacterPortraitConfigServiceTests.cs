@@ -395,7 +395,7 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         await Task.Delay(500);
 
         m_MockCache.Verify(c => c.SetAsync(
-            "portrait_cfg_Genshin_800",
+            "portrait_cfg_Genshin_800_0",
             It.IsAny<byte[]>(),
             It.IsAny<DistributedCacheEntryOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -403,6 +403,91 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         m_MockCache.Verify(c => c.RemoveAsync(
             "portrait_cfg_all_Genshin",
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region ZZZ outfit sub-id
+
+    [Test]
+    public async Task UpsertConfigAsync_BaseAndOutfit_SameServerId_DoNotClobberEachOther()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.ZenlessZoneZero, 1261, "Jane");
+        }
+
+        var baseUpdate = new CharacterPortraitConfigUpdate { OffsetX = 5 };
+        var outfitUpdate = new CharacterPortraitConfigUpdate { OffsetX = 50, OffsetY = 25 };
+
+        Assert.That(await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, baseUpdate), Is.True);
+        Assert.That(await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, outfitUpdate, 8888), Is.True);
+
+        var baseConfig = await m_Service.GetConfigAsync(Game.ZenlessZoneZero, 1261);
+        var outfitConfig = await m_Service.GetConfigAsync(Game.ZenlessZoneZero, 1261, 8888);
+        var otherOutfitConfig = await m_Service.GetConfigAsync(Game.ZenlessZoneZero, 1261, 9999);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(baseConfig, Is.Not.Null);
+            Assert.That(baseConfig!.OffsetX, Is.EqualTo(5));
+            Assert.That(baseConfig.SubId, Is.EqualTo(0));
+
+            Assert.That(outfitConfig, Is.Not.Null);
+            Assert.That(outfitConfig!.OffsetX, Is.EqualTo(50));
+            Assert.That(outfitConfig.OffsetY, Is.EqualTo(25));
+            Assert.That(outfitConfig.SubId, Is.EqualTo(8888));
+
+            Assert.That(otherOutfitConfig, Is.Null);
+        });
+
+        await using var verifyContext = CreateContext();
+        Assert.That(await verifyContext.CharacterPortraitConfigs.CountAsync(
+            c => c.Game == Game.ZenlessZoneZero && c.ServerId == 1261), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetAllConfigsAsync_OutfitConfig_UsesSubIdKeySuffix()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.ZenlessZoneZero, 1261, "Jane");
+        }
+
+        await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, new CharacterPortraitConfigUpdate { OffsetX = 5 });
+        await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, new CharacterPortraitConfigUpdate { OffsetX = 50 }, 8888);
+
+        var configs = await m_Service.GetAllConfigsAsync(Game.ZenlessZoneZero);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configs.ContainsKey("Jane"), Is.True);
+            Assert.That(configs.ContainsKey("Jane_1261_8888"), Is.True);
+            Assert.That(configs["Jane"].OffsetX, Is.EqualTo(5));
+            Assert.That(configs["Jane_1261_8888"].OffsetX, Is.EqualTo(50));
+        });
+    }
+
+    [Test]
+    public async Task GetAllConfigsAsync_OutfitOnlyConfig_AlwaysIncludesServerIdInKey()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.ZenlessZoneZero, 1261, "Jane");
+        }
+
+        await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, new CharacterPortraitConfigUpdate { OffsetX = 50 }, 8888);
+
+        var configs = await m_Service.GetAllConfigsAsync(Game.ZenlessZoneZero);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configs.ContainsKey("Jane_1261_8888"), Is.True);
+            Assert.That(configs["Jane_1261_8888"].OffsetX, Is.EqualTo(50));
+        });
     }
 
     #endregion

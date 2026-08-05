@@ -299,12 +299,16 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
         cardContext.SetParameter("server", server);
 
+        var outfitPortraitAvailable = isOutfitPortrait &&
+            (!outfitPortraitMissing || outfitPortraitUpdateTask?.Result == true);
+        var portraitSubId = outfitPortraitAvailable ? charInfo.GetPortraitSubId() ?? 0 : 0;
+
         var resolution = activePortrait != null
             ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
                 m_UserPortraitService, context.UserId, activePortrait,
-                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id), cancellationToken)
+                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id, portraitSubId), cancellationToken)
             : new PortraitResolution(null,
-                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id));
+                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id, portraitSubId));
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;
 

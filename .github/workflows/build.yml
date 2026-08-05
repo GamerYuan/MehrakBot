@@ -35,6 +35,9 @@ jobs:
           - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-image-processor
             dockerfile: ./MehrakBot/Services/ImageProcessor/Dockerfile
 
+          - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-migration-service
+            dockerfile: ./MehrakBot/Services/MigrationService/Dockerfile
+
     steps:
       - name: Derive build version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV

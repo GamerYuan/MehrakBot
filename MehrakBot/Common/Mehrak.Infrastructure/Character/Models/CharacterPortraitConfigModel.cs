@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Infrastructure.Character.Models;
 
-[Index(nameof(Game), nameof(ServerId), IsUnique = true)]
+[Index(nameof(Game), nameof(ServerId), nameof(SubId), IsUnique = true)]
 public class CharacterPortraitConfigModel
 {
     [Key]
@@ -13,6 +13,11 @@ public class CharacterPortraitConfigModel
     public Game Game { get; set; }
 
     public int ServerId { get; set; }
+
+    /// <summary>
+    /// Outfit-specific discriminator (ZZZ outfit id); 0 = base portrait.
+    /// </summary>
+    public int SubId { get; set; }
 
     [Required]
     [MaxLength(100)]
