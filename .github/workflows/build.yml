@@ -47,6 +47,11 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      
+      - name: Checkout Submodule and Pull LFS
+        if: matrix.image-name == 'ghcr.io/gameryuan/mehrakbot/mehrak-image-processor' || matrix.image-name == 'ghcr.io/gameryuan/mehrakbot/mehrak-application'
+        run: |
+          git submodule update --init --recursive
 
       - name: Extract OpenCvSharp version
         run: |
