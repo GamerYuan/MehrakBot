@@ -15,10 +15,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
-    concurrency:
-      group: build-release-${{ github.ref_name }}
-      cancel-in-progress: false
-
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +33,10 @@ jobs:
 
           - image-name: ghcr.io/gameryuan/mehrakbot/mehrak-migration-service
             dockerfile: ./MehrakBot/Services/MigrationService/Dockerfile
+      
+    concurrency:
+      group: build-release-${{ github.ref_name }}-${{ matrix.image-name }}
+      cancel-in-progress: false
 
     steps:
       - name: Derive build version
@@ -47,6 +47,11 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      
+      - name: Checkout Submodule and Pull LFS
+        if: matrix.image-name == 'ghcr.io/gameryuan/mehrakbot/mehrak-image-processor' || matrix.image-name == 'ghcr.io/gameryuan/mehrakbot/mehrak-application'
+        run: |
+          git submodule update --init --recursive
 
       - name: Extract OpenCvSharp version
         run: |
