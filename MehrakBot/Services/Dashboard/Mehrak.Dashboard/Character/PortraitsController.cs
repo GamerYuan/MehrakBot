@@ -54,14 +54,14 @@ public class PortraitsController : GameWriteController
     }
 
     [HttpGet("config")]
-    public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId)
+    public async Task<IActionResult> GetPortraitConfig([FromQuery] string? game, [FromQuery] string? character, [FromQuery] int? serverId, [FromQuery] int? subId)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
         if (serverId.HasValue)
         {
-            var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, serverId.Value);
+            var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, serverId.Value, subId ?? 0);
             return config == null ? NotFound(new { error = "No config found for this server ID." }) : Ok(config);
         }
 
@@ -80,7 +80,7 @@ public class PortraitsController : GameWriteController
             var configs = new Dictionary<string, CharacterPortraitConfig>();
             foreach (var sid in charModel.ServerIds)
             {
-                var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, sid.ServerId);
+                var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, sid.ServerId, subId ?? 0);
                 if (config != null)
                 {
                     var key = charModel.ServerIds.Count > 1
@@ -99,7 +99,7 @@ public class PortraitsController : GameWriteController
 
     [HttpPatch("config")]
     [Authorize(Policy = "RequireGameWrite")]
-    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] int? serverId,
+    public async Task<IActionResult> UpdatePortraitConfig([FromQuery] string? game, [FromQuery] int? serverId, [FromQuery] int? subId,
         [FromBody] CharacterPortraitConfigUpdate update)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
@@ -108,9 +108,12 @@ public class PortraitsController : GameWriteController
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
 
-        m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} in game {Game}", serverId, gameEnum);
+        if (subId.HasValue && gameEnum != Game.ZenlessZoneZero)
+            return BadRequest(new { error = "Sub ID is only supported for ZZZ outfits." });
 
-        var success = await m_PortraitConfigService.UpsertConfigAsync(gameEnum, serverId.Value, update);
+        m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} SubId {SubId} in game {Game}", serverId, subId ?? 0, gameEnum);
+
+        var success = await m_PortraitConfigService.UpsertConfigAsync(gameEnum, serverId.Value, update, subId ?? 0);
 
         if (!success)
             return NotFound(new { error = "Server ID not found in character database." });
@@ -119,13 +122,16 @@ public class PortraitsController : GameWriteController
     }
 
     [HttpGet("image")]
-    public async Task<IActionResult> GetPortraitImage([FromQuery] string? game, [FromQuery] int? serverId)
+    public async Task<IActionResult> GetPortraitImage([FromQuery] string? game, [FromQuery] int? serverId, [FromQuery] int? subId)
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
+
+        if (subId.HasValue && gameEnum != Game.ZenlessZoneZero)
+            return BadRequest(new { error = "Sub ID is only supported for ZZZ outfits." });
 
         var format = gameEnum switch
         {
@@ -139,7 +145,9 @@ public class PortraitsController : GameWriteController
         if (format == null)
             return BadRequest(new { error = $"Unsupported game: {gameEnum}" });
 
-        var imageName = string.Format(format, serverId.Value);
+        var imageName = gameEnum == Game.ZenlessZoneZero && subId is > 0
+            ? string.Format(format, $"{serverId.Value}_{subId.Value}")
+            : string.Format(format, serverId.Value);
         if (await m_ImageRepository.FileExistsAsync(imageName))
         {
             var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);

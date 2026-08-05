@@ -24,11 +24,11 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         m_Logger = logger;
     }
 
-    public async Task<CharacterPortraitConfig?> GetConfigAsync(Game game, int serverId)
+    public async Task<CharacterPortraitConfig?> GetConfigAsync(Game game, int serverId, int subId = 0)
     {
         try
         {
-            var cacheKey = $"portrait_cfg_{game}_{serverId}";
+            var cacheKey = $"portrait_cfg_{game}_{serverId}_{subId}";
             var cachedData = await m_Cache.GetStringAsync(cacheKey);
 
             if (!string.IsNullOrEmpty(cachedData))
@@ -48,7 +48,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
             using var scope = m_ScopeFactory.CreateScope();
             using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
             var entity = await context.CharacterPortraitConfigs.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId);
+                .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId && c.SubId == subId);
 
             if (entity == null)
                 return null;
@@ -94,14 +94,16 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
         var result = new Dictionary<string, CharacterPortraitConfig>(StringComparer.OrdinalIgnoreCase);
         var cacheModel = new Dictionary<string, PortraitConfigCacheModel>(StringComparer.OrdinalIgnoreCase);
-        var nameCounts = entities.GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+        var serverCounts = entities.GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.ServerId).Distinct().Count(), StringComparer.OrdinalIgnoreCase);
 
         foreach (var entity in entities)
         {
-            var key = nameCounts.GetValueOrDefault(entity.Name) > 1
-                ? $"{entity.Name}_{entity.ServerId}"
-                : entity.Name;
+            var key = entity.SubId != 0
+                ? $"{entity.Name}_{entity.ServerId}_{entity.SubId}"
+                : serverCounts.GetValueOrDefault(entity.Name) > 1
+                    ? $"{entity.Name}_{entity.ServerId}"
+                    : entity.Name;
 
             result[key] = ToConfig(entity);
             cacheModel[key] = ToCacheModel(entity);
@@ -117,7 +119,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return result;
     }
 
-    public async Task<bool> UpsertConfigAsync(Game game, int serverId, CharacterPortraitConfigUpdate update)
+    public async Task<bool> UpsertConfigAsync(Game game, int serverId, CharacterPortraitConfigUpdate update, int subId = 0)
     {
         const int maxRetries = 3;
 
@@ -146,7 +148,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 var characterName = serverIdEntity.Character.Name;
 
                 var entity = await context.CharacterPortraitConfigs
-                    .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId);
+                    .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId && c.SubId == subId);
 
                 if (entity == null)
                 {
@@ -154,6 +156,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                     {
                         Game = game,
                         ServerId = serverId,
+                        SubId = subId,
                         Name = characterName,
                         OffsetX = update.OffsetX,
                         OffsetY = update.OffsetY,
@@ -180,7 +183,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 {
                     try
                     {
-                        var cacheKey = $"portrait_cfg_{game}_{serverId}";
+                        var cacheKey = $"portrait_cfg_{game}_{serverId}_{subId}";
                         var cacheModel = ToCacheModel(entity);
 
                         var cacheOptions = new DistributedCacheEntryOptions
@@ -218,6 +221,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return new CharacterPortraitConfig
         {
             ServerId = entity.ServerId,
+            SubId = entity.SubId,
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
@@ -231,6 +235,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return new CharacterPortraitConfig
         {
             ServerId = cache.ServerId,
+            SubId = cache.SubId,
             OffsetX = cache.OffsetX,
             OffsetY = cache.OffsetY,
             TargetScale = cache.TargetScale,
@@ -244,6 +249,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         return new PortraitConfigCacheModel
         {
             ServerId = entity.ServerId,
+            SubId = entity.SubId,
             OffsetX = entity.OffsetX,
             OffsetY = entity.OffsetY,
             TargetScale = entity.TargetScale,
@@ -255,6 +261,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
     private sealed class PortraitConfigCacheModel
     {
         public int ServerId { get; set; }
+        public int SubId { get; set; }
         public int? OffsetX { get; set; }
         public int? OffsetY { get; set; }
         public float? TargetScale { get; set; }

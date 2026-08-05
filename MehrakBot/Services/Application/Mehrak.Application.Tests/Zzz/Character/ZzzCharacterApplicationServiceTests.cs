@@ -646,7 +646,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
-            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -713,6 +713,7 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(
             It.Is<IImageData>(d => d.Name == "zzz/portrait_1261_8888.png"),
             It.IsAny<IImageProcessor>()), Times.Never);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, 1261, 0), Times.Once);
     }
 
     [Test]
@@ -990,6 +991,49 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(5));
             Assert.That(capturedContext.PortraitConfig.OffsetY, Is.EqualTo(10));
         }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WithEquippedOutfit_FetchesOutfitKeyedPortraitConfig()
+    {
+        // Arrange
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, _,
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var charList = CreateBasicCharacterList();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(charList));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        portraitConfigMock.Setup(x => x.GetConfigAsync(It.IsAny<Game>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((CharacterPortraitConfig?)null);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        // Act
+        await service.ExecuteAsync(context);
+
+        // Assert
+        var expectedId = fullCharData.AvatarList.First(x => x.Name == "Jane").Id;
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, expectedId, 8888), Times.Once);
     }
 
     [Test]
