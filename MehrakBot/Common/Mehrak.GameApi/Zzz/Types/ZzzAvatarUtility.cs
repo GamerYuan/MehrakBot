@@ -7,34 +7,33 @@ internal static class ZzzAvatarUtility
 {
     internal static string GetPortraitImageName(this ZzzAvatarData data)
     {
-        var avatarId = data.Id;
-        var avatarUrl = data.RoleSquareUrl;
-
-        if (string.IsNullOrWhiteSpace(avatarUrl) ||
-            !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri))
-        {
-            return string.Format(FileNameFormat.Zzz.PortraitName, avatarId);
-        }
-
-        var hasSkin = Regex.Match(Path.GetFileNameWithoutExtension(uri.LocalPath), $@".*_({avatarId}_\d+)$");
-        if (hasSkin.Success)
-            return string.Format(FileNameFormat.Zzz.PortraitName, hasSkin.Groups[1].Value);
-        else
-            return string.Format(FileNameFormat.Zzz.PortraitName, avatarId);
+        return string.Format(FileNameFormat.Zzz.PortraitName, GetOutfitSuffix(data.Id, data.RoleSquareUrl) ?? data.Id.ToString());
     }
 
     internal static string GetAvatarImageName(int avatarId, string avatarUrl)
     {
+        return string.Format(FileNameFormat.Zzz.AvatarName, GetOutfitSuffix(avatarId, avatarUrl) ?? avatarId.ToString());
+    }
+
+    /// <summary>
+    /// Returns the equipped outfit id when the avatar URL carries a skin suffix
+    /// (<c>_{CharacterServerId}_{CharacterOutfitId}</c>), otherwise <see langword="null"/> for the base outfit.
+    /// </summary>
+    internal static int? GetPortraitSubId(this ZzzAvatarData data)
+    {
+        var suffix = GetOutfitSuffix(data.Id, data.RoleSquareUrl);
+        return suffix == null ? null : int.Parse(suffix.Split('_')[1]);
+    }
+
+    private static string? GetOutfitSuffix(int avatarId, string avatarUrl)
+    {
         if (string.IsNullOrWhiteSpace(avatarUrl) ||
             !Uri.TryCreate(avatarUrl, UriKind.Absolute, out var uri))
         {
-            return string.Format(FileNameFormat.Zzz.AvatarName, avatarId);
+            return null;
         }
 
         var hasSkin = Regex.Match(Path.GetFileNameWithoutExtension(uri.LocalPath), $@".*_({avatarId}_\d+)$");
-        if (hasSkin.Success)
-            return string.Format(FileNameFormat.Zzz.AvatarName, hasSkin.Groups[1].Value);
-        else
-            return string.Format(FileNameFormat.Zzz.AvatarName, avatarId);
+        return hasSkin.Success ? hasSkin.Groups[1].Value : null;
     }
 }

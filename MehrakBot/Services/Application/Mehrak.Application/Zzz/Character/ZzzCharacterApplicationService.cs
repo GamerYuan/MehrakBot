@@ -302,9 +302,9 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         var resolution = activePortrait != null
             ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
                 m_UserPortraitService, context.UserId, activePortrait,
-                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id), cancellationToken)
+                () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id, charInfo.GetPortraitSubId() ?? 0), cancellationToken)
             : new PortraitResolution(null,
-                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id));
+                await m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id, charInfo.GetPortraitSubId() ?? 0));
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;
 
