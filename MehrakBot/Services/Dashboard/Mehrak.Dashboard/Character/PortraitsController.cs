@@ -50,7 +50,33 @@ public class PortraitsController : GameWriteController
         if (charModel == null)
             return NotFound(new { error = "Character not found." });
 
-        return Ok(charModel.ServerIds.Select(x => x.ServerId));
+        var entries = new List<PortraitListEntry>();
+        foreach (var sid in charModel.ServerIds)
+        {
+            entries.Add(new PortraitListEntry(sid.ServerId, null, GetPortraitImageName(gameEnum, sid.ServerId, null)!));
+
+            if (gameEnum != Game.ZenlessZoneZero)
+                continue;
+
+            var outfitKeys = await m_ImageRepository.ListFilesAsync($"zzz/portrait_{sid.ServerId}_");
+            foreach (var key in outfitKeys)
+            {
+                if (TryParseZzzOutfitKey(key, out var subId))
+                    entries.Add(new PortraitListEntry(sid.ServerId, subId, key));
+            }
+
+            var outfitConfigSubIds = await m_CharacterContext.CharacterPortraitConfigs.AsNoTracking()
+                .Where(c => c.ServerId == sid.ServerId && c.SubId != 0)
+                .Select(c => c.SubId)
+                .ToListAsync();
+            foreach (var subId in outfitConfigSubIds)
+                entries.Add(new PortraitListEntry(sid.ServerId, subId, GetPortraitImageName(gameEnum, sid.ServerId, subId)!));
+        }
+
+        return Ok(entries
+            .DistinctBy(e => (e.ServerId, e.SubId))
+            .OrderBy(e => e.ServerId)
+            .ThenBy(e => e.SubId ?? 0));
     }
 
     [HttpGet("config")]
@@ -133,7 +159,22 @@ public class PortraitsController : GameWriteController
         if (subId.HasValue && gameEnum != Game.ZenlessZoneZero)
             return BadRequest(new { error = "Sub ID is only supported for ZZZ outfits." });
 
-        var format = gameEnum switch
+        var imageName = GetPortraitImageName(gameEnum, serverId.Value, subId);
+        if (imageName == null)
+            return BadRequest(new { error = $"Unsupported game: {gameEnum}" });
+
+        if (await m_ImageRepository.FileExistsAsync(imageName))
+        {
+            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
+            return File(stream, FileNameFormat.PngContentType);
+        }
+
+        return NotFound(new { error = $"Portrait image for {serverId.Value} ({gameEnum.ToFriendlyString()}) not found, please generate an image with this character in the Characters tab and try again" });
+    }
+
+    private static string? GetPortraitImageName(Game game, int serverId, int? subId)
+    {
+        var format = game switch
         {
             Game.Genshin => FileNameFormat.Genshin.PortraitName,
             Game.HonkaiStarRail => FileNameFormat.Hsr.PortraitName,
@@ -143,17 +184,27 @@ public class PortraitsController : GameWriteController
         };
 
         if (format == null)
-            return BadRequest(new { error = $"Unsupported game: {gameEnum}" });
+            return null;
 
-        var imageName = gameEnum == Game.ZenlessZoneZero && subId is > 0
-            ? string.Format(format, $"{serverId.Value}_{subId.Value}")
-            : string.Format(format, serverId.Value);
-        if (await m_ImageRepository.FileExistsAsync(imageName))
+        return game == Game.ZenlessZoneZero && subId is > 0
+            ? string.Format(format, $"{serverId}_{subId.Value}")
+            : string.Format(format, serverId);
+    }
+
+    private static bool TryParseZzzOutfitKey(string key, out int subId)
+    {
+        subId = 0;
+        const string prefix = "zzz/portrait_";
+        if (!key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+            !key.EndsWith(FileNameFormat.PngExtension, StringComparison.OrdinalIgnoreCase))
         {
-            var stream = await m_ImageRepository.DownloadFileToStreamAsync(imageName);
-            return File(stream, FileNameFormat.PngContentType);
+            return false;
         }
 
-        return NotFound(new { error = $"Portrait image for {serverId.Value} ({gameEnum.ToFriendlyString()}) not found, please generate an image with this character in the Characters tab and try again" });
+        var idPart = key[prefix.Length..^FileNameFormat.PngExtension.Length];
+        var parts = idPart.Split('_');
+        return parts.Length == 2 && int.TryParse(parts[1], out subId);
     }
+
+    private sealed record PortraitListEntry(int ServerId, int? SubId, string ImageName);
 }
