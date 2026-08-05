@@ -2,6 +2,7 @@ name: mehrakcore
 services:
   bot:
     image: ghcr.io/gameryuan/mehrakbot/mehrak-bot:${VERSION:-latest}
+    restart: unless-stopped
     build:
       context: ./MehrakBot
       dockerfile: Services/Bot/Dockerfile
@@ -33,6 +34,7 @@ services:
 
   dashboard:
     image: ghcr.io/gameryuan/mehrakbot/mehrak-dashboard:${VERSION:-latest}
+    restart: unless-stopped
     build:
       context: ./MehrakBot
       dockerfile: Services/Dashboard/Dockerfile
@@ -79,6 +81,7 @@ services:
 
   application:
     image: ghcr.io/gameryuan/mehrakbot/mehrak-application:${VERSION:-latest}
+    restart: unless-stopped
     build:
       context: ./MehrakBot
       dockerfile: Services/Application/Dockerfile
@@ -106,11 +109,10 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakApplication
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
-    volumes:
-      - ./MehrakBot/Assets:/app/Assets:ro
 
   image-processor:
     image: ghcr.io/gameryuan/mehrakbot/mehrak-image-processor:${VERSION:-latest}
+    restart: unless-stopped
     build:
       context: ./MehrakBot
       dockerfile: Services/ImageProcessor/Dockerfile
@@ -129,8 +131,6 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakImageProcessor
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta
-    volumes:
-      - ./MehrakBot/Assets:/app/Assets:ro
 
   postgres:
     image: postgres:18.3
@@ -192,7 +192,7 @@ services:
       - "9333"
       - "19333"
     volumes:
-      - ./seaweed-master:/data
+      - seaweed_master_data:/data
     networks:
       - mehrak-network
       - seaweed-network
@@ -207,7 +207,7 @@ services:
       - "8080"
       - "18080"
     volumes:
-      - ./seaweed-volume:/data
+      - seaweed_volume_data:/data
     networks:
       - seaweed-network
 
@@ -222,7 +222,7 @@ services:
       - "8888"
       - "18888"
     volumes:
-      - ./seaweed-filer:/data
+      - seaweed_filer_data:/data
     networks:
       - seaweed-network
 
@@ -309,3 +309,6 @@ volumes:
   grafana-data:
   clickhouse_data:
   clickhouse_logs:
+  seaweed_master_data:
+  seaweed_volume_data:
+  seaweed_filer_data:
