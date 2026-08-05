@@ -94,16 +94,16 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
         var result = new Dictionary<string, CharacterPortraitConfig>(StringComparer.OrdinalIgnoreCase);
         var cacheModel = new Dictionary<string, PortraitConfigCacheModel>(StringComparer.OrdinalIgnoreCase);
-        var nameCounts = entities.GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+        var serverCounts = entities.GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.ServerId).Distinct().Count(), StringComparer.OrdinalIgnoreCase);
 
         foreach (var entity in entities)
         {
-            var key = nameCounts.GetValueOrDefault(entity.Name) > 1
-                ? $"{entity.Name}_{entity.ServerId}"
-                : entity.Name;
-            if (entity.SubId != 0)
-                key = $"{key}_{entity.SubId}";
+            var key = entity.SubId != 0
+                ? $"{entity.Name}_{entity.ServerId}_{entity.SubId}"
+                : serverCounts.GetValueOrDefault(entity.Name) > 1
+                    ? $"{entity.Name}_{entity.ServerId}"
+                    : entity.Name;
 
             result[key] = ToConfig(entity);
             cacheModel[key] = ToCacheModel(entity);

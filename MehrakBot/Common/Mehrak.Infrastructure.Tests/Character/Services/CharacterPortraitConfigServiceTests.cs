@@ -463,9 +463,29 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
 
         Assert.Multiple(() =>
         {
-            Assert.That(configs.ContainsKey("Jane_1261"), Is.True);
+            Assert.That(configs.ContainsKey("Jane"), Is.True);
             Assert.That(configs.ContainsKey("Jane_1261_8888"), Is.True);
-            Assert.That(configs["Jane_1261"].OffsetX, Is.EqualTo(5));
+            Assert.That(configs["Jane"].OffsetX, Is.EqualTo(5));
+            Assert.That(configs["Jane_1261_8888"].OffsetX, Is.EqualTo(50));
+        });
+    }
+
+    [Test]
+    public async Task GetAllConfigsAsync_OutfitOnlyConfig_AlwaysIncludesServerIdInKey()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedServerIdAsync(ctx, Game.ZenlessZoneZero, 1261, "Jane");
+        }
+
+        await m_Service.UpsertConfigAsync(Game.ZenlessZoneZero, 1261, new CharacterPortraitConfigUpdate { OffsetX = 50 }, 8888);
+
+        var configs = await m_Service.GetAllConfigsAsync(Game.ZenlessZoneZero);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configs.ContainsKey("Jane_1261_8888"), Is.True);
             Assert.That(configs["Jane_1261_8888"].OffsetX, Is.EqualTo(50));
         });
     }

@@ -22,7 +22,9 @@ internal static class ZzzAvatarUtility
     internal static int? GetPortraitSubId(this ZzzAvatarData data)
     {
         var suffix = GetOutfitSuffix(data.Id, data.RoleSquareUrl);
-        return suffix == null ? null : int.Parse(suffix.Split('_')[1]);
+        return suffix != null && int.TryParse(suffix.Split('_')[1], out var subId)
+            ? subId
+            : null;
     }
 
     private static string? GetOutfitSuffix(int avatarId, string avatarUrl)

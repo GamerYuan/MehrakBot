@@ -80,7 +80,7 @@ public class PortraitsController : GameWriteController
             var configs = new Dictionary<string, CharacterPortraitConfig>();
             foreach (var sid in charModel.ServerIds)
             {
-                var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, sid.ServerId);
+                var config = await m_PortraitConfigService.GetConfigAsync(gameEnum, sid.ServerId, subId ?? 0);
                 if (config != null)
                 {
                     var key = charModel.ServerIds.Count > 1
@@ -107,6 +107,9 @@ public class PortraitsController : GameWriteController
 
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
+
+        if (subId.HasValue && gameEnum != Game.ZenlessZoneZero)
+            return BadRequest(new { error = "Sub ID is only supported for ZZZ outfits." });
 
         m_Logger.LogInformation("Updating portrait config for ServerId {ServerId} SubId {SubId} in game {Game}", serverId, subId ?? 0, gameEnum);
 

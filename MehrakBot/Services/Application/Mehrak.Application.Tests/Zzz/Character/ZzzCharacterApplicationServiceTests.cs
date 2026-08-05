@@ -646,7 +646,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
-            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -713,6 +713,7 @@ public class ZzzCharacterApplicationServiceTests
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(
             It.Is<IImageData>(d => d.Name == "zzz/portrait_1261_8888.png"),
             It.IsAny<IImageProcessor>()), Times.Never);
+        portraitConfigMock.Verify(x => x.GetConfigAsync(Game.ZenlessZoneZero, 1261, 0), Times.Once);
     }
 
     [Test]
