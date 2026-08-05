@@ -20,4 +20,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS app
 WORKDIR /app
 
 COPY --from=build /app/out /app
+COPY Assets /app/Assets
+
 ENTRYPOINT ["/app/Mehrak.Application"]

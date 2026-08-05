@@ -20,4 +20,6 @@ WORKDIR /app
 COPY --from=build /usr/lib /usr/lib
 COPY --from=build /artifacts /artifacts
 COPY --from=build /app/out /app
+COPY Assets /app/Assets
+
 ENTRYPOINT ["/app/Mehrak.ImageProcessor"]
