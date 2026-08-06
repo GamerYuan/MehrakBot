@@ -14,7 +14,7 @@ namespace Mehrak.GameApi.Zzz;
 
 public class ZzzAssaultApiService : IApiService<ZzzAssaultData, BaseHoYoApiContext>
 {
-    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/mem_detail";
+    private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/hadal_mem_detail_v2";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzAssaultApiService> m_Logger;
