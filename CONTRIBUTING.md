@@ -4,8 +4,6 @@
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - [Docker](https://www.docker.com/)
-- [Node.js 24.x](https://nodejs.org/en)
-- [PostgreSQL](https://www.postgresql.org/)
 - [Visual Studio](https://visualstudio.microsoft.com/)/[Jetbrains Rider](https://www.jetbrains.com/rider/)/[Visual Studio Code](https://code.visualstudio.com/) w/ [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
 - [Discord Developer Account](https://discord.com/developers) and an [App Token](https://docs.discord.com/developers/quick-start/getting-started)
 
@@ -13,15 +11,24 @@
 
 To manually test your changes, follow these steps to build and run Mehrak locally. Ensure that you execute these commands from the root of the repository
 
-1. Setup `.env` with the provided `.env.template` file
-
-2. Make a copy of `appsettings.json` in `Services/Application/Mehrak.Application/`, `Services/Bot/Mehrak.Bot`, `Services/Dashboard/Mehrak.Dashboard`, rename them as `appsettings.Development.json`, and setup the appropriate values
-
-3. Start all services with Aspire
+1. Assets (game images, fonts, etc.) live in the `MehrakBot/Assets` git submodule with LFS files. Pull them with:
 
 ```
-dotnet run --project MehrakBot/Services/AppHost/Mehrak.AppHost
+git submodule update --init --recursive
+git lfs pull
 ```
+
+2. Setup `.env.local` from `.env.template` file
+
+3. Make a copy of `appsettings.json` in `Services/Application/Mehrak.Application/`, `Services/Bot/Mehrak.Bot`, `Services/Dashboard/Mehrak.Dashboard`, rename them as `appsettings.Development.json`, and setup the appropriate values
+
+4. Start all services with Aspire
+
+```
+dotnet run --project MehrakBot/Mehrak.AppHost
+```
+
+Alternatively, you can run `aspire run` from the root of the repository to start all services.
 
 This starts all infrastructure (PostgreSQL, Redis, SeaweedFS, ClickHouse) and application services automatically. The Aspire dashboard opens in your browser.
 
