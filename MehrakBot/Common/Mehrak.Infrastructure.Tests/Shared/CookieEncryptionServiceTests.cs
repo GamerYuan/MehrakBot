@@ -269,18 +269,16 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Decrypt_WithTooShortPayload_ReturnsEmptyString()
+    public void Decrypt_WithTooShortPayload_ThrowsCryptographicException()
     {
         // Arrange
         // Create a payload shorter than minimum required (salt + nonce + tag = 44 bytes)
         var shortPayload = Convert.ToBase64String(new byte[20]);
         const string passphrase = "passphrase";
 
-        // Act
-        var result = m_EncryptionService.Decrypt(shortPayload, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Empty);
+        // Act & Assert
+        Assert.Throws<CryptographicException>(() =>
+            m_EncryptionService.Decrypt(shortPayload, passphrase));
     }
 
     [Test]
@@ -302,17 +300,33 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Decrypt_WithEmptyString_ReturnsEmptyString()
+    public void Decrypt_WithEmptyString_ThrowsCryptographicException()
     {
         // Arrange
         const string emptyString = "";
         const string passphrase = "passphrase";
 
-        // Act
-        var result = m_EncryptionService.Decrypt(emptyString, passphrase);
+        // Act & Assert
+        Assert.Throws<CryptographicException>(() =>
+            m_EncryptionService.Decrypt(emptyString, passphrase));
+    }
 
-        // Assert
-        Assert.That(result, Is.Empty);
+    [Test]
+    public void Decrypt_WithTruncatedBase64Payload_ThrowsCryptographicException()
+    {
+        // Arrange
+        const string plainText = "test-data";
+        const string passphrase = "passphrase";
+        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
+
+        var bytes = Convert.FromBase64String(encrypted);
+        var truncated = Convert.ToBase64String(bytes[..^1]);
+
+        // Act & Assert
+        // Truncated payloads fail the GCM tag check, surfacing as
+        // AuthenticationTagMismatchException (a CryptographicException subclass)
+        Assert.That(() => m_EncryptionService.Decrypt(truncated, passphrase),
+            Throws.InstanceOf<CryptographicException>());
     }
 
     [Test]
@@ -527,7 +541,7 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Decrypt_WithPayloadMissingTag_ReturnsEmptyString()
+    public void Decrypt_WithPayloadMissingTag_ThrowsCryptographicException()
     {
         // Arrange
         // Create a payload with salt + nonce but missing tag (< 44 bytes minimum)
@@ -536,11 +550,9 @@ public class CookieEncryptionServiceTests
         var invalidPayload = Convert.ToBase64String(bytes);
         const string passphrase = "passphrase";
 
-        // Act
-        var result = m_EncryptionService.Decrypt(invalidPayload, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Empty);
+        // Act & Assert
+        Assert.Throws<CryptographicException>(() =>
+            m_EncryptionService.Decrypt(invalidPayload, passphrase));
     }
 
     [Test]

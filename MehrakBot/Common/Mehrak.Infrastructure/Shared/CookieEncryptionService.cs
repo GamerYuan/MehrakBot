@@ -99,7 +99,7 @@ public class CookieEncryptionService : IEncryptionService
                     "Decryption failed: payload too short ({ActualLength} bytes, expected at least {MinLength} bytes)",
                     payload.Length,
                     MinCombinedDataLengthBytes);
-                return string.Empty;
+                throw new CryptographicException("Decryption failed: payload too short");
             }
 
             var salt = new byte[SaltSizeBytes];
@@ -120,7 +120,7 @@ public class CookieEncryptionService : IEncryptionService
             if (combinedCiphertextWithTag.Length < TagSizeBytes)
             {
                 m_Logger.LogWarning("Decryption failed: invalid data format (ciphertext with tag too short)");
-                return string.Empty;
+                throw new CryptographicException("Decryption failed: invalid data format (ciphertext with tag too short)");
             }
 
             var tag = new byte[TagSizeBytes];
