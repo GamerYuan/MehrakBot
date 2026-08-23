@@ -147,11 +147,41 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 "Stored authentication data is corrupted. Please remove and re-add this profile.");
         }
 
+        await TryUpgradeLegacyLtokenAsync(userContext, request.Context.Interaction.User.Id,
+            profile.Id, profile.LToken, token, authResponse.Passphrase);
+
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
             authResponse.Context);
+    }
+
+    private async Task TryUpgradeLegacyLtokenAsync(
+        UserDbContext userContext,
+        ulong userId,
+        long profileRowId,
+        string storedLtoken,
+        string decryptedLtoken,
+        string passphrase)
+    {
+        if (!m_EncryptionService.IsLegacyFormat(storedLtoken)) return;
+
+        try
+        {
+            var upgraded = m_EncryptionService.Encrypt(decryptedLtoken, passphrase);
+            var profileModel = await userContext.UserProfiles.SingleAsync(p => p.Id == profileRowId);
+            profileModel.LToken = upgraded;
+            await userContext.SaveChangesAsync();
+            m_Logger.LogInformation("Upgraded legacy LToken encryption for UserId={UserId}, ProfileId={ProfileId}",
+                userId, profileRowId);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogWarning(e,
+                "Failed to persist upgraded LToken encryption for UserId={UserId}, ProfileId={ProfileId}; continuing with existing credentials",
+                userId, profileRowId);
+        }
     }
 
     public bool NotifyAuthenticate(AuthenticationResponse request)

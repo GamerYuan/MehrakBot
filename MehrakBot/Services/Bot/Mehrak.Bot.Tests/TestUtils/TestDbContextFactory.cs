@@ -10,11 +10,13 @@ internal sealed class TestDbContextFactory : IDisposable
     public IServiceScopeFactory ScopeFactory { get; }
     public string DatabaseName { get; }
 
-    public TestDbContextFactory(string? databaseName = null, Action<UserDbContext>? seed = null)
+    public TestDbContextFactory(string? databaseName = null, Action<UserDbContext>? seed = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         DatabaseName = databaseName ?? Guid.NewGuid().ToString();
         var services = new ServiceCollection();
         services.AddDbContext<UserDbContext>(options => options.UseInMemoryDatabase(DatabaseName));
+        configureServices?.Invoke(services);
         m_ServiceProvider = services.BuildServiceProvider();
         ScopeFactory = m_ServiceProvider.GetRequiredService<IServiceScopeFactory>();
 

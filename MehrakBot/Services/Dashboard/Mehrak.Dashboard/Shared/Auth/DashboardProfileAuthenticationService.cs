@@ -116,6 +116,8 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 return DashboardProfileAuthenticationResult.Failure("Unable to decrypt authentication token.");
             }
 
+            await TryUpgradeLegacyTokenAsync(profile.Id, profile.LToken, decrypted, passphrase, discordUserId, profileId);
+
             await RefreshCacheAsync(cacheKey, decrypted);
             m_Logger.LogInformation("Dashboard authentication succeeded for user {UserId}, profile {ProfileId}",
                 discordUserId, profileId);
@@ -149,6 +151,33 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
     private Task RefreshCacheAsync(string key, string token, CancellationToken cancellationToken = default)
     {
         return m_CacheService.SetAsync(new CacheEntryBase<string>(key, token, CacheDuration), cancellationToken);
+    }
+
+    private async Task TryUpgradeLegacyTokenAsync(
+        long profileRowId,
+        string storedLtoken,
+        string decryptedLtoken,
+        string passphrase,
+        ulong discordUserId,
+        int profileId)
+    {
+        if (!m_EncryptionService.IsLegacyFormat(storedLtoken)) return;
+
+        try
+        {
+            var upgraded = m_EncryptionService.Encrypt(decryptedLtoken, passphrase);
+            var profileModel = await m_UserRepository.UserProfiles.SingleAsync(p => p.Id == profileRowId);
+            profileModel.LToken = upgraded;
+            await m_UserRepository.SaveChangesAsync();
+            m_Logger.LogInformation("Upgraded legacy LToken encryption for user {UserId}, profile {ProfileId}",
+                discordUserId, profileId);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogWarning(ex,
+                "Failed to persist upgraded LToken encryption for user {UserId}, profile {ProfileId}; continuing with existing credentials",
+                discordUserId, profileId);
+        }
     }
 }
 

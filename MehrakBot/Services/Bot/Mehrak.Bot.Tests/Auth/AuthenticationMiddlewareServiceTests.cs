@@ -15,6 +15,9 @@ using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetCord;
@@ -589,12 +592,174 @@ public class AuthenticationMiddlewareServiceTests
 
     #endregion
 
+    #region Legacy LToken Upgrade Tests
+
+    [Test]
+    public async Task GetAuthenticationAsync_LegacyFormatToken_ReEncryptsAndPersistsUpgrade()
+    {
+        // Arrange
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        const string upgradedToken = "upgraded-token-base64";
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.IsLegacyFormat(TestEncryptedToken))
+            .Returns(true);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Returns(TestLToken);
+
+        m_MockEncryptionService
+            .Setup(x => x.Encrypt(TestLToken, TestPassphrase))
+            .Returns(upgradedToken);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        var notifyResult = m_Service.NotifyAuthenticate(authResponse);
+
+        // Act
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(notifyResult, Is.True);
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.LToken, Is.EqualTo(TestLToken));
+        });
+
+        m_MockEncryptionService.Verify(x => x.Encrypt(TestLToken, TestPassphrase), Times.Once);
+
+        using var scope = m_DbFactory!.ScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        var storedProfile = await db.UserProfiles.AsNoTracking()
+            .SingleAsync(p => p.UserId == (long)TestUserId && p.ProfileId == TestProfileId);
+        Assert.That(storedProfile.LToken, Is.EqualTo(upgradedToken));
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_LegacyUpgradePersistenceFails_AuthenticationStillSucceeds()
+    {
+        // Arrange
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        InitializeService(
+            context =>
+            {
+                context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+            },
+            services =>
+            {
+                services.RemoveAll<UserDbContext>();
+                services.AddScoped<UserDbContext>(sp => new ThrowingSaveChangesUserDbContext(
+                    sp.GetRequiredService<DbContextOptions<UserDbContext>>()));
+            });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.IsLegacyFormat(TestEncryptedToken))
+            .Returns(true);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Returns(TestLToken);
+
+        m_MockEncryptionService
+            .Setup(x => x.Encrypt(TestLToken, TestPassphrase))
+            .Returns("upgraded-token-base64");
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        var notifyResult = m_Service.NotifyAuthenticate(authResponse);
+
+        // Act
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert - authentication result is unaffected by persistence failure
+        Assert.Multiple(() =>
+        {
+            Assert.That(notifyResult, Is.True);
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.LToken, Is.EqualTo(TestLToken));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Success));
+        });
+    }
+
+    private sealed class ThrowingSaveChangesUserDbContext(DbContextOptions<UserDbContext> options)
+        : UserDbContext(options)
+    {
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("Simulated persistence failure");
+        }
+    }
+
+    #endregion
+
     #region Helpers
 
-    private void InitializeService(Action<UserDbContext>? seed = null)
+    private void InitializeService(Action<UserDbContext>? seed = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         m_DbFactory?.Dispose();
-        m_DbFactory = new TestDbContextFactory(seed: seed);
+        m_DbFactory = new TestDbContextFactory(seed: seed, configureServices: configureServices);
         m_Service = new AuthenticationMiddlewareService(
             m_MockCacheService.Object,
             m_MockEncryptionService.Object,
