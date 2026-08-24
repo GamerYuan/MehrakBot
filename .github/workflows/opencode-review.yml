@@ -6,9 +6,9 @@ on:
 
 jobs:
   review:
+    if: github.event.pull_request.user.login == github.repository_owner
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
       issues: read
@@ -17,12 +17,13 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 1
-      - uses: anomalyco/opencode/github@latest
+      # anomalyco/opencode/github@latest (dev); pin updated manually
+      - uses: anomalyco/opencode/github@42922d0930bbf344e2bce3c4086f74fbcb4d92e9
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode-go/deepseek-v4-pro
+          model: opencode-go/gpt-5.6-luna
           use_github_token: true
           prompt: |
             Review this pull request:

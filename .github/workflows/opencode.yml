@@ -9,13 +9,13 @@ on:
 jobs:
   opencode:
     if: |
-      contains(github.event.comment.body, ' /oc') ||
+      github.event.comment.user.login == github.repository_owner &&
+      (contains(github.event.comment.body, ' /oc') ||
       startsWith(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, ' /opencode') ||
-      startsWith(github.event.comment.body, '/opencode')
+      startsWith(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
       pull-requests: read
       issues: read
@@ -27,8 +27,9 @@ jobs:
           fetch-depth: 1
 
       - name: Run opencode
-        uses: anomalyco/opencode/github@latest
+        # anomalyco/opencode/github@latest (dev); pin updated manually
+        uses: anomalyco/opencode/github@42922d0930bbf344e2bce3c4086f74fbcb4d92e9
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode-go/deepseek-v4-pro
+          model: opencode-go/gpt-5.6-luna
