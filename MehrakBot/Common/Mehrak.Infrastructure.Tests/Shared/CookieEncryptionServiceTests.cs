@@ -257,14 +257,14 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Decrypt_WithInvalidBase64_ThrowsFormatException()
+    public void Decrypt_WithInvalidBase64_ThrowsCryptographicException()
     {
         // Arrange
         const string invalidBase64 = "This is not valid base64!!!";
         const string passphrase = "passphrase";
 
         // Act & Assert
-        Assert.Throws<FormatException>(() =>
+        Assert.Throws<CryptographicException>(() =>
   m_EncryptionService.Decrypt(invalidBase64, passphrase));
     }
 
@@ -396,7 +396,7 @@ public class CookieEncryptionServiceTests
         const string passphrase = "passphrase";
 
         // Act & Assert
-        Assert.Throws<FormatException>(() =>
+        Assert.Throws<CryptographicException>(() =>
             m_EncryptionService.Decrypt(invalidBase64, passphrase));
 
         m_MockLogger.Verify(

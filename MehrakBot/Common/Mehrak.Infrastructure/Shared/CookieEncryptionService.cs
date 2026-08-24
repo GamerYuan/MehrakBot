@@ -90,7 +90,7 @@ public class CookieEncryptionService : IEncryptionService
             catch (FormatException ex)
             {
                 m_Logger.LogWarning(ex, "Invalid Base64 format in encrypted cookie");
-                throw;
+                throw new CryptographicException("Decryption failed: invalid Base64 format", ex);
             }
 
             if (payload.Length < MinCombinedDataLengthBytes)
@@ -176,7 +176,7 @@ public class CookieEncryptionService : IEncryptionService
             m_Logger.LogDebug("Cookie decryption completed successfully");
             return plainTextCookie;
         }
-        catch (Exception ex) when (ex is not AuthenticationTagMismatchException and not FormatException)
+        catch (Exception ex) when (ex is not AuthenticationTagMismatchException and not CryptographicException)
         {
             m_Logger.LogError(ex, "Error during cookie decryption");
             throw;

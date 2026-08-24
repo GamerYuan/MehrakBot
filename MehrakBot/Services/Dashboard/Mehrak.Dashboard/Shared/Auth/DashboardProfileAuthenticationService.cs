@@ -132,7 +132,8 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         {
             m_Logger.LogWarning(ex, "Dashboard authentication failed due to corrupted credential data for user {UserId}",
                 discordUserId);
-            return DashboardProfileAuthenticationResult.Failure("Unable to decrypt authentication token.");
+            return DashboardProfileAuthenticationResult.Failure(
+                "Stored authentication data is corrupted. Please remove and re-add this profile.");
         }
     }
 
