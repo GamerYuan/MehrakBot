@@ -658,6 +658,137 @@ public class CookieEncryptionServiceTests
 
     #endregion
 
+    #region Format Migration Tests
+
+    [Test]
+    public void Encrypt_ProducesVersionedPayload_StartingWithMarkerByte()
+    {
+        // Arrange
+        const string plainText = "test-cookie-data";
+        const string passphrase = "strong-passphrase-123";
+
+        // Act
+        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
+        var bytes = Convert.FromBase64String(encrypted);
+        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(bytes.Length, Is.GreaterThanOrEqualTo(45));
+            Assert.That(bytes[0], Is.EqualTo(0x01));
+            Assert.That(decrypted, Is.EqualTo(plainText));
+        });
+    }
+
+    [Test]
+    public void Decrypt_WithLegacyEncryptedData_ReturnsOriginalPlainText()
+    {
+        // Arrange
+        const string plainText = "legacy-cookie-data";
+        const string passphrase = "strong-passphrase-123";
+        var salt = new byte[16];
+        salt[0] = 0xAA; // force a salt that cannot collide with the version marker
+        var legacy = m_EncryptionService.EncryptLegacyForTests(plainText, passphrase, salt);
+
+        // Act
+        var bytes = Convert.FromBase64String(legacy);
+        var decrypted = m_EncryptionService.Decrypt(legacy, passphrase);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(bytes.Length, Is.GreaterThanOrEqualTo(44));
+            Assert.That(bytes[0], Is.EqualTo(0xAA));
+            Assert.That(m_EncryptionService.IsLegacyFormat(legacy), Is.True);
+            Assert.That(decrypted, Is.EqualTo(plainText));
+        });
+    }
+
+    [Test]
+    public void Decrypt_LegacyBlobWithSaltStartingWithVersionMarker_FallsBackToLegacyInterpretation()
+    {
+        // Arrange
+        // ~1/256 of legacy payloads have a random salt starting with 0x01 and are
+        // initially misread as versioned; decryption must retry the legacy interpretation.
+        const string plainText = "collision-test-data";
+        const string passphrase = "passphrase";
+        var salt = new byte[16];
+        salt[0] = 0x01;
+        var legacy = m_EncryptionService.EncryptLegacyForTests(plainText, passphrase, salt);
+
+        // Act
+        var bytes = Convert.FromBase64String(legacy);
+        var decrypted = m_EncryptionService.Decrypt(legacy, passphrase);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(bytes[0], Is.EqualTo(0x01), "payload should look like a versioned payload");
+            // Header inspection cannot distinguish this blob from a versioned one,
+            // so opportunistic upgrade skips it - but decryption must still succeed.
+            Assert.That(decrypted, Is.EqualTo(plainText));
+        });
+    }
+
+    [Test]
+    public void Decrypt_VersionedPayloadWithWrongPassphrase_ThrowsAuthenticationTagMismatchException()
+    {
+        // Arrange
+        const string plainText = "test-data";
+        const string correctPassphrase = "correct-passphrase";
+        const string wrongPassphrase = "wrong-passphrase";
+        var encrypted = m_EncryptionService.Encrypt(plainText, correctPassphrase);
+
+        // Act & Assert
+        Assert.Throws<AuthenticationTagMismatchException>(() =>
+            m_EncryptionService.Decrypt(encrypted, wrongPassphrase));
+    }
+
+    [Test]
+    public void Decrypt_TruncatedVersionedPayload_ThrowsCryptographicException()
+    {
+        // Arrange
+        const string plainText = "test-data";
+        const string passphrase = "passphrase";
+        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
+
+        var bytes = Convert.FromBase64String(encrypted);
+        var truncated = Convert.ToBase64String(bytes[..^1]);
+
+        // Act & Assert
+        // Truncation fails the GCM tag check, surfacing as
+        // AuthenticationTagMismatchException (a CryptographicException subclass)
+        Assert.That(() => m_EncryptionService.Decrypt(truncated, passphrase),
+            Throws.InstanceOf<CryptographicException>());
+    }
+
+    [Test]
+    public void RoundTrip_LegacyThenReEncryptUpgradesToCurrentFormat()
+    {
+        // Arrange - simulate the lazy migration path: legacy read, re-encrypt current
+        const string plainText = "migration-test-data";
+        const string passphrase = "passphrase";
+        var salt = new byte[16];
+        RandomNumberGenerator.Fill(salt);
+        salt[0] = 0x42;
+        var legacy = m_EncryptionService.EncryptLegacyForTests(plainText, passphrase, salt);
+
+        // Act
+        var decrypted = m_EncryptionService.Decrypt(legacy, passphrase);
+        var upgraded = m_EncryptionService.Encrypt(decrypted, passphrase);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(Convert.FromBase64String(upgraded)[0], Is.EqualTo(0x01));
+            Assert.That(m_EncryptionService.IsLegacyFormat(upgraded), Is.False);
+            Assert.That(m_EncryptionService.Decrypt(upgraded, passphrase), Is.EqualTo(plainText));
+        });
+    }
+
+    #endregion
+
     #region Real-World Scenarios
 
     [Test]
