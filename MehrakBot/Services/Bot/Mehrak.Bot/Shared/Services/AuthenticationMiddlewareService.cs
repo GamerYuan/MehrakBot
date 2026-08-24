@@ -139,6 +139,13 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             await m_PassphraseLimiter.RecordFailureAsync(request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
+        catch (CryptographicException e)
+        {
+            m_Logger.LogWarning(e, "Stored credential data is corrupted. Guid={Guid}, UserId={UserId}",
+                authResponse.Guid, request.Context.Interaction.User.Id);
+            return AuthenticationResult.Failure(authResponse.Context,
+                "Stored authentication data is corrupted. Please remove and re-add this profile.");
+        }
 
         await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",

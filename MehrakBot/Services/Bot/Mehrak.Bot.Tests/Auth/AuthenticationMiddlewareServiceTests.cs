@@ -3,6 +3,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Services;
@@ -31,6 +32,7 @@ public class AuthenticationMiddlewareServiceTests
     private Mock<ICacheService> m_MockCacheService = null!;
     private Mock<IEncryptionService> m_MockEncryptionService = null!;
     private Mock<ILogger<AuthenticationMiddlewareService>> m_MockLogger = null!;
+    private Mock<IPassphraseAttemptRateLimiter> m_MockPassphraseLimiter = null!;
     private AuthenticationMiddlewareService m_Service = null!;
     private TestDbContextFactory? m_DbFactory;
 
@@ -47,6 +49,7 @@ public class AuthenticationMiddlewareServiceTests
         m_MockCacheService = new Mock<ICacheService>();
         m_MockEncryptionService = new Mock<IEncryptionService>();
         m_MockLogger = new Mock<ILogger<AuthenticationMiddlewareService>>();
+        m_MockPassphraseLimiter = new Mock<IPassphraseAttemptRateLimiter>();
 
         InitializeService();
     }
@@ -57,6 +60,7 @@ public class AuthenticationMiddlewareServiceTests
         m_MockCacheService.Reset();
         m_MockEncryptionService.Reset();
         m_MockLogger.Reset();
+        m_MockPassphraseLimiter.Reset();
         m_DbFactory?.Dispose();
     }
 
@@ -278,6 +282,67 @@ public class AuthenticationMiddlewareServiceTests
                 entry.Value == TestLToken &&
                 entry.ExpirationTime == TimeSpan.FromMinutes(10))),
             Times.Once);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_DecryptionCorruptedData_ReturnsFailureWithoutCachingOrRateLimiting()
+    {
+        // Arrange
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Throws(new CryptographicException("Decryption failed: payload too short"));
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        var notifyResult = m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(notifyResult, Is.True);
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("corrupted"));
+        });
+
+        m_MockEncryptionService.Verify(x => x.Decrypt(TestEncryptedToken, TestPassphrase), Times.Once);
+        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()), Times.Never);
+        m_MockPassphraseLimiter.Verify(x => x.RecordFailureAsync(It.IsAny<ulong>()), Times.Never);
     }
 
     #endregion
@@ -535,7 +600,7 @@ public class AuthenticationMiddlewareServiceTests
             m_MockEncryptionService.Object,
             m_DbFactory.ScopeFactory,
             m_MockLogger.Object,
-            Mock.Of<IPassphraseAttemptRateLimiter>());
+            m_MockPassphraseLimiter.Object);
     }
 
     private static UserModel BuildUserModel(ulong userId, ulong ltUid, string ltoken, int profileId = TestProfileId)

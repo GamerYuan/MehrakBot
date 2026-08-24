@@ -128,6 +128,13 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
             await m_PassphraseLimiter.RecordFailureAsync(discordUserId, ct);
             return DashboardProfileAuthenticationResult.InvalidPassphrase("Incorrect passphrase. Please try again.");
         }
+        catch (CryptographicException ex)
+        {
+            m_Logger.LogWarning(ex, "Dashboard authentication failed due to corrupted credential data for user {UserId}",
+                discordUserId);
+            return DashboardProfileAuthenticationResult.Failure(
+                "Stored authentication data is corrupted. Please remove and re-add this profile.");
+        }
     }
 
     public Task RefreshAsync(ulong discordUserId, ulong ltUid, string ltoken, CancellationToken ct = default)
