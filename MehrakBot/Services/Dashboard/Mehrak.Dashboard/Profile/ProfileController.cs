@@ -117,7 +117,7 @@ public sealed class ProfileController : ControllerBase
 
         // Validate cookie and fetch all game profiles before saving
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-            discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted);
+            discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
 
         if (!gameProfilesResult.IsSuccess)
         {

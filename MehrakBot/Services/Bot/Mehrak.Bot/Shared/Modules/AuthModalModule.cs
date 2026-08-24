@@ -127,7 +127,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             // Validate cookie and fetch all game profiles before saving
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, ltuid, inputs["ltoken"]);
+                Context.User.Id, ltuid, inputs["ltoken"], bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {
