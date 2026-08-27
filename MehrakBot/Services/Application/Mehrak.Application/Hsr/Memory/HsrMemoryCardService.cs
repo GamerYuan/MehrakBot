@@ -191,6 +191,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     canvas.DrawRoundedRectangleOverlay(700, blobHeight, new PointF(xOffset, yOffset),
                         new RoundedRectangleOverlayStyle(OverlayColor, CornerRadius: 15));
 
+                    const int headerContentCenterOffset = 33;
                     var stageText =
                         $"{memoryData.Groups[0].Name} ({HsrUtility.GetRomanNumeral(floorNumber + 1)}){(floorData?.IsTierce == true ? " Starward Mode" : "")}";
 
@@ -202,7 +203,7 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                     var stageTextBounds = TextMeasurer.MeasureBounds(stageText, new TextOptions(Fonts.Normal));
                     canvas.DrawText(new RichTextOptions(stageTextBounds.Width >= maxTextWidth ? Fonts.Small : Fonts.Normal)
                     {
-                        Origin = new PointF(xOffset + 20, yOffset + 25),
+                        Origin = new PointF(xOffset + 20, yOffset + headerContentCenterOffset),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Center,
                         WrappingLength = maxTextWidth
@@ -274,12 +275,12 @@ internal class HsrMemoryCardService : CardServiceBase<HsrMemoryInformation>
                             new PointF(xOffset + 520 - extraStarShift, yOffset + 55)).Build());
                         canvas.DrawText(new RichTextOptions(Fonts.Normal)
                         {
-                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + 25),
+                            Origin = new PointF(xOffset + 470 - extraStarShift, yOffset + headerContentCenterOffset),
                             HorizontalAlignment = HorizontalAlignment.Right,
                             VerticalAlignment = VerticalAlignment.Center
                         }, floorData.RoundNum.ToString(), Brushes.Solid(Color.White), null);
                         canvas.DrawImage(m_CycleIcon, m_CycleIcon.Bounds,
-                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + 25 - m_CycleIcon.Height / 2, m_CycleIcon.Width, m_CycleIcon.Height),
+                            new RectangleF(xOffset + 470 - extraStarShift, yOffset + headerContentCenterOffset - m_CycleIcon.Height / 2, m_CycleIcon.Width, m_CycleIcon.Height),
                             KnownResamplers.Bicubic);
                     }
 
