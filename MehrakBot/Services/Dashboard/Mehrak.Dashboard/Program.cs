@@ -15,6 +15,7 @@ using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Yarp.ReverseProxy.Configuration;
@@ -243,7 +244,11 @@ public class Program
                     ctx.User.IsInRole("superadmin") ||
                     ctx.User.HasClaim(c =>
                         c.Type == "perm" &&
-                        c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
+                        c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))))
+            .AddPolicy(GameAuthorization.Policy, policy =>
+                policy.AddRequirements(new GameWriteRequirement()));
+
+        builder.Services.AddSingleton<IAuthorizationHandler, GameWriteAuthorizationHandler>();
 
         if (builder.Environment.IsProduction())
         {

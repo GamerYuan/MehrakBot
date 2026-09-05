@@ -131,6 +131,9 @@ public class PortraitsController : GameWriteController
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
+
         if (!serverId.HasValue)
             return BadRequest(new { error = "Server ID parameter is required." });
 

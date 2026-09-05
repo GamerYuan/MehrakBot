@@ -32,6 +32,9 @@ public sealed class CodesController : GameWriteController
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
 
+        if (!await AuthorizeGameWriteAsync(parsedGame))
+            return GameWriteDenied(parsedGame);
+
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
@@ -54,6 +57,9 @@ public sealed class CodesController : GameWriteController
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
 
+        if (!await AuthorizeGameWriteAsync(parsedGame))
+            return GameWriteDenied(parsedGame);
+
         var normalized = NormalizeCodes(request.Codes);
         if (normalized.Count == 0)
             return BadRequest(new { error = "Codes list must contain at least one value." });
@@ -72,6 +78,9 @@ public sealed class CodesController : GameWriteController
     {
         if (!TryParseGame(game, out var parsedGame, out var errorResult))
             return BadRequest(new { error = errorResult });
+
+        if (!await AuthorizeGameWriteAsync(parsedGame))
+            return GameWriteDenied(parsedGame);
 
         var codes = await m_CodeContext.Codes.AsNoTracking().Where(x => x.Game == parsedGame).Select(x => x.Code).ToListAsync();
         return Ok(new { game = parsedGame.ToString(), codes });

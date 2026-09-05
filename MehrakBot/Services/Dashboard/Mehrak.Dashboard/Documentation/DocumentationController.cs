@@ -89,6 +89,9 @@ public sealed class DocumentationController : GameWriteController
         if (!Enum.TryParse<Game>(request.Game, true, out var gameEnum))
             return BadRequest(new { error = "Invalid game parameter." });
 
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
+
         var trimmedName = request.Name.Trim().ReplaceLineEndings("");
 
         var existing = await m_DbContext.Documentations
@@ -127,12 +130,20 @@ public sealed class DocumentationController : GameWriteController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (!Enum.TryParse<Game>(request.Game, true, out var gameEnum))
-            return BadRequest(new { error = "Invalid game parameter." });
-
         var doc = await m_DbContext.Documentations.FindAsync(id);
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
+
+        if (!Enum.TryParse<Game>(request.Game, true, out var gameEnum))
+            return BadRequest(new { error = "Invalid game parameter." });
+
+        // The stored document's game decides; moving a document across games
+        // requires write access to both the old and the new game.
+        if (!await AuthorizeGameWriteAsync(doc.Game))
+            return GameWriteDenied(doc.Game);
+
+        if (gameEnum != doc.Game && !await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
 
         var trimmedName = request.Name.Trim().ReplaceLineEndings("");
 
@@ -169,6 +180,9 @@ public sealed class DocumentationController : GameWriteController
         var doc = await m_DbContext.Documentations.FindAsync(id);
         if (doc is null)
             return NotFound(new { error = "Documentation not found." });
+
+        if (!await AuthorizeGameWriteAsync(doc.Game))
+            return GameWriteDenied(doc.Game);
 
         m_DbContext.Documentations.Remove(doc);
         await m_DbContext.SaveChangesAsync();
