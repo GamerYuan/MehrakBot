@@ -37,7 +37,10 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             return;
         }
 
-        var session = await m_SessionService.GetAndRefreshSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+        // Finding 10: session validation on the hot path is read-only. A
+        // valid session is never rewritten per request, so over-limit
+        // requests rejected by the IP rate limiter perform no session writes.
+        var session = await m_SessionService.GetSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (session == null)
         {
             context.RejectPrincipal();

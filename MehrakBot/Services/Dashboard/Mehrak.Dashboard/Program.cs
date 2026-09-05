@@ -17,6 +17,9 @@ using Mehrak.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Yarp.ReverseProxy.Configuration;
 
@@ -260,35 +263,9 @@ public class Program
             });
         }
 
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        builder.Services.AddRateLimiter(ConfigureRateLimiter);
 
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-                RateLimitPartition.GetSlidingWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = 100,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0,
-                        SegmentsPerWindow = 10
-                    }));
-
-            options.AddPolicy("login", httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
-                    }));
-        });
-
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(ConfigureMvc);
 
         builder.Services.AddCors(options =>
         {
@@ -305,16 +282,82 @@ public class Program
         await SeedRootUserIfNeeded(app);
         await ReleaseNoteSeedData.SeedReleaseNotesAsync(app);
 
-        app.UseForwardedHeaders();
-        app.UseCors();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.UseRateLimiter();
+        UseDashboardMiddleware(app);
         app.MapControllers();
         app.MapReverseProxy();
         app.MapDefaultEndpoints();
 
         await app.RunAsync();
+    }
+
+    internal static void ConfigureRateLimiter(RateLimiterOptions options)
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    SegmentsPerWindow = 10
+                }));
+
+        options.AddPolicy(LoginPolicyName, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    }
+
+    internal const string LoginPolicyName = "login";
+
+    /// <summary>
+    /// Finding 10: the IP rate limiter runs before authentication, so
+    /// over-limit requests are rejected before any session or database work.
+    /// Routing runs first so endpoint rate-limit policies also resolve.
+    /// </summary>
+    internal static void UseDashboardMiddleware(WebApplication app)
+    {
+        app.UseForwardedHeaders();
+        app.UseRouting();
+        app.UseCors();
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
+    }
+
+    internal static void ConfigureMvc(MvcOptions options)
+    {
+        options.Conventions.Add(new LoginRateLimitConvention());
+    }
+
+    /// <summary>
+    /// Finding 10: pins the strict login policy onto the authentication
+    /// endpoints through selector endpoint metadata, without touching
+    /// their source.
+    /// </summary>
+    internal sealed class LoginRateLimitConvention : IActionModelConvention
+    {
+        public void Apply(ActionModel action)
+        {
+            if (action.Controller.ControllerType != typeof(Auth.AuthController))
+                return;
+
+            foreach (var selector in action.Selectors)
+            {
+                if (!selector.EndpointMetadata.OfType<EnableRateLimitingAttribute>().Any())
+                    selector.EndpointMetadata.Add(new EnableRateLimitingAttribute(LoginPolicyName));
+            }
+        }
     }
 
     private static async Task SeedRootUserIfNeeded(WebApplication app)

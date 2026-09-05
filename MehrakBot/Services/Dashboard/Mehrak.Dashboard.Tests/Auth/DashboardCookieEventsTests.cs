@@ -88,7 +88,7 @@ public class DashboardCookieEventsTests
         var principal = CreatePrincipal("tok123");
         var context = CreateContext(principal);
         SetupHttpContextWithSignOut(context.HttpContext);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync((DashboardSessionData?)null);
 
         await m_Events.ValidatePrincipal(context);
@@ -101,7 +101,7 @@ public class DashboardCookieEventsTests
     {
         var principal = CreatePrincipal("tok123");
         var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
 
         await m_Events.ValidatePrincipal(context);
@@ -114,7 +114,7 @@ public class DashboardCookieEventsTests
     {
         var principal = CreatePrincipal("tok123");
         var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardSessionData(100L, "access-token", DateTime.UtcNow, null, null, null));
 
         await m_Events.ValidatePrincipal(context);
@@ -130,7 +130,7 @@ public class DashboardCookieEventsTests
             new Claim("discord_id", "100"),
             new Claim("perm", "game_write:genshin"));
         var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
         m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardUserSummaryDto
@@ -155,7 +155,7 @@ public class DashboardCookieEventsTests
             new Claim(ClaimTypes.Role, "superadmin"),
             new Claim("perm", "game_write:genshin"));
         var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
         m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
             .ReturnsAsync((DashboardUserSummaryDto?)null);
@@ -178,7 +178,7 @@ public class DashboardCookieEventsTests
         // always uses the server-side session identity.
         var principal = CreatePrincipal("tok123", new Claim("discord_id", "999"));
         var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
         m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DashboardUserSummaryDto
@@ -199,6 +199,25 @@ public class DashboardCookieEventsTests
     #endregion
 
     #region SigningOut
+
+    [Test]
+    public async Task ValidatePrincipal_ValidSession_PerformsNoSessionWrites()
+    {
+        // Finding 10: validation on the hot path is read-only. Over-limit
+        // requests rejected before authentication therefore skip all session
+        // storage.
+        var principal = CreatePrincipal("tok123");
+        var context = CreateContext(principal);
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
+
+        await m_Events.ValidatePrincipal(context);
+
+        Assert.That(context.Principal, Is.Not.Null);
+        m_MockSessionService.Verify(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()), Times.Once);
+        m_MockSessionService.Verify(s => s.GetAndRefreshSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        m_MockSessionService.Verify(s => s.RefreshSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 
     [Test]
     public async Task SigningOut_WithSessionToken_InvalidatesSession()
