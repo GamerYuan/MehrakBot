@@ -27,6 +27,11 @@ public class UserPortraitsController : ControllerBase
     private const long MaxImagePixels = 16_777_216; // 4096 x 4096
     private const int MaxImageFrames = 1;
 
+    // User-controlled portrait scaling is bounded at the API; the shared card
+    // renderer additionally clamps the resulting output allocation.
+    private const float MinPortraitScale = 0.01f;
+    private const float MaxPortraitScale = 10f;
+
     private readonly IUserPortraitService m_PortraitService;
     private readonly IPortraitUploadRateLimitService m_RateLimitService;
     private readonly IImageClassificationService m_ClassificationService;
@@ -239,6 +244,12 @@ public class UserPortraitsController : ControllerBase
         var discordUserId = GetDiscordUserId();
         if (discordUserId == null)
             return Unauthorized(new { error = "Invalid user identity." });
+
+        // Explicit finite/bounded check: [ApiController] ModelState validation covers
+        // the Range attribute, but NaN/Infinity handling must not depend on it.
+        if (config.TargetScale is float scale &&
+            (!float.IsFinite(scale) || scale < MinPortraitScale || scale > MaxPortraitScale))
+            return BadRequest(new { error = $"TargetScale must be a finite value between {MinPortraitScale} and {MaxPortraitScale}." });
 
         var success = await m_PortraitService.UpdatePortraitConfigAsync(discordUserId.Value, id, config, HttpContext.RequestAborted);
         if (!success)

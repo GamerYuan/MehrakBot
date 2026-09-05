@@ -286,6 +286,41 @@ public class UserPortraitsControllerTests
         Assert.That(result, Is.InstanceOf<NoContentResult>());
     }
 
+    [TestCase(100f)]
+    [TestCase(10.01f)]
+    [TestCase(0f)]
+    [TestCase(-2f)]
+    [TestCase(float.NaN)]
+    [TestCase(float.PositiveInfinity)]
+    [TestCase(float.NegativeInfinity)]
+    public async Task UpdatePortraitConfig_OutOfRangeScale_Returns400(float scale)
+    {
+        var portraitId = Guid.NewGuid();
+        var config = new UserPortraitConfigDto { TargetScale = scale };
+
+        var result = await m_Controller.UpdatePortraitConfig(portraitId, config);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        m_MockPortraitService.Verify(s => s.UpdatePortraitConfigAsync(
+            It.IsAny<long>(), It.IsAny<Guid>(), It.IsAny<UserPortraitConfigDto>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [TestCase(0.01f)]
+    [TestCase(2.5f)]
+    [TestCase(10f)]
+    public async Task UpdatePortraitConfig_InRangeScale_ReachesService(float scale)
+    {
+        var portraitId = Guid.NewGuid();
+        var config = new UserPortraitConfigDto { TargetScale = scale };
+        m_MockPortraitService.Setup(s => s.UpdatePortraitConfigAsync(100L, portraitId, config, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UpdatePortraitConfig(portraitId, config);
+
+        Assert.That(result, Is.InstanceOf<NoContentResult>());
+    }
+
     [Test]
     public async Task UpdatePortraitConfig_NotFound_Returns404()
     {

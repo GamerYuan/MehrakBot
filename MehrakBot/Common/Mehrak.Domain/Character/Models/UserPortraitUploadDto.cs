@@ -1,4 +1,5 @@
-﻿using Mehrak.Domain.Shared.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using Mehrak.Domain.Shared.Enums;
 
 namespace Mehrak.Domain.Character.Models;
 
@@ -19,6 +20,10 @@ public class UserPortraitConfigDto
 {
     public int? OffsetX { get; init; }
     public int? OffsetY { get; init; }
+
+    // Bounded at the API: the shared card renderer additionally clamps the resulting
+    // output dimensions/pixels, since even an in-range scale is unsafe on a huge source.
+    [Range(0.01f, 10f, ErrorMessage = "Scale must be between 0.01 and 10.")]
     public float? TargetScale { get; init; }
     public bool? FlipX { get; init; }
     public string? ArtistAttribution { get; init; }
