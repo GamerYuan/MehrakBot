@@ -24,7 +24,11 @@ public class Program
 
         builder.Services.AddGrpc(options =>
         {
+            // Byte limits only bound transport size (8 MB uploads plus protobuf headroom).
+            // Decoded pixel/dimension budgets and native concurrency bounds are enforced
+            // in NsfwClassifier before and after native decoding.
             options.MaxReceiveMessageSize = 12 * 1024 * 1024;
+            options.MaxSendMessageSize = 12 * 1024 * 1024;
         });
 
         var app = builder.Build();

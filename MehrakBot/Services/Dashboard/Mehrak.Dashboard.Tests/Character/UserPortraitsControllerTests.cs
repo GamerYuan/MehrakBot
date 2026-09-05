@@ -303,14 +303,89 @@ public class UserPortraitsControllerTests
 
     #region UploadPortrait
 
-    private static IFormFile CreateFormFile(string contentType = "image/png", long size = 1024)
+    private static IFormFile CreateFormFile(string contentType = "image/png", long size = 1024, byte[]? content = null)
     {
+        // Default content is a real 1x1 PNG so header validation passes; tests for
+        // rejection paths supply their own metadata-only fixture bytes instead.
+        var body = content ?? BuildPng(1, 1);
+        // Pad with trailing zeros to the declared size; decoders stop at IEND.
+        var padded = body.Length >= size
+            ? body.Take((int)size).ToArray()
+            : body.Concat(new byte[size - body.Length]).ToArray();
         var mock = new Mock<IFormFile>();
         mock.Setup(f => f.ContentType).Returns(contentType);
         mock.Setup(f => f.Length).Returns(size);
         mock.Setup(f => f.FileName).Returns($"test.{contentType.Split('/')[1]}");
-        mock.Setup(f => f.OpenReadStream()).Returns(new MemoryStream(new byte[size]));
+        mock.Setup(f => f.OpenReadStream()).Returns(new MemoryStream(padded));
         return mock.Object;
+    }
+
+    /// <summary>
+    /// Builds a minimal PNG with the given IHDR dimensions. The pixel payload always
+    /// describes a 1x1 image, so oversized-dimension fixtures stay tiny and never
+    /// allocate pixels: header validation must reject them before any decode.
+    /// </summary>
+    private static byte[] BuildPng(int width, int height)
+    {
+        using var png = new MemoryStream();
+        png.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+        using (var ihdr = new MemoryStream())
+        {
+            WriteUInt32BE(ihdr, unchecked((uint)width));
+            WriteUInt32BE(ihdr, unchecked((uint)height));
+            ihdr.Write(new byte[] { 8, 2, 0, 0, 0 });
+            WriteChunk(png, "IHDR", ihdr.ToArray());
+        }
+        // Valid zlib stream for a single black RGB scanline (filter 0 + 3 zero bytes).
+        WriteChunk(png, "IDAT", new byte[]
+        {
+            0x78, 0x01, 0x01, 0x04, 0x00, 0xFB, 0xFF,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x04, 0x00, 0x01
+        });
+        WriteChunk(png, "IEND", []);
+        return png.ToArray();
+    }
+
+    private static void WriteChunk(Stream stream, string type, byte[] data)
+    {
+        WriteUInt32BE(stream, unchecked((uint)data.Length));
+        var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        stream.Write(typeBytes);
+        stream.Write(data);
+        var crcInput = typeBytes.Concat(data).ToArray();
+        WriteUInt32BE(stream, ComputeCrc32(crcInput));
+    }
+
+    private static void WriteUInt32BE(Stream stream, uint value)
+    {
+        stream.Write(new[]
+        {
+            (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value
+        });
+    }
+
+    private static readonly uint[] Crc32Table = BuildCrc32Table();
+
+    private static uint[] BuildCrc32Table()
+    {
+        var table = new uint[256];
+        for (uint i = 0; i < 256; i++)
+        {
+            var entry = i;
+            for (var k = 0; k < 8; k++)
+                entry = (entry & 1) != 0 ? 0xEDB88320u ^ (entry >> 1) : entry >> 1;
+            table[i] = entry;
+        }
+        return table;
+    }
+
+    private static uint ComputeCrc32(byte[] data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in data)
+            crc = Crc32Table[(crc ^ b) & 0xFF] ^ (crc >> 8);
+        return crc ^ 0xFFFFFFFFu;
     }
 
     [Test]
@@ -459,6 +534,91 @@ public class UserPortraitsControllerTests
         var objectResult = result as ObjectResult;
         Assert.That(objectResult, Is.Not.Null);
         Assert.That(objectResult!.StatusCode, Is.EqualTo(502));
+    }
+
+    [Test]
+    public async Task UploadPortrait_OversizedDimensions_Returns400BeforeClassification()
+    {
+        // 100000x100000 declared in IHDR, but the file itself is ~70 bytes: header
+        // validation must reject it without allocating pixels or calling inference.
+        var file = CreateFormFile(content: BuildPng(100000, 100000));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        m_MockClassificationService.Verify(
+            s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        m_MockPortraitService.Verify(
+            s => s.UploadPortraitAsync(It.IsAny<long>(), It.IsAny<Game>(), It.IsAny<string>(),
+                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task UploadPortrait_OversizedPixelCount_Returns400()
+    {
+        // 5000x5000 exceeds the 4096 dimension cap via IHDR metadata only.
+        var file = CreateFormFile(content: BuildPng(5000, 5000));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        m_MockClassificationService.Verify(
+            s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UploadPortrait_FormatMismatch_Returns400()
+    {
+        // GIF bytes behind a PNG content type: the detected format governs.
+        var gif = new byte[] { (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 1, 0, 1, 0, 0x80, 0, 0 };
+        var file = CreateFormFile(content: gif);
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        m_MockClassificationService.Verify(
+            s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UploadPortrait_UndecodableBytes_Returns400()
+    {
+        var file = CreateFormFile(content: new byte[] { 1, 2, 3, 4 });
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        m_MockClassificationService.Verify(
+            s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UploadPortrait_StoredExtensionFollowsDecodedFormat()
+    {
+        // PNG bytes labeled as JPEG must be stored as PNG: storage stays consistent
+        // with the validated decoded format, not the supplied MIME type.
+        var file = CreateFormFile(contentType: "image/jpeg");
+        var portrait = CreatePortraitDto();
+        m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
+        m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        m_MockPortraitService.Setup(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UploadPortraitResult { Succeeded = true, UploadId = Guid.CreateVersion7(), Portrait = portrait });
+
+        var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
+
+        Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        m_MockPortraitService.Verify(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
