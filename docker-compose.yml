@@ -155,8 +155,11 @@ services:
     #     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO mehrak_runtime;
     #   ALTER DEFAULT PRIVILEGES FOR ROLE <owner> IN SCHEMA public
     #     GRANT USAGE, SELECT ON SEQUENCES TO mehrak_runtime;
-    ports:
-      - "5433:5432"
+    # Security finding 15: no host port publication; service clients use the
+    # internal postgres:5432 destination. For local administration use
+    # `docker exec` or a loopback-only dev override, e.g.:
+    #   ports:
+    #     - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d mehrak_dev"]
       interval: 5s
