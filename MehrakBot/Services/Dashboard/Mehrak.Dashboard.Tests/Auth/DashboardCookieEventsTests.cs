@@ -1,6 +1,8 @@
 ﻿using System.Security.Claims;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Auth;
+using Mehrak.Domain.Auth.Dtos;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
@@ -12,20 +14,23 @@ namespace Mehrak.Dashboard.Tests.Auth;
 public class DashboardCookieEventsTests
 {
     private Mock<IDashboardSessionService> m_MockSessionService = null!;
+    private Mock<IDashboardUserService> m_MockUserService = null!;
     private DashboardCookieEvents m_Events = null!;
 
     [SetUp]
     public void SetUp()
     {
         m_MockSessionService = new Mock<IDashboardSessionService>();
-        m_Events = new DashboardCookieEvents(m_MockSessionService.Object);
+        m_MockUserService = new Mock<IDashboardUserService>();
+        m_Events = new DashboardCookieEvents(m_MockSessionService.Object, m_MockUserService.Object);
     }
 
-    private static ClaimsPrincipal CreatePrincipal(string? sessionToken = null)
+    private static ClaimsPrincipal CreatePrincipal(string? sessionToken = null, params Claim[] extraClaims)
     {
         var claims = new List<Claim>();
         if (sessionToken != null)
             claims.Add(new Claim("dashboard_session", sessionToken));
+        claims.AddRange(extraClaims);
 
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
@@ -108,6 +113,80 @@ public class DashboardCookieEventsTests
         await m_Events.ValidatePrincipal(context);
 
         Assert.That(context.Principal, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task ValidatePrincipal_StaleCookieClaims_RebuiltFromCurrentServerState()
+    {
+        // Cookie issued before revocation still carries game_write:genshin.
+        var principal = CreatePrincipal("tok123",
+            new Claim("discord_id", "100"),
+            new Claim("perm", "game_write:genshin"));
+        var context = CreateContext(principal);
+        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
+        m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardUserSummaryDto
+            {
+                DiscordUserId = "100",
+                GameWritePermissions = [Game.HonkaiStarRail]
+            });
+
+        await m_Events.ValidatePrincipal(context);
+
+        Assert.That(context.Principal, Is.Not.Null);
+        var claims = context.Principal!.Claims.Where(c => c.Type == "perm").Select(c => c.Value).ToList();
+        Assert.That(claims, Is.EquivalentTo(["game_write:honkaistarrail"]));
+        Assert.That(context.ShouldRenew, Is.True);
+    }
+
+    [Test]
+    public async Task ValidatePrincipal_AllPermissionsRevoked_KeepsSessionWithoutPermissionClaims()
+    {
+        var principal = CreatePrincipal("tok123",
+            new Claim("discord_id", "100"),
+            new Claim(ClaimTypes.Role, "superadmin"),
+            new Claim("perm", "game_write:genshin"));
+        var context = CreateContext(principal);
+        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
+        m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DashboardUserSummaryDto?)null);
+
+        await m_Events.ValidatePrincipal(context);
+
+        // Session itself is still valid (the user can manage their own profiles),
+        // but every privilege claim is gone.
+        Assert.That(context.Principal, Is.Not.Null);
+        Assert.That(context.Principal!.Claims.Where(c => c.Type == "perm"), Is.Empty);
+        Assert.That(context.Principal!.IsInRole("superadmin"), Is.False);
+        Assert.That(context.Principal!.FindFirst("discord_id")?.Value, Is.EqualTo("100"));
+        Assert.That(context.Principal!.FindFirst("dashboard_session")?.Value, Is.EqualTo("tok123"));
+    }
+
+    [Test]
+    public async Task ValidatePrincipal_UsesSessionIdentityForRebuild()
+    {
+        // A cookie claiming a different user cannot promote itself: the rebuild
+        // always uses the server-side session identity.
+        var principal = CreatePrincipal("tok123", new Claim("discord_id", "999"));
+        var context = CreateContext(principal);
+        m_MockSessionService.Setup(s => s.GetAndRefreshSessionAsync("tok123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
+        m_MockUserService.Setup(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardUserSummaryDto
+            {
+                DiscordUserId = "100",
+                IsSuperAdmin = true,
+                GameWritePermissions = []
+            });
+
+        await m_Events.ValidatePrincipal(context);
+
+        Assert.That(context.Principal, Is.Not.Null);
+        Assert.That(context.Principal!.FindFirst("discord_id")?.Value, Is.EqualTo("100"));
+        Assert.That(context.Principal!.IsInRole("superadmin"), Is.True);
+        m_MockUserService.Verify(s => s.GetDashboardUserByDiscordIdAsync(100L, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
