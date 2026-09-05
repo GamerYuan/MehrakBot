@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
 using Mehrak.Dashboard.Shared.Auth;
@@ -255,12 +256,8 @@ public class Program
 
         if (builder.Environment.IsProduction())
         {
-            builder.Services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.KnownProxies.Clear();
-                options.KnownIPNetworks.Clear();
-            });
+            builder.Services.Configure<ForwardedHeadersOptions>(
+                options => ConfigureForwardedHeaders(options, builder.Configuration));
         }
 
         builder.Services.AddRateLimiter(ConfigureRateLimiter);
@@ -319,6 +316,50 @@ public class Program
     }
 
     internal const string LoginPolicyName = "login";
+
+    /// <summary>
+    /// Finding 13: only explicitly configured proxies may supply
+    /// X-Forwarded-For/Proto. Anything else is ignored, so an untrusted peer
+    /// cannot spoof the client IP used by rate limiting and login auditing.
+    /// X-Forwarded-Proto from a trusted proxy still applies, preserving
+    /// OAuth HTTPS behavior behind legitimate proxies.
+    /// </summary>
+    internal static void ConfigureForwardedHeaders(ForwardedHeadersOptions options, IConfiguration configuration)
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+        // Constrained depth: only the closest proxy hop is honored.
+        options.ForwardLimit = 1;
+
+        foreach (var entry in SplitProxyList(configuration["Nginx:KnownProxy"])
+                     .Concat(SplitProxyList(configuration["Nginx:KnownNetworks"])))
+        {
+            if (IPAddress.TryParse(entry, out var proxy))
+                options.KnownProxies.Add(proxy);
+            else if (System.Net.IPNetwork.TryParse(entry, out var network))
+                options.KnownIPNetworks.Add(network);
+        }
+
+        // An empty allowlist would trust every peer, so fall back to
+        // loopback-only (the framework default) when nothing valid was
+        // configured. Remote peers can then never spoof forwarded values;
+        // operators must set Nginx:KnownProxy for their real proxies.
+        if (options.KnownProxies.Count == 0 && options.KnownIPNetworks.Count == 0)
+        {
+            options.KnownProxies.Add(IPAddress.Loopback);
+            options.KnownProxies.Add(IPAddress.IPv6Loopback);
+        }
+    }
+
+    internal static IEnumerable<string> SplitProxyList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return [];
+        return value.Split(
+            [',', ';', ' ', '\t', '\n', '\r'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 
     /// <summary>
     /// Finding 10: the IP rate limiter runs before authentication, so
