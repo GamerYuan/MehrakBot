@@ -22,6 +22,7 @@ using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -36,21 +37,21 @@ public static class InfrastructureServiceCollectionExtension
     {
         services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
         {
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString);
+            options.UseNpgsql(GetRuntimeConnectionString(sp));
             options.UseOpenIddict();
         });
         services.AddDbContext<CharacterDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
         services.AddDbContext<UserDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
         services.AddDbContext<CodeRedeemDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
         services.AddDbContext<RelicDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
         services.AddDbContext<DocumentationDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
         services.AddDbContext<ReleaseNoteDbContext>((sp, options) =>
-            options.UseNpgsql(sp.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString));
+            options.UseNpgsql(GetRuntimeConnectionString(sp)));
 
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
@@ -111,5 +112,23 @@ public static class InfrastructureServiceCollectionExtension
         services.AddMemoryCache();
 
         return services;
+    }
+
+    // Security finding 9: runtime services support a dedicated least-privilege
+    // PostgreSQL role via ConnectionStrings:mehrakdb_runtime (see
+    // POSTGRES_RUNTIME_USER / POSTGRES_RUNTIME_PASSWORD in .env.template).
+    // When it is unset, fall back to the shared mehrakdb connection string so
+    // existing deployments keep working unchanged.
+    private static string GetRuntimeConnectionString(IServiceProvider serviceProvider)
+    {
+        var runtimeConnectionString = serviceProvider
+            .GetRequiredService<IConfiguration>()
+            .GetConnectionString("mehrakdb_runtime");
+        if (!string.IsNullOrWhiteSpace(runtimeConnectionString))
+        {
+            return runtimeConnectionString;
+        }
+
+        return serviceProvider.GetRequiredService<IOptions<PgConfig>>().Value.ConnectionString;
     }
 }

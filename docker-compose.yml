@@ -24,6 +24,8 @@ services:
       - Discord__Token=${DISCORD_TOKEN}
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ClickHouse__Username=${CLICKHOUSE_USER}
       - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
@@ -66,6 +68,8 @@ services:
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
@@ -104,6 +108,8 @@ services:
       - ASPNETCORE_URLS=http://*:12000
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
@@ -134,6 +140,21 @@ services:
 
   postgres:
     image: postgres:18.3
+    # Security finding 9: POSTGRES_USER is the bootstrap/owner role used for
+    # database initialization and migrations. Runtime services should use the
+    # separate least-privilege POSTGRES_RUNTIME_USER role instead (see
+    # .env.template). Create it manually as the owner, once per fresh database.
+    # This repository never applies grants automatically; do not run these
+    # against a live database as part of a configuration change:
+    #   CREATE ROLE mehrak_runtime LOGIN PASSWORD '<strong-password>';
+    #   GRANT CONNECT ON DATABASE mehrak_dev TO mehrak_runtime;
+    #   GRANT USAGE ON SCHEMA public TO mehrak_runtime;
+    #   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO mehrak_runtime;
+    #   GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO mehrak_runtime;
+    #   ALTER DEFAULT PRIVILEGES FOR ROLE <owner> IN SCHEMA public
+    #     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO mehrak_runtime;
+    #   ALTER DEFAULT PRIVILEGES FOR ROLE <owner> IN SCHEMA public
+    #     GRANT USAGE, SELECT ON SEQUENCES TO mehrak_runtime;
     ports:
       - "5433:5432"
     healthcheck:
