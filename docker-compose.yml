@@ -296,9 +296,11 @@ services:
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      # Security finding 14: hostmetrics uses root_path /hostfs, so only the
+      # proc/sys mounts are required. The host root filesystem is intentionally
+      # not mounted.
       - /proc:/hostfs/proc:ro
       - /sys:/hostfs/sys:ro
-      - /:/rootfs:ro
     environment:
       - HOST_PROC=/hostfs/proc
       - HOST_SYS=/hostfs/sys
