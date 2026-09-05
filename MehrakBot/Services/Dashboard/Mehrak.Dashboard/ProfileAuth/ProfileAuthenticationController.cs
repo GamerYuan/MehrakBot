@@ -33,11 +33,16 @@ public sealed class ProfileAuthenticationController : ControllerBase
 
         m_Logger.LogInformation("Authenticating profile {ProfileId} for user {UserId}", request.ProfileId, discordUserId);
 
+        // Finding 8: unlocks are bound to the owning login session, so the
+        // session claim travels with the authentication request.
+        var sessionToken = User.FindFirstValue("dashboard_session");
+
         var result = await m_ProfileAuthService.AuthenticateAsync(
             discordUserId,
             request.ProfileId,
             request.Passphrase,
-            HttpContext.RequestAborted);
+            HttpContext.RequestAborted,
+            sessionToken);
 
         return result.Status switch
         {

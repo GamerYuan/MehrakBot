@@ -12,11 +12,19 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
     private const string PermissionClaim = "perm";
     private readonly IDashboardSessionService m_SessionService;
     private readonly IDashboardUserService m_UserService;
+    private readonly IDashboardProfileAuthenticationService m_ProfileAuthService;
+    private readonly ILogger<DashboardCookieEvents> m_Logger;
 
-    public DashboardCookieEvents(IDashboardSessionService sessionService, IDashboardUserService userService)
+    public DashboardCookieEvents(
+        IDashboardSessionService sessionService,
+        IDashboardUserService userService,
+        IDashboardProfileAuthenticationService profileAuthService,
+        ILogger<DashboardCookieEvents> logger)
     {
         m_SessionService = sessionService;
         m_UserService = userService;
+        m_ProfileAuthService = profileAuthService;
+        m_Logger = logger;
     }
 
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
@@ -73,6 +81,44 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         if (!string.IsNullOrWhiteSpace(sessionToken))
         {
             await m_SessionService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
+        }
+
+        // Finding 8: logout clears every profile unlock for the user (both
+        // Bot and Dashboard caches) so a later session cannot reuse them.
+        // Best-effort: logout itself must never fail because of this.
+        try
+        {
+            var discordId = ParseDiscordId(context.HttpContext.User)
+                ?? await GetSessionDiscordIdAsync(sessionToken, context.HttpContext.RequestAborted);
+            if (discordId.HasValue)
+                await m_ProfileAuthService.RevokeAllAsync(discordId.Value, context.HttpContext.RequestAborted);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogWarning(ex, "Failed to revoke profile unlocks at logout");
+        }
+    }
+
+    private static ulong? ParseDiscordId(ClaimsPrincipal? principal)
+    {
+        var claimValue = principal?.Claims.FirstOrDefault(c => c.Type == DiscordIdClaim)?.Value;
+        return ulong.TryParse(claimValue, out var discordId) ? discordId : null;
+    }
+
+    private async Task<ulong?> GetSessionDiscordIdAsync(string? sessionToken, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(sessionToken))
+            return null;
+
+        try
+        {
+            var session = await m_SessionService.GetSessionAsync(sessionToken, ct);
+            return session is null ? null : (ulong)session.DiscordUserId;
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Failed to resolve session identity at logout");
+            return null;
         }
     }
 }

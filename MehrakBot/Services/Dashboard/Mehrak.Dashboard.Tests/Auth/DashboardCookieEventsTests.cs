@@ -6,6 +6,7 @@ using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Mehrak.Dashboard.Tests.Auth;
@@ -15,6 +16,7 @@ public class DashboardCookieEventsTests
 {
     private Mock<IDashboardSessionService> m_MockSessionService = null!;
     private Mock<IDashboardUserService> m_MockUserService = null!;
+    private Mock<IDashboardProfileAuthenticationService> m_MockProfileAuthService = null!;
     private DashboardCookieEvents m_Events = null!;
 
     [SetUp]
@@ -22,7 +24,12 @@ public class DashboardCookieEventsTests
     {
         m_MockSessionService = new Mock<IDashboardSessionService>();
         m_MockUserService = new Mock<IDashboardUserService>();
-        m_Events = new DashboardCookieEvents(m_MockSessionService.Object, m_MockUserService.Object);
+        m_MockProfileAuthService = new Mock<IDashboardProfileAuthenticationService>();
+        m_Events = new DashboardCookieEvents(
+            m_MockSessionService.Object,
+            m_MockUserService.Object,
+            m_MockProfileAuthService.Object,
+            Mock.Of<ILogger<DashboardCookieEvents>>());
     }
 
     private static ClaimsPrincipal CreatePrincipal(string? sessionToken = null, params Claim[] extraClaims)
@@ -234,6 +241,59 @@ public class DashboardCookieEventsTests
         await m_Events.SigningOut(context);
 
         m_MockSessionService.Verify(s => s.InvalidateSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task SigningOut_WithSessionToken_RevokesAllProfileUnlocks()
+    {
+        // Finding 8: logout clears every profile unlock so a later session
+        // cannot reuse them.
+        var principal = CreatePrincipal("tok123", new Claim("discord_id", "100"));
+        var httpContext = new DefaultHttpContext { User = principal };
+        var scheme = new AuthenticationScheme(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            "Test",
+            typeof(CookieAuthenticationHandler));
+        var context = new CookieSigningOutContext(httpContext, scheme, new CookieAuthenticationOptions(), new AuthenticationProperties(), new CookieOptions());
+
+        await m_Events.SigningOut(context);
+
+        m_MockSessionService.Verify(s => s.InvalidateSessionAsync("tok123", It.IsAny<CancellationToken>()), Times.Once);
+        m_MockProfileAuthService.Verify(s => s.RevokeAllAsync(100UL, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task SigningOut_WithoutDiscordClaim_FallsBackToSessionIdentity()
+    {
+        var principal = CreatePrincipal("tok123");
+        var httpContext = new DefaultHttpContext { User = principal };
+        var scheme = new AuthenticationScheme(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            "Test",
+            typeof(CookieAuthenticationHandler));
+        var context = new CookieSigningOutContext(httpContext, scheme, new CookieAuthenticationOptions(), new AuthenticationProperties(), new CookieOptions());
+        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
+
+        await m_Events.SigningOut(context);
+
+        m_MockProfileAuthService.Verify(s => s.RevokeAllAsync(100UL, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task SigningOut_RevocationFailure_DoesNotThrow()
+    {
+        var principal = CreatePrincipal("tok123", new Claim("discord_id", "100"));
+        var httpContext = new DefaultHttpContext { User = principal };
+        var scheme = new AuthenticationScheme(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            "Test",
+            typeof(CookieAuthenticationHandler));
+        var context = new CookieSigningOutContext(httpContext, scheme, new CookieAuthenticationOptions(), new AuthenticationProperties(), new CookieOptions());
+        m_MockProfileAuthService.Setup(s => s.RevokeAllAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("cache down"));
+
+        Assert.DoesNotThrowAsync(() => m_Events.SigningOut(context));
     }
 
     #endregion

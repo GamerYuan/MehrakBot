@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
@@ -54,6 +55,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IEncryptionService m_CookieService;
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly ICacheService? m_CacheService;
     private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
 
@@ -63,7 +65,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         IAuthenticationMiddlewareService authenticationMiddleware,
         UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
-        ILogger<AuthModalModule> logger)
+        ILogger<AuthModalModule> logger,
+        ICacheService? cacheService = null)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
@@ -71,6 +74,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_AuthenticationMiddleware = authenticationMiddleware;
         m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
+        m_CacheService = cacheService;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -309,6 +313,17 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
+            // Finding 8: a Bot-side rotation also revokes the Dashboard unlock
+            // for the same profile.
+            try
+            {
+                if (m_CacheService is not null)
+                    await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(Context.User.Id, profile.LtUid));
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogWarning(ex, "Failed to revoke dashboard authentication cache for user {UserId}", Context.User.Id);
+            }
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Profile successfully updated!")));
