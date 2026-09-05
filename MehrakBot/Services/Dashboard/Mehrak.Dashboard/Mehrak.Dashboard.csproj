@@ -56,10 +56,12 @@
   </ItemGroup>
 
 
-  <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.Development.json')">
-    <None Include="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+  <!-- Security finding 4: environment-specific settings must never be published.
+       Runtime configuration is supplied externally (environment variables / mounts). -->
+  <ItemGroup>
+    <Content Update="appsettings.Development.json;appsettings.Production.json;appsettings.DockerDev.json;appsettings.Local.json;appsettings.Staging.json">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
