@@ -26,7 +26,7 @@ public class ProfileRequestLTokenValidationTests
         {
             LtUid = 100,
             LToken = "v2_abcDEF123-_.=~",
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Empty);
@@ -43,7 +43,7 @@ public class ProfileRequestLTokenValidationTests
         {
             LtUid = 100,
             LToken = ltoken,
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Not.Empty);
@@ -56,7 +56,7 @@ public class ProfileRequestLTokenValidationTests
         {
             LtUid = 100,
             LToken = new string('a', LTokenValidator.MaxLTokenLength + 1),
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Not.Empty);
@@ -68,7 +68,7 @@ public class ProfileRequestLTokenValidationTests
         var results = Validate(new UpdateProfileRequest
         {
             LToken = "v2_abcDEF123-_.=~",
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Empty);
@@ -82,7 +82,7 @@ public class ProfileRequestLTokenValidationTests
         var results = Validate(new UpdateProfileRequest
         {
             LToken = ltoken,
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Not.Empty);
@@ -94,7 +94,7 @@ public class ProfileRequestLTokenValidationTests
         var results = Validate(new UpdateProfileRequest
         {
             LToken = new string('a', LTokenValidator.MaxLTokenLength + 1),
-            Passphrase = "passphrase"
+            Passphrase = "valid-passphrase-12"
         });
 
         Assert.That(results, Is.Not.Empty);

@@ -16,7 +16,11 @@ public class AddProfileRequest
     [RegularExpression(LTokenValidator.CookieValuePattern, ErrorMessage = "LToken contains invalid characters.")]
     public string LToken { get; set; } = "";
 
+    // Finding 11: new profiles must use a meaningful passphrase (12-64 chars).
+    // Must match UpdateProfileRequest and the Bot add/update modals. Existing
+    // weak passphrases keep working for decryption; they are upgraded when the
+    // profile is rotated through UpdateProfile.
     [Required]
-    [StringLength(64, MinimumLength = 1)]
+    [StringLength(64, MinimumLength = 12)]
     public string Passphrase { get; set; } = "";
 }

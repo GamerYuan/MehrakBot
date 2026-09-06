@@ -23,12 +23,23 @@ namespace Mehrak.Bot.Shared.Modules;
 
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {
+    // Finding 11: minimum for NEW/CHANGED passphrases. Must match Dashboard
+    // Add/UpdateProfileRequest. The decrypt-only AuthModal below intentionally
+    // has no minimum so existing weak passphrases keep working.
+    internal const int MinPassphraseLength = 12;
+    internal const int MaxPassphraseLength = 64;
+
+    internal static bool IsValidNewPassphrase(string? passphrase) =>
+        !string.IsNullOrEmpty(passphrase) &&
+        passphrase.Length >= MinPassphraseLength &&
+        passphrase.Length <= MaxPassphraseLength;
+
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
         .WithComponents([
             new LabelProperties("HoYoLAB UID", new TextInputProperties("ltuid", TextInputStyle.Short)),
             new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
             new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
+                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
         ]);
 
     public static ModalProperties AuthModal(string guid)
@@ -47,7 +58,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 new TextDisplayProperties($"## Profile {profile.ProfileId}\n### HoYoLAB UID: {profile.LtUid}"),
                 new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
                 new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
+                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
             ]);
 
     }
@@ -140,6 +151,19 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
+
+            if (!IsValidNewPassphrase(inputs["passphrase"]))
+            {
+                // Finding 11: enforce the minimum for new passphrases server-side
+                // as well (modal min-length is client-enforced). Existing weak
+                // passphrases are unaffected: they only flow through the
+                // decrypt-only auth modal below.
+                m_Logger.LogWarning("User {UserId} provided too-short passphrase for new profile", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
                 return;
             }
 
@@ -288,6 +312,17 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
+
+            if (!IsValidNewPassphrase(inputs["passphrase"]))
+            {
+                // Finding 11: enforce the minimum for changed passphrases
+                // server-side as well (modal min-length is client-enforced).
+                m_Logger.LogWarning("User {UserId} provided too-short passphrase during update", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
                 return;
             }
 
