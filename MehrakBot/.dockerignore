@@ -3,3 +3,14 @@
 **/out/
 **/*.Tests/
 sixlabors.lic
+# Keep local environment settings and private material out of Docker build contexts.
+**/appsettings.Development.json
+**/appsettings.DockerDev.json
+**/appsettings.Local.json
+**/appsettings.Staging.json
+**/appsettings.Production.json
+**/certificates/
+**/*.pem
+**/*.key
+.env
+.env.*

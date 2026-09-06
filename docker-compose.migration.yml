@@ -17,6 +17,10 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Production
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      # Migrations run with owner credentials. Set
+      # POSTGRES_MIGRATION_USER/PASSWORD for a dedicated owner login; when
+      # unset these fall back to the bootstrap POSTGRES_USER/PASSWORD.
+      - ConnectionStrings__migrationdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_MIGRATION_USER:-${POSTGRES_USER}};Password=${POSTGRES_MIGRATION_PASSWORD:-${POSTGRES_PASSWORD}}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakMigrationService
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=Delta

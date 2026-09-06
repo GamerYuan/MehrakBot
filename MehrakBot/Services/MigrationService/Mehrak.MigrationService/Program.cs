@@ -13,7 +13,11 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-var connectionString = builder.Configuration.GetConnectionString("mehrakdb") ?? throw new InvalidOperationException("Postgres connection string is not configured.");
+// Migrations support dedicated owner credentials via
+// ConnectionStrings:migrationdb, falling back to mehrakdb when unset so
+// existing deployments keep working unchanged.
+var connectionString = builder.Configuration.GetConnectionString("migrationdb")
+    ?? builder.Configuration.GetConnectionString("mehrakdb") ?? throw new InvalidOperationException("Postgres connection string is not configured.");
 
 builder.Services.AddDbContext<DashboardAuthDbContext>((sp, options) =>
 {
