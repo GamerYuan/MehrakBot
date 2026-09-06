@@ -101,7 +101,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
             m_EncryptionService,
             m_DbFactory.ScopeFactory,
             NullLogger<AuthenticationMiddlewareService>.Instance,
-            Mock.Of<IPassphraseAttemptRateLimiter>());
+            Mock.Of<IPassphraseAttemptRateLimiter>(x => x.TryReserveAttemptAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()) == Task.FromResult<string?>(Guid.NewGuid().ToString()) && x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()) == Task.CompletedTask));
     }
 
     [TearDown]

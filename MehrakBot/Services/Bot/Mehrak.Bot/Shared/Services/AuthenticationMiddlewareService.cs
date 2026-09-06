@@ -120,12 +120,16 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         await authResponse.Context.Interaction.SendResponseAsync(
             InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
 
-        if (await m_PassphraseLimiter.IsBlockedAsync(request.Context.Interaction.User.Id))
+        // Finding 12: reserve one attempt atomically before PBKDF2 work so
+        // concurrent requests cannot all slip past the check. Shared via Redis.
+        var reservation = await m_PassphraseLimiter.TryReserveAttemptAsync(request.Context.Interaction.User.Id);
+        if (reservation is null)
         {
             m_Logger.LogWarning("Rate limit exceeded for passphrase attempts by user {UserId}", request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Too many incorrect attempts. Please try again later.");
         }
 
+        var keepReservation = false;
         try
         {
             token = m_EncryptionService.Decrypt(profile.LToken, authResponse.Passphrase);
@@ -134,9 +138,10 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
         catch (AuthenticationTagMismatchException e)
         {
+            // The reservation stays as the failure record; do not record again.
+            keepReservation = true;
             m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid,
                 request.Context.Interaction.User.Id);
-            await m_PassphraseLimiter.RecordFailureAsync(request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
         }
         catch (CryptographicException e)
@@ -145,6 +150,13 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 authResponse.Guid, request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context,
                 "Stored authentication data is corrupted. Please remove and re-add this profile.");
+        }
+        finally
+        {
+            // Successes and corruption outcomes release so they never consume
+            // failure quota; only wrong passphrases keep the reservation.
+            if (!keepReservation && reservation is not null)
+                await ReleasePassphraseReservationQuietlyAsync(request.Context.Interaction.User.Id, reservation);
         }
 
         await TryUpgradeLegacyLtokenAsync(userContext, request.Context.Interaction.User.Id,
@@ -157,6 +169,17 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             authResponse.Context);
     }
 
+    private async Task ReleasePassphraseReservationQuietlyAsync(ulong userId, string reservation)
+    {
+        try
+        {
+            await m_PassphraseLimiter.ReleaseReservationAsync(userId, reservation);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Best-effort passphrase reservation release failed for UserId={UserId}", userId);
+        }
+    }
     private async Task TryUpgradeLegacyLtokenAsync(
         UserDbContext userContext,
         ulong userId,

@@ -53,6 +53,11 @@ public class AuthenticationMiddlewareServiceTests
         m_MockEncryptionService = new Mock<IEncryptionService>();
         m_MockLogger = new Mock<ILogger<AuthenticationMiddlewareService>>();
         m_MockPassphraseLimiter = new Mock<IPassphraseAttemptRateLimiter>();
+        // Finding 12: reservation succeeds by default; individual tests override for blocked paths.
+        m_MockPassphraseLimiter.Setup(x => x.TryReserveAttemptAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid().ToString());
+        m_MockPassphraseLimiter.Setup(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         InitializeService();
     }
@@ -346,6 +351,174 @@ public class AuthenticationMiddlewareServiceTests
         m_MockEncryptionService.Verify(x => x.Decrypt(TestEncryptedToken, TestPassphrase), Times.Once);
         m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()), Times.Never);
         m_MockPassphraseLimiter.Verify(x => x.RecordFailureAsync(It.IsAny<ulong>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_WhenReservationBlocked_ReturnsFailureWithoutDecrypting()
+    {
+        // Finding 12: the atomic reservation blocks before expensive PBKDF2 work.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockPassphraseLimiter
+            .Setup(x => x.TryReserveAttemptAsync(TestUserId, It.IsAny<System.Threading.CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("Too many incorrect attempts"));
+        });
+
+        m_MockEncryptionService.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_WrongPassphrase_KeepsReservationWithoutSeparateRecord()
+    {
+        // Finding 12: the reservation itself is the failure record; no second write.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Throws(new AuthenticationTagMismatchException());
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("Incorrect passphrase"));
+        });
+
+        m_MockPassphraseLimiter.Verify(x => x.RecordFailureAsync(It.IsAny<ulong>(), It.IsAny<System.Threading.CancellationToken>()), Times.Never);
+        m_MockPassphraseLimiter.Verify(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<System.Threading.CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_Success_ReleasesReservation()
+    {
+        // Finding 12: correct passphrases release so successes never consume failure quota.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
+            .ReturnsAsync((string?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Returns(TestLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.That(result.IsSuccess, Is.True);
+        m_MockPassphraseLimiter.Verify(x => x.ReleaseReservationAsync(TestUserId, It.IsAny<string>(), It.IsAny<System.Threading.CancellationToken>()), Times.Once);
     }
 
     #endregion

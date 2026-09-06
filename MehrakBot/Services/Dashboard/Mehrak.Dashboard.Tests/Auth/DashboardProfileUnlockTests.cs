@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
@@ -107,6 +107,11 @@ public class DashboardProfileUnlockTests
         m_Cache = new FakeCacheService();
         m_Encryption = new FakeEncryptionService();
         m_Limiter = new Mock<IPassphraseAttemptRateLimiter>();
+        // Finding 12: reservation succeeds by default; individual tests override for blocked paths.
+        m_Limiter.Setup(x => x.TryReserveAttemptAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid().ToString());
+        m_Limiter.Setup(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         m_Service = new DashboardProfileAuthenticationService(
             m_Db, m_Encryption, m_Cache,
             Mock.Of<ILogger<DashboardProfileAuthenticationService>>(),
@@ -231,6 +236,41 @@ public class DashboardProfileUnlockTests
 
         var hit = await m_Service.AuthenticateAsync(UserId, 1, null, TestContext.CurrentContext.CancellationToken, SessionA);
         Assert.That(hit.Status, Is.EqualTo(DashboardAuthStatus.Success));
+    }
+
+    [Test]
+    public async Task Authenticate_BlockedReservation_ReturnsRateLimitedWithoutDecrypting()
+    {
+        // Finding 12: the atomic reservation blocks before expensive PBKDF2 work.
+        var decryptedCalled = false;
+        m_Encryption.OnDecrypt = () => { decryptedCalled = true; return string.Empty; };
+        m_Limiter.Setup(x => x.TryReserveAttemptAsync(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var result = await m_Service.AuthenticateAsync(UserId, 1, "wrong", TestContext.CurrentContext.CancellationToken, SessionA);
+
+        Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.RateLimited));
+        Assert.That(decryptedCalled, Is.False);
+    }
+
+    [Test]
+    public async Task Authenticate_WrongPassphrase_KeepsReservationWithoutRelease()
+    {
+        // Finding 12: the reservation itself is the failure record; no second write.
+        var result = await m_Service.AuthenticateAsync(UserId, 1, "wrong", TestContext.CurrentContext.CancellationToken, SessionA);
+
+        Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.InvalidPassphrase));
+        m_Limiter.Verify(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Authenticate_Success_ReleasesReservation()
+    {
+        // Finding 12: correct passphrases release so successes never consume failure quota.
+        var result = await m_Service.AuthenticateAsync(UserId, 1, "correct", TestContext.CurrentContext.CancellationToken, SessionA);
+
+        Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.Success));
+        m_Limiter.Verify(x => x.ReleaseReservationAsync(UserId, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]

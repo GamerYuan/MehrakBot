@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
@@ -135,12 +135,16 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 "Authentication required. Please provide your passphrase.");
         }
 
-        if (await m_PassphraseLimiter.IsBlockedAsync(discordUserId, ct))
+        // Finding 12: reserve one attempt atomically before PBKDF2 work so
+        // concurrent requests cannot all slip past the check. Shared via Redis.
+        var reservation = await m_PassphraseLimiter.TryReserveAttemptAsync(discordUserId, ct);
+        if (reservation is null)
         {
             m_Logger.LogWarning("Rate limit exceeded for passphrase attempts by user {UserId}", discordUserId);
             return DashboardProfileAuthenticationResult.RateLimited("Too many incorrect attempts. Please try again later.");
         }
 
+        var keepReservation = false;
         try
         {
             var decrypted = m_EncryptionService.Decrypt(profile.LToken, passphrase);
@@ -190,9 +194,10 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         }
         catch (AuthenticationTagMismatchException ex)
         {
+            // The reservation stays as the failure record; do not record again.
+            keepReservation = true;
             m_Logger.LogWarning(ex, "Dashboard authentication failed due to invalid passphrase for user {UserId}",
                 discordUserId);
-            await m_PassphraseLimiter.RecordFailureAsync(discordUserId, ct);
             return DashboardProfileAuthenticationResult.InvalidPassphrase("Incorrect passphrase. Please try again.");
         }
         catch (CryptographicException ex)
@@ -201,6 +206,26 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 discordUserId);
             return DashboardProfileAuthenticationResult.Failure(
                 "Stored authentication data is corrupted. Please remove and re-add this profile.");
+        }
+        finally
+        {
+            // Successes and non-passphrase failures release so they never
+            // consume failure quota; only wrong passphrases keep it.
+            if (!keepReservation && reservation is not null)
+                await ReleasePassphraseReservationQuietlyAsync(discordUserId, reservation, ct);
+        }
+    }
+
+    private async Task ReleasePassphraseReservationQuietlyAsync(
+        ulong discordUserId, string reservation, CancellationToken ct)
+    {
+        try
+        {
+            await m_PassphraseLimiter.ReleaseReservationAsync(discordUserId, reservation, ct);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Best-effort passphrase reservation release failed for user {UserId}", discordUserId);
         }
     }
 
