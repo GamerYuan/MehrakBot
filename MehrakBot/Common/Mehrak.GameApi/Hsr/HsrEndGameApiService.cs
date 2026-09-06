@@ -60,6 +60,17 @@ public class HsrEndGameApiService : IApiService<HsrEndInformation, HsrEndGameApi
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
+            if (!LTokenValidator.IsValidLToken(context.LToken))
+            {
+                // Finding 5: reject malformed credential characters/lengths before
+                // building the Cookie header. HttpHeaders.Add would throw a
+                // FormatException embedding the credential value, which the catch
+                // below would write to retained file/OTLP logs. This sanitized
+                // warning never includes the credential itself.
+                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+                return Result<HsrEndInformation>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
+            }
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");

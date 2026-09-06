@@ -132,6 +132,17 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             Method = HttpMethod.Get,
             RequestUri = new Uri(requestUri)
         };
+        if (!LTokenValidator.IsValidLToken(context.LToken))
+        {
+            // Finding 5: reject malformed credential characters/lengths before
+            // building the Cookie header. HttpHeaders.Add would throw a
+            // FormatException embedding the credential value, which the catch
+            // below would write to retained file/OTLP logs. This sanitized
+            // warning never includes the credential itself.
+            m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+            return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
+                "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+        }
         request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid}");
 
         var response = await httpClient.SendAsync(request, cancellationToken);
@@ -290,6 +301,17 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
             Method = HttpMethod.Get,
             RequestUri = new Uri(requestUri)
         };
+        if (!LTokenValidator.IsValidLToken(ltoken))
+        {
+            // Finding 5: reject malformed credential characters/lengths before
+            // building the Cookie header. HttpHeaders.Add would throw a
+            // FormatException embedding the credential value, which the catch
+            // below would write to retained file/OTLP logs. This sanitized
+            // warning never includes the credential itself.
+            m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", userId, requestUri);
+            return Result<List<GameRoleInfo>>.Failure(StatusCode.Unauthorized,
+                "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+        }
         request.Headers.Add("Cookie", $"ltoken_v2={ltoken}; ltuid_v2={ltuid}");
 
         var response = await httpClient.SendAsync(request, cancellationToken);

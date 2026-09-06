@@ -6,6 +6,7 @@ using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
+using Mehrak.GameApi.Shared;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
@@ -128,6 +129,19 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             var hadProfiles = user.Profiles.Count > 0;
+
+            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            {
+                // Finding 5: reject malformed credential characters/lengths before
+                // the token reaches the GameApi Cookie-header construction, where
+                // illegal characters would throw a credential-embedding
+                // FormatException into retained logs. Never log the value itself.
+                m_Logger.LogWarning("User {UserId} provided malformed cookie format", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
 
             // Validate cookie and fetch all game profiles before saving
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
@@ -263,6 +277,19 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .Select(l => l.Component)
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
+
+            // Finding 5: reject malformed credential characters/lengths before
+            // the token reaches the GameApi Cookie-header construction, where
+            // illegal characters would throw a credential-embedding
+            // FormatException into retained logs. Never log the value itself.
+            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            {
+                m_Logger.LogWarning("User {UserId} provided malformed cookie format during update", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
 
             // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
