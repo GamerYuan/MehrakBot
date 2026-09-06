@@ -1,5 +1,5 @@
 name: Validation
-# Security finding 16: least-privilege token for a build/test job. Checkout,
+# Least-privilege token for a build/test job. Checkout,
 # .NET build/test need only contents:read; test-output upload uses
 # runner-issued artifact tokens, so no additional permissions are granted.
 permissions:

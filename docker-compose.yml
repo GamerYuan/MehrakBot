@@ -24,7 +24,7 @@ services:
       - Discord__Token=${DISCORD_TOKEN}
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
       - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ClickHouse__Username=${CLICKHOUSE_USER}
@@ -68,7 +68,7 @@ services:
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
       - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
@@ -108,7 +108,7 @@ services:
       - ASPNETCORE_URLS=http://*:12000
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
       - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      # Security finding 9: optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
+      # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
       - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=mehrak_dev;Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
@@ -140,7 +140,7 @@ services:
 
   postgres:
     image: postgres:18.3
-    # Security finding 9: POSTGRES_USER is the bootstrap/owner role used for
+    # POSTGRES_USER is the bootstrap/owner role used for
     # database initialization and migrations. Runtime services should use the
     # separate least-privilege POSTGRES_RUNTIME_USER role instead (see
     # .env.template). Create it manually as the owner, once per fresh database.
@@ -155,7 +155,7 @@ services:
     #     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO mehrak_runtime;
     #   ALTER DEFAULT PRIVILEGES FOR ROLE <owner> IN SCHEMA public
     #     GRANT USAGE, SELECT ON SEQUENCES TO mehrak_runtime;
-    # Security finding 15: no host port publication; service clients use the
+    # No host port publication; service clients use the
     # internal postgres:5432 destination. For local administration use
     # `docker exec` or a loopback-only dev override, e.g.:
     #   ports:
@@ -299,7 +299,7 @@ services:
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      # Security finding 14: hostmetrics uses root_path /hostfs, so only the
+      # Hostmetrics uses root_path /hostfs, so only the
       # proc/sys mounts are required. The host root filesystem is intentionally
       # not mounted.
       - /proc:/hostfs/proc:ro

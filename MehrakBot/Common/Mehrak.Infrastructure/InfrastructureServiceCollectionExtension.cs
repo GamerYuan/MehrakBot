@@ -114,11 +114,11 @@ public static class InfrastructureServiceCollectionExtension
         return services;
     }
 
-    // Security finding 9: runtime services support a dedicated least-privilege
-    // PostgreSQL role via ConnectionStrings:mehrakdb_runtime (see
-    // POSTGRES_RUNTIME_USER / POSTGRES_RUNTIME_PASSWORD in .env.template).
-    // When it is unset, fall back to the shared mehrakdb connection string so
-    // existing deployments keep working unchanged.
+    // Runtime services support a dedicated least-privilege PostgreSQL role via
+    // ConnectionStrings:mehrakdb_runtime (see POSTGRES_RUNTIME_USER /
+    // POSTGRES_RUNTIME_PASSWORD in .env.template). When it is unset, fall back
+    // to the shared mehrakdb connection string so existing deployments keep
+    // working unchanged.
     private static string GetRuntimeConnectionString(IServiceProvider serviceProvider)
     {
         var runtimeConnectionString = serviceProvider

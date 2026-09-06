@@ -13,7 +13,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Security finding 9: migrations support dedicated owner credentials via
+// Migrations support dedicated owner credentials via
 // ConnectionStrings:migrationdb, falling back to mehrakdb when unset so
 // existing deployments keep working unchanged.
 var connectionString = builder.Configuration.GetConnectionString("migrationdb")
