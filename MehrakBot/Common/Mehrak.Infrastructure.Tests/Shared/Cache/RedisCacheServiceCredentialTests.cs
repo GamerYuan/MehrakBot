@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Cache;
+﻿﻿﻿using Mehrak.Domain.Cache;
 using Mehrak.Infrastructure.Shared.Cache;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -7,10 +7,8 @@ using Moq;
 namespace Mehrak.Infrastructure.Tests.Shared.Cache;
 
 /// <summary>
-/// Finding 6: decrypted credential keys must never reach durable Redis
-/// persistence. They live in process memory with absolute TTL and fail
-/// closed, while all other keys keep the Redis path.
-/// </summary>
+/// Decrypted credential keys must never reach durable Redis persistence. They live in process memory with absolute TTL
+/// and fail closed, while all other keys keep the Redis path. </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -121,5 +119,26 @@ internal class RedisCacheServiceCredentialTests
         Assert.That(await m_Service.GetAsync<string>(key), Is.Null);
     }
 
+    [Test]
+    public async Task SetAsync_SensitiveKey_PurgesUntouchedExpiredEntries()
+    {
+        // Expiry is otherwise lazy (checked only when the same key is read),
+        // so an unrelated write must release expired entries instead of
+        // retaining decrypted credentials for the process lifetime.
+        const string staleKey = "bot:ltoken:1:1";
+        const string liveKey = "bot:ltoken:2:2";
+        await m_Service.SetAsync(new CacheEntryBase<string>(staleKey, "stale", TimeSpan.FromMilliseconds(50)));
+
+        await Task.Delay(TimeSpan.FromMilliseconds(200));
+        await m_Service.SetAsync(new CacheEntryBase<string>(liveKey, "live", TimeSpan.FromMinutes(10)));
+
+        Assert.That(await m_Service.GetAsync<string>(liveKey), Is.EqualTo("live"));
+        // The untouched stale entry was purged by the unrelated write instead
+        // of lingering until its own key is read again.
+        Assert.That(m_Service.SensitiveCount, Is.EqualTo(1));
+    }
+
     private sealed record DashboardTicketShape(string CredentialHash, string SessionHash, string LToken);
 }
+
+

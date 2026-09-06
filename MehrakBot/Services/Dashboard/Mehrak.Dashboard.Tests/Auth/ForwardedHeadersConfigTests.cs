@@ -13,10 +13,8 @@ using Microsoft.Extensions.Options;
 namespace Mehrak.Dashboard.Tests.Auth;
 
 /// <summary>
-/// Finding 13: only explicitly configured proxies may supply forwarded
-/// headers; untrusted values are ignored while legitimate proxies keep
-/// correct client-IP and HTTPS-scheme behavior.
-/// </summary>
+/// Only explicitly configured proxies may supply forwarded headers; untrusted values are ignored while legitimate
+/// proxies keep correct client-IP and HTTPS-scheme behavior. </summary>
 [TestFixture]
 public class ForwardedHeadersConfigTests
 {
@@ -50,6 +48,23 @@ public class ForwardedHeadersConfigTests
         Assert.That(options.KnownProxies.Select(p => p.ToString()),
             Is.EquivalentTo(["127.0.0.1", "::1"]));
         Assert.That(options.KnownIPNetworks, Is.Empty);
+    }
+
+    [Test]
+    public void IsProxyAllowlistEmpty_DetectsUnconfiguredProductionProxy()
+    {
+        // Template deployments without NGINX_KNOWN_PROXY reach the loopback
+        // fallback, so startup must flag it: forwarded proto is then ignored
+        // and OAuth URLs may be generated as http behind a TLS proxy.
+        var empty = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>())
+            .Build();
+        var configured = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { { "Nginx:KnownProxy", "10.0.0.1" } })
+            .Build();
+
+        Assert.That(Program.IsProxyAllowlistEmpty(empty), Is.True);
+        Assert.That(Program.IsProxyAllowlistEmpty(configured), Is.False);
     }
 
     [Test]
@@ -199,3 +214,5 @@ public class ForwardedHeadersConfigTests
         Assert.That(seen, Is.EqualTo("203.0.113.7|https"));
     }
 }
+
+

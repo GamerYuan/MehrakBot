@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -16,11 +16,9 @@ public class RedisCacheService : ICacheService
     private readonly IDistributedCache m_Cache;
     private readonly ILogger<RedisCacheService> m_Logger;
 
-    // Finding 6: decrypted HoYoLAB tokens must never reach durable Redis
-    // persistence (volume/AOF/backups). Credential keys are kept in process
-    // memory only, with the same absolute TTL semantics as the Redis path.
-    // A best-effort purge removes any pre-fix durable value so old plaintext
-    // becomes unreachable; reads never fall back to Redis for these keys.
+    // Decrypted HoYoLAB tokens must never reach durable Redis persistence (volume/AOF/backups). Credential keys are
+    // kept in process memory only, with the same absolute TTL semantics as the Redis path. A best-effort purge removes
+    // any pre-fix durable value so old plaintext becomes unreachable; reads never fall back to Redis for these keys.
     private readonly ConcurrentDictionary<string, SensitiveEntry> m_SensitiveCache = new();
 
     private sealed record SensitiveEntry(object? Value, DateTimeOffset ExpiresAt);
@@ -29,6 +27,18 @@ public class RedisCacheService : ICacheService
     {
         m_Cache = cache;
         m_Logger = logger;
+    }
+
+    internal int SensitiveCount => m_SensitiveCache.Count;
+
+    internal void PurgeExpiredSensitiveEntries()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var pair in m_SensitiveCache)
+        {
+            if (pair.Value.ExpiresAt <= now)
+                m_SensitiveCache.TryRemove(pair.Key, out _);
+        }
     }
 
     internal static bool IsSensitiveKey(string key) =>
@@ -40,6 +50,11 @@ public class RedisCacheService : ICacheService
         m_Logger.LogDebug("Storing object with {Key} into cache", entry.Key);
         if (IsSensitiveKey(entry.Key))
         {
+            // Expiry here is otherwise lazy (checked only when the same key is
+            // read), so sweep expired entries on every write: without this,
+            // untouched entries retain decrypted credentials for the process
+            // lifetime and the dictionary grows without bound.
+            PurgeExpiredSensitiveEntries();
             var expiresAt = DateTimeOffset.UtcNow.Add(entry.ExpirationTime);
             m_SensitiveCache[entry.Key] = new SensitiveEntry(entry.Value, expiresAt);
             // Purge any pre-fix durable value; never fail the write if Redis is down.
@@ -116,3 +131,5 @@ public class RedisCacheService : ICacheService
         await m_Cache.RemoveAsync(key, cancellationToken);
     }
 }
+
+

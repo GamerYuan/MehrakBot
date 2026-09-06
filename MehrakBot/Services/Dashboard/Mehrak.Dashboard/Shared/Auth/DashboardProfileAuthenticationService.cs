@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+﻿﻿﻿using System.Security.Cryptography;
 using System.Text;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
@@ -31,7 +31,7 @@ public interface IDashboardProfileAuthenticationService
 }
 
 /// <summary>
-/// Dashboard profile unlock ticket (finding 8).
+/// Dashboard profile unlock ticket.
 /// Bound to the owning login session and to the exact stored credential
 /// revision, with an absolute lifetime. A ticket created before a credential
 /// rotation, or presented from a different session, never authenticates.
@@ -135,8 +135,8 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 "Authentication required. Please provide your passphrase.");
         }
 
-        // Finding 12: reserve one attempt atomically before PBKDF2 work so
-        // concurrent requests cannot all slip past the check. Shared via Redis.
+        // Reserve one attempt atomically before PBKDF2 work so concurrent requests cannot all slip past the check.
+        // Shared via Redis.
         var reservation = await m_PassphraseLimiter.TryReserveAttemptAsync(discordUserId, ct);
         if (reservation is null)
         {
@@ -253,6 +253,25 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
 
         foreach (var ltUid in ltUids)
             await RevokeAsync(discordUserId, (ulong)ltUid, ct);
+
+        // Cross-process revocation watermark: the Bot process keeps unlocks in
+        // its own memory, so per-key removal above cannot reach it. Publish the
+        // revocation instant to shared storage (a plain timestamp, never a
+        // credential); Bot tickets issued at or before it are dropped on read.
+        // Single-profile RevokeAsync needs no watermark: rotation changes the
+        // stored cipher (caught by the credential binding) and deletion
+        // removes the profile outright.
+        try
+        {
+            await m_CacheService.SetAsync(new CacheEntryBase<string>(
+                CacheKeys.RevokeEpoch(discordUserId),
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(),
+                TimeSpan.FromMinutes(11)), ct);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Revocation watermark publish failed for user {UserId}", discordUserId);
+        }
     }
 
     private async Task<DashboardUnlockTicket?> TryGetTicketAsync(string key, CancellationToken ct)
@@ -373,3 +392,5 @@ public class DashboardProfileAuthenticationResult
     public static DashboardProfileAuthenticationResult Failure(string error) =>
         new(DashboardAuthStatus.Failure, error, null, 0, null);
 }
+
+

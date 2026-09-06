@@ -238,6 +238,31 @@ public class PassphraseAttemptRateLimiterTests
     }
 
     [Test]
+    public async Task ReleaseReservationAsync_WithCancelledToken_StillIssuesRemoval()
+    {
+        // Best-effort cleanup must survive caller cancellation: a disconnected
+        // client must not turn a successful attempt into a phantom failure.
+        const ulong userId = 123456789;
+        const string reservation = "1700000000000:abc123";
+        m_MockDatabase.Setup(d => d.ScriptEvaluateAsync(
+            It.IsAny<string>(),
+            It.IsAny<RedisKey[]>(),
+            It.IsAny<RedisValue[]>(),
+            It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisResult.Create(1, ResultType.Integer));
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        Assert.DoesNotThrowAsync(() => m_Limiter.ReleaseReservationAsync(userId, reservation, cts.Token));
+        m_MockDatabase.Verify(d => d.ScriptEvaluateAsync(
+            It.Is<string>(s => s.Contains("ZREM")),
+            It.IsAny<RedisKey[]>(),
+            It.IsAny<RedisValue[]>(),
+            It.IsAny<CommandFlags>()), Times.Once);
+    }
+
+    [Test]
     public async Task GetRemainingAttemptsAsync_ReturnsCorrectCount()
     {
         // Arrange

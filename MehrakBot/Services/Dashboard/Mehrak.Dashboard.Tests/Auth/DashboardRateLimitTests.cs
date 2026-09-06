@@ -22,9 +22,8 @@ using Microsoft.Extensions.Options;
 namespace Mehrak.Dashboard.Tests.Auth;
 
 /// <summary>
-/// Finding 10: the IP rate limiter runs before authentication, session
-/// validation is read-only, and the strict login policy guards auth endpoints.
-/// </summary>
+/// The IP rate limiter runs before authentication, session validation is read-only, and the strict login policy guards
+/// auth endpoints. </summary>
 [TestFixture]
 public class DashboardRateLimitTests
 {
@@ -135,11 +134,12 @@ public class DashboardRateLimitTests
     }
 
     [Test]
-    public async Task AuthEndpoints_EnforceStrictLoginPolicyEndToEnd()
+    public async Task AuthFlowInitiator_IsNotChargedAgainstLoginBudgetEndToEnd()
     {
-        // Exercises the real production wiring: real middleware order, real
-        // limiter configuration, and the real controller mapping with the
-        // login policy pinned onto the auth endpoints.
+        // Exercises the real production wiring: only the OAuth callback (where
+        // the session is created) carries the strict login policy, so the flow
+        // initiator stays under the general limiter and one login flow costs
+        // exactly one login permit.
         var (app, client) = await CreateAppAsync(
             static app => app.MapControllers(),
             builder =>
@@ -155,8 +155,8 @@ public class DashboardRateLimitTests
             {
                 var (allowed, rejected) = await GetCountsAsync(client, "/auth/discord", 7);
 
-                Assert.That(allowed, Is.EqualTo(5));
-                Assert.That(rejected, Is.EqualTo(2));
+                Assert.That(allowed, Is.EqualTo(7));
+                Assert.That(rejected, Is.EqualTo(0));
             }
         }
     }
@@ -166,6 +166,8 @@ public class DashboardRateLimitTests
         var application = new ApplicationModel();
         var controller = new ControllerModel(controllerType.GetTypeInfo(), []);
         var action = new ActionModel(controllerType.GetMethod(methodName)!, []);
+        // DefaultApplicationModelProvider populates this from the method name.
+        action.ActionName = methodName;
         action.Controller = controller;
         action.Selectors.Add(new SelectorModel());
         controller.Actions.Add(action);
@@ -190,12 +192,17 @@ public class DashboardRateLimitTests
             .OfType<EnableRateLimitingAttribute>();
 
     [Test]
-    public void LoginRateLimitConvention_PinsStrictPolicyOntoEveryAuthAction()
+    public void LoginRateLimitConvention_PinsStrictPolicyOnlyOntoOAuthCallback()
     {
+        var callback = CreateApplicationModel(typeof(AuthController), nameof(AuthController.DiscordCallback));
+        ApplyRegisteredConventions(callback);
+
+        var attribute = RateLimitMetadata(callback).Single();
+        Assert.That(attribute.PolicyName, Is.EqualTo("login"));
+
         foreach (var method in new[]
                  {
                      nameof(AuthController.Discord),
-                     nameof(AuthController.DiscordCallback),
                      nameof(AuthController.Logout)
                  })
         {
@@ -203,8 +210,7 @@ public class DashboardRateLimitTests
 
             ApplyRegisteredConventions(application);
 
-            var attribute = RateLimitMetadata(application).Single();
-            Assert.That(attribute.PolicyName, Is.EqualTo("login"), $"action {method}");
+            Assert.That(RateLimitMetadata(application), Is.Empty, $"action {method}");
         }
     }
 
@@ -220,3 +226,5 @@ public class DashboardRateLimitTests
         Assert.That(RateLimitMetadata(application), Is.Empty);
     }
 }
+
+

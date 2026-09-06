@@ -1,4 +1,4 @@
-﻿using StackExchange.Redis;
+﻿﻿﻿using StackExchange.Redis;
 
 namespace Mehrak.Infrastructure.Shared;
 
@@ -9,13 +9,10 @@ public interface IPassphraseAttemptRateLimiter
     Task<int> GetRemainingAttemptsAsync(ulong discordUserId, CancellationToken ct = default);
 
     /// <summary>
-    /// Finding 12: atomically reserves one attempt slot before expensive
-    /// passphrase work. Returns a reservation id when the attempt is allowed,
-    /// or null when the caller is rate limited. The reservation counts toward
-    /// the quota until released: wrong-passphrase outcomes keep it as the
-    /// failure record, while successes and non-passphrase failures must
-    /// release it. Limits stay shared across instances via Redis.
-    /// </summary>
+    /// Atomically reserves one attempt slot before expensive passphrase work. Returns a reservation id when the attempt
+    /// is allowed, or null when the caller is rate limited. The reservation counts toward the quota until released:
+    /// wrong-passphrase outcomes keep it as the failure record, while successes and non-passphrase failures must
+    /// release it. Limits stay shared across instances via Redis. </summary>
     Task<string?> TryReserveAttemptAsync(ulong discordUserId, CancellationToken ct = default);
 
     /// <summary>
@@ -142,7 +139,10 @@ internal class PassphraseAttemptRateLimiter : IPassphraseAttemptRateLimiter
     {
         try
         {
-            ct.ThrowIfCancellationRequested();
+            // Best-effort cleanup must survive caller cancellation: callers pass
+            // the request token, and a disconnected client must not turn a
+            // successful attempt into a phantom failure for the full window.
+            // The removal itself runs uncancelled; other failures are swallowed.
             var db = m_Redis.GetDatabase();
             var key = new RedisKey($"{KeyPrefix}{discordUserId}");
 
@@ -150,7 +150,7 @@ internal class PassphraseAttemptRateLimiter : IPassphraseAttemptRateLimiter
                 redis.call('ZREM', KEYS[1], ARGV[1])
                 return 1";
 
-            await db.ScriptEvaluateAsync(script, [key], [(RedisValue)reservationId]);
+            await db.ScriptEvaluateAsync(script, [key], [(RedisValue)reservationId], flags: CommandFlags.None);
         }
         catch (Exception)
         {
@@ -182,3 +182,5 @@ internal class PassphraseAttemptRateLimiter : IPassphraseAttemptRateLimiter
         return Math.Max(0, MaxAttempts - used);
     }
 }
+
+

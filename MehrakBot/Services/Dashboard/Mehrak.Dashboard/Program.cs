@@ -1,4 +1,4 @@
-﻿using System.Net;
+﻿﻿﻿using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
@@ -262,6 +262,8 @@ public class Program
 
         builder.Services.AddRateLimiter(ConfigureRateLimiter);
 
+        builder.Services.AddHttpContextAccessor();
+
         builder.Services.AddControllers(ConfigureMvc);
 
         builder.Services.AddCors(options =>
@@ -276,6 +278,8 @@ public class Program
         });
 
         var app = builder.Build();
+        if (app.Environment.IsProduction() && IsProxyAllowlistEmpty(app.Configuration))
+            app.Logger.LogWarning("Nginx:KnownProxy/KnownNetworks is empty: forwarded headers are ignored, so generated URLs may use http instead of https behind a TLS-terminating proxy. Set NGINX_KNOWN_PROXY to the proxy address.");
         await SeedRootUserIfNeeded(app);
         await ReleaseNoteSeedData.SeedReleaseNotesAsync(app);
 
@@ -318,12 +322,9 @@ public class Program
     internal const string LoginPolicyName = "login";
 
     /// <summary>
-    /// Finding 13: only explicitly configured proxies may supply
-    /// X-Forwarded-For/Proto. Anything else is ignored, so an untrusted peer
-    /// cannot spoof the client IP used by rate limiting and login auditing.
-    /// X-Forwarded-Proto from a trusted proxy still applies, preserving
-    /// OAuth HTTPS behavior behind legitimate proxies.
-    /// </summary>
+    /// Only explicitly configured proxies may supply X-Forwarded-For/Proto. Anything else is ignored, so an untrusted
+    /// peer cannot spoof the client IP used by rate limiting and login auditing. X-Forwarded-Proto from a trusted proxy
+    /// still applies, preserving OAuth HTTPS behavior behind legitimate proxies. </summary>
     internal static void ConfigureForwardedHeaders(ForwardedHeadersOptions options, IConfiguration configuration)
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -352,6 +353,11 @@ public class Program
         }
     }
 
+    internal static bool IsProxyAllowlistEmpty(IConfiguration configuration) =>
+        !SplitProxyList(configuration["Nginx:KnownProxy"])
+            .Concat(SplitProxyList(configuration["Nginx:KnownNetworks"]))
+            .Any();
+
     internal static IEnumerable<string> SplitProxyList(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -362,10 +368,8 @@ public class Program
     }
 
     /// <summary>
-    /// Finding 10: the IP rate limiter runs before authentication, so
-    /// over-limit requests are rejected before any session or database work.
-    /// Routing runs first so endpoint rate-limit policies also resolve.
-    /// </summary>
+    /// The IP rate limiter runs before authentication, so over-limit requests are rejected before any session or
+    /// database work. Routing runs first so endpoint rate-limit policies also resolve. </summary>
     internal static void UseDashboardMiddleware(WebApplication app)
     {
         app.UseForwardedHeaders();
@@ -382,15 +386,20 @@ public class Program
     }
 
     /// <summary>
-    /// Finding 10: pins the strict login policy onto the authentication
-    /// endpoints through selector endpoint metadata, without touching
-    /// their source.
+    /// Pins the strict login policy onto the single action that completes a
+    /// login (the OAuth callback, where the session is created) through
+    /// selector endpoint metadata, without touching its source. The flow
+    /// initiator and logout stay out of the login bucket: one login flow
+    /// consumes exactly one permit, and logout never spends login budget.
     /// </summary>
     internal sealed class LoginRateLimitConvention : IActionModelConvention
     {
         public void Apply(ActionModel action)
         {
             if (action.Controller.ControllerType != typeof(Auth.AuthController))
+                return;
+
+            if (!string.Equals(action.ActionName, nameof(Auth.AuthController.DiscordCallback), StringComparison.Ordinal))
                 return;
 
             foreach (var selector in action.Selectors)
@@ -446,3 +455,5 @@ public class Program
         return normalized.EndsWith('/') ? normalized : normalized + "/";
     }
 }
+
+

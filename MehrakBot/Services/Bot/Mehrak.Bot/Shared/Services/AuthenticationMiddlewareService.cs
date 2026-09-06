@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
@@ -22,10 +22,11 @@ namespace Mehrak.Bot.Shared.Services;
 
 /// <summary>
 /// Bot profile unlock ticket. Bound to the exact stored credential
-/// revision, with an absolute lifetime. A ticket cached before a credential
-/// rotation never authenticates after it.
+/// revision and to the revocation watermark, with an absolute lifetime.
+/// A ticket cached before a credential rotation or a mass revocation
+/// (logout, delete-all) never authenticates after it.
 /// </summary>
-public sealed record BotUnlockTicket(string CredentialHash, string LToken);
+public sealed record BotUnlockTicket(string CredentialHash, string LToken, DateTimeOffset IssuedAtUtc);
 
 public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
@@ -99,7 +100,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         if (ticket is not null
             && !string.IsNullOrEmpty(ticket.LToken)
-            && string.Equals(ticket.CredentialHash, credentialHash, StringComparison.Ordinal))
+            && string.Equals(ticket.CredentialHash, credentialHash, StringComparison.Ordinal)
+            && !await IsRevokedAfterIssuedAsync(request.Context.Interaction.User.Id, ticket.IssuedAtUtc).ConfigureAwait(false))
         {
             m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}",
                 request.Context.Interaction.User.Id, profile.LtUid);
@@ -112,8 +114,9 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         if (ticket is not null)
         {
             // Stale entry: the stored credentials were rotated after this
-            // entry was cached, or the entry has an unexpected shape. Drop
-            // it so a pre-rotation plaintext can never authenticate.
+            // entry was cached, a mass revocation (logout, delete-all)
+            // landed after it was issued, or the entry has an unexpected
+            // shape. Drop it so a pre-rotation plaintext can never authenticate.
             m_Logger.LogInformation(
                 "Dropping stale bot unlock for UserId={UserId}, LtUid={LtUid}",
                 request.Context.Interaction.User.Id, profile.LtUid);
@@ -144,8 +147,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         string? token;
 
-        // Finding 12: reserve one attempt atomically before PBKDF2 work so
-        // concurrent requests cannot all slip past the check. Shared via Redis.
+        // Reserve one attempt atomically before PBKDF2 work so concurrent requests cannot all slip past the check.
+        // Shared via Redis.
         var reservation = await m_PassphraseLimiter.TryReserveAttemptAsync(request.Context.Interaction.User.Id);
         if (reservation is null)
         {
@@ -217,7 +220,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         // A stale in-flight write can at most recreate an entry bound to
         // the now-superseded credential revision, which future reads drop.
         await m_CacheService.SetAsync(new CacheEntryBase<BotUnlockTicket>(cacheKey,
-            new BotUnlockTicket(ComputeHash(currentCipher), token), TimeSpan.FromMinutes(10)));
+            new BotUnlockTicket(ComputeHash(currentCipher), token, DateTimeOffset.UtcNow), TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
@@ -265,6 +268,30 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 "Failed to persist upgraded LToken encryption for UserId={UserId}, ProfileId={ProfileId}; continuing with existing credentials",
                 userId, profileRowId);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Cross-process revocation watermark: logout and mass revocation publish
+    /// the revocation instant to shared storage (a plain timestamp, never a
+    /// credential), because the Bot and Dashboard processes keep decrypted
+    /// credentials in separate per-process memories. Tickets issued at or
+    /// before the watermark are dropped. Fail-open on storage errors so a
+    /// Redis outage degrades revocation freshness, not availability.
+    /// </summary>
+    private async Task<bool> IsRevokedAfterIssuedAsync(ulong userId, DateTimeOffset issuedAtUtc)
+    {
+        try
+        {
+            var epochMs = await m_CacheService.GetAsync<string>(CacheKeys.RevokeEpoch(userId)).ConfigureAwait(false);
+            if (!long.TryParse(epochMs, out var ms))
+                return false;
+            return issuedAtUtc <= DateTimeOffset.FromUnixTimeMilliseconds(ms);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Revocation watermark unreadable for UserId={UserId}; treating unlock as live", userId);
+            return false;
         }
     }
 
@@ -348,3 +375,5 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
     }
 }
+
+

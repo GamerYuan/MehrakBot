@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+﻿﻿﻿using System.Security.Cryptography;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
@@ -13,10 +13,8 @@ using Moq;
 namespace Mehrak.Dashboard.Tests.Auth;
 
 /// <summary>
-/// Finding 8: Dashboard profile unlocks are bound to the login session and
-/// the stored credential revision, carry an absolute TTL, and are revoked on
-/// rotation, deletion, and logout across both client caches.
-/// </summary>
+/// Dashboard profile unlocks are bound to the login session and the stored credential revision, carry an absolute TTL,
+/// and are revoked on rotation, deletion, and logout across both client caches. </summary>
 [TestFixture]
 public class DashboardProfileUnlockTests
 {
@@ -107,7 +105,7 @@ public class DashboardProfileUnlockTests
         m_Cache = new FakeCacheService();
         m_Encryption = new FakeEncryptionService();
         m_Limiter = new Mock<IPassphraseAttemptRateLimiter>();
-        // Finding 12: reservation succeeds by default; individual tests override for blocked paths.
+        // Reservation succeeds by default; individual tests override for blocked paths.
         m_Limiter.Setup(x => x.TryReserveAttemptAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Guid.NewGuid().ToString());
         m_Limiter.Setup(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -241,7 +239,7 @@ public class DashboardProfileUnlockTests
     [Test]
     public async Task Authenticate_BlockedReservation_ReturnsRateLimitedWithoutDecrypting()
     {
-        // Finding 12: the atomic reservation blocks before expensive PBKDF2 work.
+        // The atomic reservation blocks before expensive PBKDF2 work.
         var decryptedCalled = false;
         m_Encryption.OnDecrypt = () => { decryptedCalled = true; return string.Empty; };
         m_Limiter.Setup(x => x.TryReserveAttemptAsync(UserId, It.IsAny<CancellationToken>()))
@@ -256,7 +254,7 @@ public class DashboardProfileUnlockTests
     [Test]
     public async Task Authenticate_WrongPassphrase_KeepsReservationWithoutRelease()
     {
-        // Finding 12: the reservation itself is the failure record; no second write.
+        // The reservation itself is the failure record; no second write.
         var result = await m_Service.AuthenticateAsync(UserId, 1, "wrong", TestContext.CurrentContext.CancellationToken, SessionA);
 
         Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.InvalidPassphrase));
@@ -266,7 +264,7 @@ public class DashboardProfileUnlockTests
     [Test]
     public async Task Authenticate_Success_ReleasesReservation()
     {
-        // Finding 12: correct passphrases release so successes never consume failure quota.
+        // Correct passphrases release so successes never consume failure quota.
         var result = await m_Service.AuthenticateAsync(UserId, 1, "correct", TestContext.CurrentContext.CancellationToken, SessionA);
 
         Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.Success));
@@ -312,6 +310,19 @@ public class DashboardProfileUnlockTests
 
         await m_Service.RevokeAllAsync(UserId);
 
-        Assert.That(m_Cache.Store, Is.Empty);
+        foreach (var key in keys)
+            Assert.That(m_Cache.Store, Does.Not.ContainKey(key));
+    }
+
+    [Test]
+    public async Task RevokeAllAsync_PublishesCrossProcessRevocationWatermark()
+    {
+        await m_Service.RevokeAllAsync(UserId);
+
+        var epochKey = CacheKeys.RevokeEpoch(UserId);
+        Assert.That(m_Cache.Store, Does.ContainKey(epochKey));
+        Assert.That(long.TryParse(m_Cache.Store[epochKey]?.ToString(), out _), Is.True);
     }
 }
+
+

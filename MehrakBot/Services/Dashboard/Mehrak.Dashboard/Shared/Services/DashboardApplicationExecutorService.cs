@@ -1,4 +1,5 @@
-﻿using Mehrak.Dashboard.Shared.Auth;
+﻿using System.Security.Claims;
+using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Dashboard.Shared.Models;
 using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
@@ -30,18 +31,21 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
     private readonly IDashboardProfileAuthenticationService m_ProfileAuthenticationService;
     private readonly UserDbContext m_UserContext;
     private readonly ILogger<DashboardApplicationExecutorService> m_Logger;
+    private readonly IHttpContextAccessor m_HttpContextAccessor;
     private readonly List<ParamValidator> m_Validators = [];
 
     public DashboardApplicationExecutorService(
         IServiceProvider serviceProvider,
         IDashboardProfileAuthenticationService profileAuthenticationService,
         UserDbContext userContext,
-        ILogger<DashboardApplicationExecutorService> logger)
+        ILogger<DashboardApplicationExecutorService> logger,
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         m_ServiceProvider = serviceProvider;
         m_ProfileAuthenticationService = profileAuthenticationService;
         m_UserContext = userContext;
         m_Logger = logger;
+        m_HttpContextAccessor = httpContextAccessor;
     }
 
     public ulong DiscordUserId { get; set; }
@@ -76,8 +80,13 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
             return DashboardApplicationExecutionResult.ValidationFailed(invalid);
         }
 
+        // Unlock tickets are bound to the owning login session, so the current
+        // session claim must travel with the request. Without it the stored
+        // ticket never matches and every command demands re-authentication.
+        var sessionToken = m_HttpContextAccessor?.HttpContext?.User.FindFirstValue("dashboard_session");
+
         var authResult = await m_ProfileAuthenticationService
-            .AuthenticateAsync(DiscordUserId, profileId, null, ct)
+            .AuthenticateAsync(DiscordUserId, profileId, null, ct, sessionToken)
             .ConfigureAwait(false);
 
         return authResult.Status switch
