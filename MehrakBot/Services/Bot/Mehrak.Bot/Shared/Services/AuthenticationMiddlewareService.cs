@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using System.Text;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.Cache;
@@ -18,6 +19,13 @@ using NetCord.Rest;
 #endregion
 
 namespace Mehrak.Bot.Shared.Services;
+
+/// <summary>
+/// Bot profile unlock ticket. Bound to the exact stored credential
+/// revision, with an absolute lifetime. A ticket cached before a credential
+/// rotation never authenticates after it.
+/// </summary>
+public sealed record BotUnlockTicket(string CredentialHash, string LToken);
 
 public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 {
@@ -86,16 +94,30 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         var cacheKey = CacheKeys.BotLToken(request.Context.Interaction.User.Id, profile.LtUid);
         m_Logger.LogDebug("Checking cache for LToken. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
-        var token = await m_CacheService.GetAsync<string>(cacheKey);
+        var ticket = await TryGetTicketAsync(cacheKey);
+        var credentialHash = ComputeHash(profile.LToken);
 
-        if (token != null)
+        if (ticket is not null
+            && !string.IsNullOrEmpty(ticket.LToken)
+            && string.Equals(ticket.CredentialHash, credentialHash, StringComparison.Ordinal))
         {
             m_Logger.LogDebug("Cache hit for LToken. UserId={UserId}, LtUid={LtUid}",
                 request.Context.Interaction.User.Id, profile.LtUid);
             await request.Context.Interaction.SendResponseAsync(
                 InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
-            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
+            return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, ticket.LToken, user,
                 request.Context);
+        }
+
+        if (ticket is not null)
+        {
+            // Stale entry: the stored credentials were rotated after this
+            // entry was cached, or the entry has an unexpected shape. Drop
+            // it so a pre-rotation plaintext can never authenticate.
+            m_Logger.LogInformation(
+                "Dropping stale bot unlock for UserId={UserId}, LtUid={LtUid}",
+                request.Context.Interaction.User.Id, profile.LtUid);
+            await RemoveQuietlyAsync(cacheKey);
         }
 
         var guid = Guid.NewGuid().ToString();
@@ -119,6 +141,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         await authResponse.Context.Interaction.SendResponseAsync(
             InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
+        string? token;
 
         // Finding 12: reserve one attempt atomically before PBKDF2 work so
         // concurrent requests cannot all slip past the check. Shared via Redis.
@@ -159,10 +183,41 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 await ReleasePassphraseReservationQuietlyAsync(request.Context.Interaction.User.Id, reservation);
         }
 
-        await TryUpgradeLegacyLtokenAsync(userContext, request.Context.Interaction.User.Id,
+        var upgradedCipher = await TryUpgradeLegacyLtokenAsync(userContext, request.Context.Interaction.User.Id,
             profile.Id, profile.LToken, token, authResponse.Passphrase);
 
-        await m_CacheService.SetAsync(new CacheEntryBase<string>(cacheKey, token, TimeSpan.FromMinutes(10)));
+        // Re-read the stored credentials before caching: a rotation that
+        // landed while this authentication was in flight must not be
+        // repopulated into the cache with stale credentials.
+        var currentCipher = await userContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => p.Id == profile.Id)
+            .Select(p => p.LToken)
+            .FirstOrDefaultAsync();
+
+        if (currentCipher is null)
+        {
+            m_Logger.LogWarning(
+                "Authentication refused: profile {ProfileId} for UserId={UserId} was removed during authentication",
+                profile.Id, request.Context.Interaction.User.Id);
+            return AuthenticationResult.NotFound(authResponse.Context,
+                "No profiles found. Please add a profile first.");
+        }
+
+        if (!string.Equals(currentCipher, profile.LToken, StringComparison.Ordinal)
+            && !string.Equals(currentCipher, upgradedCipher, StringComparison.Ordinal))
+        {
+            m_Logger.LogWarning(
+                "Authentication refused: credentials for UserId={UserId}, LtUid={LtUid} changed during authentication",
+                request.Context.Interaction.User.Id, profile.LtUid);
+            return AuthenticationResult.Failure(authResponse.Context,
+                "Profile credentials changed during authentication. Please try again.");
+        }
+
+        // A stale in-flight write can at most recreate an entry bound to
+        // the now-superseded credential revision, which future reads drop.
+        await m_CacheService.SetAsync(new CacheEntryBase<BotUnlockTicket>(cacheKey,
+            new BotUnlockTicket(ComputeHash(currentCipher), token), TimeSpan.FromMinutes(10)));
         m_Logger.LogDebug("Authentication succeeded. UserId={UserId}, LtUid={LtUid}",
             request.Context.Interaction.User.Id, profile.LtUid);
         return AuthenticationResult.Success(request.Context.Interaction.User.Id, profile.LtUid, token, user,
@@ -180,7 +235,11 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             m_Logger.LogDebug(ex, "Best-effort passphrase reservation release failed for UserId={UserId}", userId);
         }
     }
-    private async Task TryUpgradeLegacyLtokenAsync(
+    /// <summary>
+    /// Upgrades a legacy ciphertext in place. Returns the ciphertext now
+    /// stored, or null when no upgrade was persisted.
+    /// </summary>
+    private async Task<string?> TryUpgradeLegacyLtokenAsync(
         UserDbContext userContext,
         ulong userId,
         long profileRowId,
@@ -188,7 +247,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         string decryptedLtoken,
         string passphrase)
     {
-        if (!m_EncryptionService.IsLegacyFormat(storedLtoken)) return;
+        if (!m_EncryptionService.IsLegacyFormat(storedLtoken)) return null;
 
         try
         {
@@ -198,13 +257,48 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             await userContext.SaveChangesAsync();
             m_Logger.LogInformation("Upgraded legacy LToken encryption for UserId={UserId}, ProfileId={ProfileId}",
                 userId, profileRowId);
+            return upgraded;
         }
         catch (Exception e)
         {
             m_Logger.LogWarning(e,
                 "Failed to persist upgraded LToken encryption for UserId={UserId}, ProfileId={ProfileId}; continuing with existing credentials",
                 userId, profileRowId);
+            return null;
         }
+    }
+
+    private async Task<BotUnlockTicket?> TryGetTicketAsync(string cacheKey)
+    {
+        try
+        {
+            return await m_CacheService.GetAsync<BotUnlockTicket>(cacheKey);
+        }
+        catch (Exception ex)
+        {
+            // Unreadable entries (for example legacy plaintext values stored
+            // under this key) can never authenticate; drop them.
+            m_Logger.LogDebug(ex, "Dropping unreadable bot unlock entry");
+            await RemoveQuietlyAsync(cacheKey);
+            return null;
+        }
+    }
+
+    private async Task RemoveQuietlyAsync(string cacheKey)
+    {
+        try
+        {
+            await m_CacheService.RemoveAsync(cacheKey);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogDebug(ex, "Best-effort bot unlock removal failed");
+        }
+    }
+
+    internal static string ComputeHash(string value)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
 
     public bool NotifyAuthenticate(AuthenticationResponse request)

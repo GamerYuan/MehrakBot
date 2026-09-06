@@ -79,8 +79,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var guidCaptured = new TaskCompletionSource<string>();
 
@@ -100,7 +100,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
             .Returns(Task.CompletedTask);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
@@ -140,11 +140,13 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             Assert.That(userProfile!.LtUid, Is.EqualTo(TestLtUid));
         });
 
-        // Verify the token was cached
+        // Verify the token was cached, bound to the stored credential revision
         m_MockCacheService.Verify(
-            x => x.SetAsync(It.Is<ICacheEntry<string>>(e =>
+            x => x.SetAsync(It.Is<ICacheEntry<BotUnlockTicket>>(e =>
                 e.Key == cacheKey &&
-                e.Value == TestLToken &&
+                e.Value.LToken == TestLToken &&
+                e.Value.CredentialHash ==
+                    AuthenticationMiddlewareService.ComputeHash(encryptedToken) &&
                 e.ExpirationTime == TimeSpan.FromMinutes(10))),
             Times.Once);
     }
@@ -168,8 +170,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var guidCaptured = new TaskCompletionSource<string>();
 
@@ -219,7 +221,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         // Verify the token was NOT cached
         m_MockCacheService.Verify(
-            x => x.SetAsync(It.IsAny<ICacheEntry<string>>()),
+            x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()),
             Times.Never);
     }
 
@@ -241,8 +243,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
@@ -264,7 +266,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
         // Verify the token was NOT cached
         m_MockCacheService.Verify(
-            x => x.SetAsync(It.IsAny<ICacheEntry<string>>()),
+            x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()),
             Times.Never);
     }
 
@@ -286,8 +288,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var guidCaptured = new TaskCompletionSource<string>();
 
@@ -306,7 +308,7 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
         });
 
         m_MockCacheService
-            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
             .Returns(Task.CompletedTask);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
@@ -364,8 +366,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
                 context.Users.Add(CreateUserModel(m_TestUserId + 1, 2, 222, encryptedToken2));
             });
 
-            m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
-            m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
+            m_MockCacheService.Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>())).ReturnsAsync((BotUnlockTicket?)null);
+            m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>())).Returns(Task.CompletedTask);
 
             var guid1Captured = new TaskCompletionSource<string>();
             var guid2Captured = new TaskCompletionSource<string>();
@@ -449,8 +451,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
-        m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
-        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
+        m_MockCacheService.Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>())).ReturnsAsync((BotUnlockTicket?)null);
+        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>())).Returns(Task.CompletedTask);
 
         var guidCaptured = new TaskCompletionSource<string>();
         _ = Task.Run(async () =>
@@ -497,8 +499,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
-        m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
-        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
+        m_MockCacheService.Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>())).ReturnsAsync((BotUnlockTicket?)null);
+        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>())).Returns(Task.CompletedTask);
 
         var guidCaptured = new TaskCompletionSource<string>();
         _ = Task.Run(async () =>
@@ -545,8 +547,8 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
             context.Users.Add(CreateUserModel(m_TestUserId, TestProfileId, TestLtUid, encryptedToken));
         });
 
-        m_MockCacheService.Setup(x => x.GetAsync<string>(It.IsAny<string>())).ReturnsAsync((string?)null);
-        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>())).Returns(Task.CompletedTask);
+        m_MockCacheService.Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>())).ReturnsAsync((BotUnlockTicket?)null);
+        m_MockCacheService.Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>())).Returns(Task.CompletedTask);
 
         var guidCaptured = new TaskCompletionSource<string>();
         _ = Task.Run(async () =>
@@ -619,3 +621,4 @@ public partial class AuthenticationMiddlewareServiceIntegrationTests
 
     #endregion
 }
+

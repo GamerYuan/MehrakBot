@@ -89,11 +89,11 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
         // Setup cache to always return null (force authentication flow)
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         m_MockCacheService
-            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
             .Returns(Task.CompletedTask);
 
         m_Service = new AuthenticationMiddlewareService(
@@ -301,7 +301,7 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
         // Verify caching behavior
         m_MockCacheService.Verify(
-            x => x.SetAsync(It.IsAny<ICacheEntry<string>>()),
+            x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()),
             Times.Exactly(successCount),
             "Only successful authentications should cache tokens");
     }
@@ -513,3 +513,4 @@ public partial class AuthenticationMiddlewareServiceConcurrencyTests
 
     #endregion
 }
+
