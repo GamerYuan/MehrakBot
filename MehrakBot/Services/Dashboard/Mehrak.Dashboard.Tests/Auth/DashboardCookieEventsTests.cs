@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+﻿﻿﻿using System.Security.Claims;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
@@ -203,9 +203,8 @@ public class DashboardCookieEventsTests
     [Test]
     public async Task ValidatePrincipal_ValidSession_PerformsNoSessionWrites()
     {
-        // Finding 10: validation on the hot path is read-only. Over-limit
-        // requests rejected before authentication therefore skip all session
-        // storage.
+        // Validation on the hot path is read-only. Over-limit requests rejected before authentication therefore skip
+        // all session storage.
         var principal = CreatePrincipal("tok123");
         var context = CreateContext(principal);
         m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
@@ -265,8 +264,7 @@ public class DashboardCookieEventsTests
     [Test]
     public async Task SigningOut_WithSessionToken_RevokesAllProfileUnlocks()
     {
-        // Finding 8: logout clears every profile unlock so a later session
-        // cannot reuse them.
+        // Logout clears every profile unlock so a later session cannot reuse them.
         var principal = CreatePrincipal("tok123", new Claim("discord_id", "100"));
         var httpContext = new DefaultHttpContext { User = principal };
         var scheme = new AuthenticationScheme(
@@ -317,3 +315,5 @@ public class DashboardCookieEventsTests
 
     #endregion
 }
+
+

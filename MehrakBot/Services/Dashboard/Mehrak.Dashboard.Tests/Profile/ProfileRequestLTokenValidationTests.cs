@@ -1,14 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿﻿﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.GameApi.Shared;
 
 namespace Mehrak.Dashboard.Tests.Profile;
 
 /// <summary>
-/// Finding 5: AddProfile/UpdateProfile ltoken values must reject malformed
-/// credential characters and unreasonable lengths at the API boundary, before
-/// the token reaches Cookie-header construction in GameApi.
-/// </summary>
+/// AddProfile/UpdateProfile ltoken values must reject malformed credential characters and unreasonable lengths at the
+/// API boundary, before the token reaches Cookie-header construction in GameApi. </summary>
 [TestFixture]
 public class ProfileRequestLTokenValidationTests
 {
@@ -100,3 +98,5 @@ public class ProfileRequestLTokenValidationTests
         Assert.That(results, Is.Not.Empty);
     }
 }
+
+

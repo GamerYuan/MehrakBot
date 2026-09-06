@@ -1,14 +1,12 @@
-﻿using Mehrak.Infrastructure.Shared;
+﻿﻿﻿using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.Tests.TestUtils;
 using StackExchange.Redis;
 
 namespace Mehrak.Infrastructure.Tests.Shared;
 
 /// <summary>
-/// Finding 12: against real disposable Redis with a fixed timestamp,
-/// simultaneous passphrase attempts are counted individually and allowed
-/// work never exceeds the five-attempt quota. Requires Docker; runs in CI.
-/// </summary>
+/// Against real disposable Redis with a fixed timestamp, simultaneous passphrase attempts are counted individually and
+/// allowed work never exceeds the five-attempt quota. Requires Docker; runs in CI. </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -73,3 +71,5 @@ internal class PassphraseAttemptRateLimiterIntegrationTests
         Assert.That(await m_Limiter.GetRemainingAttemptsAsync(m_UserId), Is.EqualTo(5));
     }
 }
+
+

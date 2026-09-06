@@ -23,11 +23,9 @@ using StackExchange.Redis;
 namespace Mehrak.Dashboard.Tests.Profile;
 
 /// <summary>
-/// Finding 8: credential mutation and deletion revoke both the Bot and the
-/// Dashboard credential caches; deleting everything handles every profile.
-/// Uses the EF InMemory provider, which lacks ExecuteDeleteAsync/ExecuteUpdateAsync,
-/// so these tests also guard the load-then-mutate implementation.
-/// </summary>
+/// Credential mutation and deletion revoke both the Bot and the Dashboard credential caches; deleting everything
+/// handles every profile. Uses the EF InMemory provider, which lacks ExecuteDeleteAsync/ExecuteUpdateAsync, so these
+/// tests also guard the load-then-mutate implementation. </summary>
 [TestFixture]
 public class ProfileControllerTests
 {
@@ -211,3 +209,5 @@ public class ProfileControllerTests
         Assert.That(result, Is.InstanceOf<NoContentResult>());
     }
 }
+
+

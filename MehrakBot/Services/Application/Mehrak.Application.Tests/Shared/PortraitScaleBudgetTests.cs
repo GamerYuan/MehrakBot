@@ -3,7 +3,7 @@ using Mehrak.Application.Shared.Renderers;
 namespace Mehrak.Application.Tests.Shared;
 
 /// <summary>
-/// Renderer allocation-budget tests (finding F3): scale-derived portrait resize
+/// Renderer allocation-budget tests: scale-derived portrait resize
 /// widths must stay within the maximum dimension and pixel budget for both user
 /// and stock portraits. Pure unit tests over the shared budget helper.
 /// </summary>

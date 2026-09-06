@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Text.Json;
 using Mehrak.Domain.Shared.Models;
@@ -48,11 +48,9 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             if (!LTokenValidator.IsValidLToken(context.LToken))
             {
-                // Finding 5: reject malformed credential characters/lengths before
-                // building the Cookie header. HttpHeaders.Add would throw a
-                // FormatException embedding the credential value, which the catch
-                // below would write to retained file/OTLP logs. This sanitized
-                // warning never includes the credential itself.
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
                 m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
                 return Result<GenshinStygianInformation>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
@@ -110,3 +108,5 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
         }
     }
 }
+
+

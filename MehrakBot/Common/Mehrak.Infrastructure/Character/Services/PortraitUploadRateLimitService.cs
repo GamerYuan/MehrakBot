@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Character;
+﻿﻿﻿using Mehrak.Domain.Character;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -30,10 +30,9 @@ internal class PortraitUploadRateLimitService : IPortraitUploadRateLimitService
         var key = new RedisKey($"{KeyPrefix}{discordUserId}");
         var now = UtcNowProvider();
         var windowStart = now - Window;
-        // Finding 12: every event gets a unique member while the score stays a
-        // timestamp, so concurrent uploads in the same millisecond each count.
-        // The check-and-add stays in one Lua script, atomically reserving the
-        // slot before expensive upload work. Limits stay shared via Redis.
+        // Every event gets a unique member while the score stays a timestamp, so concurrent uploads in the same
+        // millisecond each count. The check-and-add stays in one Lua script, atomically reserving the slot before
+        // expensive upload work. Limits stay shared via Redis.
         var member = $"{now.ToUnixTimeMilliseconds()}:{Guid.NewGuid():N}";
 
         // Remove expired entries and count remaining
@@ -94,3 +93,5 @@ internal class PortraitUploadRateLimitService : IPortraitUploadRateLimitService
         return Math.Max(0, MaxUploads - used);
     }
 }
+
+

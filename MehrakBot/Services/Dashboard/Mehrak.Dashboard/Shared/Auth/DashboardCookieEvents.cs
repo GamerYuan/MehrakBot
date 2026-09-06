@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+﻿﻿﻿using System.Security.Claims;
 using Mehrak.Domain.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -37,9 +37,8 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             return;
         }
 
-        // Finding 10: session validation on the hot path is read-only. A
-        // valid session is never rewritten per request, so over-limit
-        // requests rejected by the IP rate limiter perform no session writes.
+        // Session validation on the hot path is read-only. A valid session is never rewritten per request, so
+        // over-limit requests rejected by the IP rate limiter perform no session writes.
         var session = await m_SessionService.GetSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         if (session == null)
         {
@@ -86,9 +85,8 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
             await m_SessionService.InvalidateSessionAsync(sessionToken, context.HttpContext.RequestAborted);
         }
 
-        // Finding 8: logout clears every profile unlock for the user (both
-        // Bot and Dashboard caches) so a later session cannot reuse them.
-        // Best-effort: logout itself must never fail because of this.
+        // Logout clears every profile unlock for the user (both Bot and Dashboard caches) so a later session cannot
+        // reuse them. Best-effort: logout itself must never fail because of this.
         try
         {
             var discordId = ParseDiscordId(context.HttpContext.User)
@@ -125,3 +123,5 @@ public class DashboardCookieEvents : CookieAuthenticationEvents
         }
     }
 }
+
+

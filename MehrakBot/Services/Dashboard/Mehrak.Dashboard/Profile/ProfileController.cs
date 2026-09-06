@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+﻿﻿﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
@@ -258,9 +258,8 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update profile. Please try again later." });
         }
 
-        // Finding 8: rotation revokes both client caches. The stored
-        // credential revision also changes, so any surviving stale entry is
-        // dropped on its next read.
+        // Rotation revokes both client caches. The stored credential revision also changes, so any surviving stale
+        // entry is dropped on its next read.
         await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
         return Ok(new { message = "Profile updated successfully." });
@@ -312,7 +311,7 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profile. Please try again later." });
         }
 
-        // Finding 8: deletion revokes both client caches.
+        // Deletion revokes both client caches.
         await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
         if (profiles.Count == 0)
@@ -351,8 +350,7 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profiles. Please try again later." });
         }
 
-        // Finding 8: deleting every profile revokes both client caches for
-        // every profile.
+        // Deleting every profile revokes both client caches for every profile.
         foreach (var existing in allProfiles)
             await RevokeProfileCachesAsync(discordUserId, (ulong)existing.LtUid, existing.ProfileId);
 
@@ -403,3 +401,5 @@ public sealed class ProfileController : ControllerBase
             && dbEx.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
     }
 }
+
+

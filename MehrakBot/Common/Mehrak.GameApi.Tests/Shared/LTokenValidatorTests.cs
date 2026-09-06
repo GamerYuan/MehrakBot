@@ -1,12 +1,10 @@
-﻿using Mehrak.GameApi.Shared;
+﻿﻿﻿using Mehrak.GameApi.Shared;
 
 namespace Mehrak.GameApi.Tests.Shared;
 
 /// <summary>
-/// Finding 5: malformed credential values must be rejected before they can
-/// reach Cookie-header construction, where HttpHeaders.Add would throw a
-/// FormatException embedding the credential into retained logs.
-/// </summary>
+/// Malformed credential values must be rejected before they can reach Cookie-header construction, where HttpHeaders.Add
+/// would throw a FormatException embedding the credential into retained logs. </summary>
 [TestFixture]
 public class LTokenValidatorTests
 {
@@ -54,3 +52,5 @@ public class LTokenValidatorTests
         });
     }
 }
+
+

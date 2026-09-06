@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Domain.Cache;
@@ -23,9 +23,8 @@ namespace Mehrak.Bot.Shared.Modules;
 
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {
-    // Finding 11: minimum for NEW/CHANGED passphrases. Must match Dashboard
-    // Add/UpdateProfileRequest. The decrypt-only AuthModal below intentionally
-    // has no minimum so existing weak passphrases keep working.
+    // Minimum for NEW/CHANGED passphrases. Must match Dashboard Add/UpdateProfileRequest. The decrypt-only AuthModal
+    // below intentionally has no minimum so existing weak passphrases keep working.
     internal const int MinPassphraseLength = 12;
     internal const int MaxPassphraseLength = 64;
 
@@ -143,10 +142,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
             {
-                // Finding 5: reject malformed credential characters/lengths before
-                // the token reaches the GameApi Cookie-header construction, where
-                // illegal characters would throw a credential-embedding
-                // FormatException into retained logs. Never log the value itself.
+                // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
+                // construction, where illegal characters would throw a credential-embedding FormatException into
+                // retained logs. Never log the value itself.
                 m_Logger.LogWarning("User {UserId} provided malformed cookie format", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -156,10 +154,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             if (!IsValidNewPassphrase(inputs["passphrase"]))
             {
-                // Finding 11: enforce the minimum for new passphrases server-side
-                // as well (modal min-length is client-enforced). Existing weak
-                // passphrases are unaffected: they only flow through the
-                // decrypt-only auth modal below.
+                // Enforce the minimum for new passphrases server-side as well (modal min-length is client-enforced).
+                // Existing weak passphrases are unaffected: they only flow through the decrypt-only auth modal below.
                 m_Logger.LogWarning("User {UserId} provided too-short passphrase for new profile", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -302,10 +298,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            // Finding 5: reject malformed credential characters/lengths before
-            // the token reaches the GameApi Cookie-header construction, where
-            // illegal characters would throw a credential-embedding
-            // FormatException into retained logs. Never log the value itself.
+            // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
+            // construction, where illegal characters would throw a credential-embedding FormatException into retained
+            // logs. Never log the value itself.
             if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
             {
                 m_Logger.LogWarning("User {UserId} provided malformed cookie format during update", Context.User.Id);
@@ -317,8 +312,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             if (!IsValidNewPassphrase(inputs["passphrase"]))
             {
-                // Finding 11: enforce the minimum for changed passphrases
-                // server-side as well (modal min-length is client-enforced).
+                // Enforce the minimum for changed passphrases server-side as well (modal min-length is
+                // client-enforced).
                 m_Logger.LogWarning("User {UserId} provided too-short passphrase during update", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -375,8 +370,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
-            // Finding 8: a Bot-side rotation also revokes the Dashboard unlock
-            // for the same profile.
+            // A Bot-side rotation also revokes the Dashboard unlock for the same profile.
             try
             {
                 if (m_CacheService is not null)
@@ -422,3 +416,5 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         }
     }
 }
+
+

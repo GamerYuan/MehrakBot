@@ -162,10 +162,8 @@ public class GameRoleApiServiceTests
     }
 
     /// <summary>
-    /// Finding 5: a malformed credential must be rejected with a sanitized
-    /// failure before any Cookie header is constructed. No HTTP request may be
-    /// sent, and neither the token canary nor any exception text containing it
-    /// may reach the logs.
+    /// A malformed credential must be rejected with a sanitized failure before any Cookie header is constructed. No
+    /// HTTP request may be sent, and neither the token canary nor any exception text containing it may reach the logs.
     /// </summary>
     private sealed class CapturingLogger : ILogger<GameRoleApiService>
     {
@@ -255,3 +253,5 @@ public class GameRoleApiServiceTests
         });
     }
 }
+
+

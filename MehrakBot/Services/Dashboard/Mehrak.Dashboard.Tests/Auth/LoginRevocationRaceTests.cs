@@ -1,4 +1,4 @@
-﻿using Mehrak.Domain.Auth;
+﻿﻿using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Auth;
@@ -11,8 +11,7 @@ using Moq;
 namespace Mehrak.Dashboard.Tests.Auth;
 
 /// <summary>
-/// Finding 7: login/session creation must not race permission revocation.
-/// </summary>
+/// Login/session creation must not race permission revocation. </summary>
 [TestFixture]
 public class LoginRevocationRaceTests
 {
@@ -122,3 +121,4 @@ public class LoginRevocationRaceTests
         mockSessions.Verify(s => s.InvalidateAllForUserAsync(discordId, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
+

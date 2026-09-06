@@ -1,4 +1,4 @@
-﻿using Mehrak.Infrastructure.Character.Services;
+﻿﻿﻿using Mehrak.Infrastructure.Character.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
@@ -6,10 +6,8 @@ using StackExchange.Redis;
 namespace Mehrak.Infrastructure.Tests.Character.Services;
 
 /// <summary>
-/// Finding 12: every upload event gets a unique sorted-set member while the
-/// score stays a timestamp, and the quota check plus reservation happen in a
-/// single atomic Lua script shared across instances via Redis.
-/// </summary>
+/// Every upload event gets a unique sorted-set member while the score stays a timestamp, and the quota check plus
+/// reservation happen in a single atomic Lua script shared across instances via Redis. </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -135,3 +133,5 @@ internal class PortraitUploadRateLimitServiceTests
         Assert.That(result, Is.EqualTo(2));
     }
 }
+
+

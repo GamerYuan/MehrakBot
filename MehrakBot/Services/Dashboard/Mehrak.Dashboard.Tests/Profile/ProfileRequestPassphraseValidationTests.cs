@@ -1,14 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿﻿﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Dashboard.ProfileAuth.Models;
 
 namespace Mehrak.Dashboard.Tests.Profile;
 
 /// <summary>
-/// Finding 11: newly created/changed passphrases must meet the 12-character
-/// minimum in Bot and Dashboard alike, while unlocking EXISTING profiles with
-/// a weak passphrase keeps working so users are not locked out.
-/// </summary>
+/// Newly created/changed passphrases must meet the 12-character minimum in Bot and Dashboard alike, while unlocking
+/// EXISTING profiles with a weak passphrase keeps working so users are not locked out. </summary>
 [TestFixture]
 public class ProfileRequestPassphraseValidationTests
 {
@@ -105,3 +103,5 @@ public class ProfileRequestPassphraseValidationTests
         Assert.That(results, Is.Empty);
     }
 }
+
+

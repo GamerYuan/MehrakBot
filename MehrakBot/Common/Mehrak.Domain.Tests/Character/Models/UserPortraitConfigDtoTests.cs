@@ -4,7 +4,7 @@ using Mehrak.Domain.Character.Models;
 namespace Mehrak.Domain.Tests.Character.Models;
 
 /// <summary>
-/// API-level scale validation (finding F3): user-controlled TargetScale must be
+/// API-level scale validation: user-controlled TargetScale must be
 /// finite and bounded. The shared card renderer additionally clamps the resulting
 /// output allocation, since an in-range scale is still unsafe on a huge source.
 /// </summary>

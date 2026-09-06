@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -56,11 +56,9 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
             if (!LTokenValidator.IsValidLToken(context.LToken))
             {
-                // Finding 5: reject malformed credential characters/lengths before
-                // building the Cookie header. HttpHeaders.Add would throw a
-                // FormatException embedding the credential value, which the catch
-                // below would write to retained file/OTLP logs. This sanitized
-                // warning never includes the credential itself.
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
                 m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
                 return Result<ZzzRealTimeNotesData>.Failure(StatusCode.Unauthorized,
                     "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
@@ -119,3 +117,5 @@ internal class ZzzRealTimeNotesApiService : IApiService<ZzzRealTimeNotesData, Ba
         }
     }
 }
+
+

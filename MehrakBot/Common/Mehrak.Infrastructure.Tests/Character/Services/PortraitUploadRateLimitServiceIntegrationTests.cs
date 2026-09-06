@@ -1,4 +1,4 @@
-﻿using Mehrak.Infrastructure.Character.Services;
+﻿﻿﻿using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Tests.TestUtils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -7,10 +7,8 @@ using StackExchange.Redis;
 namespace Mehrak.Infrastructure.Tests.Character.Services;
 
 /// <summary>
-/// Finding 12: against real disposable Redis with a fixed timestamp,
-/// simultaneous portrait uploads are counted individually and allowed work
-/// never exceeds the five-upload quota. Requires Docker; runs in CI.
-/// </summary>
+/// Against real disposable Redis with a fixed timestamp, simultaneous portrait uploads are counted individually and
+/// allowed work never exceeds the five-upload quota. Requires Docker; runs in CI. </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -50,3 +48,5 @@ internal class PortraitUploadRateLimitServiceIntegrationTests
         });
     }
 }
+
+

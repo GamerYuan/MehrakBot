@@ -1,14 +1,12 @@
-﻿using Mehrak.Bot.Shared.Modules;
+﻿﻿﻿using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.User.Models;
 using NetCord.Rest;
 
 namespace Mehrak.Bot.Tests.Auth;
 
 /// <summary>
-/// Finding 11: new/changed passphrases require a 12-character minimum in the
-/// Bot modals (client min-length plus server-side validation), while the
-/// decrypt-only auth modal keeps accepting existing weak passphrases.
-/// </summary>
+/// New/changed passphrases require a 12-character minimum in the Bot modals (client min-length plus server-side
+/// validation), while the decrypt-only auth modal keeps accepting existing weak passphrases. </summary>
 [TestFixture]
 public class AuthModalModuleValidationTests
 {
@@ -87,3 +85,5 @@ public class AuthModalModuleValidationTests
         });
     }
 }
+
+

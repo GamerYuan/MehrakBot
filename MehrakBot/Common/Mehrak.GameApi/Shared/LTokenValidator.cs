@@ -1,17 +1,12 @@
-﻿namespace Mehrak.GameApi.Shared;
+﻿﻿﻿namespace Mehrak.GameApi.Shared;
 
 /// <summary>
-/// Finding 5: HoYoLAB credential (ltoken) format validation.
-/// A pasted token containing cookie-illegal characters (control characters,
-/// whitespace, ';', ',', non-ASCII, ...) makes HttpHeaders.Add("Cookie", ...)
-/// throw a FormatException whose message embeds the entire credential value.
-/// That exception object was then written to retained file logs and OTLP
-/// telemetry by the generic catch blocks in the API services, disclosing the
-/// credential to anyone with log access. Every Cookie-header call site must
-/// reject malformed values through this validator and return a sanitized
-/// failure before any header is constructed, and must never log the raw
-/// credential-bearing exception.
-/// </summary>
+/// HoYoLAB credential (ltoken) format validation. A pasted token containing cookie-illegal characters (control
+/// characters, whitespace, ';', ',', non-ASCII, ...) makes HttpHeaders.Add("Cookie", ...) throw a FormatException whose
+/// message embeds the entire credential value. That exception object was then written to retained file logs and OTLP
+/// telemetry by the generic catch blocks in the API services, disclosing the credential to anyone with log access.
+/// Every Cookie-header call site must reject malformed values through this validator and return a sanitized failure
+/// before any header is constructed, and must never log the raw credential-bearing exception. </summary>
 public static class LTokenValidator
 {
     /// <summary>
@@ -52,3 +47,5 @@ public static class LTokenValidator
         (c >= '\x3C' && c <= '\x5B') ||
         (c >= '\x5D' && c <= '\x7E');
 }
+
+

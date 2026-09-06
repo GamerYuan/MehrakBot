@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -134,11 +134,9 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         };
         if (!LTokenValidator.IsValidLToken(context.LToken))
         {
-            // Finding 5: reject malformed credential characters/lengths before
-            // building the Cookie header. HttpHeaders.Add would throw a
-            // FormatException embedding the credential value, which the catch
-            // below would write to retained file/OTLP logs. This sanitized
-            // warning never includes the credential itself.
+            // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add would
+            // throw a FormatException embedding the credential value, which the catch below would write to retained
+            // file/OTLP logs. This sanitized warning never includes the credential itself.
             m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
             return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
                 "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
@@ -303,11 +301,9 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         };
         if (!LTokenValidator.IsValidLToken(ltoken))
         {
-            // Finding 5: reject malformed credential characters/lengths before
-            // building the Cookie header. HttpHeaders.Add would throw a
-            // FormatException embedding the credential value, which the catch
-            // below would write to retained file/OTLP logs. This sanitized
-            // warning never includes the credential itself.
+            // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add would
+            // throw a FormatException embedding the credential value, which the catch below would write to retained
+            // file/OTLP logs. This sanitized warning never includes the credential itself.
             m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", userId, requestUri);
             return Result<List<GameRoleInfo>>.Failure(StatusCode.Unauthorized,
                 "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
@@ -438,3 +434,5 @@ public class GameRoleApiContext : IApiContext
         Region = region;
     }
 }
+
+
