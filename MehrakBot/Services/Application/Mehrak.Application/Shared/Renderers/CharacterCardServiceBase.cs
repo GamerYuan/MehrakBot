@@ -35,6 +35,14 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
     /// <summary>Resampler used for the portrait resize.</summary>
     protected abstract IResampler PortraitResampler { get; }
 
+    // Allocation budget for the scaled portrait intermediate: even an in-range scale
+    // is unsafe on an arbitrarily large source, so the output is clamped by both
+    // dimension and total pixels. Applies to user and stock portraits alike.
+    private const float MinPortraitScale = 0.01f;
+    private const float MaxPortraitScale = 10f;
+    private const int MaxPortraitOutputDimension = 4096;
+    private const long MaxPortraitOutputPixels = 16_777_216; // 4096 x 4096
+
     /// <summary>
     /// Loads the character portrait — either the user's uploaded image (when
     /// <see cref="ICardGenerationContext{TData}.PortraitImageStream"/> is set) or the stock
@@ -90,10 +98,11 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
 
     private void ApplyPortraitMutate(IImageProcessingContext ctx, CharacterPortraitConfig? config)
     {
-        if (config?.TargetScale > 0f)
+        if (config?.TargetScale is float scale &&
+            float.IsFinite(scale) && scale >= MinPortraitScale && scale <= MaxPortraitScale)
         {
-            var scale = config.TargetScale.Value;
-            ctx.Resize((int)(ctx.GetCurrentSize().Width * scale), 0, PortraitResampler);
+            var size = ctx.GetCurrentSize();
+            ctx.Resize(ComputePortraitTargetWidth(size.Width, size.Height, scale), 0, PortraitResampler);
         }
         else
         {
@@ -102,5 +111,22 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
 
         if (config?.FlipX == true)
             ctx.Flip(FlipMode.Horizontal);
+    }
+
+    /// <summary>
+    /// Computes a scale-derived resize width that can never exceed the portrait
+    /// allocation budget. Resize preserves aspect ratio (height auto), so output
+    /// pixels grow with the square of the width ratio: the width is capped by both
+    /// the maximum dimension and the maximum pixel count.
+    /// </summary>
+    internal static int ComputePortraitTargetWidth(int sourceWidth, int sourceHeight, float scale)
+    {
+        if (sourceWidth <= 0 || sourceHeight <= 0)
+            return 1;
+
+        var desiredWidth = (double)sourceWidth * scale;
+        var maxWidthByPixels = Math.Sqrt((double)MaxPortraitOutputPixels * sourceWidth / sourceHeight);
+        var clamped = Math.Min(desiredWidth, Math.Min(MaxPortraitOutputDimension, maxWidthByPixels));
+        return Math.Max(1, (int)Math.Round(clamped));
     }
 }

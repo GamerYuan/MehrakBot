@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿﻿﻿using System.Text.Json;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hsr.Types;
@@ -42,6 +42,15 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
+            if (!LTokenValidator.IsValidLToken(context.LToken))
+            {
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
+                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+                return Result<HsrAnomalyInformation>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
+            }
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
             request.Headers.Add("DS", DSGenerator.GenerateDS());
             request.Headers.Add("X-Rpc-App_version", "1.5.0");
@@ -99,3 +108,5 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
         }
     }
 }
+
+

@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -53,6 +53,15 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
 
             var client = m_HttpClientFactory.CreateClient("Default");
             HttpRequestMessage request = new(HttpMethod.Get, requestUri);
+            if (!LTokenValidator.IsValidLToken(context.LToken))
+            {
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
+                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+                return Result<GenshinRealTimeNotesData>.Failure(StatusCode.Unauthorized,
+                    "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
+            }
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
             var response = await client.SendAsync(request, timeoutCts.Token);
@@ -105,3 +114,5 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
         }
     }
 }
+
+

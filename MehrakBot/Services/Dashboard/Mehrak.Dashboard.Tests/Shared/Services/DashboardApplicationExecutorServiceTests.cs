@@ -1,8 +1,10 @@
-﻿using Grpc.Core;
+﻿using System.Security.Claims;
+using Grpc.Core;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Dashboard.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -97,7 +99,7 @@ public class DashboardApplicationExecutorServiceTests
         var userDto = new UserDto { Id = 123 };
         var authResult = DashboardProfileAuthenticationResult.Success(userDto, ltUid, lToken);
 
-        m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>()))
+        m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(authResult);
 
         var commandResultProto = new Proto.CommandResult
@@ -135,7 +137,7 @@ public class DashboardApplicationExecutorServiceTests
 
         var authResult = DashboardProfileAuthenticationResult.InvalidPassphrase("Wrong pass");
 
-        m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>()))
+        m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(authResult);
 
         // act
@@ -146,6 +148,51 @@ public class DashboardApplicationExecutorServiceTests
         Assert.That(result.ErrorMessage, Is.EqualTo("Wrong pass"));
 
         m_ApplicationClientMock.Verify(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PropagatesSessionTokenToAuthentication()
+    {
+        // Unlock tickets are bound to the owning login session: the session
+        // claim of the current request must reach the authentication service,
+        // otherwise stored tickets never match and every command demands
+        // re-authentication.
+        const string sessionToken = "session-token-abc";
+        var claims = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("dashboard_session", sessionToken)], "TestAuth"));
+        var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        httpContextAccessorMock.SetupGet(a => a.HttpContext)
+            .Returns(new DefaultHttpContext { User = claims });
+
+        var options = new DbContextOptionsBuilder<UserDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        var service = new DashboardApplicationExecutorService(
+            m_ServiceProviderMock.Object,
+            m_AuthServiceMock.Object,
+            new UserDbContext(options),
+            m_LoggerMock.Object,
+            httpContextAccessorMock.Object);
+        service.DiscordUserId = 123;
+        service.CommandName = "testCommand";
+
+        var profileId = 1;
+        var authResult = DashboardProfileAuthenticationResult.Success(new UserDto { Id = 123 }, 456, "ltoken");
+        m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), sessionToken))
+            .ReturnsAsync(authResult);
+
+        var commandResultProto = new Proto.CommandResult
+        {
+            IsSuccess = true,
+            Data = new Proto.CommandResultData { IsContainer = false, IsEphemeral = false }
+        };
+        m_ApplicationClientMock.Setup(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()))
+            .Returns(CreateUnaryCall(commandResultProto));
+
+        var result = await service.ExecuteAsync(profileId);
+
+        Assert.That(result.Status, Is.EqualTo(DashboardExecutionStatus.Success));
+        m_AuthServiceMock.Verify(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), sessionToken), Times.Once);
     }
 
     private static AsyncUnaryCall<Proto.CommandResult> CreateUnaryCall(Proto.CommandResult result)

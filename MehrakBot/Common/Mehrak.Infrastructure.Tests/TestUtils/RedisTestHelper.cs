@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 using Testcontainers.Redis;
 
 namespace Mehrak.Infrastructure.Tests.TestUtils;
@@ -22,6 +23,14 @@ internal sealed class RedisTestHelper : IAsyncDisposable
         await m_Container.StartAsync();
         var port = m_Container.GetMappedPublicPort(6379);
         m_ConnectionString = $"{m_Container.Hostname}:{port}";
+    }
+
+    public IConnectionMultiplexer CreateMultiplexer()
+    {
+        if (string.IsNullOrWhiteSpace(m_ConnectionString))
+            throw new InvalidOperationException("Redis container has not been initialized.");
+
+        return ConnectionMultiplexer.Connect(m_ConnectionString);
     }
 
     public RedisCache CreateCache()

@@ -1,4 +1,4 @@
-﻿#region
+﻿﻿#region
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -53,6 +53,11 @@ public class AuthenticationMiddlewareServiceTests
         m_MockEncryptionService = new Mock<IEncryptionService>();
         m_MockLogger = new Mock<ILogger<AuthenticationMiddlewareService>>();
         m_MockPassphraseLimiter = new Mock<IPassphraseAttemptRateLimiter>();
+        // Reservation succeeds by default; individual tests override for blocked paths.
+        m_MockPassphraseLimiter.Setup(x => x.TryReserveAttemptAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid().ToString());
+        m_MockPassphraseLimiter.Setup(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         InitializeService();
     }
@@ -190,8 +195,9 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync(TestLToken);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync(new BotUnlockTicket(
+                AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken), TestLToken, DateTimeOffset.UtcNow));
 
         // Act
         var result = await m_Service.GetAuthenticationAsync(request);
@@ -209,7 +215,7 @@ public class AuthenticationMiddlewareServiceTests
             Assert.That(result.User.Profiles?.FirstOrDefault()?.LtUid, Is.EqualTo(TestLtUid));
         });
 
-        m_MockCacheService.Verify(x => x.GetAsync<string>(cacheKey), Times.Once);
+        m_MockCacheService.Verify(x => x.GetAsync<BotUnlockTicket>(cacheKey), Times.Once);
         m_MockEncryptionService.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -247,11 +253,11 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(cacheKey))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         m_MockCacheService
-            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()))
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
             .Returns(Task.CompletedTask);
 
         m_MockEncryptionService
@@ -280,11 +286,334 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService.Verify(
-            x => x.SetAsync(It.Is<ICacheEntry<string>>(entry =>
+            x => x.SetAsync(It.Is<ICacheEntry<BotUnlockTicket>>(entry =>
                 entry.Key == cacheKey &&
-                entry.Value == TestLToken &&
+                entry.Value.LToken == TestLToken &&
+                entry.Value.CredentialHash ==
+                    AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken) &&
                 entry.ExpirationTime == TimeSpan.FromMinutes(10))),
             Times.Once);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_RotatedCredential_DropsStaleCacheEntryAndRequiresFreshPassphrase()
+    {
+        // A Dashboard-side rotation must invalidate the Bot entry: the cached
+        // ticket is bound to the pre-rotation cipher, so the hit is dropped
+        // and the caller falls through to the passphrase flow.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var cacheKey = CacheKeys.BotLToken(TestUserId, TestLtUid);
+
+        const string rotatedEncryptedToken = "rotated-encrypted-token-base64";
+        const string rotatedLToken = "rotated-ltoken-value";
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, rotatedEncryptedToken));
+        });
+
+        // Stale entry cached before the rotation, bound to the old cipher.
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync(new BotUnlockTicket(
+                AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken), TestLToken, DateTimeOffset.UtcNow));
+
+        m_MockCacheService
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
+            .Returns(Task.CompletedTask);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(rotatedEncryptedToken, TestPassphrase))
+            .Returns(rotatedLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert: the stale plaintext is never served; fresh auth succeeds
+        // with the post-rotation token and the stale entry was dropped.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.LToken, Is.EqualTo(rotatedLToken));
+        });
+
+        m_MockCacheService.Verify(x => x.RemoveAsync(cacheKey), Times.Once);
+        m_MockCacheService.Verify(
+            x => x.SetAsync(It.Is<ICacheEntry<BotUnlockTicket>>(entry =>
+                entry.Key == cacheKey &&
+                entry.Value.LToken == rotatedLToken &&
+                entry.Value.CredentialHash ==
+                    AuthenticationMiddlewareService.ComputeHash(rotatedEncryptedToken) &&
+                entry.ExpirationTime == TimeSpan.FromMinutes(10))),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_CredentialRotatedInFlight_RefusesWithoutRepopulatingCache()
+    {
+        // A rotation landing between the passphrase check and the cache write
+        // must not repopulate the cache with stale credentials.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
+
+        // Decrypt succeeds against the pre-rotation cipher, then the stored
+        // credential is rotated before the service re-reads it.
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Callback(() =>
+            {
+                using var scope = m_DbFactory!.ScopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+                var profile = db.UserProfiles.Single(p =>
+                    p.UserId == (long)TestUserId && p.ProfileId == TestProfileId);
+                profile.LToken = "inflight-rotated-encrypted-token";
+                db.SaveChanges();
+            })
+            .Returns(TestLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert: fail closed and never cache the stale plaintext.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("changed during authentication"));
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
+        });
+
+        m_MockCacheService.Verify(
+            x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_RevocationEpochNewerThanTicket_DropsStaleEntry()
+    {
+        // A logout or mass revocation in another process publishes a watermark
+        // newer than this ticket: the entry must be dropped even though the
+        // stored cipher is unchanged, forcing a fresh passphrase check.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var cacheKey = CacheKeys.BotLToken(TestUserId, TestLtUid);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync(new BotUnlockTicket(
+                AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken),
+                TestLToken,
+                DateTimeOffset.UtcNow.AddHours(-1)));
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(CacheKeys.RevokeEpoch(TestUserId)))
+            .ReturnsAsync(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+        m_MockCacheService
+            .Setup(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()))
+            .Returns(Task.CompletedTask);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Returns(TestLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.LToken, Is.EqualTo(TestLToken));
+        });
+
+        m_MockCacheService.Verify(x => x.RemoveAsync(cacheKey), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_RevocationEpochOlderThanTicket_AllowsCacheHit()
+    {
+        // A watermark predating the ticket (an older logout) must not disturb
+        // a newer unlock.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var cacheKey = CacheKeys.BotLToken(TestUserId, TestLtUid);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync(new BotUnlockTicket(
+                AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken),
+                TestLToken,
+                DateTimeOffset.UtcNow));
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(CacheKeys.RevokeEpoch(TestUserId)))
+            .ReturnsAsync(DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeMilliseconds().ToString());
+
+        var result = await m_Service.GetAuthenticationAsync(request);
+
+        Assert.That(result.IsSuccess, Is.True);
+        m_MockCacheService.Verify(x => x.RemoveAsync(cacheKey), Times.Never);
+        m_MockEncryptionService.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_RevocationWatermarkUnreadable_FailsOpenToCacheHit()
+    {
+        // Revocation is best-effort: a storage outage degrades freshness,
+        // not availability.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+        var cacheKey = CacheKeys.BotLToken(TestUserId, TestLtUid);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(cacheKey))
+            .ReturnsAsync(new BotUnlockTicket(
+                AuthenticationMiddlewareService.ComputeHash(TestEncryptedToken),
+                TestLToken,
+                DateTimeOffset.UtcNow));
+        m_MockCacheService
+            .Setup(x => x.GetAsync<string>(CacheKeys.RevokeEpoch(TestUserId)))
+            .ThrowsAsync(new InvalidOperationException("Redis unavailable"));
+
+        var result = await m_Service.GetAuthenticationAsync(request);
+
+        Assert.That(result.IsSuccess, Is.True);
     }
 
     [Test]
@@ -320,8 +649,8 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         m_MockEncryptionService
             .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
@@ -344,8 +673,176 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockEncryptionService.Verify(x => x.Decrypt(TestEncryptedToken, TestPassphrase), Times.Once);
-        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<string>>()), Times.Never);
+        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()), Times.Never);
         m_MockPassphraseLimiter.Verify(x => x.RecordFailureAsync(It.IsAny<ulong>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_WhenReservationBlocked_ReturnsFailureWithoutDecrypting()
+    {
+        // The atomic reservation blocks before expensive PBKDF2 work.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
+
+        m_MockPassphraseLimiter
+            .Setup(x => x.TryReserveAttemptAsync(TestUserId, It.IsAny<System.Threading.CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("Too many incorrect attempts"));
+        });
+
+        m_MockEncryptionService.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_WrongPassphrase_KeepsReservationWithoutSeparateRecord()
+    {
+        // The reservation itself is the failure record; no second write.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Throws(new AuthenticationTagMismatchException());
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Does.Contain("Incorrect passphrase"));
+        });
+
+        m_MockPassphraseLimiter.Verify(x => x.RecordFailureAsync(It.IsAny<ulong>(), It.IsAny<System.Threading.CancellationToken>()), Times.Never);
+        m_MockPassphraseLimiter.Verify(x => x.ReleaseReservationAsync(It.IsAny<ulong>(), It.IsAny<string>(), It.IsAny<System.Threading.CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_Success_ReleasesReservation()
+    {
+        // Correct passphrases release so successes never consume failure quota.
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData
+            {
+                Components = []
+            },
+            User = new JsonUser
+            {
+                Id = TestUserId
+            },
+            Channel = new JsonChannel
+            {
+                Id = 987654321UL,
+                Type = ChannelType.TextGuildChannel
+            },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Returns(TestLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(request);
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+
+        var authResponse = new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object);
+        m_Service.NotifyAuthenticate(authResponse);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.That(result.IsSuccess, Is.True);
+        m_MockPassphraseLimiter.Verify(x => x.ReleaseReservationAsync(TestUserId, It.IsAny<string>(), It.IsAny<System.Threading.CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -388,8 +885,8 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
@@ -507,8 +1004,8 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         var request = new AuthenticationRequest(mockContext.Object, TestProfileId);
 
@@ -627,8 +1124,8 @@ public class AuthenticationMiddlewareServiceTests
         });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         m_MockEncryptionService
             .Setup(x => x.IsLegacyFormat(TestEncryptedToken))
@@ -707,8 +1204,8 @@ public class AuthenticationMiddlewareServiceTests
             });
 
         m_MockCacheService
-            .Setup(x => x.GetAsync<string>(It.IsAny<string>()))
-            .ReturnsAsync((string?)null);
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
 
         m_MockEncryptionService
             .Setup(x => x.IsLegacyFormat(TestEncryptedToken))
@@ -813,3 +1310,5 @@ public class AuthenticationMiddlewareServiceTests
 
     #endregion
 }
+
+

@@ -1,10 +1,12 @@
-﻿#region
+﻿﻿﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
+using Mehrak.GameApi.Shared;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
@@ -21,12 +23,22 @@ namespace Mehrak.Bot.Shared.Modules;
 
 public class AuthModalModule : ComponentInteractionModule<ModalInteractionContext>
 {
+    // Minimum for NEW/CHANGED passphrases. Must match Dashboard Add/UpdateProfileRequest. The decrypt-only AuthModal
+    // below intentionally has no minimum so existing weak passphrases keep working.
+    internal const int MinPassphraseLength = 12;
+    internal const int MaxPassphraseLength = 64;
+
+    internal static bool IsValidNewPassphrase(string? passphrase) =>
+        !string.IsNullOrEmpty(passphrase) &&
+        passphrase.Length >= MinPassphraseLength &&
+        passphrase.Length <= MaxPassphraseLength;
+
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
         .WithComponents([
             new LabelProperties("HoYoLAB UID", new TextInputProperties("ltuid", TextInputStyle.Short)),
             new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
             new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
+                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
         ]);
 
     public static ModalProperties AuthModal(string guid)
@@ -45,7 +57,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 new TextDisplayProperties($"## Profile {profile.ProfileId}\n### HoYoLAB UID: {profile.LtUid}"),
                 new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
                 new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMaxLength(64))
+                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
             ]);
 
     }
@@ -54,6 +66,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IEncryptionService m_CookieService;
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
+    private readonly ICacheService? m_CacheService;
     private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
 
@@ -63,7 +76,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         IAuthenticationMiddlewareService authenticationMiddleware,
         UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
-        ILogger<AuthModalModule> logger)
+        ILogger<AuthModalModule> logger,
+        ICacheService? cacheService = null)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
@@ -71,6 +85,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_AuthenticationMiddleware = authenticationMiddleware;
         m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
+        m_CacheService = cacheService;
     }
 
     [ComponentInteraction("add_auth_modal")]
@@ -124,6 +139,29 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             var hadProfiles = user.Profiles.Count > 0;
+
+            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            {
+                // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
+                // construction, where illegal characters would throw a credential-embedding FormatException into
+                // retained logs. Never log the value itself.
+                m_Logger.LogWarning("User {UserId} provided malformed cookie format", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
+
+            if (!IsValidNewPassphrase(inputs["passphrase"]))
+            {
+                // Enforce the minimum for new passphrases server-side as well (modal min-length is client-enforced).
+                // Existing weak passphrases are unaffected: they only flow through the decrypt-only auth modal below.
+                m_Logger.LogWarning("User {UserId} provided too-short passphrase for new profile", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
+                return;
+            }
 
             // Validate cookie and fetch all game profiles before saving
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
@@ -260,6 +298,29 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
+            // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
+            // construction, where illegal characters would throw a credential-embedding FormatException into retained
+            // logs. Never log the value itself.
+            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            {
+                m_Logger.LogWarning("User {UserId} provided malformed cookie format during update", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                return;
+            }
+
+            if (!IsValidNewPassphrase(inputs["passphrase"]))
+            {
+                // Enforce the minimum for changed passphrases server-side as well (modal min-length is
+                // client-enforced).
+                m_Logger.LogWarning("User {UserId} provided too-short passphrase during update", Context.User.Id);
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
+                return;
+            }
+
             // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
                 Context.User.Id, profile.LtUid, inputs["ltoken"], bypassCache: true);
@@ -309,6 +370,16 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             await m_AuthenticationMiddleware.RevokeAuthenticate(Context.User.Id, profile.LtUid);
+            // A Bot-side rotation also revokes the Dashboard unlock for the same profile.
+            try
+            {
+                if (m_CacheService is not null)
+                    await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(Context.User.Id, profile.LtUid));
+            }
+            catch (Exception ex)
+            {
+                m_Logger.LogWarning(ex, "Failed to revoke dashboard authentication cache for user {UserId}", Context.User.Id);
+            }
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(new TextDisplayProperties("Profile successfully updated!")));
@@ -345,3 +416,5 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         }
     }
 }
+
+

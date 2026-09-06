@@ -41,6 +41,9 @@ public class CharactersController : GameWriteController
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
+
         if (request?.Characters == null)
             return BadRequest(new { error = "Characters payload is required." });
 
@@ -65,6 +68,9 @@ public class CharactersController : GameWriteController
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
+
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });
@@ -102,6 +108,9 @@ public class CharactersController : GameWriteController
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
+
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
 
         if (string.IsNullOrWhiteSpace(character))
             return BadRequest(new { error = "Character parameter is required." });

@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+﻿﻿﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
@@ -245,11 +245,12 @@ public sealed class ProfileController : ControllerBase
             () => m_EncryptionService.Encrypt(request.LToken, request.Passphrase),
             HttpContext.RequestAborted);
 
+        // Load-then-save (no ExecuteUpdateAsync) so rotation stays testable on
+        // providers without bulk-update support.
+        profile.LToken = newLToken;
         try
         {
-            await m_UserContext.UserProfiles
-                .Where(p => p.Id == profile.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.LToken, newLToken), HttpContext.RequestAborted);
+            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
         }
         catch (DbUpdateException e)
         {
@@ -257,14 +258,9 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update profile. Please try again later." });
         }
 
-        try
-        {
-            await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogWarning(e, "Failed to remove cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
-        }
+        // Rotation revokes both client caches. The stored credential revision also changes, so any surviving stale
+        // entry is dropped on its next read.
+        await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
         return Ok(new { message = "Profile updated successfully." });
     }
@@ -315,14 +311,8 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profile. Please try again later." });
         }
 
-        try
-        {
-            await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, (ulong)profile.LtUid), HttpContext.RequestAborted);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogWarning(e, "Failed to remove cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
-        }
+        // Deletion revokes both client caches.
+        await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
         if (profiles.Count == 0)
             await m_UserTracker.AdjustUserCountAsync(-1);
@@ -338,12 +328,33 @@ public sealed class ProfileController : ControllerBase
 
         m_Logger.LogInformation("Deleting all profiles for user {UserId}", discordUserId);
 
-        var deleted = await m_UserContext.UserProfiles
+        // Load-then-remove (no ExecuteDeleteAsync): providers without
+        // bulk-delete support must still clear every profile, and the LtUids
+        // are needed to revoke every credential cache entry below.
+        var allProfiles = await m_UserContext.UserProfiles
             .Where(p => p.UserId == (long)discordUserId)
-            .ExecuteDeleteAsync(HttpContext.RequestAborted);
+            .ToListAsync(HttpContext.RequestAborted);
 
-        if (deleted > 0)
-            await m_UserTracker.AdjustUserCountAsync(-1);
+        if (allProfiles.Count == 0)
+            return NoContent();
+
+        m_UserContext.UserProfiles.RemoveRange(allProfiles);
+
+        try
+        {
+            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+        }
+        catch (DbUpdateException e)
+        {
+            m_Logger.LogError(e, "Failed to delete all profiles for user {UserId}", discordUserId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profiles. Please try again later." });
+        }
+
+        // Deleting every profile revokes both client caches for every profile.
+        foreach (var existing in allProfiles)
+            await RevokeProfileCachesAsync(discordUserId, (ulong)existing.LtUid, existing.ProfileId);
+
+        await m_UserTracker.AdjustUserCountAsync(-1);
 
         return NoContent();
     }
@@ -363,9 +374,32 @@ public sealed class ProfileController : ControllerBase
         return true;
     }
 
+    private async Task RevokeProfileCachesAsync(ulong discordUserId, ulong ltUid, int profileId)
+    {
+        try
+        {
+            await m_CacheService.RemoveAsync(CacheKeys.BotLToken(discordUserId, ltUid), HttpContext.RequestAborted);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogWarning(e, "Failed to remove bot cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
+        }
+
+        try
+        {
+            await m_CacheService.RemoveAsync(CacheKeys.DashboardLToken(discordUserId, ltUid), HttpContext.RequestAborted);
+        }
+        catch (Exception e)
+        {
+            m_Logger.LogWarning(e, "Failed to remove dashboard cache for profile {ProfileId} for user {UserId}", profileId, discordUserId);
+        }
+    }
+
     private static bool IsUniqueConstraintViolation(DbUpdateException e)
     {
         return e.InnerException is DbException dbEx
             && dbEx.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
     }
 }
+
+

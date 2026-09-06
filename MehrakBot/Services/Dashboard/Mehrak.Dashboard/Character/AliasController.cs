@@ -43,6 +43,9 @@ public class AliasController : GameWriteController
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
 
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
+
         if (request == null || string.IsNullOrWhiteSpace(request.Character))
             return BadRequest(new { error = "Character name is required." });
 
@@ -84,6 +87,9 @@ public class AliasController : GameWriteController
     {
         if (!TryParseGame(game, out var gameEnum, out var error))
             return BadRequest(new { error });
+
+        if (!await AuthorizeGameWriteAsync(gameEnum))
+            return GameWriteDenied(gameEnum);
 
         if (string.IsNullOrWhiteSpace(alias))
             return BadRequest(new { error = "Alias parameter is required." });

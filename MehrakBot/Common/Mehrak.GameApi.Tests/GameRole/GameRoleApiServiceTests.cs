@@ -160,4 +160,98 @@ public class GameRoleApiServiceTests
             Assert.That(m_Handler.RequestCount, Is.Zero);
         });
     }
+
+    /// <summary>
+    /// A malformed credential must be rejected with a sanitized failure before any Cookie header is constructed. No
+    /// HTTP request may be sent, and neither the token canary nor any exception text containing it may reach the logs.
+    /// </summary>
+    private sealed class CapturingLogger : ILogger<GameRoleApiService>
+    {
+        public readonly List<string> Entries = [];
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => new Scope();
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(formatter(state, exception));
+            if (exception is not null)
+                Entries.Add(exception.ToString());
+        }
+
+        private sealed class Scope : IDisposable
+        {
+            public void Dispose() { }
+        }
+    }
+
+    private GameRoleApiService CreateService(CapturingLogger logger)
+    {
+        return new GameRoleApiService(m_Handler.ToHttpClientFactory(), m_Cache.Object, logger);
+    }
+
+    [Test]
+    [TestCase("C4N4RY\u0001TOKEN", Description = "Control character: the audit's confirmed leak trigger")]
+    [TestCase("C4N4RY;TOKEN")]
+    [TestCase("C4N4RY TOKEN")]
+    public async Task GetAllGameProfilesAsync_MalformedLToken_ReturnsUnauthorizedWithoutLoggingCanary(string ltoken)
+    {
+        var logger = new CapturingLogger();
+        var service = CreateService(logger);
+
+        var result = await service.GetAllGameProfilesAsync(1, 100, ltoken, bypassCache: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Does.Not.Contain("C4N4RY"));
+            Assert.That(m_Handler.RequestCount, Is.Zero);
+            Assert.That(logger.Entries, Is.Not.Empty);
+            Assert.That(logger.Entries.Any(e => e.Contains("C4N4RY", StringComparison.Ordinal)), Is.False,
+                "Token canary must never appear in logs");
+        });
+    }
+
+    [Test]
+    public async Task GetAllGameProfilesAsync_OverlongLToken_ReturnsUnauthorizedWithoutLoggingCanary()
+    {
+        var canaryToken = "C4N4RY" + new string('a', 4096);
+        var logger = new CapturingLogger();
+        var service = CreateService(logger);
+
+        var result = await service.GetAllGameProfilesAsync(1, 100, canaryToken, bypassCache: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(m_Handler.RequestCount, Is.Zero);
+            Assert.That(logger.Entries.Any(e => e.Contains("C4N4RY", StringComparison.Ordinal)), Is.False,
+                "Token canary must never appear in logs");
+        });
+    }
+
+    [Test]
+    public async Task GetAsync_MalformedLToken_ReturnsUnauthorizedWithoutLoggingCanary()
+    {
+        var logger = new CapturingLogger();
+        var service = CreateService(logger);
+        var context = new GameRoleApiContext(1, 100, "C4N4RY\u0001TOKEN", Game.Genshin, "os_asia");
+
+        var result = await service.GetAsync(context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(m_Handler.RequestCount, Is.Zero);
+            Assert.That(logger.Entries.Any(e => e.Contains("C4N4RY", StringComparison.Ordinal)), Is.False,
+                "Token canary must never appear in logs");
+        });
+    }
 }
+
+

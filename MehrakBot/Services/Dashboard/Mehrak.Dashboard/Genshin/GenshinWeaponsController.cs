@@ -3,6 +3,7 @@ using Grpc.Core;
 using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
+using Mehrak.Domain.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
@@ -111,6 +112,9 @@ public partial class GenshinWeaponsController : GameWriteController
         if (weaponId <= 0)
             return BadRequest(new { error = "Weapon ID must be a positive integer." });
 
+        if (!await AuthorizeGameWriteAsync(Game.Genshin))
+            return GameWriteDenied(Game.Genshin);
+
         if (ascendedImage is null || ascendedImage.Length == 0)
             return BadRequest(new { error = "No file uploaded." });
 
@@ -162,6 +166,9 @@ public partial class GenshinWeaponsController : GameWriteController
 
         if (parsed.Type != "ascended")
             return BadRequest(new { error = "Only ascended weapon icons can be overwritten." });
+
+        if (!await AuthorizeGameWriteAsync(Game.Genshin))
+            return GameWriteDenied(Game.Genshin);
 
         if (image is null || image.Length == 0)
             return BadRequest(new { error = "No file uploaded." });

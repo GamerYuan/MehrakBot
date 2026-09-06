@@ -23,7 +23,18 @@ public class DashboardAuthService : IDashboardAuthService
     {
         m_Logger.LogInformation("Discord login attempt for DiscordId {DiscordId}", discordId);
 
-        // Load permissions for this user
+        // Invalidate any existing sessions for this user (single-session enforcement).
+        // If this throws (e.g. cancellation), no new session is created: fail closed.
+        await m_SessionService.InvalidateAllForUserAsync(discordId, ct);
+
+        // Create new session
+        var sessionToken = Guid.NewGuid().ToString("N");
+        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, loginIp, userAgent, location, ct);
+
+        // Re-read permissions after session creation so a revocation that raced this
+        // login is reflected in the issued cookie. Any revocation landing after this
+        // read is still neutralized because cookie validation rebuilds permissions
+        // from server-side state on every request.
         var permissions = await m_Db.DashboardPermissions
             .Where(p => p.DiscordId == discordId)
             .Select(p => p.Permission)
@@ -39,13 +50,6 @@ public class DashboardAuthService : IDashboardAuthService
             .Where(g => g != Game.Unsupported)
             .Distinct()
             .ToArray();
-
-        // Invalidate any existing sessions for this user (single-session enforcement)
-        await m_SessionService.InvalidateAllForUserAsync(discordId, ct);
-
-        // Create new session
-        var sessionToken = Guid.NewGuid().ToString("N");
-        await m_SessionService.CreateSessionAsync(sessionToken, discordId, accessToken, loginIp, userAgent, location, ct);
 
         m_Logger.LogInformation("Discord login succeeded for DiscordId {DiscordId}", discordId);
 

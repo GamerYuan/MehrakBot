@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿﻿﻿using System.Text.Json;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Models;
@@ -61,6 +61,16 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 $"{HoYoLabDomains.BbsApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}";
 
             m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+
+            if (!LTokenValidator.IsValidLToken(context.LToken))
+            {
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
+                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
+            }
 
             var client = m_HttpClientFactory.CreateClient("Default");
             using HttpRequestMessage request = new()
@@ -150,3 +160,5 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         throw new NotSupportedException();
     }
 }
+
+

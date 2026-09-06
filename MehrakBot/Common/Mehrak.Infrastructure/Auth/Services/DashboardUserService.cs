@@ -211,6 +211,13 @@ public class DashboardUserService : IDashboardUserService
         m_Db.DashboardPermissions.RemoveRange(toRemove);
         m_Db.DashboardPermissions.AddRange(toAdd);
 
+        // Commit the permission change and session invalidation atomically so a login
+        // cannot observe new permissions with old sessions (or vice versa). In-memory
+        // providers do not support transactions; the operations still run in order.
+        await using var transaction = m_Db.Database.IsRelational()
+            ? await m_Db.Database.BeginTransactionAsync(ct)
+            : null;
+
         try
         {
             await m_Db.SaveChangesAsync(ct);
@@ -225,9 +232,12 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Logger.LogInformation("Dashboard permissions updated for DiscordId {DiscordUserId}.", request.DiscordUserId);
-
         await m_SessionService.InvalidateAllForUserAsync(request.DiscordUserId, ct);
+
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
+
+        m_Logger.LogInformation("Dashboard permissions updated for DiscordId {DiscordUserId}.", request.DiscordUserId);
 
         var isRootUser = await IsRootUserAsync(request.DiscordUserId, ct);
 
@@ -270,6 +280,10 @@ public class DashboardUserService : IDashboardUserService
 
         m_Db.DashboardPermissions.RemoveRange(permissions);
 
+        await using var transaction = m_Db.Database.IsRelational()
+            ? await m_Db.Database.BeginTransactionAsync(ct)
+            : null;
+
         try
         {
             await m_Db.SaveChangesAsync(ct);
@@ -284,9 +298,12 @@ public class DashboardUserService : IDashboardUserService
             };
         }
 
-        m_Logger.LogInformation("Dashboard permissions deleted for DiscordId {DiscordUserId}.", discordUserId);
-
         await m_SessionService.InvalidateAllForUserAsync(discordUserId, ct);
+
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
+
+        m_Logger.LogInformation("Dashboard permissions deleted for DiscordId {DiscordUserId}.", discordUserId);
 
         return new RemoveDashboardUserResultDto
         {

@@ -315,6 +315,15 @@ internal class UserPortraitService : IUserPortraitService
             return false;
         }
 
+        // Defense in depth: the API validates first, but stored scales must stay finite
+        // and bounded no matter which caller reaches this service.
+        if (config.TargetScale is float scale &&
+            (!float.IsFinite(scale) || scale < 0.01f || scale > 10f))
+        {
+            m_Logger.LogWarning("TargetScale out of range for UploadId {UploadId}", uploadId);
+            return false;
+        }
+
         entity.Config.OffsetX = config.OffsetX;
         entity.Config.OffsetY = config.OffsetY;
         entity.Config.TargetScale = config.TargetScale;

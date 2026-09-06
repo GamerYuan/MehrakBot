@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿﻿﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -43,6 +43,15 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
 
             var client = m_HttpClientFactory.CreateClient("Default");
             using HttpRequestMessage request = new(HttpMethod.Get, requestUri);
+            if (!LTokenValidator.IsValidLToken(context.LToken))
+            {
+                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
+                // would throw a FormatException embedding the credential value, which the catch below would write to
+                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
+                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
+                return Result<ZzzTowerData>.Failure(StatusCode.Unauthorized,
+                    "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
+            }
             request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
 
             using var response = await client.SendAsync(request, timeoutCts.Token);
@@ -103,3 +112,5 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
         return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
     }
 }
+
+

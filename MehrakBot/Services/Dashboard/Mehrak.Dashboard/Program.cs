@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿﻿﻿using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
 using Mehrak.Dashboard.Shared.Auth;
@@ -15,7 +16,11 @@ using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Yarp.ReverseProxy.Configuration;
 
@@ -243,47 +248,23 @@ public class Program
                     ctx.User.IsInRole("superadmin") ||
                     ctx.User.HasClaim(c =>
                         c.Type == "perm" &&
-                        c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))));
+                        c.Value.StartsWith("game_write:", StringComparison.OrdinalIgnoreCase))))
+            .AddPolicy(GameAuthorization.Policy, policy =>
+                policy.AddRequirements(new GameWriteRequirement()));
+
+        builder.Services.AddSingleton<IAuthorizationHandler, GameWriteAuthorizationHandler>();
 
         if (builder.Environment.IsProduction())
         {
-            builder.Services.Configure<ForwardedHeadersOptions>(options =>
-            {
-                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                options.KnownProxies.Clear();
-                options.KnownIPNetworks.Clear();
-            });
+            builder.Services.Configure<ForwardedHeadersOptions>(
+                options => ConfigureForwardedHeaders(options, builder.Configuration));
         }
 
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        builder.Services.AddRateLimiter(ConfigureRateLimiter);
 
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-                RateLimitPartition.GetSlidingWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = 100,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0,
-                        SegmentsPerWindow = 10
-                    }));
+        builder.Services.AddHttpContextAccessor();
 
-            options.AddPolicy("login", httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
-                    }));
-        });
-
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(ConfigureMvc);
 
         builder.Services.AddCors(options =>
         {
@@ -297,19 +278,136 @@ public class Program
         });
 
         var app = builder.Build();
+        if (app.Environment.IsProduction() && IsProxyAllowlistEmpty(app.Configuration))
+            app.Logger.LogWarning("Nginx:KnownProxy/KnownNetworks is empty: forwarded headers are ignored, so generated URLs may use http instead of https behind a TLS-terminating proxy. Set NGINX_KNOWN_PROXY to the proxy address.");
         await SeedRootUserIfNeeded(app);
         await ReleaseNoteSeedData.SeedReleaseNotesAsync(app);
 
-        app.UseForwardedHeaders();
-        app.UseCors();
-        app.UseAuthentication();
-        app.UseAuthorization();
-        app.UseRateLimiter();
+        UseDashboardMiddleware(app);
         app.MapControllers();
         app.MapReverseProxy();
         app.MapDefaultEndpoints();
 
         await app.RunAsync();
+    }
+
+    internal static void ConfigureRateLimiter(RateLimiterOptions options)
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    SegmentsPerWindow = 10
+                }));
+
+        options.AddPolicy(LoginPolicyName, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    }
+
+    internal const string LoginPolicyName = "login";
+
+    /// <summary>
+    /// Only explicitly configured proxies may supply X-Forwarded-For/Proto. Anything else is ignored, so an untrusted
+    /// peer cannot spoof the client IP used by rate limiting and login auditing. X-Forwarded-Proto from a trusted proxy
+    /// still applies, preserving OAuth HTTPS behavior behind legitimate proxies. </summary>
+    internal static void ConfigureForwardedHeaders(ForwardedHeadersOptions options, IConfiguration configuration)
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+        // Constrained depth: only the closest proxy hop is honored.
+        options.ForwardLimit = 1;
+
+        foreach (var entry in SplitProxyList(configuration["Nginx:KnownProxy"])
+                     .Concat(SplitProxyList(configuration["Nginx:KnownNetworks"])))
+        {
+            if (IPAddress.TryParse(entry, out var proxy))
+                options.KnownProxies.Add(proxy);
+            else if (System.Net.IPNetwork.TryParse(entry, out var network))
+                options.KnownIPNetworks.Add(network);
+        }
+
+        // An empty allowlist would trust every peer, so fall back to
+        // loopback-only (the framework default) when nothing valid was
+        // configured. Remote peers can then never spoof forwarded values;
+        // operators must set Nginx:KnownProxy for their real proxies.
+        if (options.KnownProxies.Count == 0 && options.KnownIPNetworks.Count == 0)
+        {
+            options.KnownProxies.Add(IPAddress.Loopback);
+            options.KnownProxies.Add(IPAddress.IPv6Loopback);
+        }
+    }
+
+    internal static bool IsProxyAllowlistEmpty(IConfiguration configuration) =>
+        !SplitProxyList(configuration["Nginx:KnownProxy"])
+            .Concat(SplitProxyList(configuration["Nginx:KnownNetworks"]))
+            .Any();
+
+    internal static IEnumerable<string> SplitProxyList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return [];
+        return value.Split(
+            [',', ';', ' ', '\t', '\n', '\r'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    /// <summary>
+    /// The IP rate limiter runs before authentication, so over-limit requests are rejected before any session or
+    /// database work. Routing runs first so endpoint rate-limit policies also resolve. </summary>
+    internal static void UseDashboardMiddleware(WebApplication app)
+    {
+        app.UseForwardedHeaders();
+        app.UseRouting();
+        app.UseCors();
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
+    }
+
+    internal static void ConfigureMvc(MvcOptions options)
+    {
+        options.Conventions.Add(new LoginRateLimitConvention());
+    }
+
+    /// <summary>
+    /// Pins the strict login policy onto the single action that completes a
+    /// login (the OAuth callback, where the session is created) through
+    /// selector endpoint metadata, without touching its source. The flow
+    /// initiator and logout stay out of the login bucket: one login flow
+    /// consumes exactly one permit, and logout never spends login budget.
+    /// </summary>
+    internal sealed class LoginRateLimitConvention : IActionModelConvention
+    {
+        public void Apply(ActionModel action)
+        {
+            if (action.Controller.ControllerType != typeof(Auth.AuthController))
+                return;
+
+            if (!string.Equals(action.ActionName, nameof(Auth.AuthController.DiscordCallback), StringComparison.Ordinal))
+                return;
+
+            foreach (var selector in action.Selectors)
+            {
+                if (!selector.EndpointMetadata.OfType<EnableRateLimitingAttribute>().Any())
+                    selector.EndpointMetadata.Add(new EnableRateLimitingAttribute(LoginPolicyName));
+            }
+        }
     }
 
     private static async Task SeedRootUserIfNeeded(WebApplication app)
@@ -357,3 +455,5 @@ public class Program
         return normalized.EndsWith('/') ? normalized : normalized + "/";
     }
 }
+
+

@@ -6,6 +6,8 @@ using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace Mehrak.Dashboard.Character;
 
@@ -17,6 +19,18 @@ public class UserPortraitsController : ControllerBase
     private const long MaxFileSizeBytes = 8 * 1024 * 1024; // 8 MB
     private const string PngContentType = "image/png";
     private const string JpgContentType = "image/jpeg";
+
+    // Decoded-pixel budget: a small compressed payload can still describe a huge
+    // image, so geometry is validated from container headers before any native decode.
+    private const int MaxImageWidth = 4096;
+    private const int MaxImageHeight = 4096;
+    private const long MaxImagePixels = 16_777_216; // 4096 x 4096
+    private const int MaxImageFrames = 1;
+
+    // User-controlled portrait scaling is bounded at the API; the shared card
+    // renderer additionally clamps the resulting output allocation.
+    private const float MinPortraitScale = 0.01f;
+    private const float MaxPortraitScale = 10f;
 
     private readonly IUserPortraitService m_PortraitService;
     private readonly IPortraitUploadRateLimitService m_RateLimitService;
@@ -125,8 +139,6 @@ public class UserPortraitsController : ControllerBase
             !file.ContentType.Equals(JpgContentType, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { error = "Only PNG and JPG images are allowed." });
 
-        var extension = file.ContentType.Equals(PngContentType, StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
-
         // Rate limit check
         if (!HttpContext.User.IsInRole("superadmin") && !await m_RateLimitService.IsAllowedAsync(discordUserId.Value, HttpContext.RequestAborted))
         {
@@ -134,16 +146,51 @@ public class UserPortraitsController : ControllerBase
             return StatusCode(429, new { error = "Upload rate limit exceeded. Try again later.", remaining });
         }
 
-        // Read and hash the file
-        using var fileStream = file.OpenReadStream();
-        var sha256Bytes = await SHA256.HashDataAsync(fileStream, HttpContext.RequestAborted);
-        var sha256 = Convert.ToHexString(sha256Bytes).ToLowerInvariant();
+        // Buffer the upload so header validation, hashing, classification, and storage
+        // all operate on the same bytes without re-reading the client stream.
+        byte[] fileBytes;
+        using (var buffer = new MemoryStream())
+        {
+            await using var uploadStream = file.OpenReadStream();
+            await uploadStream.CopyToAsync(buffer, HttpContext.RequestAborted);
+            fileBytes = buffer.ToArray();
+        }
 
-        // NSFW classification
-        fileStream.Position = 0;
+        // Validate actual image geometry from container headers before any native decode.
+        ImageInfo? imageInfo;
         try
         {
-            var classification = await m_ClassificationService.ClassifyAsync(fileStream, HttpContext.RequestAborted);
+            using var identifyStream = new MemoryStream(fileBytes, writable: false);
+            imageInfo = Image.Identify(identifyStream);
+        }
+        catch (Exception ex)
+        {
+            m_Logger.LogWarning(ex, "Rejected portrait upload with undecodable image for user {DiscordUserId}", discordUserId);
+            return BadRequest(new { error = "File is not a valid PNG or JPG image." });
+        }
+
+        var imageFormat = imageInfo?.Metadata.DecodedImageFormat;
+        if (imageInfo is null || imageFormat is null || !IsSupportedUploadFormat(imageFormat))
+            return BadRequest(new { error = "Only PNG and JPG images are allowed." });
+
+        if (imageInfo.Width > MaxImageWidth || imageInfo.Height > MaxImageHeight ||
+            (long)imageInfo.Width * imageInfo.Height > MaxImagePixels)
+            return BadRequest(new { error = $"Image dimensions exceed the {MaxImageWidth}x{MaxImageHeight} ({MaxImagePixels} pixel) limit." });
+
+        if (imageInfo.FrameCount > MaxImageFrames)
+            return BadRequest(new { error = "Animated images are not allowed." });
+
+        // Store under the actual decoded format so the stored object stays consistent
+        // with what was validated, regardless of the supplied MIME type.
+        var extension = imageFormat.DefaultMimeType.Equals(PngContentType, StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
+
+        var sha256 = Convert.ToHexString(SHA256.HashData(fileBytes)).ToLowerInvariant();
+
+        // NSFW classification
+        try
+        {
+            using var classificationStream = new MemoryStream(fileBytes, writable: false);
+            var classification = await m_ClassificationService.ClassifyAsync(classificationStream, HttpContext.RequestAborted);
             if (classification.IsNsfw)
             {
                 m_Logger.LogInformation("NSFW image upload blocked for user {DiscordUserId}: confidence={Confidence:F4}",
@@ -165,9 +212,9 @@ public class UserPortraitsController : ControllerBase
         }
 
         // Upload to S3 and save to DB
-        fileStream.Position = 0;
+        using var portraitStream = new MemoryStream(fileBytes, writable: false);
         var result = await m_PortraitService.UploadPortraitAsync(
-            discordUserId.Value, gameEnum, character, fileStream, sha256, extension, HttpContext.RequestAborted);
+            discordUserId.Value, gameEnum, character, portraitStream, sha256, extension, HttpContext.RequestAborted);
 
         if (!result.Succeeded)
             return BadRequest(new { error = result.Error });
@@ -197,6 +244,12 @@ public class UserPortraitsController : ControllerBase
         var discordUserId = GetDiscordUserId();
         if (discordUserId == null)
             return Unauthorized(new { error = "Invalid user identity." });
+
+        // Explicit finite/bounded check: [ApiController] ModelState validation covers
+        // the Range attribute, but NaN/Infinity handling must not depend on it.
+        if (config.TargetScale is float scale &&
+            (!float.IsFinite(scale) || scale < MinPortraitScale || scale > MaxPortraitScale))
+            return BadRequest(new { error = $"TargetScale must be a finite value between {MinPortraitScale} and {MaxPortraitScale}." });
 
         var success = await m_PortraitService.UpdatePortraitConfigAsync(discordUserId.Value, id, config, HttpContext.RequestAborted);
         if (!success)
@@ -246,6 +299,10 @@ public class UserPortraitsController : ControllerBase
 
         return NoContent();
     }
+
+    private static bool IsSupportedUploadFormat(IImageFormat format) =>
+        format.DefaultMimeType.Equals(PngContentType, StringComparison.OrdinalIgnoreCase) ||
+        format.DefaultMimeType.Equals(JpgContentType, StringComparison.OrdinalIgnoreCase);
 
     private long? GetDiscordUserId()
     {

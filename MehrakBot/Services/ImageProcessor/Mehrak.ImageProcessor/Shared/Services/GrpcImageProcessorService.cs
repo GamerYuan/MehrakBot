@@ -23,6 +23,14 @@ public class GrpcImageProcessorService(
                 });
             }
 
+            // Transport-level guard before any native work: oversized payloads are
+            // rejected without decoding. Pixel/dimension budgets are enforced inside
+            // the classifier both before (header parse) and after native decoding.
+            if (request.ImageData.Length > NsfwClassifier.MaxImageBytes)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Image payload exceeds the size limit."));
+            }
+
             var result = classifier.Classify(request.ImageData.ToByteArray());
 
             logger.LogDebug("Image classified: IsNsfw={IsNsfw}, NSFW={NsfwConfidence:F4}, SFW={SfwConfidence:F4}",
@@ -34,6 +42,16 @@ public class GrpcImageProcessorService(
                 NsfwConfidence = result.NsfwConfidence,
                 SfwConfidence = result.SfwConfidence
             });
+        }
+        catch (RpcException)
+        {
+            throw;
+        }
+        catch (ArgumentException ex)
+        {
+            // Invalid or over-budget image content: caller error, not a server fault.
+            logger.LogWarning(ex, "Rejected image for classification");
+            throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
         }
         catch (Exception ex)
         {
