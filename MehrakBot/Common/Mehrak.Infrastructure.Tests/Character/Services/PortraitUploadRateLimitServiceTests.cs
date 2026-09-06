@@ -1,5 +1,5 @@
-﻿﻿﻿using Mehrak.Infrastructure.Character.Services;
-using Microsoft.Extensions.Logging;
+﻿using Mehrak.Infrastructure.Character.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using StackExchange.Redis;
 
@@ -24,7 +24,7 @@ internal class PortraitUploadRateLimitServiceTests
         m_MockDatabase = new Mock<IDatabase>();
         m_MockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
             .Returns(m_MockDatabase.Object);
-        m_Limiter = new PortraitUploadRateLimitService(m_MockRedis.Object, Mock.Of<ILogger<PortraitUploadRateLimitService>>());
+        m_Limiter = new PortraitUploadRateLimitService(m_MockRedis.Object, NullLogger<PortraitUploadRateLimitService>.Instance);
     }
 
     [Test]

@@ -2,6 +2,7 @@
 
 using System.Diagnostics.Metrics;
 using Mehrak.Bot.Shared.Abstractions;
+using NetCord.Gateway;
 
 #endregion
 
@@ -16,9 +17,7 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
     private readonly Histogram<double> m_CommandExecutionTime;
     private readonly Counter<long> m_CommandsByUser;
 
-    private double m_CurrentLatency;
-
-    public BotMetricsService()
+    public BotMetricsService(GatewayClient client)
     {
         // TODO: Add env var for bot version
         m_Meter = new Meter("MehrakBot", "1.0.0");
@@ -46,7 +45,7 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
 
         m_Meter.CreateObservableGauge(
             "bot_latency_ms",
-            () => m_CurrentLatency,
+            () => client.Latency.TotalMilliseconds,
             unit: "ms",
             description: "Current Discord gateway latency in milliseconds"
         );
@@ -59,11 +58,6 @@ public sealed class BotMetricsService : IBotMetrics, IDisposable
             new KeyValuePair<string, object?>("command_name", commandName),
             new KeyValuePair<string, object?>("result", isSuccess ? "success" : "failure"));
         m_CommandsByUser.Add(1, new KeyValuePair<string, object?>("user_id", userId));
-    }
-
-    public void TrackDiscordLatency(double latencyMs)
-    {
-        m_CurrentLatency = latencyMs;
     }
 
     public IDisposable ObserveCommandDuration(string commandName)

@@ -11,6 +11,7 @@ using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hoyolab;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
 
 #endregion
 
@@ -32,14 +33,14 @@ internal static class BotServiceCollectionExtensions
         services.AddSingleton<IBotLocalizationService, BotLocalizationService>();
 
         services.AddSingleton<IBotMetrics, BotMetricsService>();
+        services.AddOpenTelemetry().WithMetrics(metrics => metrics
+            .AddMeter("MehrakBot")
+            .AddInstrumentation(sp => sp.GetRequiredService<IBotMetrics>()));
         services.AddSingleton<UserCountTrackerService>();
 
         services.AddHostedService<BotRichStatusService>();
 
         services.AddSingleton<ClickhouseClientService>();
-
-        services.AddHostedService<BotLatencyService>();
-
 
         // Bot specific game api services
         services.AddSingleton<IApiService<HylPost, HylPostApiContext>, HylPostApiService>();

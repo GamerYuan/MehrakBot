@@ -1,7 +1,5 @@
 ﻿namespace Mehrak.Domain.Shared.Services;
 
-public record StoredAttachmentResult(string OriginalFileName, string StorageFileName);
-
 public record AttachmentDownloadResult(Stream Content, string ContentType);
 
 public interface IAttachmentStorageService

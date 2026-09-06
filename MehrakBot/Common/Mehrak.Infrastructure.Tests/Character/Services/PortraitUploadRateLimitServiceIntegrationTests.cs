@@ -1,7 +1,6 @@
-﻿﻿﻿using Mehrak.Infrastructure.Character.Services;
+﻿using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Tests.TestUtils;
-using Microsoft.Extensions.Logging;
-using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 
 namespace Mehrak.Infrastructure.Tests.Character.Services;
@@ -25,7 +24,7 @@ internal class PortraitUploadRateLimitServiceIntegrationTests
     {
         m_Multiplexer = RedisTestHelper.Instance.CreateMultiplexer();
         m_Limiter = new PortraitUploadRateLimitService(
-            m_Multiplexer, Mock.Of<ILogger<PortraitUploadRateLimitService>>())
+            m_Multiplexer, NullLogger<PortraitUploadRateLimitService>.Instance)
         {
             UtcNowProvider = () => FixedTime
         };

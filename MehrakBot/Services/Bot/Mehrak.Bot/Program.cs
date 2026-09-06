@@ -23,22 +23,9 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        HostApplicationBuilderSettings settings = new()
-        {
-            Args = args,
-            Configuration = new ConfigurationManager(),
-            ContentRootPath = Directory.GetCurrentDirectory()
-        };
-
-        settings.Configuration.AddJsonFile("appsettings.json")
-            .AddUserSecrets<Program>()
-            .AddEnvironmentVariables()
-            .Build();
-
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.AddServiceDefaults();
-        builder.Services.AddOpenTelemetry().WithMetrics(m => m.AddMeter("MehrakBot"));
 
         if (builder.Environment.IsDevelopment())
         {
