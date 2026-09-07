@@ -1,10 +1,11 @@
-﻿﻿﻿using System.Data.Common;
+﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -285,25 +286,10 @@ public sealed class ProfileController : ControllerBase
         if (profile == null)
             return NotFound(new { error = $"No profile with ID {profileId} found." });
 
-        for (var i = profiles.Count - 1; i >= 0; i--)
-        {
-            if (profiles[i].ProfileId == profile.ProfileId)
-            {
-                m_UserContext.UserProfiles.Remove(profiles[i]);
-                profiles.RemoveAt(i);
-            }
-            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
-        }
-
         try
         {
-            await using var transaction = await m_UserContext.Database.BeginTransactionAsync(HttpContext.RequestAborted);
-
-            if (profiles.Count > 0)
-                m_UserContext.UserProfiles.UpdateRange(profiles);
-
-            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
-            await transaction.CommitAsync(HttpContext.RequestAborted);
+            await m_UserContext.DeleteAndReindexProfilesAsync(
+                profile, profiles, HttpContext.RequestAborted);
         }
         catch (DbUpdateException e)
         {
@@ -314,7 +300,7 @@ public sealed class ProfileController : ControllerBase
         // Deletion revokes both client caches.
         await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
-        if (profiles.Count == 0)
+        if (profiles.Count == 1)
             await m_UserTracker.AdjustUserCountAsync(-1);
 
         return NoContent();

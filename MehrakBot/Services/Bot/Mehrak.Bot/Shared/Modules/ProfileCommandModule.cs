@@ -99,23 +99,11 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        for (var i = profiles.Count - 1; i >= 0; i--)
-        {
-            if (profiles[i].ProfileId == profile.ProfileId)
-            {
-                m_UserContext.UserProfiles.Remove(profiles[i]);
-                profiles.RemoveAt(i);
-            }
-            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
-        }
-
         try
         {
-            m_UserContext.UserProfiles.UpdateRange(profiles);
+            await m_UserContext.DeleteAndReindexProfilesAsync(profile, profiles);
 
-            await m_UserContext.SaveChangesAsync();
-
-            if (profiles.Count == 0)
+            if (profiles.Count == 1)
             {
                 await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
