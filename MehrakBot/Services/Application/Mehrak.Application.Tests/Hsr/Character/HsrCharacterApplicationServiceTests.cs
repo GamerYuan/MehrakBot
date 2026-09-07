@@ -1178,7 +1178,7 @@ public class HsrCharacterApplicationServiceTests
         ICardGenerationContext<HsrCharacterInformation>? capturedContext = null;
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
-            .Callback<ICardGenerationContext<HsrCharacterInformation>>(ctx => capturedContext = ctx)
+            .Callback<ICardGenerationContext<HsrCharacterInformation>, CancellationToken>((ctx, _) => capturedContext = ctx)
             .ReturnsAsync(cardStream);
 
         var expectedId = charList.AvatarList.First(x => x.Name == "Trailblazer").Id;

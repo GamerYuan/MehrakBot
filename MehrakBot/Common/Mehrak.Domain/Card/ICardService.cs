@@ -8,5 +8,5 @@ namespace Mehrak.Domain.Card;
 
 public interface ICardService<TData>
 {
-    Task<Stream> GetCardAsync(ICardGenerationContext<TData> context);
+    Task<Stream> GetCardAsync(ICardGenerationContext<TData> context, CancellationToken cancellationToken = default);
 }

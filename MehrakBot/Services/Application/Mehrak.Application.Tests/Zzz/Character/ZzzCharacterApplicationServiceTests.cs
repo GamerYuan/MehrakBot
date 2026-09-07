@@ -974,7 +974,7 @@ public class ZzzCharacterApplicationServiceTests
         ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
         var cardStream = new MemoryStream();
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
-            .Callback<ICardGenerationContext<ZzzFullAvatarData>>(ctx => capturedContext = ctx)
+            .Callback<ICardGenerationContext<ZzzFullAvatarData>, CancellationToken>((ctx, _) => capturedContext = ctx)
             .ReturnsAsync(cardStream);
 
         var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
