@@ -174,35 +174,34 @@ public class GenshinWeaponImageProcessor
         Mat icon, Mat iconAlpha,
         Mat affineMat)
     {
-        using var ascendedGray = new Mat();
-        using var iconGray = new Mat();
-
-        Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
-        Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
-
-        // Warp ascended grayscale using current affine, then let ECC find residual
-        using var warpedGray = new Mat();
-        Cv2.WarpAffine(ascendedGray, warpedGray, affineMat,
-            new Size(icon.Width, icon.Height));
-
-        // Initialize residual as identity (Euclidean: translation + rotation + uniform scale)
-        using var warpMatrix = new Mat(2, 3, MatType.CV_64F);
-        warpMatrix.Set(0, 0, 1.0);
-        warpMatrix.Set(0, 1, 0.0);
-        warpMatrix.Set(0, 2, 0.0);
-        warpMatrix.Set(1, 0, 0.0);
-        warpMatrix.Set(1, 1, 1.0);
-        warpMatrix.Set(1, 2, 0.0);
-
         try
         {
+            using var ascendedGray = new Mat();
+            using var iconGray = new Mat();
+
+            Cv2.CvtColor(ascended, ascendedGray, ColorConversionCodes.BGRA2GRAY);
+            Cv2.CvtColor(icon, iconGray, ColorConversionCodes.BGRA2GRAY);
+
+            // Warp ascended grayscale using current affine, then let ECC find residual
+            using var warpedGray = new Mat();
+            Cv2.WarpAffine(ascendedGray, warpedGray, affineMat,
+                new Size(icon.Width, icon.Height));
+
+            // OpenCV's ECC implementation requires a single-channel CV_32F matrix.
+            // The returned matrix is an inverse warp (template coordinates to input
+            // coordinates), so invert it before composing with the forward affine.
+            using var warpMatrix = new Mat(2, 3, MatType.CV_32F);
+            Cv2.SetIdentity(warpMatrix);
             Cv2.FindTransformECC(
                 iconGray, warpedGray, warpMatrix,
                 MotionTypes.Euclidean,
                 new TermCriteria(CriteriaTypes.Count | CriteriaTypes.Eps, 10, 1e-4));
 
-            // Compose: refined = residual × initial
-            ComposeAffine(warpMatrix, affineMat, affineMat);
+            using var residualForward = new Mat();
+            Cv2.InvertAffineTransform(warpMatrix, residualForward);
+
+            // Compose: refined = forward residual × initial
+            ComposeAffine(residualForward, affineMat, affineMat);
 
             // Re-warp alpha and recompute IoU
             using var refinedAlpha = new Mat();
@@ -223,17 +222,24 @@ public class GenshinWeaponImageProcessor
     /// </summary>
     private static void ComposeAffine(Mat residual, Mat src, Mat dst)
     {
+        // ECC returns CV_32F while feature matching currently returns CV_64F. Copy
+        // both inputs to a stable type before reading, since src and dst may alias.
+        using var residual64 = new Mat();
+        using var src64 = new Mat();
+        residual.ConvertTo(residual64, MatType.CV_64F);
+        src.ConvertTo(src64, MatType.CV_64F);
+
         // Extract residual components
-        var rCos = residual.At<double>(0, 0);
-        var rSin = residual.At<double>(1, 0);
-        var rTx = residual.At<double>(0, 2);
-        var rTy = residual.At<double>(1, 2);
+        var rCos = residual64.At<double>(0, 0);
+        var rSin = residual64.At<double>(1, 0);
+        var rTx = residual64.At<double>(0, 2);
+        var rTy = residual64.At<double>(1, 2);
 
         // Extract source components
-        var sCos = src.At<double>(0, 0);
-        var sSin = src.At<double>(1, 0);
-        var sTx = src.At<double>(0, 2);
-        var sTy = src.At<double>(1, 2);
+        var sCos = src64.At<double>(0, 0);
+        var sSin = src64.At<double>(1, 0);
+        var sTx = src64.At<double>(0, 2);
+        var sTy = src64.At<double>(1, 2);
 
         // Compose: new rotation = residual * source
         var cos = rCos * sCos - rSin * sSin;
@@ -243,12 +249,14 @@ public class GenshinWeaponImageProcessor
         var tx = rCos * sTx - rSin * sTy + rTx;
         var ty = rSin * sTx + rCos * sTy + rTy;
 
-        dst.Set(0, 0, cos);
-        dst.Set(0, 1, -sin);
-        dst.Set(0, 2, tx);
-        dst.Set(1, 0, sin);
-        dst.Set(1, 1, cos);
-        dst.Set(1, 2, ty);
+        using var composed = new Mat(2, 3, MatType.CV_64F);
+        composed.Set(0, 0, cos);
+        composed.Set(0, 1, -sin);
+        composed.Set(0, 2, tx);
+        composed.Set(1, 0, sin);
+        composed.Set(1, 1, cos);
+        composed.Set(1, 2, ty);
+        composed.ConvertTo(dst, dst.Type());
     }
 
     private static Mat StreamToMat(Stream stream)
