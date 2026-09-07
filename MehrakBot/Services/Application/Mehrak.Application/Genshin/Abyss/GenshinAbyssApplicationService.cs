@@ -91,18 +91,6 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             ], isEphemeral: true);
         }
 
-        var filename = GetFileName(JsonSerializer.Serialize(floorData), "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(filename))
-        {
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
-                        CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ], isEphemeral: false);
-        }
-
         List<Task<bool>> tasks = [];
 
         tasks.AddRange(floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!))
@@ -161,14 +149,32 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
                 ResponseMessage.ImageUpdateError);
         }
 
+        var filename = GetCardFileName("genshin", "abyss", "v1", abyssData, profile,
+            new
+            {
+                Floor = floor,
+                Server = server,
+                ConstMap = new SortedDictionary<int, int>(constMap)
+            });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
+        {
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
+                        CommandText.TextType.Header3),
+                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
+                    new CommandAttachment(filename),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+            ], isEphemeral: false);
+        }
+
         var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(context.UserId, abyssData, profile);
 
         cardContext.SetParameter("constMap", constMap);
         cardContext.SetParameter("server", server);
         cardContext.SetParameter("floor", floor);
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

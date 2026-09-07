@@ -86,8 +86,9 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 
         var stygianData = stygianInfo.Data.Data[0].Single;
 
-        var filename = GetFileName(JsonSerializer.Serialize(stygianData), "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(filename))
+        var filename = GetCardFileName("genshin", "stygian", "v1", stygianData, profile,
+            new { Server = server });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             return CommandResult.Success(
                 [new CommandText($"<@{context.UserId}>'s Stygian Onslaught Summary",
@@ -122,8 +123,8 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
             stygianInfo.Data.Data[0], profile);
         cardContext.SetParameter("server", server);
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

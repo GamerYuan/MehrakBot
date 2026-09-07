@@ -98,18 +98,6 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var filename = GetFileName(JsonSerializer.Serialize(theaterData), "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(filename))
-        {
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
-                    new CommandText(
-                        $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ], true);
-        }
-
         var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
             .Select(async x =>
                 await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken));
@@ -146,6 +134,19 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
 
         var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
 
+        var filename = GetCardFileName("genshin", "theater", "v1", theaterData, profile,
+            new { Server = server, ConstMap = new SortedDictionary<int, int>(constMap) });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
+        {
+            return CommandResult.Success([
+                new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
+                    new CommandText(
+                        $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
+                    new CommandAttachment(filename),
+                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
+            ], true);
+        }
+
         var completed = await Task.WhenAll(updateImageTask.Concat(sideAvatarTask).Concat(buffTask));
 
         if (completed.Any(x => !x))
@@ -160,8 +161,8 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         cardContext.SetParameter("constMap", constMap);
         cardContext.SetParameter("server", server);
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

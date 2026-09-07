@@ -90,8 +90,8 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                 isEphemeral: true);
         }
 
-        var fileName = GetFileName(JsonSerializer.Serialize(defenseData), "jpg", gameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("zzz", "defense", "v1", defenseData, profile, new { Server = server });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
@@ -128,9 +128,9 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(context.UserId, defenseData, profile);
         cardContext.SetParameter("server", server);
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);

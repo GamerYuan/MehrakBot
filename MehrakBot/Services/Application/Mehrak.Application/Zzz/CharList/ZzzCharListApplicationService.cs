@@ -123,9 +123,9 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
 
         var buddies = buddyResponse.Data;
 
-        var filename = GetFileName($"{JsonSerializer.Serialize(characters)}_{JsonSerializer.Serialize(buddies)}",
-            "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(filename))
+        var filename = GetCardFileName("zzz", "char-list", "v1", new { Characters = characters, Buddies = buddies },
+            profile, new { Server = server });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             return CommandResult.Success(
             [
@@ -154,8 +154,8 @@ public class ZzzCharListApplicationService : BaseAttachmentApplicationService
                 (characters, buddies), profile);
         cardContext.SetParameter("server", server);
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

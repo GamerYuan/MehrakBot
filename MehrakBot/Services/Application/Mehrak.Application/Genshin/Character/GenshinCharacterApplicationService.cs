@@ -12,6 +12,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Character;
+using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Abstractions;
@@ -225,11 +226,22 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
             m_UserPortraitService, context.UserId, Game.Genshin, charData.Base.Name, cancellationToken);
 
-        var extraData = activePortrait != null
-            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
+        var stockConfigTask = activePortrait == null
+            ? m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id)
             : null;
-        var filename = GetFileName(JsonSerializer.Serialize(charData), "jpg", profile.GameUid, extraData);
-        if (await AttachmentExistsAsync(filename))
+        var stockConfig = await (stockConfigTask ?? Task.FromResult<CharacterPortraitConfig?>(null));
+
+        var statTask = m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, charData.Base.Name);
+        var (baseVal, maxAscVal) = statTask == null
+            ? ((float?)null, (float?)null)
+            : await statTask;
+        var ascension = charData.TryGetAscensionLevelCap(baseVal, maxAscVal, out var ascLevel)
+            ? ascLevel
+            : null;
+
+        var filename = GetCardFileName("genshin", "character", "v1", charData, profile,
+            new { Server = server, Portrait = activePortrait, StockConfig = stockConfig, Ascension = ascension });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
             return Result<string>.Success(filename);
@@ -310,32 +322,40 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
         }
 
-        var statTask = m_CharacterStatService.GetCharAscStatAsync(Game.Genshin, charData.Base.Name);
         var portraitTask = activePortrait != null
             ? PortraitResolutionHelper.ResolveActivePortraitAsync(
                 m_UserPortraitService, context.UserId, activePortrait,
                 () => m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id), cancellationToken)
-            : m_PortraitConfigService.GetConfigAsync(Game.Genshin, charData.Base.Id).ContinueWith(t => new PortraitResolution(null, t.Result), cancellationToken);
+            : Task.FromResult(new PortraitResolution(null, stockConfig));
 
-        await Task.WhenAll(statTask, portraitTask);
+        var resolution = await portraitTask;
 
-        var (baseVal, maxAscVal) = statTask.Result;
-        var resolution = portraitTask.Result;
+        if (resolution.UsedStockFallback)
+        {
+            filename = GetCardFileName("genshin", "character", "v1", charData, profile,
+                new
+                {
+                    Server = server,
+                    Portrait = resolution.Config,
+                    StockConfig = resolution.Config,
+                    Ascension = ascension
+                });
+        }
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId, charData, profile);
         cardContext.SetParameter("server", server);
 
-        if (charData.TryGetAscensionLevelCap(baseVal, maxAscVal, out var ascLevel))
+        if (ascension != null)
         {
-            cardContext.SetParameter("ascension", ascLevel.Value);
+            cardContext.SetParameter("ascension", ascension.Value);
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;
 
         try
         {
-            using var card = await m_CardService.GetCardAsync(cardContext);
-            if (!await StoreAttachmentAsync(context.UserId, filename, card))
+            using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+            if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
                 return Result<string>.Failure(StatusCode.BotError,
