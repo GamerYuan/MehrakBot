@@ -335,6 +335,37 @@ public class CodeRedeemApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_DuplicateCodesWithMixedCase_RedeemsOnlyOnce()
+    {
+        // Arrange
+        var (service, codeContext, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
+        var requestedCodes = new List<string>();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .Callback<CodeRedeemApiContext, CancellationToken>((context, _) => requestedCodes.Add(context.Code))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(
+                new CodeRedeemResult("Success", CodeStatus.Valid)));
+
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", " code1, CODE1, cOdE1 "),
+            ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(requestedCodes, Is.EqualTo(["CODE1"]));
+            Assert.That(await codeContext.Codes.CountAsync(), Is.EqualTo(1));
+        }
+    }
+
+    [Test]
     [TestCase(Game.Genshin)]
     [TestCase(Game.HonkaiStarRail)]
     [TestCase(Game.ZenlessZoneZero)]
