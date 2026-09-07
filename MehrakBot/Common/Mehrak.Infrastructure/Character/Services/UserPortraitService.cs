@@ -9,6 +9,7 @@ using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Mehrak.Infrastructure.Character.Services;
@@ -21,17 +22,21 @@ internal class UserPortraitService : IUserPortraitService
     private readonly IAmazonS3 m_S3;
     private readonly string m_Bucket;
     private readonly ILogger<UserPortraitService> m_Logger;
+    private readonly UserPortraitDeletionProcessor m_DeletionProcessor;
 
     public UserPortraitService(
         IServiceScopeFactory scopeFactory,
         IAmazonS3 s3,
         IOptions<UserPortraitStorageConfig> options,
-        ILogger<UserPortraitService> logger)
+        ILogger<UserPortraitService> logger,
+        UserPortraitDeletionProcessor? deletionProcessor = null)
     {
         m_ScopeFactory = scopeFactory;
         m_S3 = s3;
         m_Bucket = options.Value.Bucket;
         m_Logger = logger;
+        m_DeletionProcessor = deletionProcessor ?? new UserPortraitDeletionProcessor(
+            scopeFactory, s3, options, NullLogger<UserPortraitDeletionProcessor>.Instance);
     }
 
     public async Task<IReadOnlyCollection<UserPortraitUploadDto>> GetUserPortraitsAsync(
@@ -43,7 +48,8 @@ internal class UserPortraitService : IUserPortraitService
         var query = context.UserPortraitUploads
             .AsNoTracking()
             .Include(u => u.Config)
-            .Where(u => u.DiscordUserId == discordUserId && u.Game == game);
+            .Where(u => u.DiscordUserId == discordUserId && u.Game == game &&
+                        !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id));
 
         if (!string.IsNullOrWhiteSpace(characterName))
         {
@@ -68,7 +74,8 @@ internal class UserPortraitService : IUserPortraitService
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
             .Include(u => u.Config)
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
         return entity == null ? null : ToDto(entity);
     }
@@ -81,7 +88,8 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
         if (entity == null)
             return null;
@@ -126,7 +134,8 @@ internal class UserPortraitService : IUserPortraitService
 
         var exists = await context.UserPortraitUploads
             .AsNoTracking()
-            .AnyAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId && u.S3Key == s3Key, ct);
+            .AnyAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId && u.S3Key == s3Key &&
+                           !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
         if (!exists)
             return null;
@@ -273,18 +282,8 @@ internal class UserPortraitService : IUserPortraitService
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to save portrait upload record");
-            try
-            {
-                await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-                {
-                    BucketName = m_Bucket,
-                    Key = s3Key
-                }, ct);
-            }
-            catch (Exception cleanupEx)
-            {
-                m_Logger.LogWarning(cleanupEx, "Failed to clean up orphaned S3 object: {S3Key}", s3Key);
-            }
+            await transaction.RollbackAsync(CancellationToken.None);
+            await EnqueueStorageDeletionAsync(s3Key, ct);
             return new UploadPortraitResult
             {
                 Succeeded = false,
@@ -313,7 +312,8 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .Include(u => u.Config)
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
         if (entity == null)
             return false;
@@ -452,30 +452,40 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
         if (entity == null)
             return false;
 
-        // Delete from S3
-        try
-        {
-            await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-            {
-                BucketName = m_Bucket,
-                Key = entity.S3Key
-            }, ct);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogWarning(e, "Failed to delete portrait from S3: {S3Key}", entity.S3Key);
-        }
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
 
-        context.UserPortraitUploads.Remove(entity);
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+        if (entity == null)
+            return false;
+
+        // Commit the deletion intent before touching S3. The row is hidden from
+        // reads while this durable outbox entry is pending.
+        var deletion = new UserPortraitDeletionModel
+        {
+            UserPortraitUploadId = entity.Id,
+            S3Key = entity.S3Key
+        };
+        context.UserPortraitDeletions.Add(deletion);
 
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            // A failed storage call is intentionally recoverable; the hosted
+            // processor will retry the same idempotent deletion.
+            await m_DeletionProcessor.ProcessPendingDeletionAsync(deletion.Id, ct);
             return true;
         }
         catch (DbUpdateException e)
@@ -483,6 +493,34 @@ internal class UserPortraitService : IUserPortraitService
             m_Logger.LogError(e, "Failed to delete portrait upload record {UploadId}", uploadId);
             return false;
         }
+    }
+
+    private async Task EnqueueStorageDeletionAsync(string s3Key, CancellationToken cancellationToken)
+    {
+        Exception? lastException = null;
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                using var scope = m_ScopeFactory.CreateScope();
+                using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+                context.UserPortraitDeletions.Add(new UserPortraitDeletionModel { S3Key = s3Key });
+                await context.SaveChangesAsync(CancellationToken.None);
+                return;
+            }
+            catch (Exception exception) when (attempt < 3)
+            {
+                lastException = exception;
+                m_Logger.LogWarning(exception, "Failed to enqueue portrait storage cleanup attempt {Attempt}", attempt);
+                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt), CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                lastException = exception;
+            }
+        }
+
+        m_Logger.LogCritical(lastException, "Could not durably enqueue portrait storage cleanup for {S3Key}", s3Key);
     }
 
     public async Task<int> GetUploadCountAsync(long discordUserId, Game game, string characterName, CancellationToken ct = default)

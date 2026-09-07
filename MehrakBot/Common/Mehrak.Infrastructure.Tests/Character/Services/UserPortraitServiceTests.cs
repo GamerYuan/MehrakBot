@@ -397,5 +397,65 @@ internal sealed class UserPortraitServiceTests : IDisposable
         m_MockS3.Verify(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Test]
+    public async Task DeletePortraitAsync_StorageFailure_HidesPortraitAndLeavesRetryableOutbox()
+    {
+        SetupService();
+        UserPortraitUpload portrait;
+        await using (var ctx = CreateContext())
+        {
+            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
+            portrait = await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", s3Key: "100/delete.png");
+        }
+
+        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception("temporary storage failure"));
+
+        var result = await m_Service.DeletePortraitAsync(100L, portrait.Id);
+
+        Assert.That(result, Is.True);
+        Assert.That(await m_Service.GetPortraitAsync(100L, portrait.Id), Is.Null);
+
+        await using var verifyCtx = CreateContext();
+        var pending = await verifyCtx.UserPortraitDeletions.SingleAsync(x => x.UserPortraitUploadId == portrait.Id);
+        Assert.That(pending.Attempts, Is.GreaterThanOrEqualTo(1));
+        Assert.That(await verifyCtx.UserPortraitUploads.AnyAsync(x => x.Id == portrait.Id), Is.True);
+    }
+
+    [Test]
+    public async Task UserPortraitDeletionProcessor_RetryAfterStorageFailure_RemovesRowIdempotently()
+    {
+        SetupService();
+        UserPortraitUpload portrait;
+        await using (var ctx = CreateContext())
+        {
+            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
+            portrait = await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", s3Key: "100/retry.png");
+            ctx.UserPortraitDeletions.Add(new UserPortraitDeletionModel
+            {
+                UserPortraitUploadId = portrait.Id,
+                S3Key = portrait.S3Key
+            });
+            await ctx.SaveChangesAsync();
+        }
+
+        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
+        var processor = new UserPortraitDeletionProcessor(
+            CreateScopeFactory(),
+            m_MockS3.Object,
+            Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
+            NullLogger<UserPortraitDeletionProcessor>.Instance);
+
+        await processor.ProcessPendingDeletionsAsync();
+
+        await using var verifyCtx = CreateContext();
+        Assert.Multiple(() =>
+        {
+            Assert.That(verifyCtx.UserPortraitUploads.Any(x => x.Id == portrait.Id), Is.False);
+            Assert.That(verifyCtx.UserPortraitDeletions.Any(x => x.UserPortraitUploadId == portrait.Id), Is.False);
+        });
+    }
+
     #endregion
 }
