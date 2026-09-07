@@ -1,10 +1,11 @@
-﻿﻿﻿using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mehrak.Dashboard.Shared.Auth;
@@ -154,12 +155,14 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
                 return DashboardProfileAuthenticationResult.Failure("Unable to decrypt authentication token.");
             }
 
-            var upgradedCipher = await TryUpgradeLegacyTokenAsync(profile.Id, profile.LToken, decrypted, passphrase, discordUserId, profileId);
+            var upgradedCipher = await TryUpgradeLegacyTokenAsync(
+                profile.Id, profile.LToken, decrypted, passphrase, discordUserId, profileId, ct);
 
             // Re-read the stored credentials before caching: a rotation that
             // landed while this authentication was in flight must not be
             // repopulated into the cache with stale credentials.
             var currentCipher = await m_UserRepository.UserProfiles
+                .AsNoTracking()
                 .Where(p => p.Id == profile.Id)
                 .Select(p => p.LToken)
                 .FirstOrDefaultAsync(ct);
@@ -173,7 +176,8 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
             }
 
             if (!string.Equals(currentCipher, profile.LToken, StringComparison.Ordinal)
-                && !string.Equals(currentCipher, upgradedCipher, StringComparison.Ordinal))
+                && (upgradedCipher is null
+                    || !string.Equals(currentCipher, upgradedCipher, StringComparison.Ordinal)))
             {
                 m_Logger.LogWarning(
                     "Dashboard authentication refused: credentials for user {UserId}, profile {ProfileId} changed during authentication",
@@ -317,16 +321,24 @@ public class DashboardProfileAuthenticationService : IDashboardProfileAuthentica
         string decryptedLtoken,
         string passphrase,
         ulong discordUserId,
-        int profileId)
+        int profileId,
+        CancellationToken cancellationToken)
     {
         if (!m_EncryptionService.IsLegacyFormat(storedLtoken)) return null;
 
         try
         {
             var upgraded = m_EncryptionService.Encrypt(decryptedLtoken, passphrase);
-            var profileModel = await m_UserRepository.UserProfiles.SingleAsync(p => p.Id == profileRowId);
-            profileModel.LToken = upgraded;
-            await m_UserRepository.SaveChangesAsync();
+            var upgradedSuccessfully = await m_UserRepository.TryCompareAndSwapLTokenAsync(
+                profileRowId, storedLtoken, upgraded, cancellationToken);
+            if (!upgradedSuccessfully)
+            {
+                m_Logger.LogInformation(
+                    "Skipped stale legacy LToken upgrade for user {UserId}, profile {ProfileId}",
+                    discordUserId, profileId);
+                return null;
+            }
+
             m_Logger.LogInformation("Upgraded legacy LToken encryption for user {UserId}, profile {ProfileId}",
                 discordUserId, profileId);
             return upgraded;

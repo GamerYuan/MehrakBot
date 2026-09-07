@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
@@ -10,6 +10,7 @@ using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.Shared;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -208,7 +209,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         }
 
         if (!string.Equals(currentCipher, profile.LToken, StringComparison.Ordinal)
-            && !string.Equals(currentCipher, upgradedCipher, StringComparison.Ordinal))
+            && (upgradedCipher is null
+                || !string.Equals(currentCipher, upgradedCipher, StringComparison.Ordinal)))
         {
             m_Logger.LogWarning(
                 "Authentication refused: credentials for UserId={UserId}, LtUid={LtUid} changed during authentication",
@@ -255,9 +257,16 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         try
         {
             var upgraded = m_EncryptionService.Encrypt(decryptedLtoken, passphrase);
-            var profileModel = await userContext.UserProfiles.SingleAsync(p => p.Id == profileRowId);
-            profileModel.LToken = upgraded;
-            await userContext.SaveChangesAsync();
+            var upgradedSuccessfully = await userContext.TryCompareAndSwapLTokenAsync(
+                profileRowId, storedLtoken, upgraded);
+            if (!upgradedSuccessfully)
+            {
+                m_Logger.LogInformation(
+                    "Skipped stale legacy LToken upgrade for UserId={UserId}, ProfileId={ProfileId}",
+                    userId, profileRowId);
+                return null;
+            }
+
             m_Logger.LogInformation("Upgraded legacy LToken encryption for UserId={UserId}, ProfileId={ProfileId}",
                 userId, profileRowId);
             return upgraded;
