@@ -98,16 +98,19 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
 
     private void ApplyPortraitMutate(IImageProcessingContext ctx, CharacterPortraitConfig? config)
     {
-        if (config?.TargetScale is float scale &&
-            float.IsFinite(scale) && scale >= MinPortraitScale && scale <= MaxPortraitScale)
+        var size = ctx.GetCurrentSize();
+        var scale = config?.TargetScale is float requestedScale &&
+                    float.IsFinite(requestedScale) &&
+                    requestedScale >= MinPortraitScale && requestedScale <= MaxPortraitScale
+            ? requestedScale
+            : (float)DefaultPortraitWidth / Math.Max(1, size.Width);
+        var targetSize = ComputePortraitTargetSize(size.Width, size.Height, scale);
+        ctx.Resize(new ResizeOptions
         {
-            var size = ctx.GetCurrentSize();
-            ctx.Resize(ComputePortraitTargetWidth(size.Width, size.Height, scale), 0, PortraitResampler);
-        }
-        else
-        {
-            ctx.Resize(DefaultPortraitWidth, 0, PortraitResampler);
-        }
+            Size = targetSize,
+            Mode = ResizeMode.Stretch,
+            Sampler = PortraitResampler
+        });
 
         if (config?.FlipX == true)
             ctx.Flip(FlipMode.Horizontal);
@@ -121,12 +124,38 @@ public abstract class CharacterCardServiceBase<TData> : CardServiceBase<TData>
     /// </summary>
     internal static int ComputePortraitTargetWidth(int sourceWidth, int sourceHeight, float scale)
     {
-        if (sourceWidth <= 0 || sourceHeight <= 0)
-            return 1;
+        return ComputePortraitTargetSize(sourceWidth, sourceHeight, scale).Width;
+    }
 
-        var desiredWidth = (double)sourceWidth * scale;
-        var maxWidthByPixels = Math.Sqrt((double)MaxPortraitOutputPixels * sourceWidth / sourceHeight);
-        var clamped = Math.Min(desiredWidth, Math.Min(MaxPortraitOutputDimension, maxWidthByPixels));
-        return Math.Max(1, (int)Math.Round(clamped));
+    internal static Size ComputePortraitTargetSize(int sourceWidth, int sourceHeight, float scale)
+    {
+        if (sourceWidth <= 0 || sourceHeight <= 0 || !float.IsFinite(scale) || scale <= 0)
+            return new Size(1, 1);
+
+        var sourcePixels = (double)sourceWidth * sourceHeight;
+        var maximumScale = Math.Min(
+            Math.Min((double)MaxPortraitOutputDimension / sourceWidth,
+                (double)MaxPortraitOutputDimension / sourceHeight),
+            Math.Sqrt(MaxPortraitOutputPixels / sourcePixels));
+        var effectiveScale = Math.Min(scale, maximumScale);
+
+        var width = Math.Clamp((int)Math.Round(sourceWidth * effectiveScale), 1, MaxPortraitOutputDimension);
+        var height = Math.Clamp((int)Math.Round(sourceHeight * effectiveScale), 1, MaxPortraitOutputDimension);
+
+        // Rounding both dimensions can add enough pixels to cross the budget. Reduce the
+        // dimension with the larger rounding error until the final allocation is safe.
+        while ((long)width * height > MaxPortraitOutputPixels)
+        {
+            var widthError = Math.Abs(width - sourceWidth * effectiveScale);
+            var heightError = Math.Abs(height - sourceHeight * effectiveScale);
+            if (widthError >= heightError && width > 1)
+                width--;
+            else if (height > 1)
+                height--;
+            else
+                break;
+        }
+
+        return new Size(width, height);
     }
 }
