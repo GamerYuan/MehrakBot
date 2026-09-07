@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Character;
@@ -78,6 +78,23 @@ public class ZzzCharacterApiServiceTests
     public async Task GetAllCharactersAsync_RetCode10001WithData_ReturnsUnauthorized()
     {
         m_Handler.EnqueueJson(string.Format(DataWithRetcodeTemplate, 10001));
+        var service = CreateService();
+        var context = new CharacterApiContext(1, 100, "ltoken", "600000001", "prod_gf_jp");
+
+        var result = await service.GetAllCharactersAsync(context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Does.Contain("Invalid HoYoLAB UID or Cookies"));
+        });
+    }
+
+    [Test]
+    public async Task GetAllCharactersAsync_RetCode10001WithoutData_ReturnsUnauthorized()
+    {
+        m_Handler.EnqueueJson("""{"retcode":10001,"message":"auth error"}""");
         var service = CreateService();
         var context = new CharacterApiContext(1, 100, "ltoken", "600000001", "prod_gf_jp");
 

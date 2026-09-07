@@ -1,4 +1,4 @@
-using Mehrak.Domain.Cache;
+﻿using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
@@ -79,9 +79,8 @@ public class GenshinCharacterApiServiceTests
     }
 
     [Test]
-    public async Task GetAllCharactersAsync_RetCode10001WithoutData_ReturnsExternalServerError()
+    public async Task GetAllCharactersAsync_RetCode10001WithoutData_ReturnsUnauthorized()
     {
-        // Quirk: empty-data check precedes retcode handling, so bare 10001 never maps to Unauthorized
         m_Handler.EnqueueJson("""{"retcode":10001,"message":"auth error"}""");
         var service = CreateService();
         var context = new GenshinCharacterApiContext(1, 100, "ltoken", "900000001", "os_asia");
@@ -91,7 +90,8 @@ public class GenshinCharacterApiServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Does.Contain("Invalid HoYoLAB UID or Cookies"));
         });
     }
 
