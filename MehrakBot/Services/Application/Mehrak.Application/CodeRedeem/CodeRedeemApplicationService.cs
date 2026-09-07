@@ -80,7 +80,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
             codes = (await m_CodeContext.Codes.AsNoTracking()
                 .Where(x => x.Game == game)
                 .Select(x => x.Code)
-                .ToListAsync())
+                .ToListAsync(cancellationToken))
                 .Select(NormalizeCode)
                 .Where(x => !string.IsNullOrEmpty(x))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -131,12 +131,13 @@ public class CodeRedeemApplicationService : BaseApplicationService
         }
 
         if (successfulCodes.Count > 0)
-            _ = UpdateCodesAsync(game, successfulCodes);
+            await UpdateCodesAsync(game, successfulCodes, cancellationToken);
 
         return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
     }
 
-    private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes)
+    private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes,
+        CancellationToken cancellationToken)
     {
         var incoming = codes.Select(x => x.Key).ToHashSet();
 
@@ -175,7 +176,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
 
         try
         {
-            await m_CodeContext.SaveChangesAsync();
+            await m_CodeContext.SaveChangesAsync(cancellationToken);
             Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
                 newValidCodes.Count, codesToRemove.Count, game);
         }
