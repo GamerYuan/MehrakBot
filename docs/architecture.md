@@ -206,3 +206,27 @@ Response envelope (`CommandResult`) carries:
 - Text/components
 - Attachment references (filename + source type)
 - Optional ephemeral message to surface partial failures
+
+## Startup ownership and database migrations
+
+The shared `AddInfrastructureServices` registration contains reusable database contexts, Redis, object storage,
+cache, and domain services. It deliberately does not register process-wide hosted jobs. Hosted work is assigned to
+one process so a multi-process deployment does not repeat the same startup or maintenance operation:
+
+- `Mehrak.Application` owns attachment-bucket setup and character/alias cache initialization. It also owns the
+  attachment expiration scan registered by its application startup.
+- `Mehrak.Bot` owns the Redis user-count backfill used by the bot presence. Bot and Dashboard profile mutations still
+  update the same shared counter.
+- `Mehrak.Dashboard` owns expired dashboard-session cleanup.
+
+In Aspire local development, `migration-service` is a one-shot project. Application, Bot, and Dashboard each use a
+successful-completion dependency on it, so database-backed startup work (including Dashboard seeding and user-count
+backfill) begins only after all EF Core migrations finish successfully. A failed migration prevents those services
+from starting.
+
+Production Compose keeps migration separate from the long-running services. Run the migration service explicitly with
+the migration Compose overlay before starting or updating the application services:
+
+```text
+docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.migration.yml up --build migration-service
+```

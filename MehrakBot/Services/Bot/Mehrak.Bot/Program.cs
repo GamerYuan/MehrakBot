@@ -50,6 +50,7 @@ public class Program
             builder.Services.Configure<AttachmentStorageConfig>(builder.Configuration.GetSection("AttachmentStorage"));
 
             builder.Services.AddInfrastructureServices();
+            builder.Services.AddBotInfrastructureHostedServices();
             builder.Services.AddBotServices();
             builder.Services.AddGrpcClient<ApplicationService.ApplicationServiceClient>(options =>
             {

@@ -50,6 +50,7 @@ public class Program
         builder.Services.AddGameApiServices();
         builder.Services.Configure<AttachmentStorageConfig>(builder.Configuration.GetSection("AttachmentStorage"));
         builder.Services.AddInfrastructureServices();
+        builder.Services.AddApplicationInfrastructureHostedServices();
         builder.Services.AddHostedService<AttachmentExpirationBackgroundService>();
         builder.Services.AddApplicationServices();
 
