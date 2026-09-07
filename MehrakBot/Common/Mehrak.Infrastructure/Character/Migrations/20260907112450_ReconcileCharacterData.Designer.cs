@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.Character;
+﻿using Mehrak.Infrastructure.Character;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
