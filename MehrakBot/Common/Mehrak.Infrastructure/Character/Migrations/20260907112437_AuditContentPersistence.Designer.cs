@@ -3,17 +3,20 @@ using System;
 using Mehrak.Infrastructure.Character;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Migrations.CharacterDb
+namespace Mehrak.Infrastructure.Character.Migrations
 {
     [DbContext(typeof(CharacterDbContext))]
-    partial class CharacterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907112437_AuditContentPersistence")]
+    partial class AuditContentPersistence
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -294,9 +297,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasIndex("DiscordUserId", "Game", "CharacterName");
 
-                    b.HasIndex("DiscordUserId", "Game", "CharacterName", "IsActive")
-                        .IsUnique()
-                        .HasFilter("\"IsActive\" = TRUE");
+                    b.HasIndex("DiscordUserId", "Game", "CharacterName", "IsActive");
 
                     b.HasIndex("DiscordUserId", "Game", "CharacterName", "SHA256Hash")
                         .IsUnique();

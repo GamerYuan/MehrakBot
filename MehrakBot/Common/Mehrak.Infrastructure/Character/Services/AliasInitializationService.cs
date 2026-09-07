@@ -37,6 +37,7 @@ internal class AliasInitializationService : IHostedService
 
         try
         {
+            await m_AliasService.ReconcileAliasesAsync();
             await InitializeAliasesFromJsonFiles();
             await m_AliasService.UpdateAllAliasesAsync();
             m_Logger.LogInformation("Alias initialization completed successfully");
@@ -96,8 +97,10 @@ internal class AliasInitializationService : IHostedService
 
             var gameName = aliasJsonModel.Game;
             var aliases = aliasJsonModel.Aliases
-                .SelectMany(x => x.Alias.Select(alias => (alias, x.Name)))
-                .ToDictionary(x => x.alias, x => x.Name);
+                .SelectMany(x => x.Alias.Select(alias => (alias: AliasModel.NormalizeAlias(alias), x.Name)))
+                .Where(x => x.alias.Length > 0)
+                .GroupBy(x => x.alias, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.First().Name, StringComparer.OrdinalIgnoreCase);
 
             if (aliases.Count > 0)
             {

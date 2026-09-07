@@ -7,10 +7,12 @@ public class CharacterDbContext(DbContextOptions<CharacterDbContext> options) : 
 {
     public DbSet<CharacterModel> Characters { get; set; }
     public DbSet<AliasModel> Aliases { get; set; }
+    public DbSet<AliasConflictModel> AliasConflicts { get; set; }
     public DbSet<CharacterPortraitConfigModel> CharacterPortraitConfigs { get; set; }
     public DbSet<CharacterServerIdModel> CharacterServerIds { get; set; }
     public DbSet<UserPortraitUpload> UserPortraitUploads { get; set; }
     public DbSet<UserPortraitConfigModel> UserPortraitConfigs { get; set; }
+    public DbSet<UserPortraitDeletionModel> UserPortraitDeletions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,6 +25,15 @@ public class CharacterDbContext(DbContextOptions<CharacterDbContext> options) : 
         modelBuilder.Entity<UserPortraitUpload>()
             .HasIndex(u => new { u.DiscordUserId, u.Game, u.CharacterName, u.SHA256Hash })
             .IsUnique();
+
+        modelBuilder.Entity<UserPortraitDeletionModel>()
+            .HasIndex(d => d.UserPortraitUploadId)
+            .IsUnique();
+
+        modelBuilder.Entity<UserPortraitUpload>()
+            .HasIndex(u => new { u.DiscordUserId, u.Game, u.CharacterName, u.IsActive })
+            .IsUnique()
+            .HasFilter("\"IsActive\" = TRUE");
 
         modelBuilder.Entity<UserPortraitUpload>()
             .HasOne(u => u.Config)

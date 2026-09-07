@@ -75,7 +75,7 @@ public class AliasController : GameWriteController
         m_Logger.LogInformation("Adding {Count} aliases for character {Character} in game {Game}", normalizedAliases.Length,
             characterName, gameEnum);
 
-        var newAliases = normalizedAliases.ToDictionary(a => a, _ => characterName);
+        var newAliases = normalizedAliases.ToDictionary(a => a, _ => characterName, StringComparer.OrdinalIgnoreCase);
         await m_AliasService.UpsertAliases(gameEnum, newAliases);
 
         return NoContent();

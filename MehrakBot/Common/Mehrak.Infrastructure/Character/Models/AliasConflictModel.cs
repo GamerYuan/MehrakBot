@@ -1,15 +1,9 @@
-﻿#region
-
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Domain.Shared.Enums;
-using Microsoft.EntityFrameworkCore;
-
-#endregion
 
 namespace Mehrak.Infrastructure.Character.Models;
 
-[Index(nameof(Game), nameof(Alias), IsUnique = true)]
-public class AliasModel
+public class AliasConflictModel
 {
     [Key]
     public int Id { get; set; }
@@ -19,9 +13,13 @@ public class AliasModel
     [MaxLength(20)]
     public string Alias { get; set; } = string.Empty;
 
+    [MaxLength(20)]
+    public string OriginalAlias { get; set; } = string.Empty;
+
     [MaxLength(100)]
     public string CharacterName { get; set; } = string.Empty;
 
-    public static string NormalizeAlias(string alias) =>
-        alias.ReplaceLineEndings("").Trim().ToLowerInvariant();
+    public int SourceAliasId { get; set; }
+
+    public DateTime RecordedAtUtc { get; set; } = DateTime.UtcNow;
 }
