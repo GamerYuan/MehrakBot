@@ -106,6 +106,10 @@ internal class UserPortraitService : IUserPortraitService
             var contentType = ResolveContentType(entity.S3Key);
             return new AttachmentDownloadResult(stream, contentType);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to retrieve portrait image from S3: {S3Key}", entity.S3Key);
@@ -165,6 +169,9 @@ internal class UserPortraitService : IUserPortraitService
 
         using var scope = m_ScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{game}:{normalizedCharacter}", ct);
 
         // Validate character exists
         var characterExists = await context.Characters
@@ -285,6 +292,8 @@ internal class UserPortraitService : IUserPortraitService
             };
         }
 
+        await transaction.CommitAsync(ct);
+
         m_Logger.LogInformation("Portrait uploaded: {UploadId} for {DiscordUserId} - {Game}/{Character}",
             upload.Id, discordUserId, game, normalizedCharacter);
 
@@ -350,8 +359,20 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
+        if (entity == null)
+            return false;
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
+
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
         if (entity == null)
             return false;
 
@@ -367,12 +388,15 @@ internal class UserPortraitService : IUserPortraitService
         foreach (var sibling in siblings)
             sibling.IsActive = false;
 
+        await context.SaveChangesAsync(ct);
+
         entity.IsActive = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return true;
         }
         catch (DbUpdateException e)
@@ -389,8 +413,20 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
 
+        if (entity == null)
+            return false;
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
+
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
+                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
         if (entity == null)
             return false;
 
@@ -400,6 +436,7 @@ internal class UserPortraitService : IUserPortraitService
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return true;
         }
         catch (DbUpdateException e)

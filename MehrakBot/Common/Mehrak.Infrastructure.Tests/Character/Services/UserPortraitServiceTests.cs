@@ -372,5 +372,30 @@ internal sealed class UserPortraitServiceTests : IDisposable
         });
     }
 
+    [Test]
+    public async Task UploadPortraitAsync_FifthPortraitReached_ReturnsQuotaError()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
+            for (var index = 0; index < 5; index++)
+            {
+                await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", sha256: $"existing-{index}",
+                    s3Key: $"100/{index}.png", isActive: index == 0);
+            }
+        }
+
+        var result = await m_Service.UploadPortraitAsync(
+            100L, Game.Genshin, "Raiden", new MemoryStream(), "newhash", "png");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error, Does.Contain("Maximum"));
+        });
+        m_MockS3.Verify(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     #endregion
 }
