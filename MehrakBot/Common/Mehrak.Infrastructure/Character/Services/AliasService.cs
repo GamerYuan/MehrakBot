@@ -16,6 +16,8 @@ namespace Mehrak.Infrastructure.Character.Services;
 
 public class AliasService : IAliasService
 {
+    private const int CacheRefreshAttempts = 3;
+
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasService> m_Logger;
     private readonly IConnectionMultiplexer m_Redis;
@@ -194,16 +196,48 @@ public class AliasService : IAliasService
             .OrderBy(alias => alias.Alias)
             .ToListAsync();
 
-        var transaction = m_Redis.GetDatabase().CreateTransaction();
-        _ = transaction.KeyDeleteAsync(GetAliasKey(gameName));
-        if (aliases.Count > 0)
+        Exception? lastException = null;
+        for (var attempt = 1; attempt <= CacheRefreshAttempts; attempt++)
         {
-            _ = transaction.HashSetAsync(GetAliasKey(gameName), aliases
-                .Select(alias => new HashEntry(alias.Alias, alias.CharacterName))
-                .ToArray());
+            try
+            {
+                var transaction = Db.CreateTransaction();
+                _ = transaction.KeyDeleteAsync(GetAliasKey(gameName));
+                if (aliases.Count > 0)
+                {
+                    _ = transaction.HashSetAsync(GetAliasKey(gameName), aliases
+                        .Select(alias => new HashEntry(alias.Alias, alias.CharacterName))
+                        .ToArray());
+                }
+
+                if (await transaction.ExecuteAsync())
+                    return;
+
+                throw new RedisException("Redis transaction was not committed.");
+            }
+            catch (Exception exception) when (attempt < CacheRefreshAttempts)
+            {
+                lastException = exception;
+                m_Logger.LogWarning(exception, "Alias cache refresh attempt {Attempt} failed for {Game}", attempt, gameName);
+                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt));
+            }
+            catch (Exception exception)
+            {
+                lastException = exception;
+            }
         }
 
-        if (!await transaction.ExecuteAsync())
-            throw new RedisException("Redis transaction was not committed.");
+        try
+        {
+            await Db.KeyDeleteAsync(GetAliasKey(gameName));
+        }
+        catch (Exception invalidationException)
+        {
+            lastException = new AggregateException(lastException!, invalidationException);
+        }
+
+        throw new CacheSynchronizationException(
+            $"Database committed for aliases in {gameName}, but the Redis cache could not be refreshed.",
+            lastException!);
     }
 }

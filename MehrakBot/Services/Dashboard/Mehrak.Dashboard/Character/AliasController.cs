@@ -3,6 +3,8 @@ using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Mehrak.Dashboard.Character;
 
@@ -76,7 +78,27 @@ public class AliasController : GameWriteController
             characterName, gameEnum);
 
         var newAliases = normalizedAliases.ToDictionary(a => a, _ => characterName, StringComparer.OrdinalIgnoreCase);
-        await m_AliasService.UpsertAliases(gameEnum, newAliases);
+        try
+        {
+            await m_AliasService.UpsertAliases(gameEnum, newAliases);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
+        {
+            m_Logger.LogWarning(exception, "Alias insert raced with another request for game {Game}", gameEnum);
+            return Conflict(new { error = "One or more aliases were added by another request. Refresh and try again." });
+        }
+        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
+        {
+            m_Logger.LogError(exception, "Aliases were committed but cache refresh failed for {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "Aliases were saved, but the alias cache is temporarily unavailable." });
+        }
+        catch (DbUpdateException exception)
+        {
+            m_Logger.LogError(exception, "Failed to add aliases for game {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "Failed to save aliases. Please try again later." });
+        }
 
         return NoContent();
     }
@@ -97,7 +119,22 @@ public class AliasController : GameWriteController
         var normalized = alias.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting alias {Alias} for game {Game}", normalized, gameEnum);
 
-        await m_AliasService.DeleteAlias(gameEnum, normalized);
+        try
+        {
+            await m_AliasService.DeleteAlias(gameEnum, normalized);
+        }
+        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
+        {
+            m_Logger.LogError(exception, "Alias deletion committed but cache refresh failed for {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "Alias was deleted, but the alias cache is temporarily unavailable." });
+        }
+        catch (DbUpdateException exception)
+        {
+            m_Logger.LogError(exception, "Failed to delete alias for game {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "Failed to delete alias. Please try again later." });
+        }
 
         return NoContent();
     }
