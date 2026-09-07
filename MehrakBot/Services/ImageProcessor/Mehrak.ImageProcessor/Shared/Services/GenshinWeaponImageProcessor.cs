@@ -150,7 +150,7 @@ public class GenshinWeaponImageProcessor
         resized.CopyTo(src);
     }
 
-    private static double ComputeIoU(Mat warpedAlpha, Mat iconAlpha)
+    internal static double ComputeIoU(Mat warpedAlpha, Mat iconAlpha)
     {
         using var binaryWarped = new Mat();
         using var binaryIcon = new Mat();
@@ -169,7 +169,7 @@ public class GenshinWeaponImageProcessor
         return unionCount == 0 ? 0 : interCount / (double)unionCount;
     }
 
-    private static double AttemptEccRefinement(
+    internal static double AttemptEccRefinement(
         Mat ascended, Mat ascendedAlpha,
         Mat icon, Mat iconAlpha,
         Mat affineMat)
