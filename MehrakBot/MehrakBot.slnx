@@ -31,5 +31,6 @@
     <Project Path="Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
   </Folder>
   <Project Path="Mehrak.AppHost/Mehrak.AppHost.csproj" />
+  <Project Path="Mehrak.AppHost.Tests/Mehrak.AppHost.Tests.csproj" />
 
 </Solution>
