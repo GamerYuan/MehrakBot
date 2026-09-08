@@ -37,16 +37,6 @@ internal sealed class InfrastructureServiceCollectionExtensionsTests
     }
 
     [Test]
-    public void BotHostedServices_RegisterOnlyUserCountBackfill()
-    {
-        var services = new ServiceCollection();
-
-        services.AddBotInfrastructureHostedServices();
-
-        Assert.That(GetHostedServiceTypes(services), Is.EqualTo([typeof(UserTrackerBackfillService)]));
-    }
-
-    [Test]
     public void DashboardHostedServices_RegisterOnlySessionCleanup()
     {
         var services = new ServiceCollection();

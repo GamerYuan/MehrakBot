@@ -1,7 +1,6 @@
 ﻿using Mehrak.Infrastructure.Auth.Services;
 using Mehrak.Infrastructure.Character.Services;
 using Mehrak.Infrastructure.Shared.Storage;
-using Mehrak.Infrastructure.User.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Mehrak.Infrastructure;
@@ -18,16 +17,6 @@ public static class InfrastructureHostedServiceCollectionExtensions
         services.AddHostedService<AttachmentStorageInitializer>();
         services.AddHostedService<CharacterInitializationService>();
         services.AddHostedService<AliasInitializationService>();
-        return services;
-    }
-
-    /// <summary>
-    /// Registers the user-count backfill owned by the Bot process, which publishes the count used by its presence.
-    /// Profile mutations from Bot and Dashboard continue to update the same shared tracker.
-    /// </summary>
-    public static IServiceCollection AddBotInfrastructureHostedServices(this IServiceCollection services)
-    {
-        services.AddHostedService<UserTrackerBackfillService>();
         return services;
     }
 
