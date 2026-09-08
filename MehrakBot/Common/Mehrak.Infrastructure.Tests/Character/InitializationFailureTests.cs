@@ -21,7 +21,7 @@ internal sealed class InitializationFailureTests
         var builder = Host.CreateApplicationBuilder();
         var missingAssets = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         builder.Services.AddSingleton<IHostedService>(services => aliases
-            ? new AliasInitializationService(services.GetRequiredService<IServiceScopeFactory>(),
+            ? ActivatorUtilities.CreateInstance<AliasInitializationService>(services,
                 NullLogger<AliasInitializationService>.Instance, alias.Object, missingAssets)
             : new CharacterInitializationService(services.GetRequiredService<IServiceScopeFactory>(),
                 NullLogger<CharacterInitializationService>.Instance, cache.Object, missingAssets));
