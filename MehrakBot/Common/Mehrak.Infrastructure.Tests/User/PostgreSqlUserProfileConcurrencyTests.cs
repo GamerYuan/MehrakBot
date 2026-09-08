@@ -1,4 +1,4 @@
-using Mehrak.Infrastructure.User;
+﻿using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
@@ -130,6 +130,77 @@ public class PostgreSqlUserProfileConcurrencyTests
             Assert.That(stored[0].LastCheckIn, Is.EqualTo(concurrentUpdate.LastCheckIn));
             Assert.That(stored[1].LtUid, Is.EqualTo(333));
             Assert.That(stored[1].LToken, Is.EqualTo("cipher-three"));
+        });
+    }
+
+    [Test]
+    public async Task ConcurrentDeletes_FromIndependentSnapshots_AllowNextProfileAdd()
+    {
+        await using var firstDeleteContext = CreateContext();
+        await using var secondDeleteContext = CreateContext();
+        await AssertIndependentConnectionsAsync(firstDeleteContext, secondDeleteContext);
+
+        // Resolve the requested rows before either mutation starts. The row
+        // IDs remain stable even though the user-facing ProfileIds are
+        // compacted by the first deletion.
+        var firstProfiles = await firstDeleteContext.UserProfiles
+            .OrderBy(profile => profile.ProfileId)
+            .ToListAsync();
+        var secondProfiles = await secondDeleteContext.UserProfiles
+            .OrderBy(profile => profile.ProfileId)
+            .ToListAsync();
+        using var snapshotBarrier = new Barrier(2);
+
+        var deleteTasks = new[]
+        {
+            Task.Run(async () =>
+            {
+                snapshotBarrier.SignalAndWait();
+                return await firstDeleteContext.DeleteAndReindexProfilesAsync(firstProfiles[0]);
+            }),
+            Task.Run(async () =>
+            {
+                snapshotBarrier.SignalAndWait();
+                return await secondDeleteContext.DeleteAndReindexProfilesAsync(secondProfiles[1]);
+            })
+        };
+
+        var deletions = await Task.WhenAll(deleteTasks);
+        Assert.That(deletions, Has.All.Not.Null);
+
+        await using var addContext = CreateContext();
+        var addedProfileId = await addContext.ExecuteUserProfileMutationAsync(
+            100,
+            async () =>
+            {
+                addContext.ChangeTracker.Clear();
+                var user = await addContext.Users
+                    .Include(existing => existing.Profiles)
+                    .SingleAsync(existing => existing.Id == 100);
+                var profile = new UserProfileModel
+                {
+                    UserId = user.Id,
+                    ProfileId = user.Profiles.Count + 1,
+                    LtUid = 444,
+                    LToken = "cipher-four"
+                };
+                user.Profiles.Add(profile);
+                await addContext.SaveChangesAsync();
+                return profile.ProfileId;
+            });
+
+        await using var verificationContext = CreateContext();
+        var stored = await verificationContext.UserProfiles
+            .AsNoTracking()
+            .OrderBy(profile => profile.ProfileId)
+            .ToListAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(addedProfileId, Is.EqualTo(2));
+            Assert.That(stored.Select(profile => profile.ProfileId), Is.EqualTo([1, 2]));
+            Assert.That(stored.Select(profile => profile.ProfileId).Distinct().Count(), Is.EqualTo(2));
+            Assert.That(stored.Single(profile => profile.LtUid == 444).ProfileId, Is.EqualTo(2));
         });
     }
 
