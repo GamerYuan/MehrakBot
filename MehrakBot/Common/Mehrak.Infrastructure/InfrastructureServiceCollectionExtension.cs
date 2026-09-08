@@ -84,13 +84,9 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<IImageRepository, ImageRepository>();
 
         services.AddSingleton<IAttachmentStorageService, AttachmentStorageService>();
-        services.AddHostedService<AttachmentStorageInitializer>();
-
         services.AddSingleton<ICacheService, RedisCacheService>();
 
         // Character Cache Services
-        services.AddHostedService<CharacterInitializationService>();
-        services.AddHostedService<AliasInitializationService>();
         services.AddSingleton<ICharacterCacheService, CharacterCacheService>();
         services.AddSingleton<IAliasService, AliasService>();
 
@@ -98,10 +94,8 @@ public static class InfrastructureServiceCollectionExtension
         services.AddSingleton<ICharacterPortraitConfigService, CharacterPortraitConfigService>();
 
         services.AddScoped<IDashboardSessionService, DashboardSessionService>();
-        services.AddHostedService<SessionCleanupService>();
 
         services.AddSingleton<UserCountTrackerService>();
-        services.AddHostedService<UserTrackerBackfillService>();
 
         services.AddSingleton<IUserPortraitService, UserPortraitService>();
         services.AddSingleton<IPortraitUploadRateLimitService, PortraitUploadRateLimitService>();

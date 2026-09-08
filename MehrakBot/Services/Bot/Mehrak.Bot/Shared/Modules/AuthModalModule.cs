@@ -67,14 +67,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ICacheService? m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<AuthModalModule> logger,
         ICacheService? cacheService = null)
@@ -83,7 +81,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_CookieService = cookieService;
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_CacheService = cacheService;
     }
@@ -218,16 +215,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         }
 
                         if (user.Profiles.Count >= 10)
-                            return new ProfileAddResult(ProfileAddStatus.TooMany, false);
+                            return new ProfileAddResult(ProfileAddStatus.TooMany);
 
                         if (user.Profiles.Any(existing => existing.LtUid == (long)ltuid))
-                            return new ProfileAddResult(ProfileAddStatus.Duplicate, false);
-
-                        var hadProfiles = user.Profiles.Count > 0;
+                            return new ProfileAddResult(ProfileAddStatus.Duplicate);
                         profile.ProfileId = user.Profiles.Count + 1;
                         user.Profiles.Add(profile);
                         await m_UserContext.SaveChangesAsync();
-                        return new ProfileAddResult(ProfileAddStatus.Added, hadProfiles);
+                        return new ProfileAddResult(ProfileAddStatus.Added);
                     });
 
                 if (addResult.Status == ProfileAddStatus.TooMany)
@@ -247,15 +242,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     return;
                 }
 
-                if (!addResult.HadProfiles)
-                    try
-                    {
-                        await m_UserTracker.AdjustUserCountAsync(1);
-                    }
-                    catch (Exception e)
-                    {
-                        m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
-                    }
                 m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
 
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -448,7 +434,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         Duplicate
     }
 
-    private sealed record ProfileAddResult(ProfileAddStatus Status, bool HadProfiles);
+    private sealed record ProfileAddResult(ProfileAddStatus Status);
 }
 
 

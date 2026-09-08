@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Common/">
     <Project Path="Common/Mehrak.Domain.Tests/Mehrak.Domain.Tests.csproj" />
     <Project Path="Common/Mehrak.Domain/Mehrak.Domain.csproj" />
@@ -29,7 +29,9 @@
   </Folder>
   <Folder Name="/Services/MigrationService/">
     <Project Path="Services/MigrationService/Mehrak.MigrationService/Mehrak.MigrationService.csproj" />
+    <Project Path="Services/MigrationService/Mehrak.MigrationService.Tests/Mehrak.MigrationService.Tests.csproj" />
   </Folder>
   <Project Path="Mehrak.AppHost/Mehrak.AppHost.csproj" />
+  <Project Path="Mehrak.AppHost.Tests/Mehrak.AppHost.Tests.csproj" />
 
 </Solution>

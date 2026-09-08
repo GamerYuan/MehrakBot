@@ -1,4 +1,4 @@
-﻿﻿﻿using System.Net;
+﻿using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.RateLimiting;
 using Mehrak.Dashboard.ReleaseNote;
@@ -61,6 +61,7 @@ public class Program
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services.AddInfrastructureServices();
+        builder.Services.AddDashboardInfrastructureHostedServices();
         builder.Services.AddSingleton<GameRoleApiService>();
 
         builder.Services.AddHttpClient("Default").ConfigurePrimaryHttpMessageHandler(() =>

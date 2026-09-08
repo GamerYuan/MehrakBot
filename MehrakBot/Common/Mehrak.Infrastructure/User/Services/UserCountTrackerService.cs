@@ -1,35 +1,25 @@
-﻿using Mehrak.Infrastructure.Shared.Config;
-using Microsoft.Extensions.Options;
-using StackExchange.Redis;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Mehrak.Infrastructure.User.Services;
 
+/// <summary>
+/// Reads the number of users with at least one profile from PostgreSQL.
+/// The database is authoritative; a Redis counter cannot safely reconcile mutations from both Bot and Dashboard.
+/// </summary>
 public class UserCountTrackerService
 {
-    private const string Key = "user_count";
+    private readonly IServiceScopeFactory m_ScopeFactory;
 
-    private readonly string m_InstanceName;
-    private readonly IDatabase m_Redis;
-
-    public UserCountTrackerService(IOptions<RedisConfig> config, IConnectionMultiplexer conn)
+    public UserCountTrackerService(IServiceScopeFactory scopeFactory)
     {
-        m_InstanceName = config.Value.InstanceName;
-        m_Redis = conn.GetDatabase();
+        m_ScopeFactory = scopeFactory;
     }
 
-    public async Task AdjustUserCountAsync(int delta)
+    public async Task<int> GetUserCountAsync(CancellationToken cancellationToken = default)
     {
-        await m_Redis.StringIncrementAsync($"{m_InstanceName}{Key}", delta);
-    }
-
-    public async Task<int> GetUserCountAsync()
-    {
-        var value = await m_Redis.StringGetAsync($"{m_InstanceName}{Key}");
-        return value.HasValue ? (int)value : 0;
-    }
-
-    public async Task SetIfNotExistsAsync(int count)
-    {
-        await m_Redis.StringSetAsync($"{m_InstanceName}{Key}", count, when: When.NotExists);
+        using var scope = m_ScopeFactory.CreateScope();
+        var userContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        return await userContext.Users.CountAsync(user => user.Profiles.Any(), cancellationToken);
     }
 }

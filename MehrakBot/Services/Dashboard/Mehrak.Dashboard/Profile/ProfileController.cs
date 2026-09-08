@@ -22,7 +22,6 @@ public sealed class ProfileController : ControllerBase
     private readonly UserDbContext m_UserContext;
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
     private readonly ILogger<ProfileController> m_Logger;
 
@@ -30,14 +29,12 @@ public sealed class ProfileController : ControllerBase
         UserDbContext userContext,
         IEncryptionService encryptionService,
         ICacheService cacheService,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<ProfileController> logger)
     {
         m_UserContext = userContext;
         m_EncryptionService = encryptionService;
         m_CacheService = cacheService;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_Logger = logger;
     }
@@ -176,16 +173,14 @@ public sealed class ProfileController : ControllerBase
                     }
 
                     if (user.Profiles.Count >= 10)
-                        return new ProfileAddResult(ProfileAddStatus.TooMany, false);
+                        return new ProfileAddResult(ProfileAddStatus.TooMany);
 
                     if (user.Profiles.Any(existing => existing.LtUid == (long)request.LtUid))
-                        return new ProfileAddResult(ProfileAddStatus.Duplicate, false);
-
-                    var hadProfiles = user.Profiles.Count > 0;
+                        return new ProfileAddResult(ProfileAddStatus.Duplicate);
                     profile.ProfileId = user.Profiles.Count + 1;
                     user.Profiles.Add(profile);
                     await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
-                    return new ProfileAddResult(ProfileAddStatus.Added, hadProfiles);
+                    return new ProfileAddResult(ProfileAddStatus.Added);
                 },
                 HttpContext.RequestAborted);
         }
@@ -205,8 +200,6 @@ public sealed class ProfileController : ControllerBase
 
         if (addResult.Status == ProfileAddStatus.Duplicate)
             return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
-
-        if (!addResult.HadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
 
         m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", discordUserId, gameProfilesResult.Data.Count);
 
@@ -314,8 +307,6 @@ public sealed class ProfileController : ControllerBase
             // Deletion revokes both client caches.
             await RevokeProfileCachesAsync(discordUserId, (ulong)deletion.LtUid, deletion.ProfileId);
 
-            if (deletion.RemainingProfileCount == 0)
-                await m_UserTracker.AdjustUserCountAsync(-1);
         }
         catch (DbUpdateException e)
         {
@@ -374,8 +365,6 @@ public sealed class ProfileController : ControllerBase
         foreach (var existing in allProfiles)
             await RevokeProfileCachesAsync(discordUserId, (ulong)existing.LtUid, existing.ProfileId);
 
-        await m_UserTracker.AdjustUserCountAsync(-1);
-
         return NoContent();
     }
 
@@ -428,7 +417,7 @@ public sealed class ProfileController : ControllerBase
         Duplicate
     }
 
-    private sealed record ProfileAddResult(ProfileAddStatus Status, bool HadProfiles);
+    private sealed record ProfileAddResult(ProfileAddStatus Status);
 }
 
 

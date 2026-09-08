@@ -23,13 +23,11 @@ namespace Mehrak.Bot.Shared.Modules;
 public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandContext>
 {
     private readonly UserDbContext m_UserContext;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly ILogger<ProfileCommandModule> m_Logger;
 
-    public ProfileCommandModule(UserDbContext userContext, UserCountTrackerService userTracker, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserDbContext userContext, ILogger<ProfileCommandModule> logger)
     {
         m_UserContext = userContext;
-        m_UserTracker = userTracker;
         m_Logger = logger;
     }
 
@@ -88,7 +86,6 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
                             .ExecuteDeleteAsync();
                     });
 
-                if (deleted > 0) await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
@@ -125,7 +122,6 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
             if (deletion.RemainingProfileCount == 0)
             {
-                await m_UserTracker.AdjustUserCountAsync(-1);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("All profiles deleted!")));
