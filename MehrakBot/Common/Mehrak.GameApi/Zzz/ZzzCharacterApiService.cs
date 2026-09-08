@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -99,7 +99,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
                     await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
-            if (json?.Data == null || json.Data.AvatarList.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
@@ -121,6 +121,13 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
+
+            if (json.Data == null || json.Data.AvatarList.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character list data", requestUri);
             }
 
             var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
@@ -253,7 +260,7 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 await JsonSerializer.DeserializeAsync<ApiResponse<ZzzFullAvatarData>>(
                     await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
 
-            if (json?.Data == null || json.Data.AvatarList.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
@@ -275,6 +282,13 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            if (json.Data == null || json.Data.AvatarList.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character data");
             }
 
             var data = json.Data;

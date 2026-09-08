@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Net.Http.Json;
 using System.Text;
@@ -102,7 +102,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
 
             var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(timeoutCts.Token);
 
-            if (json?.Data == null || json.Data.List.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
@@ -124,6 +124,13 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
+
+            if (json.Data == null || json.Data.List.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character list data", requestUri);
             }
 
             await m_Cache.SetAsync(
@@ -244,7 +251,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             var json =
                 await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(timeoutCts.Token);
 
-            if (json == null || json.Data == null || json.Data.List.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
@@ -254,18 +261,25 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             // Info-level API retcode after parse
             m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
 
-            if (json?.Retcode == 10001)
+            if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
             }
 
-            if (json?.Retcode != 0)
+            if (json.Retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json?.Retcode, context.UserId, requestUri, json);
+                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later");
+            }
+
+            if (json.Data == null || json.Data.List.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while retrieving character data", requestUri);
             }
 
             // Cache each new entry individually
