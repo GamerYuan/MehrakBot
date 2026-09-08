@@ -55,25 +55,7 @@ public class CharacterCacheService : ICharacterCacheService
             m_Logger.LogWarning(exception, "Character cache read failed for {Game}; using PostgreSQL", gameName);
         }
 
-        using var scope = m_ServiceScopeFactory.CreateScope();
-        using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        var authoritativeCharacters = characterContext.Characters
-            .AsNoTracking()
-            .Where(character => character.Game == gameName)
-            .Select(character => character.Name)
-            .OrderBy(name => name)
-            .ToList();
-
-        try
-        {
-            RefreshCacheAsync(gameName, authoritativeCharacters).GetAwaiter().GetResult();
-        }
-        catch (Exception exception)
-        {
-            m_Logger.LogWarning(exception, "Character cache rebuild failed for {Game}; returning PostgreSQL data", gameName);
-        }
-
-        return authoritativeCharacters;
+        return RefreshCacheFromDatabaseAsync(gameName, failOnCacheRefresh: false).GetAwaiter().GetResult();
     }
 
     public Task UpsertCharacters(Game gameName, IEnumerable<string> characters) =>
@@ -103,6 +85,8 @@ public class CharacterCacheService : ICharacterCacheService
 
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await characterContext.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(characterContext, $"characters:{gameName}");
 
         var existingDb = await characterContext.Characters
             .Where(character => character.Game == gameName)
@@ -135,6 +119,7 @@ public class CharacterCacheService : ICharacterCacheService
         }
 
         await characterContext.SaveChangesAsync();
+        await transaction.CommitAsync();
         await RefreshCacheFromDatabaseAsync(gameName);
 
         if (newNames.Count > 0)
@@ -147,6 +132,8 @@ public class CharacterCacheService : ICharacterCacheService
 
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await characterContext.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(characterContext, $"characters:{gameName}");
 
         var entity = await characterContext.Characters
             .FirstOrDefaultAsync(character => character.Game == gameName && character.Name == normalized);
@@ -154,11 +141,14 @@ public class CharacterCacheService : ICharacterCacheService
         if (entity == null)
         {
             m_Logger.LogInformation("Character {Character} not found for game {Game}; nothing to delete", normalized, gameName);
+            await transaction.CommitAsync();
+            await RefreshCacheFromDatabaseAsync(gameName);
             return;
         }
 
         characterContext.Characters.Remove(entity);
         await characterContext.SaveChangesAsync();
+        await transaction.CommitAsync();
         await RefreshCacheFromDatabaseAsync(gameName);
 
         m_Logger.LogInformation("Deleted character {Character} from game {Game}", normalized, gameName);
@@ -173,23 +163,15 @@ public class CharacterCacheService : ICharacterCacheService
 
     public async Task UpdateCharactersAsync(Game gameName)
     {
-        using var scope = m_ServiceScopeFactory.CreateScope();
-        using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-
-        var characters = await characterContext.Characters
-            .AsNoTracking()
-            .Where(character => character.Game == gameName)
-            .Select(character => character.Name)
-            .OrderBy(name => name)
-            .ToListAsync();
-
-        await RefreshCacheAsync(gameName, characters);
+        await RefreshCacheFromDatabaseAsync(gameName);
     }
 
-    private async Task RefreshCacheFromDatabaseAsync(Game gameName)
+    private async Task<List<string>> RefreshCacheFromDatabaseAsync(Game gameName, bool failOnCacheRefresh = true)
     {
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await characterContext.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(characterContext, $"characters:{gameName}");
 
         var characters = await characterContext.Characters
             .AsNoTracking()
@@ -198,7 +180,17 @@ public class CharacterCacheService : ICharacterCacheService
             .OrderBy(name => name)
             .ToListAsync();
 
-        await RefreshCacheAsync(gameName, characters);
+        try
+        {
+            await RefreshCacheAsync(gameName, characters);
+        }
+        catch (Exception exception) when (!failOnCacheRefresh)
+        {
+            m_Logger.LogWarning(exception, "Character cache rebuild failed for {Game}; returning PostgreSQL data", gameName);
+        }
+
+        await transaction.CommitAsync();
+        return characters;
     }
 
     private async Task RefreshCacheAsync(Game gameName, IReadOnlyCollection<string> characters)
@@ -209,12 +201,21 @@ public class CharacterCacheService : ICharacterCacheService
             try
             {
                 var transaction = Db.CreateTransaction();
-                _ = transaction.KeyDeleteAsync(GetCharacterKey(gameName));
+                var queuedCommands = new List<Task>
+                {
+                    transaction.KeyDeleteAsync(GetCharacterKey(gameName))
+                };
                 if (characters.Count > 0)
-                    _ = transaction.SetAddAsync(GetCharacterKey(gameName), [.. characters.Select(name => (RedisValue)name)]);
+                {
+                    queuedCommands.Add(transaction.SetAddAsync(
+                        GetCharacterKey(gameName), [.. characters.Select(name => (RedisValue)name)]));
+                }
 
                 if (await transaction.ExecuteAsync())
+                {
+                    await Task.WhenAll(queuedCommands);
                     return;
+                }
 
                 throw new RedisException("Redis transaction was not committed.");
             }

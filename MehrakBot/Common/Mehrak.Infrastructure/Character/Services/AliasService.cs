@@ -64,6 +64,13 @@ public class AliasService : IAliasService
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         await CharacterDbLock.AcquireAsync(context, "aliases:all", cancellationToken);
 
+        await ReconcileAliasesInContextAsync(context, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task ReconcileAliasesInContextAsync(
+        CharacterDbContext context, CancellationToken cancellationToken)
+    {
         var aliases = await context.Aliases
             .OrderBy(alias => alias.Game)
             .ThenBy(alias => alias.Id)
@@ -97,8 +104,6 @@ public class AliasService : IAliasService
 
         if (changed)
             await context.SaveChangesAsync(cancellationToken);
-
-        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task UpsertAliases(Game gameName, Dictionary<string, string> aliases)
@@ -117,10 +122,11 @@ public class AliasService : IAliasService
         if (conflictingRequest is not null)
             throw new InvalidOperationException($"The request contains different targets for alias '{conflictingRequest.Key}'.");
 
-        await ReconcileAliasesAsync();
-
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(context, "aliases:all");
+        await ReconcileAliasesInContextAsync(context, CancellationToken.None);
 
         var entries = normalized.ToDictionary(group => group.Key, group => group.First().CharacterName,
             StringComparer.OrdinalIgnoreCase);
@@ -146,6 +152,7 @@ public class AliasService : IAliasService
         }
 
         await context.SaveChangesAsync();
+        await transaction.CommitAsync();
         await RefreshCacheFromDatabaseAsync(gameName);
 
         m_Logger.LogInformation("Upserted {Count} aliases for {Game}", entries.Count, gameName);
@@ -157,10 +164,11 @@ public class AliasService : IAliasService
         if (normalized.Length == 0)
             return;
 
-        await ReconcileAliasesAsync();
-
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(context, "aliases:all");
+        await ReconcileAliasesInContextAsync(context, CancellationToken.None);
 
         var entity = await context.Aliases
             .FirstOrDefaultAsync(entry => entry.Game == gameName && entry.Alias == normalized);
@@ -168,11 +176,14 @@ public class AliasService : IAliasService
         if (entity == null)
         {
             m_Logger.LogInformation("Alias {Alias} not found for game {Game}; nothing to delete", normalized, gameName);
+            await transaction.CommitAsync();
+            await RefreshCacheFromDatabaseAsync(gameName);
             return;
         }
 
         context.Aliases.Remove(entity);
         await context.SaveChangesAsync();
+        await transaction.CommitAsync();
         await RefreshCacheFromDatabaseAsync(gameName);
 
         m_Logger.LogInformation("Deleted alias {Alias} for game {Game}", normalized, gameName);
@@ -188,56 +199,68 @@ public class AliasService : IAliasService
 
     private async Task RefreshCacheFromDatabaseAsync(Game gameName)
     {
-        using var scope = m_ServiceScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        var aliases = await context.Aliases
-            .AsNoTracking()
-            .Where(alias => alias.Game == gameName)
-            .OrderBy(alias => alias.Alias)
-            .ToListAsync();
-
-        Exception? lastException = null;
-        for (var attempt = 1; attempt <= CacheRefreshAttempts; attempt++)
-        {
-            try
-            {
-                var transaction = Db.CreateTransaction();
-                _ = transaction.KeyDeleteAsync(GetAliasKey(gameName));
-                if (aliases.Count > 0)
-                {
-                    _ = transaction.HashSetAsync(GetAliasKey(gameName), aliases
-                        .Select(alias => new HashEntry(alias.Alias, alias.CharacterName))
-                        .ToArray());
-                }
-
-                if (await transaction.ExecuteAsync())
-                    return;
-
-                throw new RedisException("Redis transaction was not committed.");
-            }
-            catch (Exception exception) when (attempt < CacheRefreshAttempts)
-            {
-                lastException = exception;
-                m_Logger.LogWarning(exception, "Alias cache refresh attempt {Attempt} failed for {Game}", attempt, gameName);
-                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt));
-            }
-            catch (Exception exception)
-            {
-                lastException = exception;
-            }
-        }
-
         try
         {
-            await Db.KeyDeleteAsync(GetAliasKey(gameName));
-        }
-        catch (Exception invalidationException)
-        {
-            lastException = new AggregateException(lastException!, invalidationException);
-        }
+            using var scope = m_ServiceScopeFactory.CreateScope();
+            using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            var aliases = await context.Aliases
+                .AsNoTracking()
+                .Where(alias => alias.Game == gameName)
+                .OrderBy(alias => alias.Alias)
+                .ToListAsync();
 
-        throw new CacheSynchronizationException(
-            $"Database committed for aliases in {gameName}, but the Redis cache could not be refreshed.",
-            lastException!);
+            Exception? lastException = null;
+            for (var attempt = 1; attempt <= CacheRefreshAttempts; attempt++)
+            {
+                try
+                {
+                    var transaction = Db.CreateTransaction();
+                    var queuedCommands = new List<Task>
+                    {
+                        transaction.KeyDeleteAsync(GetAliasKey(gameName))
+                    };
+                    if (aliases.Count > 0)
+                    {
+                        queuedCommands.Add(transaction.HashSetAsync(GetAliasKey(gameName), aliases
+                            .Select(alias => new HashEntry(alias.Alias, alias.CharacterName))
+                            .ToArray()));
+                    }
+
+                    if (await transaction.ExecuteAsync())
+                    {
+                        await Task.WhenAll(queuedCommands);
+                        return;
+                    }
+
+                    throw new RedisException("Redis transaction was not committed.");
+                }
+                catch (Exception exception) when (attempt < CacheRefreshAttempts)
+                {
+                    lastException = exception;
+                    m_Logger.LogWarning(exception, "Alias cache refresh attempt {Attempt} failed for {Game}", attempt, gameName);
+                    await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt));
+                }
+                catch (Exception exception)
+                {
+                    lastException = exception;
+                }
+            }
+
+            try
+            {
+                await Db.KeyDeleteAsync(GetAliasKey(gameName));
+            }
+            catch (Exception invalidationException)
+            {
+                lastException = new AggregateException(lastException!, invalidationException);
+            }
+
+            m_Logger.LogWarning(lastException,
+                "Database committed for aliases in {Game}, but the unused Redis cache could not be refreshed", gameName);
+        }
+        catch (Exception exception)
+        {
+            m_Logger.LogWarning(exception, "Alias cache refresh failed for {Game}", gameName);
+        }
     }
 }

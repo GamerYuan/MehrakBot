@@ -30,6 +30,13 @@ internal sealed class CharacterCacheServiceTests : IDisposable
         m_RedisTransaction
             .Setup(transaction => transaction.ExecuteAsync(It.IsAny<CommandFlags>()))
             .ReturnsAsync(cacheRefreshSucceeds);
+        m_RedisTransaction
+            .Setup(transaction => transaction.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+        m_RedisTransaction
+            .Setup(transaction => transaction.SetAddAsync(
+                It.IsAny<RedisKey>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(1L);
         m_RedisDatabase
             .Setup(database => database.CreateTransaction(It.IsAny<object>()))
             .Returns(m_RedisTransaction.Object);
@@ -73,5 +80,29 @@ internal sealed class CharacterCacheServiceTests : IDisposable
             character.Game == Game.Genshin && character.Name == "Raiden"), Is.True);
 
         Assert.That(service.GetCharacters(Game.Genshin), Is.EqualTo(["Raiden"]));
+    }
+
+    [Test]
+    public async Task SuccessfulExec_WithFailedQueuedCommand_ReportsFailure()
+    {
+        var service = CreateService(cacheRefreshSucceeds: true);
+        m_RedisTransaction.Setup(transaction => transaction.SetAddAsync(
+                It.IsAny<RedisKey>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
+            .Returns(Task.FromException<long>(new RedisException("queued command failed")));
+
+        Assert.ThrowsAsync<CacheSynchronizationException>(() => service.UpsertCharacters(Game.Genshin, ["Raiden"]));
+        await using var context = m_DbFactory.CreateDbContext<CharacterDbContext>();
+        Assert.That(await context.Characters.CountAsync(), Is.EqualTo(1));
+        m_RedisDatabase.Verify(database => database.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RetriedDelete_RepairsCacheWhenDatabaseRowIsAlreadyAbsent()
+    {
+        var service = CreateService(cacheRefreshSucceeds: true);
+        await service.DeleteCharacter(Game.Genshin, "removed");
+        m_RedisTransaction.Verify(transaction => transaction.KeyDeleteAsync(
+            It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Once);
+        m_RedisTransaction.Verify(transaction => transaction.ExecuteAsync(It.IsAny<CommandFlags>()), Times.Once);
     }
 }

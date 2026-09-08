@@ -31,6 +31,13 @@ internal sealed class AliasServiceTests : IDisposable
         m_RedisTransaction
             .Setup(transaction => transaction.ExecuteAsync(It.IsAny<CommandFlags>()))
             .ReturnsAsync(cacheRefreshSucceeds);
+        m_RedisTransaction
+            .Setup(transaction => transaction.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+        m_RedisTransaction
+            .Setup(transaction => transaction.HashSetAsync(
+                It.IsAny<RedisKey>(), It.IsAny<HashEntry[]>(), It.IsAny<CommandFlags>()))
+            .Returns(Task.CompletedTask);
         m_RedisDatabase
             .Setup(database => database.CreateTransaction(It.IsAny<object>()))
             .Returns(m_RedisTransaction.Object);
@@ -101,17 +108,15 @@ internal sealed class AliasServiceTests : IDisposable
     }
 
     [Test]
-    public async Task UpsertAliases_CacheFailureAfterCommit_ThrowsCommittedSynchronizationError()
+    public async Task UpsertAliases_CacheFailureAfterCommit_DoesNotRejectDatabaseWrite()
     {
         SetupService(cacheRefreshSucceeds: false);
 
-        var exception = Assert.ThrowsAsync<CacheSynchronizationException>(() =>
-            m_Service.UpsertAliases(Game.Genshin, new Dictionary<string, string>
-            {
-                ["Raiden"] = "Raiden Shogun"
-            }));
+        await m_Service.UpsertAliases(Game.Genshin, new Dictionary<string, string>
+        {
+            ["Raiden"] = "Raiden Shogun"
+        });
 
-        Assert.That(exception!.DatabaseCommitted, Is.True);
         await using var verifyContext = CreateContext();
         Assert.That(await verifyContext.Aliases.AnyAsync(alias =>
             alias.Game == Game.Genshin && alias.Alias == "raiden"), Is.True);

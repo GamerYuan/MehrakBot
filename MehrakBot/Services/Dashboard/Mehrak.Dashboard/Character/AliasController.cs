@@ -87,12 +87,6 @@ public class AliasController : GameWriteController
             m_Logger.LogWarning(exception, "Alias insert raced with another request for game {Game}", gameEnum);
             return Conflict(new { error = "One or more aliases were added by another request. Refresh and try again." });
         }
-        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
-        {
-            m_Logger.LogError(exception, "Aliases were committed but cache refresh failed for {Game}", gameEnum);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new { error = "Aliases were saved, but the alias cache is temporarily unavailable." });
-        }
         catch (DbUpdateException exception)
         {
             m_Logger.LogError(exception, "Failed to add aliases for game {Game}", gameEnum);
@@ -122,12 +116,6 @@ public class AliasController : GameWriteController
         try
         {
             await m_AliasService.DeleteAlias(gameEnum, normalized);
-        }
-        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
-        {
-            m_Logger.LogError(exception, "Alias deletion committed but cache refresh failed for {Game}", gameEnum);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new { error = "Alias was deleted, but the alias cache is temporarily unavailable." });
         }
         catch (DbUpdateException exception)
         {

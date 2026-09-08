@@ -96,6 +96,8 @@ public class CharacterInitializationService : IHostedService
 
             var gameName = characterJsonModel.Game;
             var newCharacters = characterJsonModel.Characters;
+            await using var transaction = await characterContext.Database.BeginTransactionAsync();
+            await CharacterDbLock.AcquireAsync(characterContext, $"characters:{gameName}");
 
             if (newCharacters.Count > 0)
             {
@@ -161,6 +163,7 @@ public class CharacterInitializationService : IHostedService
                 }
             }
 
+            await transaction.CommitAsync();
             m_Logger.LogInformation("Processed character JSON file: {FilePath}", jsonFilePath);
         }
         catch (Exception ex)

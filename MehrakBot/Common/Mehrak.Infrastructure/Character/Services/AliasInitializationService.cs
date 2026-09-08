@@ -3,8 +3,6 @@
 using System.Text.Json;
 using Mehrak.Domain.Character;
 using Mehrak.Infrastructure.Character.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -14,18 +12,15 @@ namespace Mehrak.Infrastructure.Character.Services;
 
 internal class AliasInitializationService : IHostedService
 {
-    private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasInitializationService> m_Logger;
     private readonly IAliasService m_AliasService;
     private readonly string m_AssetsPath;
 
     public AliasInitializationService(
-        IServiceScopeFactory serviceScopeFactory,
         ILogger<AliasInitializationService> logger,
         IAliasService aliasService,
         string? assetsPath = null)
     {
-        m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_AliasService = aliasService;
         m_AssetsPath = assetsPath ?? Path.Combine(AppContext.BaseDirectory, "Assets");
@@ -81,9 +76,6 @@ internal class AliasInitializationService : IHostedService
     {
         try
         {
-            using var scope = m_ServiceScopeFactory.CreateScope();
-            var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-
             m_Logger.LogDebug("Processing alias JSON file {FilePath}", filePath);
 
             var jsonContent = await File.ReadAllTextAsync(filePath);
@@ -96,52 +88,27 @@ internal class AliasInitializationService : IHostedService
             }
 
             var gameName = aliasJsonModel.Game;
-            var aliases = aliasJsonModel.Aliases
-                .SelectMany(x => x.Alias.Select(alias => (alias: AliasModel.NormalizeAlias(alias), x.Name)))
-                .Where(x => x.alias.Length > 0)
-                .GroupBy(x => x.alias, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(x => x.Key, x => x.First().Name, StringComparer.OrdinalIgnoreCase);
+            var aliasGroups = aliasJsonModel.Aliases
+                .SelectMany(x => x.Alias.Select(alias =>
+                    (Alias: AliasModel.NormalizeAlias(alias), CharacterName: x.Name.ReplaceLineEndings("").Trim())))
+                .Where(x => x.Alias.Length > 0 && x.CharacterName.Length > 0)
+                .GroupBy(x => x.Alias, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            var conflictingGroup = aliasGroups.FirstOrDefault(group =>
+                group.Select(entry => entry.CharacterName).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1);
+            if (conflictingGroup is not null)
+                throw new InvalidOperationException(
+                    $"Alias JSON file contains different targets for alias '{conflictingGroup.Key}'.");
+
+            var aliases = aliasGroups.ToDictionary(
+                group => group.Key,
+                group => group.First().CharacterName,
+                StringComparer.OrdinalIgnoreCase);
 
             if (aliases.Count > 0)
             {
-                var aliasKeys = aliases.Keys.ToList();
-                var existing = await characterContext.Aliases
-                    .Where(x => x.Game == gameName && aliasKeys.Contains(x.Alias))
-                    .ToListAsync();
-
-                var existingMap = existing.ToDictionary(x => x.Alias, x => x);
-                int updateCount = 0, newCount = 0;
-
-                foreach (var kvp in aliases)
-                {
-                    var key = kvp.Key;
-                    var character = kvp.Value;
-
-                    if (existingMap.TryGetValue(key, out var model))
-                    {
-                        if (!string.Equals(model.CharacterName, character, StringComparison.OrdinalIgnoreCase))
-                        {
-                            model.CharacterName = character;
-                            characterContext.Aliases.Update(model);
-                            updateCount++;
-                        }
-                    }
-                    else
-                    {
-                        characterContext.Aliases.Add(new AliasModel
-                        {
-                            Game = gameName,
-                            Alias = key,
-                            CharacterName = character
-                        });
-                        newCount++;
-                    }
-                }
-
-                if (updateCount > 0 || newCount > 0)
-                {
-                    await characterContext.SaveChangesAsync();
-                }
+                await m_AliasService.UpsertAliases(gameName, aliases);
             }
 
             m_Logger.LogDebug("Finished processing alias JSON file {FilePath}", filePath);
