@@ -167,6 +167,16 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         {
             fileName = GetCardFileName("hi3", "character", "v1", characterInfo, profile,
                 new { Server = server, Portrait = resolution.Config, StockConfig = resolution.Config });
+
+            if (await AttachmentExistsAsync(fileName, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
+                    characterInfo.Avatar.Name.ToLowerInvariant());
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
+                ]);
+            }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;

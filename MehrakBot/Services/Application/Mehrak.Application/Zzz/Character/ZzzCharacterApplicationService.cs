@@ -308,26 +308,39 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
         }
 
-        if (activePortrait == null && portraitSubId != initialPortraitSubId)
+        outfitPortraitAvailable = isOutfitPortrait &&
+            (!outfitPortraitMissing || outfitPortraitUpdateTask?.Result == true);
+        portraitSubId = outfitPortraitAvailable ? charInfo.GetPortraitSubId() ?? 0 : 0;
+
+        if (portraitSubId != initialPortraitSubId)
         {
-            stockConfig = await m_PortraitConfigService.GetConfigAsync(
-                Game.ZenlessZoneZero, charInfo.Id, portraitSubId);
+            if (activePortrait == null)
+            {
+                stockConfig = await m_PortraitConfigService.GetConfigAsync(
+                    Game.ZenlessZoneZero, charInfo.Id, portraitSubId);
+            }
+
             fileName = GetCardFileName("zzz", "character", "v1", characterData, profile,
                 new
                 {
                     Server = server,
-                    Portrait = (ActivePortrait?)null,
+                    Portrait = activePortrait,
                     StockConfig = stockConfig,
                     PortraitSubId = portraitSubId
                 });
+
+            if (await AttachmentExistsAsync(fileName, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
+                ]);
+            }
         }
 
         var cardContext = new BaseCardGenerationContext<ZzzFullAvatarData>(context.UserId, characterData, profile);
         cardContext.SetParameter("server", server);
-
-        outfitPortraitAvailable = isOutfitPortrait &&
-            (!outfitPortraitMissing || outfitPortraitUpdateTask?.Result == true);
-        portraitSubId = outfitPortraitAvailable ? charInfo.GetPortraitSubId() ?? 0 : 0;
 
         var resolution = activePortrait != null
             ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
@@ -339,6 +352,15 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         {
             fileName = GetCardFileName("zzz", "character", "v1", characterData, profile,
                 new { Server = server, Portrait = resolution.Config, StockConfig = resolution.Config, PortraitSubId = portraitSubId });
+
+            if (await AttachmentExistsAsync(fileName, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
+                ]);
+            }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;

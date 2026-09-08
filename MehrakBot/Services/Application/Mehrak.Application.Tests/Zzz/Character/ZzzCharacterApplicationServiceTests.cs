@@ -3,6 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Application.Zzz.Character;
 using Mehrak.Domain.Cache;
@@ -41,6 +42,7 @@ public class ZzzCharacterApplicationServiceTests
     private TestDbContextFactory m_DbFactory = null!;
     private Mock<IPortraitMatcher> m_PortraitMatcherMock = null!;
     private Mock<IImageFetcher> m_ImageFetcherMock = null!;
+    private Mock<IUserPortraitService> m_UserPortraitServiceMock = null!;
 
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
 
@@ -482,7 +484,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
-            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -556,7 +558,7 @@ public class ZzzCharacterApplicationServiceTests
     {
         // Arrange
         var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
-            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+            cardServiceMock, _, attachmentStorageMock, _, portraitConfigMock, _) = SetupMocks();
 
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
@@ -583,9 +585,15 @@ public class ZzzCharacterApplicationServiceTests
             .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
+        portraitConfigMock
+            .Setup(x => x.GetConfigAsync(Game.ZenlessZoneZero, It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((Game _, int _, int subId) => new CharacterPortraitConfig { OffsetX = subId });
+
+        ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
         var cardStream = new MemoryStream();
         cardServiceMock
             .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .Callback<ICardGenerationContext<ZzzFullAvatarData>, CancellationToken>((ctx, _) => capturedContext = ctx)
             .ReturnsAsync(cardStream);
 
         var wikiSuccessNode = JsonNode.Parse("""
@@ -635,10 +643,112 @@ public class ZzzCharacterApplicationServiceTests
             It.Is<IImageData>(d => d.Name == outfitPortraitName && d.Url == "https://example.com/skin_c.png"),
             It.IsAny<IImageProcessor>()), Times.Once);
 
+        Assert.That(capturedContext!.PortraitConfig!.OffsetX, Is.EqualTo(8888));
+        portraitConfigMock.Verify(
+            x => x.GetConfigAsync(Game.ZenlessZoneZero, 1261, 8888), Times.Once);
+        attachmentStorageMock.Verify(
+            x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
         // skin_b.jpg must be skipped (png-only rule); skin_a matched first and rejected, skin_c accepted
         m_PortraitMatcherMock.Verify(
             x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WithActivePortraitAndNewOutfit_UsesCustomPortraitCacheKey()
+    {
+        var (service, characterApiMock, _, _, imageRepositoryMock, imageUpdaterMock, gameRoleApiMock, wikiApiMock,
+            cardServiceMock, _, attachmentStorageMock, _, _, _) = SetupMocks();
+
+        var profile = CreateTestProfile();
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+
+        var fullCharData = await LoadTestDataAsync("Jane_TestData.json");
+        fullCharData.AvatarList[0].RoleSquareUrl =
+            "https://act-webstatic.hoyoverse.com/game_record/zzzv2/role_square_avatar/role_square_avatar_1261_8888.png";
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(fullCharData));
+
+        const string basePortraitName = "zzz/portrait_1261.png";
+        const string outfitPortraitName = "zzz/portrait_1261_8888.png";
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string file, CancellationToken _) =>
+                Task.FromResult(file != basePortraitName && file != outfitPortraitName));
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var uploadId = Guid.NewGuid();
+        const string portraitKey = "portraits/custom.png";
+        var portraitConfig = new UserPortraitConfigDto { OffsetX = 7 };
+        m_UserPortraitServiceMock.Setup(x => x.GetUserPortraitsAsync(
+                1, Game.ZenlessZoneZero, "Jane", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new UserPortraitUploadDto
+                {
+                    Id = uploadId,
+                    S3Key = portraitKey,
+                    IsActive = true,
+                    Config = portraitConfig
+                }
+            ]);
+        m_UserPortraitServiceMock.Setup(x => x.GetPortraitImageAsync(
+                1, portraitKey, uploadId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AttachmentDownloadResult(new MemoryStream([1]), "image/png"));
+
+        var fileNames = new List<string>();
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((name, _) => fileNames.Add(name))
+            .ReturnsAsync(false);
+
+        ICardGenerationContext<ZzzFullAvatarData>? capturedContext = null;
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()))
+            .Callback<ICardGenerationContext<ZzzFullAvatarData>, CancellationToken>((ctx, _) => capturedContext = ctx)
+            .ReturnsAsync(new MemoryStream());
+
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode(
+                "https://example.com/base.png", "https://example.com/outfit.png")));
+        m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 1 });
+        m_PortraitMatcherMock.Setup(x => x.MatchAsync(
+                It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, 1f));
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        var activePortrait = new ActivePortrait(portraitKey, uploadId, portraitConfig);
+        var expectedCustomName = AttachmentNameBuilder.BuildName("zzz", "character", "v1", fullCharData, profile,
+            new
+            {
+                Server = Server.Asia,
+                Portrait = activePortrait,
+                StockConfig = (CharacterPortraitConfig?)null,
+                PortraitSubId = 8888
+            });
+        var stockName = AttachmentNameBuilder.BuildName("zzz", "character", "v1", fullCharData, profile,
+            new
+            {
+                Server = Server.Asia,
+                Portrait = (ActivePortrait?)null,
+                StockConfig = (CharacterPortraitConfig?)null,
+                PortraitSubId = 8888
+            });
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            Assert.That(fileNames, Has.Count.EqualTo(2));
+            Assert.That(fileNames[1], Is.EqualTo(expectedCustomName));
+            Assert.That(fileNames[1], Is.Not.EqualTo(stockName));
+            Assert.That(capturedContext!.PortraitImageStream, Is.Not.Null);
+            Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(7));
+        }
     }
 
     [Test]
@@ -1365,6 +1475,7 @@ public class ZzzCharacterApplicationServiceTests
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
+        var userPortraitServiceMock = new Mock<IUserPortraitService>();
         var loggerMock = new Mock<ILogger<ZzzCharacterApplicationService>>();
 
         aliasServiceMock.Setup(x => x.GetAliases(It.IsAny<Game>())).Returns([]);
@@ -1382,6 +1493,7 @@ public class ZzzCharacterApplicationServiceTests
         var imageFetcherMock = new Mock<IImageFetcher>();
         m_PortraitMatcherMock = portraitMatcherMock;
         m_ImageFetcherMock = imageFetcherMock;
+        m_UserPortraitServiceMock = userPortraitServiceMock;
 
         var service = new ZzzCharacterApplicationService(
             cardServiceMock.Object,
@@ -1396,7 +1508,7 @@ public class ZzzCharacterApplicationServiceTests
             userContext,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
-            Mock.Of<IUserPortraitService>(),
+            userPortraitServiceMock.Object,
             entryPageApiMock.Object,
             portraitMatcherMock.Object,
             imageFetcherMock.Object,
@@ -1671,6 +1783,27 @@ public class ZzzCharacterApplicationServiceTests
                 }
             }
         };
+    }
+
+    private sealed class AttachmentNameBuilder : BaseAttachmentApplicationService
+    {
+        private AttachmentNameBuilder() : base(null!, null!, null!, null!)
+        {
+        }
+
+        public static string BuildName<TData>(
+            string game,
+            string mode,
+            string rendererVersion,
+            TData data,
+            GameProfileDto profile,
+            object? effectiveInputs) =>
+            GetCardFileName(game, mode, rendererVersion, data, profile, effectiveInputs);
+
+        protected override Task<CommandResult> ExecuteCommandAsync(
+            IApplicationContext context,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(CommandResult.Success());
     }
 
     private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)

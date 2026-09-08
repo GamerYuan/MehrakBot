@@ -400,6 +400,13 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         {
             fileName = GetCardFileName("hsr", "character", "v1", characterInfo, profile,
                 new { Server = server, Portrait = resolution.Config, StockConfig = resolution.Config });
+
+            if (await AttachmentExistsAsync(fileName, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
+                    characterInfo.Name.ToLowerInvariant());
+                return Result<string>.Success(fileName);
+            }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;

@@ -340,6 +340,12 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                     StockConfig = resolution.Config,
                     Ascension = ascension
                 });
+
+            if (await AttachmentExistsAsync(filename, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
+                return Result<string>.Success(filename);
+            }
         }
 
         var cardContext = new BaseCardGenerationContext<GenshinCharacterInformation>(context.UserId, charData, profile);

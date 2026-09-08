@@ -40,6 +40,7 @@ namespace Mehrak.Application.Tests.Genshin.Character;
 public class GenshinCharacterApplicationServiceTests
 {
     private TestDbContextFactory m_DbFactory = null!;
+    private Mock<IUserPortraitService> m_UserPortraitServiceMock = null!;
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Genshin");
 
     [SetUp]
@@ -1451,6 +1452,66 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenCustomPortraitDownloadFails_UsesCachedStockFallback()
+    {
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, attachmentStorageMock, _, characterStatMock, portraitConfigMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateTestCharacterList()));
+
+        var characterDetail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
+        characterApiMock.Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        characterStatMock.Setup(x => x.GetCharAscStatAsync(Game.Genshin, It.IsAny<string>()))
+            .ReturnsAsync((null, null));
+
+        var stockConfig = new CharacterPortraitConfig { OffsetX = 10 };
+        portraitConfigMock.Setup(x => x.GetConfigAsync(Game.Genshin, It.IsAny<int>()))
+            .ReturnsAsync(stockConfig);
+
+        var uploadId = Guid.NewGuid();
+        var activePortrait = new UserPortraitUploadDto
+        {
+            Id = uploadId,
+            S3Key = "portraits/custom.png",
+            IsActive = true,
+            Config = new UserPortraitConfigDto { OffsetX = 99 }
+        };
+        m_UserPortraitServiceMock.Setup(x => x.GetUserPortraitsAsync(
+                1, Game.Genshin, "Traveler", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([activePortrait]);
+        m_UserPortraitServiceMock.Setup(x => x.GetPortraitImageAsync(
+                1, activePortrait.S3Key, uploadId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AttachmentDownloadResult?)null);
+
+        attachmentStorageMock.SetupSequence(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+        }
+        cardServiceMock.Verify(
+            x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Never);
+        attachmentStorageMock.Verify(
+            x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
     public async Task ExecuteAsync_PassesPortraitConfigToCardContext()
     {
         var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
@@ -1640,6 +1701,8 @@ public class GenshinCharacterApplicationServiceTests
         var loggerMock = new Mock<ILogger<GenshinCharacterApplicationService>>();
         var characterStatService = new Mock<ICharacterStatService>();
         var portraitConfigMock = new Mock<ICharacterPortraitConfigService>();
+        var userPortraitServiceMock = new Mock<IUserPortraitService>();
+        m_UserPortraitServiceMock = userPortraitServiceMock;
 
         aliasServiceMock
             .Setup(x => x.GetAliases(It.IsAny<Game>()))
@@ -1666,7 +1729,7 @@ public class GenshinCharacterApplicationServiceTests
             characterStatService.Object,
             attachmentStorageMock.Object,
             portraitConfigMock.Object,
-            Mock.Of<IUserPortraitService>(),
+            userPortraitServiceMock.Object,
             Mock.Of<IMultiImageProcessor>(),
             Options.Create(new CommandDispatcherConfig()),
             loggerMock.Object);
