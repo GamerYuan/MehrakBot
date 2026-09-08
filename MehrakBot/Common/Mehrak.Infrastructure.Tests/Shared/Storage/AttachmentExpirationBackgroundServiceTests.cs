@@ -110,6 +110,37 @@ internal sealed class AttachmentExpirationBackgroundServiceTests
     }
 
     [Test]
+    public async Task ScanAsync_DoesNotDeleteAfterCancellationMidPagination()
+    {
+        var page = new ListVersionsResponse
+        {
+            Versions = [Version("expired.png", isLatest: true, isDeleteMarker: false, DateTime.UtcNow.AddHours(-2))],
+            IsTruncated = true,
+            NextKeyMarker = "expired.png",
+            NextVersionIdMarker = "expired.png-v1"
+        };
+        using var cancellation = new CancellationTokenSource();
+
+        m_S3.Setup(x => x.ListVersionsAsync(It.IsAny<ListVersionsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                // The mock deliberately ignores the canceled token to reproduce a backend
+                // returning the page that was already in flight.
+                cancellation.Cancel();
+                return page;
+            });
+        m_S3.Setup(x => x.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse());
+
+        var service = CreateService();
+        await service.ScanAsync(cancellation.Token);
+
+        m_S3.Verify(
+            x => x.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Test]
     public async Task ScanAsync_PreservesSameContentReuploadThatRacesWithListing()
     {
         var oldVersion = Version("reuploaded.png", isLatest: true, isDeleteMarker: false, DateTime.UtcNow.AddHours(-2), "old");

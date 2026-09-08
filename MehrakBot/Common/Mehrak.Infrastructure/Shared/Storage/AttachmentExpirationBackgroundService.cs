@@ -72,6 +72,7 @@ public class AttachmentExpirationBackgroundService : BackgroundService
         var request = new ListVersionsRequest { BucketName = bucket };
         int deletedVersions = 0;
         var versionsByKey = new Dictionary<string, List<S3ObjectVersion>>(StringComparer.Ordinal);
+        var listingCompleted = false;
 
         do
         {
@@ -92,11 +93,17 @@ public class AttachmentExpirationBackgroundService : BackgroundService
             }
 
             if (response.IsTruncated != true)
+            {
+                listingCompleted = true;
                 break;
+            }
 
             request.KeyMarker = response.NextKeyMarker;
             request.VersionIdMarker = response.NextVersionIdMarker;
         } while (!cancellationToken.IsCancellationRequested);
+
+        if (!listingCompleted || cancellationToken.IsCancellationRequested)
+            return;
 
         foreach (var (key, versions) in versionsByKey)
         {
