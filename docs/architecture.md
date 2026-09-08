@@ -227,8 +227,8 @@ Production Compose keeps migration separate from the long-running services. Run 
 the migration Compose overlay before starting or updating the application services:
 
 ```text
-docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.migration.yml up --build \
-  --abort-on-container-exit --exit-code-from migration-service migration-service
+docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.migration.yml \
+  run --rm --build migration-service
 ```
 
 Bot and Dashboard wait for Application's HTTP/2 readiness check in Compose. Character and alias initialization
