@@ -71,8 +71,7 @@ public partial class ReconcileCharacterData : Migration
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        // The canonicalization and conflict ledger are intentionally not
-        // reversed: the migration preserves all conflicting source data in the
-        // ledger, but cannot safely restore an invalid active-state invariant.
+        throw new InvalidOperationException(
+            "ReconcileCharacterData is irreversible because it canonicalizes aliases and records conflicting source rows.");
     }
 }
