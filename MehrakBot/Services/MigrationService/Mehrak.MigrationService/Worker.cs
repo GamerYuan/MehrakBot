@@ -12,10 +12,16 @@ namespace Mehrak.MigrationService;
 
 public class Worker(
     IServiceProvider serviceProvider,
-    IHostApplicationLifetime hostApplicationLifetime) : BackgroundService
+    IHostApplicationLifetime hostApplicationLifetime,
+    ILogger<Worker> logger) : BackgroundService
 {
+    public const int SuccessExitCode = 0;
+    public const int FailureExitCode = 1;
+
     public const string ActivitySourceName = "Migrations";
     private static readonly ActivitySource ActivitySource = new(ActivitySourceName);
+
+    public int ExitCode { get; private set; } = FailureExitCode;
 
     protected override async Task ExecuteAsync(
         CancellationToken cancellationToken)
@@ -61,10 +67,13 @@ public class Worker(
             }
 
             activity?.SetStatus(ActivityStatusCode.Ok);
+            ExitCode = SuccessExitCode;
         }
         catch (Exception ex)
         {
             activity?.AddException(ex);
+            logger.LogError(ex, "Database migration failed.");
+            ExitCode = FailureExitCode;
             throw;
         }
 
