@@ -373,6 +373,67 @@ internal sealed class UserPortraitServiceTests : IDisposable
     }
 
     [Test]
+    public async Task UploadPortraitAsync_StorageOutcomeUnknown_LeavesIntentForRecovery()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
+        }
+
+        m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception("storage timeout"));
+
+        var result = await m_Service.UploadPortraitAsync(
+            100L, Game.Genshin, "Raiden", new MemoryStream(), "unknown", "png");
+
+        Assert.That(result.Succeeded, Is.False);
+        await using (var verifyContext = CreateContext())
+        {
+            var intent = await verifyContext.UserPortraitUploadIntents.SingleAsync();
+            intent.CreatedAtUtc = DateTime.UtcNow.AddHours(-2);
+            await verifyContext.SaveChangesAsync();
+        }
+
+        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
+        var processor = new UserPortraitDeletionProcessor(
+            CreateScopeFactory(),
+            m_MockS3.Object,
+            Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
+            NullLogger<UserPortraitDeletionProcessor>.Instance);
+
+        await processor.ProcessPendingUploadIntentsAsync();
+
+        await using var finalContext = CreateContext();
+        Assert.That(await finalContext.UserPortraitUploadIntents.AnyAsync(), Is.False);
+    }
+
+    [Test]
+    public async Task UploadPortraitAsync_CancellationAfterIntentCommit_PreservesIntent()
+    {
+        SetupService();
+        await using (var ctx = CreateContext())
+        {
+            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<PutObjectResponse>(cancellation.Token);
+            });
+
+        Assert.CatchAsync<OperationCanceledException>(() => m_Service.UploadPortraitAsync(
+            100L, Game.Genshin, "Raiden", new MemoryStream(), "cancelled", "png", cancellation.Token));
+
+        await using var verifyContext = CreateContext();
+        Assert.That(await verifyContext.UserPortraitUploadIntents.AnyAsync(), Is.True);
+    }
+
+    [Test]
     public async Task UploadPortraitAsync_FifthPortraitReached_ReturnsQuotaError()
     {
         SetupService();

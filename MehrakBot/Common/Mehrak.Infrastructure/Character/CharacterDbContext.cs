@@ -13,6 +13,7 @@ public class CharacterDbContext(DbContextOptions<CharacterDbContext> options) : 
     public DbSet<UserPortraitUpload> UserPortraitUploads { get; set; }
     public DbSet<UserPortraitConfigModel> UserPortraitConfigs { get; set; }
     public DbSet<UserPortraitDeletionModel> UserPortraitDeletions { get; set; }
+    public DbSet<UserPortraitUploadIntentModel> UserPortraitUploadIntents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +29,10 @@ public class CharacterDbContext(DbContextOptions<CharacterDbContext> options) : 
 
         modelBuilder.Entity<UserPortraitDeletionModel>()
             .HasIndex(d => d.UserPortraitUploadId)
+            .IsUnique();
+
+        modelBuilder.Entity<UserPortraitUploadIntentModel>()
+            .HasIndex(i => new { i.DiscordUserId, i.Game, i.CharacterName, i.SHA256Hash })
             .IsUnique();
 
         modelBuilder.Entity<UserPortraitUpload>()
