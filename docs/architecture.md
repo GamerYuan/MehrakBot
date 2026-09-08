@@ -1,4 +1,4 @@
-# Code Architecture
+﻿# Code Architecture
 
 The code is separated into two main categories:
 
@@ -215,18 +215,22 @@ one process so a multi-process deployment does not repeat the same startup or ma
 
 - `Mehrak.Application` owns attachment-bucket setup and character/alias cache initialization. It also owns the
   attachment expiration scan registered by its application startup.
-- `Mehrak.Bot` owns the Redis user-count backfill used by the bot presence. Bot and Dashboard profile mutations still
-  update the same shared counter.
+- `Mehrak.Bot` owns the bot presence, which reads the authoritative count of users with profiles from PostgreSQL.
 - `Mehrak.Dashboard` owns expired dashboard-session cleanup.
 
 In Aspire local development, `migration-service` is a one-shot project. Application, Bot, and Dashboard each use a
-successful-completion dependency on it, so database-backed startup work (including Dashboard seeding and user-count
-backfill) begins only after all EF Core migrations finish successfully. A failed migration prevents those services
+successful-completion dependency on it, so database-backed startup work (including Dashboard seeding)
+begins only after all EF Core migrations finish successfully. A failed migration prevents those services
 from starting.
 
 Production Compose keeps migration separate from the long-running services. Run the migration service explicitly with
 the migration Compose overlay before starting or updating the application services:
 
 ```text
-docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.migration.yml up --build migration-service
+docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.migration.yml up --build \
+  --abort-on-container-exit --exit-code-from migration-service migration-service
 ```
+
+Bot and Dashboard wait for Application's HTTP/2 readiness check in Compose. Character and alias initialization
+must complete before Application starts listening; an initialization error stops startup. Bot presence reads the
+current PostgreSQL count of users with profiles, so no Redis counter or backfill is required.
