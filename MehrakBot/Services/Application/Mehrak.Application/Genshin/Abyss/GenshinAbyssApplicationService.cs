@@ -91,63 +91,24 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             ], isEphemeral: true);
         }
 
-        List<Task<bool>> tasks = [];
+        var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
+            new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
+                region), cancellationToken);
 
-        tasks.AddRange(floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!))
-            .Concat(abyssData.RevealRank!.Select(x => new AbyssAvatar
-            {
-                Icon = x.AvatarIcon,
-                Id = x.AvatarId,
-                Rarity = x.Rarity
-            }))
-            .DistinctBy(x => x.Id)
-            .Select(async x =>
-                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
-
-        tasks.AddRange(abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
-            .Concat(abyssData.EnergySkillRank!)
-            .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
-            .Select(async x =>
-                await m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                    new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken)));
-
-        List<GenshinBasicCharacterData>? charList = null;
-
-        try
+        if (!charListResponse.IsSuccess)
         {
-            var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
-                new GenshinCharacterApiContext(context.UserId, context.LtUid, context.LToken, profile.GameUid,
-                    region), cancellationToken);
-
-            if (!charListResponse.IsSuccess)
-            {
-                if (charListResponse.StatusCode == StatusCode.Cancelled)
-                    throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
-                if (charListResponse.StatusCode == StatusCode.Timeout)
-                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-                Logger.LogError(LogMessage.ApiError,
-                    "Character List", context.UserId, profile.GameUid, charListResponse);
-                return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character List"));
-            }
-
-            charList = charListResponse.Data.ToList();
-        }
-        finally
-        {
-            await Task.WhenAll(tasks);
+            if (charListResponse.StatusCode == StatusCode.Cancelled)
+                throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
+            if (charListResponse.StatusCode == StatusCode.Timeout)
+                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+            Logger.LogError(LogMessage.ApiError,
+                "Character List", context.UserId, profile.GameUid, charListResponse);
+            return CommandResult.Failure(CommandFailureReason.ApiError,
+                string.Format(ResponseMessage.ApiError, "Character List"));
         }
 
-        var constMap = charList!.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
-
-        var completed = tasks.Select(x => x.Result).ToArray();
-        if (completed.Any(x => !x))
-        {
-            Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId,
-                JsonSerializer.Serialize(abyssData));
-            return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.ImageUpdateError);
-        }
+        var charList = charListResponse.Data.ToList();
+        var constMap = charList.ToDictionary(x => x.Id!.Value, x => x.ActivedConstellationNum!.Value);
 
         var filename = GetCardFileName("genshin", "abyss", "v1", abyssData, profile,
             new
@@ -165,6 +126,33 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
                     new CommandAttachment(filename),
                     new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
             ], isEphemeral: false);
+        }
+
+        List<Task<bool>> tasks = [];
+        tasks.AddRange(floorData.Levels!.SelectMany(x => x.Battles!.SelectMany(y => y.Avatars!))
+            .Concat(abyssData.RevealRank!.Select(x => new AbyssAvatar
+            {
+                Icon = x.AvatarIcon,
+                Id = x.AvatarId,
+                Rarity = x.Rarity
+            }))
+            .DistinctBy(x => x.Id)
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(
+                x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)));
+
+        tasks.AddRange(abyssData.DamageRank!.Concat(abyssData.DefeatRank!)
+            .Concat(abyssData.EnergySkillRank!)
+            .Concat(abyssData.NormalSkillRank!).Concat(abyssData.TakeDamageRank!).DistinctBy(x => x.AvatarId)
+            .Select(x => m_ImageUpdaterService.UpdateImageAsync(
+                x.ToImageData(), new ImageProcessorBuilder().Resize(0, 150).Build(), cancellationToken)));
+
+        var completed = await Task.WhenAll(tasks);
+        if (completed.Any(x => !x))
+        {
+            Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId,
+                JsonSerializer.Serialize(abyssData));
+            return CommandResult.Failure(CommandFailureReason.BotError,
+                ResponseMessage.ImageUpdateError);
         }
 
         var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(context.UserId, abyssData, profile);
