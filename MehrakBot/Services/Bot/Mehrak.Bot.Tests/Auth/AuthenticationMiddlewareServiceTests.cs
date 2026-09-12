@@ -1,4 +1,4 @@
-﻿﻿#region
+﻿#region
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -1164,6 +1164,67 @@ public class AuthenticationMiddlewareServiceTests
         var storedProfile = await db.UserProfiles.AsNoTracking()
             .SingleAsync(p => p.UserId == (long)TestUserId && p.ProfileId == TestProfileId);
         Assert.That(storedProfile.LToken, Is.EqualTo(upgradedToken));
+    }
+
+    [Test]
+    public async Task GetAuthenticationAsync_LegacyUpgrade_DoesNotOverwriteConcurrentRotation()
+    {
+        var mockContext = new Mock<IInteractionContext>();
+        var interaction = new ModalInteraction(new JsonInteraction
+        {
+            Token = "sample_token",
+            Data = new JsonInteractionData { Components = [] },
+            User = new JsonUser { Id = TestUserId },
+            Channel = new JsonChannel { Id = 987654321UL, Type = ChannelType.TextGuildChannel },
+            Entitlements = []
+        }, null!, (_, _, _, _, _) => Task.FromResult<InteractionCallbackResponse?>(null), new RestClient());
+        mockContext.SetupGet(x => x.Interaction).Returns(() => interaction);
+
+        InitializeService(context =>
+        {
+            context.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken));
+        });
+
+        m_MockCacheService
+            .Setup(x => x.GetAsync<BotUnlockTicket>(It.IsAny<string>()))
+            .ReturnsAsync((BotUnlockTicket?)null);
+
+        m_MockEncryptionService
+            .Setup(x => x.IsLegacyFormat(TestEncryptedToken))
+            .Returns(true);
+        m_MockEncryptionService
+            .Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Callback(() =>
+            {
+                using var scope = m_DbFactory!.ScopeFactory.CreateScope();
+                var rotationContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+                var profile = rotationContext.UserProfiles.Single(p => p.ProfileId == TestProfileId);
+                profile.LToken = "rotated-during-login";
+                profile.LastCheckIn = new DateTime(2026, 9, 7, 7, 8, 9, DateTimeKind.Utc);
+                rotationContext.SaveChanges();
+            })
+            .Returns(TestLToken);
+        m_MockEncryptionService
+            .Setup(x => x.Encrypt(TestLToken, TestPassphrase))
+            .Returns("stale-upgrade");
+
+        var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(mockContext.Object, TestProfileId));
+        var guid = await WaitForAuthenticationGuidAsync(m_Service);
+        Assert.That(m_Service.NotifyAuthenticate(
+            new AuthenticationResponse(TestUserId, guid, TestPassphrase, mockContext.Object)), Is.True);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        using var verificationScope = m_DbFactory!.ScopeFactory.CreateScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<UserDbContext>();
+        var storedProfile = await verificationContext.UserProfiles.AsNoTracking()
+            .SingleAsync(p => p.ProfileId == TestProfileId);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.Failure));
+            Assert.That(storedProfile.LToken, Is.EqualTo("rotated-during-login"));
+            Assert.That(storedProfile.LastCheckIn, Is.EqualTo(new DateTime(2026, 9, 7, 7, 8, 9, DateTimeKind.Utc)));
+        });
     }
 
     [Test]

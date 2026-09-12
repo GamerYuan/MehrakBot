@@ -57,7 +57,10 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     {
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
-        var profiles = await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ToListAsync();
+        var profiles = await m_UserContext.UserProfiles
+            .AsNoTracking()
+            .Where(x => x.UserId == (long)Context.User.Id)
+            .ToListAsync();
 
         if (profiles.Count == 0)
         {
@@ -71,7 +74,17 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             try
             {
-                await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).ExecuteDeleteAsync();
+                var deleted = await m_UserContext.ExecuteUserProfileMutationAsync(
+                    (long)Context.User.Id,
+                    async () =>
+                    {
+                        // Delete-all is an ID-affecting mutation too: it must
+                        // serialize with adds and reindexing for this user.
+                        m_UserContext.ChangeTracker.Clear();
+                        return await m_UserContext.UserProfiles
+                            .Where(x => x.UserId == (long)Context.User.Id)
+                            .ExecuteDeleteAsync();
+                    });
 
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -96,23 +109,18 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             return;
         }
 
-        for (var i = profiles.Count - 1; i >= 0; i--)
-        {
-            if (profiles[i].ProfileId == profile.ProfileId)
-            {
-                m_UserContext.UserProfiles.Remove(profiles[i]);
-                profiles.RemoveAt(i);
-            }
-            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
-        }
-
         try
         {
-            m_UserContext.UserProfiles.UpdateRange(profiles);
+            var deletion = await m_UserContext.DeleteAndReindexProfilesAsync(profile);
+            if (deletion is null)
+            {
+                await Context.Interaction.SendFollowupMessageAsync(
+                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                        .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!")));
+                return;
+            }
 
-            await m_UserContext.SaveChangesAsync();
-
-            if (profiles.Count == 0)
+            if (deletion.RemainingProfileCount == 0)
             {
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
@@ -123,7 +131,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(
-                        new TextDisplayProperties($"Profile {profile.ProfileId} (HoYoLAB UID: {profile.LtUid}) deleted!")));
+                        new TextDisplayProperties($"Profile {deletion.ProfileId} (HoYoLAB UID: {deletion.LtUid}) deleted!")));
         }
         catch (DbUpdateException e)
         {

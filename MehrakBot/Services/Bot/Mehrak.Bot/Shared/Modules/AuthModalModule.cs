@@ -94,22 +94,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
-            var user = await m_UserContext.Users
-                .Where(u => u.Id == (long)Context.User.Id)
-                .Include(u => u.Profiles)
-                .SingleOrDefaultAsync();
-
-            if (user == null)
-            {
-                user = new UserModel
-                {
-                    Id = (long)Context.User.Id,
-                    Timestamp = DateTime.UtcNow,
-                    Profiles = []
-                };
-                await m_UserContext.Users.AddAsync(user);
-            }
-
             var inputs = Context.Components
                 .OfType<Label>()
                 .Select(l => l.Component)
@@ -126,15 +110,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            if (user.Profiles.Any(x => x.LtUid == (long)ltuid))
-            {
-                m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Profile already exists!")));
-                return;
-            }
-
             if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
             {
                 // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
@@ -192,7 +167,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             UserProfileModel profile = new()
             {
                 UserId = (long)Context.User.Id,
-                ProfileId = user.Profiles.Count + 1,
                 LtUid = (long)ltuid,
                 LToken = await Task.Run(() =>
                     m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
@@ -210,13 +184,64 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 });
             }
 
-            user.Profiles.Add(profile);
-
             profile.GameUids.Sort((a, b) => a.GameUid.CompareTo(b.GameUid));
 
+            ProfileAddResult addResult;
             try
             {
-                await m_UserContext.SaveChangesAsync();
+                addResult = await m_UserContext.ExecuteUserProfileMutationAsync(
+                    (long)Context.User.Id,
+                    async () =>
+                    {
+                        // The modal may have been submitted from a stale
+                        // profile list. Recheck all limits and uniqueness after
+                        // acquiring the shared per-user mutation lock.
+                        m_UserContext.ChangeTracker.Clear();
+
+                        var user = await m_UserContext.Users
+                            .Where(u => u.Id == (long)Context.User.Id)
+                            .Include(u => u.Profiles)
+                            .SingleOrDefaultAsync();
+
+                        if (user is null)
+                        {
+                            user = new UserModel
+                            {
+                                Id = (long)Context.User.Id,
+                                Timestamp = DateTime.UtcNow,
+                                Profiles = []
+                            };
+                            await m_UserContext.Users.AddAsync(user);
+                        }
+
+                        if (user.Profiles.Count >= 10)
+                            return new ProfileAddResult(ProfileAddStatus.TooMany);
+
+                        if (user.Profiles.Any(existing => existing.LtUid == (long)ltuid))
+                            return new ProfileAddResult(ProfileAddStatus.Duplicate);
+                        profile.ProfileId = user.Profiles.Count + 1;
+                        user.Profiles.Add(profile);
+                        await m_UserContext.SaveChangesAsync();
+                        return new ProfileAddResult(ProfileAddStatus.Added);
+                    });
+
+                if (addResult.Status == ProfileAddStatus.TooMany)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("You can only have 10 profiles!")));
+                    return;
+                }
+
+                if (addResult.Status == ProfileAddStatus.Duplicate)
+                {
+                    m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("Profile already exists!")));
+                    return;
+                }
+
                 m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
 
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -401,6 +426,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         "This authentication request has expired or is invalid. Please try again"))));
         }
     }
+
+    private enum ProfileAddStatus
+    {
+        Added,
+        TooMany,
+        Duplicate
+    }
+
+    private sealed record ProfileAddResult(ProfileAddStatus Status);
 }
 
 

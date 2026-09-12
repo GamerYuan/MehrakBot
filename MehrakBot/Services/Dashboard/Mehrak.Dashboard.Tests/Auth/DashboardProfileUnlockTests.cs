@@ -1,4 +1,4 @@
-﻿﻿﻿using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
@@ -71,6 +71,7 @@ public class DashboardProfileUnlockTests
     private FakeEncryptionService m_Encryption = null!;
     private Mock<IPassphraseAttemptRateLimiter> m_Limiter = null!;
     private DashboardProfileAuthenticationService m_Service = null!;
+    private string m_DatabaseName = null!;
 
     private const ulong UserId = 100UL;
     private const ulong LtUid = 111UL;
@@ -81,8 +82,9 @@ public class DashboardProfileUnlockTests
     [SetUp]
     public void SetUp()
     {
+        m_DatabaseName = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<UserDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(m_DatabaseName)
             .Options;
         m_Db = new UserDbContext(options);
         m_Db.Users.Add(new UserModel
@@ -234,6 +236,46 @@ public class DashboardProfileUnlockTests
 
         var hit = await m_Service.AuthenticateAsync(UserId, 1, null, TestContext.CurrentContext.CancellationToken, SessionA);
         Assert.That(hit.Status, Is.EqualTo(DashboardAuthStatus.Success));
+    }
+
+    [Test]
+    public async Task Authenticate_LegacyUpgrade_DoesNotOverwriteConcurrentRotation()
+    {
+        var row = await m_Db.UserProfiles.SingleAsync(profile => profile.UserId == (long)UserId);
+        row.LToken = "legacy:cipher";
+        await m_Db.SaveChangesAsync();
+
+        var rotatedLastCheckIn = new DateTime(2026, 9, 7, 7, 8, 9, DateTimeKind.Utc);
+        m_Encryption.OnDecrypt = () =>
+        {
+            var options = new DbContextOptionsBuilder<UserDbContext>()
+                .UseInMemoryDatabase(m_DatabaseName)
+                .Options;
+            using var rotationContext = new UserDbContext(options);
+            var rotation = rotationContext.UserProfiles.Single(profile => profile.ProfileId == 1);
+            rotation.LToken = "rotated-during-login";
+            rotation.LastCheckIn = rotatedLastCheckIn;
+            rotationContext.SaveChanges();
+            return string.Empty;
+        };
+
+        var result = await m_Service.AuthenticateAsync(
+            UserId, 1, "correct", TestContext.CurrentContext.CancellationToken, SessionA);
+
+        await using var verificationContext = new UserDbContext(
+            new DbContextOptionsBuilder<UserDbContext>()
+                .UseInMemoryDatabase(m_DatabaseName)
+                .Options);
+        var stored = await verificationContext.UserProfiles
+            .AsNoTracking()
+            .SingleAsync(profile => profile.ProfileId == 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(DashboardAuthStatus.Failure));
+            Assert.That(stored.LToken, Is.EqualTo("rotated-during-login"));
+            Assert.That(stored.LastCheckIn, Is.EqualTo(rotatedLastCheckIn));
+        });
     }
 
     [Test]
