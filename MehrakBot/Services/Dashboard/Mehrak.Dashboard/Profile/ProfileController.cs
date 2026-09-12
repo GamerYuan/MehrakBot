@@ -21,7 +21,6 @@ public sealed class ProfileController : ControllerBase
     private readonly UserDbContext m_UserContext;
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
     private readonly ILogger<ProfileController> m_Logger;
 
@@ -29,14 +28,12 @@ public sealed class ProfileController : ControllerBase
         UserDbContext userContext,
         IEncryptionService encryptionService,
         ICacheService cacheService,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<ProfileController> logger)
     {
         m_UserContext = userContext;
         m_EncryptionService = encryptionService;
         m_CacheService = cacheService;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_Logger = logger;
     }
@@ -113,8 +110,6 @@ public sealed class ProfileController : ControllerBase
         if (user.Profiles.Any(x => x.LtUid == (long)request.LtUid))
             return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
 
-        var hadProfiles = user.Profiles.Count > 0;
-
         // Validate cookie and fetch all game profiles before saving
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
             discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
@@ -187,8 +182,6 @@ public sealed class ProfileController : ControllerBase
             m_Logger.LogError(e, "Failed to add profile for user {UserId}", discordUserId);
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to add profile. Please try again later." });
         }
-
-        if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
 
         m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", discordUserId, gameProfilesResult.Data.Count);
 
@@ -314,9 +307,6 @@ public sealed class ProfileController : ControllerBase
         // Deletion revokes both client caches.
         await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
 
-        if (profiles.Count == 0)
-            await m_UserTracker.AdjustUserCountAsync(-1);
-
         return NoContent();
     }
 
@@ -353,8 +343,6 @@ public sealed class ProfileController : ControllerBase
         // Deleting every profile revokes both client caches for every profile.
         foreach (var existing in allProfiles)
             await RevokeProfileCachesAsync(discordUserId, (ulong)existing.LtUid, existing.ProfileId);
-
-        await m_UserTracker.AdjustUserCountAsync(-1);
 
         return NoContent();
     }

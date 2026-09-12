@@ -67,14 +67,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ICacheService? m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<AuthModalModule> logger,
         ICacheService? cacheService = null)
@@ -83,7 +81,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_CookieService = cookieService;
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_CacheService = cacheService;
     }
@@ -137,8 +134,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         .AddComponents(new TextDisplayProperties("Profile already exists!")));
                 return;
             }
-
-            var hadProfiles = user.Profiles.Count > 0;
 
             if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
             {
@@ -222,15 +217,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             try
             {
                 await m_UserContext.SaveChangesAsync();
-                if (!hadProfiles)
-                    try
-                    {
-                        await m_UserTracker.AdjustUserCountAsync(1);
-                    }
-                    catch (Exception e)
-                    {
-                        m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
-                    }
                 m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
 
                 await Context.Interaction.SendFollowupMessageAsync(

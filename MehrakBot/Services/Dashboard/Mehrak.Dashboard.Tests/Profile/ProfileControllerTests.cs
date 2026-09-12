@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Security.Claims;
 using System.Text;
 using Mehrak.Dashboard.Profile;
@@ -7,7 +7,6 @@ using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.GameRole;
-using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
@@ -16,9 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
-using StackExchange.Redis;
 
 namespace Mehrak.Dashboard.Tests.Profile;
 
@@ -87,14 +84,6 @@ public class ProfileControllerTests
         m_Cache = new FakeCacheService();
         m_Encryption = new Mock<IEncryptionService>();
 
-        var database = new Mock<IDatabase>();
-        database.Setup(d => d.StringIncrementAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(1L);
-        var multiplexer = new Mock<IConnectionMultiplexer>();
-        multiplexer.Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(database.Object);
-        var tracker = new UserCountTrackerService(
-            Options.Create(new RedisConfig { InstanceName = "Test_" }), multiplexer.Object);
-
         var httpFactory = new Mock<IHttpClientFactory>();
         httpFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new StubGameRoleHandler()));
@@ -102,7 +91,7 @@ public class ProfileControllerTests
             httpFactory.Object, m_Cache, Mock.Of<ILogger<GameRoleApiService>>());
 
         m_Controller = new ProfileController(
-            m_Db, m_Encryption.Object, m_Cache, tracker, gameRoleApi,
+            m_Db, m_Encryption.Object, m_Cache, gameRoleApi,
             Mock.Of<ILogger<ProfileController>>());
 
         var httpContext = new DefaultHttpContext

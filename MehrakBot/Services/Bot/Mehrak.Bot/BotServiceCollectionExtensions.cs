@@ -36,8 +36,6 @@ internal static class BotServiceCollectionExtensions
         services.AddOpenTelemetry().WithMetrics(metrics => metrics
             .AddMeter("MehrakBot")
             .AddInstrumentation(sp => sp.GetRequiredService<IBotMetrics>()));
-        services.AddSingleton<UserCountTrackerService>();
-
         services.AddHostedService<BotRichStatusService>();
 
         services.AddSingleton<ClickhouseClientService>();
