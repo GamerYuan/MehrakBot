@@ -97,8 +97,9 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
             .ToUnixTimeSeconds();
 
-        var fileName = GetFileName(JsonSerializer.Serialize(anomalyData), "jpg", gameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("hsr", "anomaly", "v1", anomalyData, profile,
+            new { Server = server });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success(
                 [
@@ -140,9 +141,9 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(context.UserId, anomalyData, profile);
         cardContext.SetParameter("server", server);
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

@@ -108,7 +108,9 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
         Logger.LogInformation(LogMessage.ServiceInitialized, GetType().Name);
     }
 
-    public async Task<Stream> GetCardAsync(ICardGenerationContext<TData> context)
+    public async Task<Stream> GetCardAsync(
+        ICardGenerationContext<TData> context,
+        CancellationToken cancellationToken = default)
     {
         using var timer = Metrics.ObserveCardGenerationDuration(m_CardTypeName.ToLowerInvariant());
         Logger.LogInformation(LogMessage.CardGenStartInfo, m_CardTypeName, context.UserId);
@@ -121,16 +123,27 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
             var background = CreateBackground();
             disposables.Add(background);
 
-            await RenderCardAsync(background, context, disposables, default);
+            await RenderCardAsync(background, context, disposables, cancellationToken);
 
-            await background.SaveAsJpegAsync(stream, JpegEncoder);
+            await background.SaveAsJpegAsync(stream, JpegEncoder, cancellationToken);
             stream.Position = 0;
 
             Logger.LogInformation(LogMessage.CardGenSuccess, m_CardTypeName, context.UserId);
             return stream;
         }
+        catch (ImageNotFoundException)
+        {
+            stream.Dispose();
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            stream.Dispose();
+            throw;
+        }
         catch (Exception ex) when (ex is not ImageNotFoundException)
         {
+            stream.Dispose();
             Logger.LogError(ex, LogMessage.CardGenError, m_CardTypeName, context.UserId,
                 JsonSerializer.Serialize(context.Data));
 

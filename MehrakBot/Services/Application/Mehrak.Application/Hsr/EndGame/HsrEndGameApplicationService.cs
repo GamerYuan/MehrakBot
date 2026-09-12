@@ -106,8 +106,9 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
             .ToUnixTimeSeconds();
 
-        var fileName = GetFileName(JsonSerializer.Serialize(challengeData), "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("hsr", mode.ToString(), "v1", challengeData, profile,
+            new { Server = server, Mode = mode });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s {mode.GetString()} Summary",
@@ -146,9 +147,9 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         cardContext.SetParameter("server", server);
         cardContext.SetParameter("mode", mode);
 
-        await using var card = await cardService.GetCardAsync(cardContext);
+        await using var card = await cardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

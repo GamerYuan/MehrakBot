@@ -135,8 +135,16 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             }
         }
 
-        var fileName = GetFileName(JsonSerializer.Serialize(towerData), "jpg", gameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("zzz", "tower", "v1", towerData, profile,
+            new
+            {
+                Server = server,
+                CharMap = charMap
+                    .OrderBy(x => x.Key)
+                    .Select(x => new { Id = x.Key, x.Value.Level, x.Value.Rank })
+                    .ToArray()
+            });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Simulated Battle Trial Summary", CommandText.TextType.Header3),
@@ -165,9 +173,9 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         cardContext.SetParameter("server", server);
         cardContext.SetParameter("charMap", charMap);
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);

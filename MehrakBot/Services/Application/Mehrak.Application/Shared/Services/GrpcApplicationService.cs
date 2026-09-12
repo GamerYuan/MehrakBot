@@ -19,11 +19,11 @@ public class GrpcApplicationService(
 
             await dispatcher.DispatchAsync(queuedItem);
 
-            var result = await tcs.Task;
+            var result = await tcs.Task.WaitAsync(context.CancellationToken);
 
             return result.ToProto();
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             throw new RpcException(new Status(Grpc.Core.StatusCode.Cancelled, "Request cancelled by client"));
         }

@@ -309,6 +309,44 @@ public class ZzzTowerApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ChangedCharacterMap_DoesNotReuseTheOldCardName()
+    {
+        var (service, towerApiMock, characterApiMock, imageUpdaterMock, cardServiceMock, gameRoleApiMock,
+            attachmentStorageMock, _) = SetupMocks();
+        var profile = CreateTestProfile();
+        var existsNames = new List<string>();
+        var characterCall = 0;
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(profile));
+        towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(() =>
+            {
+                characterCall++;
+                var characters = CreateBasicCharacterList(characterCall == 1 ? 1 : 2);
+                return Result<IEnumerable<ZzzBasicAvatarData>>.Success(characters);
+            });
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback((string name, CancellationToken _) => existsNames.Add(name))
+            .ReturnsAsync(false);
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzTowerData>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult<Stream>(new MemoryStream()));
+
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+
+        await service.ExecuteAsync(context);
+        await service.ExecuteAsync(context);
+
+        Assert.That(existsNames, Has.Count.EqualTo(2));
+        Assert.That(existsNames[0], Is.Not.EqualTo(existsNames[1]));
+    }
+
+    [Test]
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange
@@ -466,7 +504,7 @@ public class ZzzTowerApplicationServiceTests
         };
     }
 
-    private static List<ZzzBasicAvatarData> CreateBasicCharacterList()
+    private static List<ZzzBasicAvatarData> CreateBasicCharacterList(int firstRank = 1)
     {
         return
         [
@@ -482,7 +520,7 @@ public class ZzzTowerApplicationServiceTests
                 RoleSquareUrl = "url",
                 AwakenState = "0",
                 Level = 60,
-                Rank = 1
+                Rank = firstRank
             },
             new ZzzBasicAvatarData
             {

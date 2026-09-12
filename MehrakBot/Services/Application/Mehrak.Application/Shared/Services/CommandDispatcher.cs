@@ -11,26 +11,27 @@ namespace Mehrak.Application.Shared.Services;
 public class CommandDispatcher : BackgroundService
 {
     private readonly Channel<QueuedCommand> m_Channel;
-
     private readonly IServiceProvider m_ServiceProvider;
     private readonly IApplicationMetrics m_Metrics;
     private readonly ILogger<CommandDispatcher> m_Logger;
+    private readonly int m_MaxConcurrency;
 
-    private readonly SemaphoreSlim m_Semaphore;
-
-    public CommandDispatcher(IOptions<CommandDispatcherConfig> config, IServiceProvider serviceProvider,
-        IApplicationMetrics metrics, ILogger<CommandDispatcher> logger)
+    public CommandDispatcher(
+        IOptions<CommandDispatcherConfig> config,
+        IServiceProvider serviceProvider,
+        IApplicationMetrics metrics,
+        ILogger<CommandDispatcher> logger)
     {
         if (config.Value.MaxConcurrency <= 0)
             throw new ArgumentException("MaxConcurrency must be greater than zero", nameof(config));
-        m_Semaphore = new(config.Value.MaxConcurrency);
 
+        m_MaxConcurrency = config.Value.MaxConcurrency;
         m_ServiceProvider = serviceProvider;
         m_Metrics = metrics;
         m_Logger = logger;
         m_Channel = Channel.CreateBounded<QueuedCommand>(new BoundedChannelOptions(100)
         {
-            SingleReader = true,
+            SingleReader = false,
             SingleWriter = false,
             FullMode = BoundedChannelFullMode.DropWrite
         }, item => item.CompletionSource
@@ -42,7 +43,7 @@ public class CommandDispatcher : BackgroundService
         if (command.CancellationToken.IsCancellationRequested)
         {
             command.CompletionSource.TrySetCanceled(command.CancellationToken);
-            throw new TaskCanceledException();
+            throw new OperationCanceledException(command.CancellationToken);
         }
 
         try
@@ -54,45 +55,81 @@ public class CommandDispatcher : BackgroundService
             command.CompletionSource.TrySetCanceled(command.CancellationToken);
             throw;
         }
+        catch (ChannelClosedException)
+        {
+            command.CompletionSource.TrySetCanceled();
+            throw new OperationCanceledException("Command dispatcher is stopping");
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var queuedCommand in m_Channel.Reader.ReadAllAsync(stoppingToken))
-        {
-            await m_Semaphore.WaitAsync(stoppingToken);
+        var workers = Enumerable.Range(0, m_MaxConcurrency)
+            .Select(_ => RunWorkerAsync(stoppingToken))
+            .ToArray();
 
-            _ = ProcessCommandAsync(queuedCommand).ContinueWith(t =>
-            {
-                m_Semaphore.Release();
-            }, TaskContinuationOptions.None);
+        try
+        {
+            await Task.WhenAll(workers);
         }
+        finally
+        {
+            m_Channel.Writer.TryComplete();
+            while (m_Channel.Reader.TryRead(out var queuedCommand))
+                queuedCommand.CompletionSource.TrySetCanceled();
+        }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Closing the writer makes new submissions fail immediately. BackgroundService then
+        // cancels the worker token and awaits all workers before returning from StopAsync.
+        m_Channel.Writer.TryComplete();
+        await base.StopAsync(cancellationToken);
+
+        while (m_Channel.Reader.TryRead(out var queuedCommand))
+            queuedCommand.CompletionSource.TrySetCanceled();
     }
 
     public override void Dispose()
     {
+        m_Channel.Writer.TryComplete();
         base.Dispose();
-        m_Semaphore.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    private async Task ProcessCommandAsync(QueuedCommand command)
+    private async Task RunWorkerAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await foreach (var queuedCommand in m_Channel.Reader.ReadAllAsync(stoppingToken))
+                await ProcessCommandAsync(queuedCommand, stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // ExecuteAsync drains commands that were not observed by a worker.
+        }
+    }
+
+    private async Task ProcessCommandAsync(QueuedCommand command, CancellationToken stoppingToken)
     {
         using var activity = ApplicationTelemetry.ActivitySource.StartActivity(command.Request.CommandName);
         activity?.SetTag("command.name", command.Request.CommandName);
 
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            command.CancellationToken, stoppingToken);
+        var cancellationToken = linkedCancellation.Token;
+
         try
         {
-            if (command.CancellationToken.IsCancellationRequested)
-            {
-                command.CompletionSource.TrySetCanceled(command.CancellationToken);
-                return;
-            }
+            cancellationToken.ThrowIfCancellationRequested();
 
             using var scope = m_ServiceProvider.CreateScope();
             var scopedProvider = scope.ServiceProvider;
 
-            ApplicationContextBase appContext = new(command.Request.DiscordUserId, command.Request.Parameters.Select(x => (x.Key, x.Value)))
+            ApplicationContextBase appContext = new(
+                command.Request.DiscordUserId,
+                command.Request.Parameters.Select(x => (x.Key, x.Value)))
             {
                 LtUid = command.Request.LtUid,
                 LToken = command.Request.LToken
@@ -110,12 +147,15 @@ public class CommandDispatcher : BackgroundService
             }
 
             using var time = m_Metrics.ObserveCommandDuration(command.Request.CommandName);
-            var result = await service.ExecuteAsync(appContext, command.CancellationToken);
+            var result = await service.ExecuteAsync(appContext, cancellationToken);
             command.CompletionSource.TrySetResult(result);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            command.CompletionSource.TrySetCanceled(command.CancellationToken);
+            var token = command.CancellationToken.IsCancellationRequested
+                ? command.CancellationToken
+                : cancellationToken;
+            command.CompletionSource.TrySetCanceled(token);
         }
         catch (Exception e)
         {
@@ -125,7 +165,6 @@ public class CommandDispatcher : BackgroundService
             command.CompletionSource.TrySetException(e);
         }
     }
-
 }
 
 public record QueuedCommand(

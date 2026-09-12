@@ -79,8 +79,9 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         _ = m_CharacterCache.UpsertCharacters(Game.HonkaiStarRail,
             characterList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-        var fileName = GetFileName(JsonSerializer.Serialize(characterList), "jpg", gameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("hsr", "char-list", "v1", characterList, profile,
+            new { Server = server });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success([
                 new CommandText($"<@{context.UserId}>")
@@ -108,9 +109,9 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
                 context.UserId, characterList, profile);
         cardContext.SetParameter("server", server);
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
