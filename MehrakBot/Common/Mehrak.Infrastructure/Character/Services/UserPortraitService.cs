@@ -106,6 +106,10 @@ internal class UserPortraitService : IUserPortraitService
             var contentType = ResolveContentType(entity.S3Key);
             return new AttachmentDownloadResult(stream, contentType);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             m_Logger.LogError(e, "Failed to retrieve portrait image from S3: {S3Key}", entity.S3Key);
@@ -165,6 +169,9 @@ internal class UserPortraitService : IUserPortraitService
 
         using var scope = m_ScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{game}:{normalizedCharacter}", ct);
 
         // Validate character exists
         var characterExists = await context.Characters
@@ -228,61 +235,45 @@ internal class UserPortraitService : IUserPortraitService
             ContentType = contentType
         };
 
-        var response = await m_S3.PutObjectAsync(putReq, ct);
-        if ((int)response.HttpStatusCode >= 300)
-        {
-            m_Logger.LogError("Failed to upload portrait to S3. Status: {StatusCode}", response.HttpStatusCode);
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "Failed to upload image to storage."
-            };
-        }
-
-        // Create DB record
-        var isFirstForCharacter = existingCount == 0;
-
-        var upload = new UserPortraitUpload
-        {
-            Id = uploadId,
-            DiscordUserId = discordUserId,
-            Game = game,
-            CharacterName = normalizedCharacter,
-            SHA256Hash = sha256,
-            S3Key = s3Key,
-            IsActive = isFirstForCharacter,
-            Config = new UserPortraitConfigModel
-            {
-                Id = Guid.NewGuid()
-            }
-        };
-
-        context.UserPortraitUploads.Add(upload);
-
+        UserPortraitUpload? upload;
         try
         {
-            await context.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException e)
-        {
-            m_Logger.LogError(e, "Failed to save portrait upload record");
-            try
+            var response = await m_S3.PutObjectAsync(putReq, ct);
+            if ((int)response.HttpStatusCode >= 300)
+                throw new AmazonS3Exception($"S3 returned status {response.HttpStatusCode}.");
+
+            upload = new UserPortraitUpload
             {
-                await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-                {
-                    BucketName = m_Bucket,
-                    Key = s3Key
-                }, ct);
-            }
-            catch (Exception cleanupEx)
-            {
-                m_Logger.LogWarning(cleanupEx, "Failed to clean up orphaned S3 object: {S3Key}", s3Key);
-            }
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "Failed to save upload record."
+                Id = uploadId,
+                DiscordUserId = discordUserId,
+                Game = game,
+                CharacterName = normalizedCharacter,
+                SHA256Hash = sha256,
+                S3Key = s3Key,
+                IsActive = existingCount == 0,
+                Config = new UserPortraitConfigModel { Id = Guid.NewGuid() }
             };
+            context.UserPortraitUploads.Add(upload);
+            await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch (Exception exception)
+        {
+            // Release the transaction before checking a possibly committed upload.
+            await transaction.DisposeAsync();
+            m_Logger.LogWarning(exception, "Portrait upload failed for {S3Key}", s3Key);
+            upload = await CheckFailedUploadAsync(discordUserId, game, normalizedCharacter, s3Key);
+            if (upload == null)
+            {
+                if (exception is OperationCanceledException && ct.IsCancellationRequested)
+                    throw;
+
+                return new UploadPortraitResult
+                {
+                    Succeeded = false,
+                    Error = "Failed to upload portrait. Please try again."
+                };
+            }
         }
 
         m_Logger.LogInformation("Portrait uploaded: {UploadId} for {DiscordUserId} - {Game}/{Character}",
@@ -294,6 +285,38 @@ internal class UserPortraitService : IUserPortraitService
             UploadId = upload.Id,
             Portrait = ToDto(upload)
         };
+    }
+
+    private async Task<UserPortraitUpload?> CheckFailedUploadAsync(
+        long discordUserId, Game game, string characterName, string s3Key)
+    {
+        using var cleanupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var ct = cleanupTimeout.Token;
+        try
+        {
+            using var scope = m_ScopeFactory.CreateScope();
+            using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            await using var transaction = await context.Database.BeginTransactionAsync(ct);
+            await CharacterDbLock.AcquireAsync(context, $"portrait:{discordUserId}:{game}:{characterName}", ct);
+            var committed = await context.UserPortraitUploads.Include(upload => upload.Config)
+                .SingleOrDefaultAsync(upload => upload.S3Key == s3Key, ct);
+
+            // A lost commit acknowledgement must never cause deletion of a saved portrait.
+            if (committed != null)
+                return committed;
+
+            context.UserPortraitDeletions.Add(new UserPortraitDeletionModel { S3Key = s3Key });
+            await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch (Exception exception)
+        {
+            // Best effort only: a crash or database outage can leave an orphaned object.
+            // No persistent reservation prevents the user from retrying their upload.
+            m_Logger.LogWarning(exception, "Could not queue failed portrait upload cleanup for {S3Key}", s3Key);
+        }
+
+        return null;
     }
 
     public async Task<bool> UpdatePortraitConfigAsync(
@@ -350,8 +373,18 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
+        if (entity == null)
+            return false;
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
+
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
         if (entity == null)
             return false;
 
@@ -367,12 +400,15 @@ internal class UserPortraitService : IUserPortraitService
         foreach (var sibling in siblings)
             sibling.IsActive = false;
 
+        await context.SaveChangesAsync(ct);
+
         entity.IsActive = true;
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return true;
         }
         catch (DbUpdateException e)
@@ -389,8 +425,18 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
+        if (entity == null)
+            return false;
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
+
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
         if (entity == null)
             return false;
 
@@ -400,6 +446,7 @@ internal class UserPortraitService : IUserPortraitService
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return true;
         }
         catch (DbUpdateException e)
@@ -415,30 +462,37 @@ internal class UserPortraitService : IUserPortraitService
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
         var entity = await context.UserPortraitUploads
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return false;
 
-        // Delete from S3
-        try
-        {
-            await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-            {
-                BucketName = m_Bucket,
-                Key = entity.S3Key
-            }, ct);
-        }
-        catch (Exception e)
-        {
-            m_Logger.LogWarning(e, "Failed to delete portrait from S3: {S3Key}", entity.S3Key);
-        }
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        await CharacterDbLock.AcquireAsync(context,
+            $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
 
+        entity = await context.UserPortraitUploads
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
+        if (entity == null)
+            return false;
+
+        // Free quota and remove the portrait atomically with queuing its storage key.
+        // Retried storage deletion must never affect a replacement upload.
+        var deletion = new UserPortraitDeletionModel
+        {
+            UserPortraitUploadId = entity.Id,
+            S3Key = entity.S3Key
+        };
         context.UserPortraitUploads.Remove(entity);
+        context.UserPortraitDeletions.Add(deletion);
 
         try
         {
             await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            // The hosted processor retries storage deletion independently of the request.
             return true;
         }
         catch (DbUpdateException e)

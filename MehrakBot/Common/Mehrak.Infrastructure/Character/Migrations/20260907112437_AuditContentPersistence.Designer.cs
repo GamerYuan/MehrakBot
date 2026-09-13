@@ -3,17 +3,20 @@ using System;
 using Mehrak.Infrastructure.Character;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Mehrak.Infrastructure.Migrations.CharacterDb
+namespace Mehrak.Infrastructure.Character.Migrations
 {
     [DbContext(typeof(CharacterDbContext))]
-    partial class CharacterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907112437_AuditContentPersistence")]
+    partial class AuditContentPersistence
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,7 +59,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("AliasConflicts", (string)null);
+                    b.ToTable("AliasConflicts");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.AliasModel", b =>
@@ -85,7 +88,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Alias")
                         .IsUnique();
 
-                    b.ToTable("Aliases", (string)null);
+                    b.ToTable("Aliases");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterModel", b =>
@@ -115,7 +118,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("Characters", (string)null);
+                    b.ToTable("Characters");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterPortraitConfigModel", b =>
@@ -161,7 +164,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "ServerId", "SubId")
                         .IsUnique();
 
-                    b.ToTable("CharacterPortraitConfigs", (string)null);
+                    b.ToTable("CharacterPortraitConfigs");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterServerIdModel", b =>
@@ -183,7 +186,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("CharacterId", "ServerId")
                         .IsUnique();
 
-                    b.ToTable("CharacterServerIds", (string)null);
+                    b.ToTable("CharacterServerIds");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitConfigModel", b =>
@@ -216,7 +219,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("UserPortraitUploadId")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitConfigs", (string)null);
+                    b.ToTable("UserPortraitConfigs");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitDeletionModel", b =>
@@ -251,7 +254,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("UserPortraitUploadId")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitDeletions", (string)null);
+                    b.ToTable("UserPortraitDeletions");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitUpload", b =>
@@ -294,14 +297,12 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasIndex("DiscordUserId", "Game", "CharacterName");
 
-                    b.HasIndex("DiscordUserId", "Game", "CharacterName", "IsActive")
-                        .IsUnique()
-                        .HasFilter("\"IsActive\" = TRUE");
+                    b.HasIndex("DiscordUserId", "Game", "CharacterName", "IsActive");
 
                     b.HasIndex("DiscordUserId", "Game", "CharacterName", "SHA256Hash")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitUploads", (string)null);
+                    b.ToTable("UserPortraitUploads");
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterServerIdModel", b =>

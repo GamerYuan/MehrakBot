@@ -70,6 +70,8 @@ public class Program
                 UseCookies = false
             }).ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
 
+        builder.Services.AddPortraitStorageCleanup();
+
         var seaweedFilerBaseUrl = NormalizeAbsoluteUrl(
             builder.Configuration["SeaweedFiler:BaseUrl"] ??
                 throw new ArgumentException("SeaweedFiler:BaseUrl cannot be empty."),

@@ -57,7 +57,16 @@ public class CharactersController : GameWriteController
             return BadRequest(new { error = "Characters list must contain at least one name." });
 
         m_Logger.LogInformation("Adding {Count} characters to game {Game}", normalizedCharacters.Length, gameEnum);
-        await m_CharacterCacheService.UpsertCharacters(gameEnum, normalizedCharacters);
+        try
+        {
+            await m_CharacterCacheService.UpsertCharacters(gameEnum, normalizedCharacters);
+        }
+        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
+        {
+            m_Logger.LogError(exception, "Characters were committed but cache refresh failed for {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "Characters were saved, but the character cache is temporarily unavailable." });
+        }
 
         return NoContent();
     }
@@ -78,7 +87,16 @@ public class CharactersController : GameWriteController
         var normalized = character.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting character {Character} from game {Game}", normalized, gameEnum);
 
-        await m_CharacterCacheService.DeleteCharacter(gameEnum, normalized);
+        try
+        {
+            await m_CharacterCacheService.DeleteCharacter(gameEnum, normalized);
+        }
+        catch (CacheSynchronizationException exception) when (exception.DatabaseCommitted)
+        {
+            m_Logger.LogError(exception, "Character deletion committed but cache refresh failed for {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "Character was deleted, but the character cache is temporarily unavailable." });
+        }
 
         return NoContent();
     }

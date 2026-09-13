@@ -3,6 +3,8 @@ using Mehrak.Dashboard.Shared;
 using Mehrak.Domain.Character;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Mehrak.Dashboard.Character;
 
@@ -75,8 +77,22 @@ public class AliasController : GameWriteController
         m_Logger.LogInformation("Adding {Count} aliases for character {Character} in game {Game}", normalizedAliases.Length,
             characterName, gameEnum);
 
-        var newAliases = normalizedAliases.ToDictionary(a => a, _ => characterName);
-        await m_AliasService.UpsertAliases(gameEnum, newAliases);
+        var newAliases = normalizedAliases.ToDictionary(a => a, _ => characterName, StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            await m_AliasService.UpsertAliases(gameEnum, newAliases);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: "23505" })
+        {
+            m_Logger.LogWarning(exception, "Alias insert raced with another request for game {Game}", gameEnum);
+            return Conflict(new { error = "One or more aliases were added by another request. Refresh and try again." });
+        }
+        catch (DbUpdateException exception)
+        {
+            m_Logger.LogError(exception, "Failed to add aliases for game {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "Failed to save aliases. Please try again later." });
+        }
 
         return NoContent();
     }
@@ -97,7 +113,16 @@ public class AliasController : GameWriteController
         var normalized = alias.ReplaceLineEndings("").Trim();
         m_Logger.LogInformation("Deleting alias {Alias} for game {Game}", normalized, gameEnum);
 
-        await m_AliasService.DeleteAlias(gameEnum, normalized);
+        try
+        {
+            await m_AliasService.DeleteAlias(gameEnum, normalized);
+        }
+        catch (DbUpdateException exception)
+        {
+            m_Logger.LogError(exception, "Failed to delete alias for game {Game}", gameEnum);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { error = "Failed to delete alias. Please try again later." });
+        }
 
         return NoContent();
     }
