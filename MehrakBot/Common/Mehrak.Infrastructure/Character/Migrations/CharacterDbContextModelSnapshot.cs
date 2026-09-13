@@ -56,7 +56,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
 
                     b.HasKey("Id");
 
-                    b.ToTable("AliasConflicts");
+                    b.ToTable("AliasConflicts", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.AliasModel", b =>
@@ -85,7 +85,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Alias")
                         .IsUnique();
 
-                    b.ToTable("Aliases");
+                    b.ToTable("Aliases", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterModel", b =>
@@ -115,7 +115,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "Name")
                         .IsUnique();
 
-                    b.ToTable("Characters");
+                    b.ToTable("Characters", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterPortraitConfigModel", b =>
@@ -161,7 +161,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("Game", "ServerId", "SubId")
                         .IsUnique();
 
-                    b.ToTable("CharacterPortraitConfigs");
+                    b.ToTable("CharacterPortraitConfigs", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterServerIdModel", b =>
@@ -183,7 +183,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("CharacterId", "ServerId")
                         .IsUnique();
 
-                    b.ToTable("CharacterServerIds");
+                    b.ToTable("CharacterServerIds", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitConfigModel", b =>
@@ -216,7 +216,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("UserPortraitUploadId")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitConfigs");
+                    b.ToTable("UserPortraitConfigs", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitDeletionModel", b =>
@@ -251,7 +251,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("UserPortraitUploadId")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitDeletions");
+                    b.ToTable("UserPortraitDeletions", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitUpload", b =>
@@ -301,55 +301,7 @@ namespace Mehrak.Infrastructure.Migrations.CharacterDb
                     b.HasIndex("DiscordUserId", "Game", "CharacterName", "SHA256Hash")
                         .IsUnique();
 
-                    b.ToTable("UserPortraitUploads");
-                });
-
-            modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.UserPortraitUploadIntentModel", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("CharacterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("DiscordUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Game")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastAttemptAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("S3Key")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("SHA256Hash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiscordUserId", "Game", "CharacterName", "SHA256Hash")
-                        .IsUnique();
-
-                    b.ToTable("UserPortraitUploadIntents");
+                    b.ToTable("UserPortraitUploads", (string)null);
                 });
 
             modelBuilder.Entity("Mehrak.Infrastructure.Character.Models.CharacterServerIdModel", b =>

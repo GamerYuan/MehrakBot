@@ -55,7 +55,14 @@ public class CharacterCacheService : ICharacterCacheService
             m_Logger.LogWarning(exception, "Character cache read failed for {Game}; using PostgreSQL", gameName);
         }
 
-        return RefreshCacheFromDatabaseAsync(gameName, failOnCacheRefresh: false).GetAwaiter().GetResult();
+        // Reads must not queue behind writers or retry an unavailable cache.
+        using var scope = m_ServiceScopeFactory.CreateScope();
+        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        return context.Characters.AsNoTracking()
+            .Where(character => character.Game == gameName)
+            .OrderBy(character => character.Name)
+            .Select(character => character.Name)
+            .ToList();
     }
 
     public Task UpsertCharacters(Game gameName, IEnumerable<string> characters) =>
@@ -166,7 +173,7 @@ public class CharacterCacheService : ICharacterCacheService
         await RefreshCacheFromDatabaseAsync(gameName);
     }
 
-    private async Task<List<string>> RefreshCacheFromDatabaseAsync(Game gameName, bool failOnCacheRefresh = true)
+    private async Task<List<string>> RefreshCacheFromDatabaseAsync(Game gameName)
     {
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var characterContext = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
@@ -180,14 +187,7 @@ public class CharacterCacheService : ICharacterCacheService
             .OrderBy(name => name)
             .ToListAsync();
 
-        try
-        {
-            await RefreshCacheAsync(gameName, characters);
-        }
-        catch (Exception exception) when (!failOnCacheRefresh)
-        {
-            m_Logger.LogWarning(exception, "Character cache rebuild failed for {Game}; returning PostgreSQL data", gameName);
-        }
+        await RefreshCacheAsync(gameName, characters);
 
         await transaction.CommitAsync();
         return characters;

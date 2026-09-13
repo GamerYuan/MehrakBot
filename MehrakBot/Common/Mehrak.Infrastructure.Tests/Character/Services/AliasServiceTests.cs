@@ -1,16 +1,12 @@
 ﻿using Mehrak.Domain.Shared.Enums;
-using Mehrak.Domain.Character;
 using Mehrak.Infrastructure.Character;
 using Mehrak.Infrastructure.Character.Models;
 using Mehrak.Infrastructure.Character.Services;
-using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.Infrastructure.Tests.TestUtils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
-using StackExchange.Redis;
 
 namespace Mehrak.Infrastructure.Tests.Character.Services;
 
@@ -20,40 +16,13 @@ namespace Mehrak.Infrastructure.Tests.Character.Services;
 internal sealed class AliasServiceTests : IDisposable
 {
     private readonly TestDbContextFactory m_DbFactory = new();
-    private readonly Mock<IDatabase> m_RedisDatabase = new();
-    private readonly Mock<ITransaction> m_RedisTransaction = new();
     private AliasService m_Service = null!;
 
     public void Dispose() => m_DbFactory.Dispose();
 
-    private void SetupService(bool cacheRefreshSucceeds = true)
+    private void SetupService()
     {
-        m_RedisTransaction
-            .Setup(transaction => transaction.ExecuteAsync(It.IsAny<CommandFlags>()))
-            .ReturnsAsync(cacheRefreshSucceeds);
-        m_RedisTransaction
-            .Setup(transaction => transaction.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-        m_RedisTransaction
-            .Setup(transaction => transaction.HashSetAsync(
-                It.IsAny<RedisKey>(), It.IsAny<HashEntry[]>(), It.IsAny<CommandFlags>()))
-            .Returns(Task.CompletedTask);
-        m_RedisDatabase
-            .Setup(database => database.CreateTransaction(It.IsAny<object>()))
-            .Returns(m_RedisTransaction.Object);
-        m_RedisDatabase
-            .Setup(database => database.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
-
-        var redis = new Mock<IConnectionMultiplexer>();
-        redis.Setup(connection => connection.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(m_RedisDatabase.Object);
-
-        m_Service = new AliasService(
-            Options.Create(new RedisConfig { InstanceName = "test:" }),
-            CreateScopeFactory(),
-            redis.Object,
-            NullLogger<AliasService>.Instance);
+        m_Service = new AliasService(CreateScopeFactory(), NullLogger<AliasService>.Instance);
     }
 
     private IServiceScopeFactory CreateScopeFactory()
@@ -74,7 +43,7 @@ internal sealed class AliasServiceTests : IDisposable
     private CharacterDbContext CreateContext() => m_DbFactory.CreateDbContext<CharacterDbContext>();
 
     [Test]
-    public async Task UpsertAliases_MixedCaseExistingRow_UsesCanonicalDatabaseIdentity()
+    public async Task UpsertAliases_MixedCaseRequest_UpdatesCanonicalDatabaseRow()
     {
         SetupService();
         await using (var context = CreateContext())
@@ -82,11 +51,10 @@ internal sealed class AliasServiceTests : IDisposable
             context.Aliases.Add(new AliasModel
             {
                 Game = Game.Genshin,
-                Alias = "Raiden",
+                Alias = "raiden",
                 CharacterName = "Raiden Shogun"
             });
             await context.SaveChangesAsync();
-            await context.Database.ExecuteSqlRawAsync("UPDATE Aliases SET Alias = 'RAIDEN'");
         }
 
         await m_Service.UpsertAliases(Game.Genshin, new Dictionary<string, string>
@@ -108,9 +76,9 @@ internal sealed class AliasServiceTests : IDisposable
     }
 
     [Test]
-    public async Task UpsertAliases_CacheFailureAfterCommit_DoesNotRejectDatabaseWrite()
+    public async Task UpsertAliases_DatabaseOnlyService_NormalizesNewAlias()
     {
-        SetupService(cacheRefreshSucceeds: false);
+        SetupService();
 
         await m_Service.UpsertAliases(Game.Genshin, new Dictionary<string, string>
         {
@@ -123,32 +91,20 @@ internal sealed class AliasServiceTests : IDisposable
     }
 
     [Test]
-    public async Task ReconcileAliases_ConflictingCaseCollision_PreservesLoserInConflictLedger()
+    public async Task DeleteAlias_MixedCaseRequest_DeletesCanonicalRow()
     {
         SetupService();
-        await using (var context = CreateContext())
-        {
-            context.Aliases.Add(new AliasModel
-            {
-                Game = Game.Genshin,
-                Alias = "raiden",
-                CharacterName = "Raiden Shogun"
-            });
-            await context.SaveChangesAsync();
-            await context.Database.ExecuteSqlRawAsync("INSERT INTO Aliases (Game, Alias, CharacterName) VALUES (1, 'RAIDEN', 'Raiden')");
-        }
+        await m_Service.UpsertAliases(Game.Genshin, new() { ["Raiden"] = "Raiden Shogun" });
+        await m_Service.DeleteAlias(Game.Genshin, "  RAIDEN\r\n");
+        Assert.That(m_Service.GetAliases(Game.Genshin), Is.Empty);
+    }
 
-        await m_Service.ReconcileAliasesAsync();
-
-        await using var verifyContext = CreateContext();
-        var aliasCount = await verifyContext.Aliases.CountAsync(alias => alias.Game == Game.Genshin);
-        var conflictExists = await verifyContext.AliasConflicts.AnyAsync(conflict =>
-            conflict.Alias == "raiden" && conflict.CharacterName == "Raiden" && conflict.OriginalAlias == "RAIDEN");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(aliasCount, Is.EqualTo(1));
-            Assert.That(conflictExists, Is.True);
-        });
+    [Test]
+    public void UpsertAliases_ConflictingNormalizedTargets_RejectsBeforeWriting()
+    {
+        SetupService();
+        Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.UpsertAliases(Game.Genshin,
+            new() { ["Raiden"] = "Raiden Shogun", [" RAIDEN "] = "Raiden" }));
+        Assert.That(m_Service.GetAliases(Game.Genshin), Is.Empty);
     }
 }

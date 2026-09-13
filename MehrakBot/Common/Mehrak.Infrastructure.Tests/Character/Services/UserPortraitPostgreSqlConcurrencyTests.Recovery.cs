@@ -41,39 +41,41 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         await using (var context = CreateContext())
         {
             Assert.That(await context.UserPortraitUploads.CountAsync(), Is.EqualTo(acknowledgementLost ? 1 : 0));
-            foreach (var intent in await context.UserPortraitUploadIntents.ToListAsync())
-                intent.CreatedAtUtc = DateTime.UtcNow.AddHours(-2);
-            await context.SaveChangesAsync();
         }
 
         var processor = CreateRecoveryProcessor();
-        await processor.ProcessPendingUploadIntentsAsync();
+        await processor.ProcessPendingDeletionsAsync();
         m_S3.Verify(s3 => s3.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()),
             acknowledgementLost ? Times.Never() : Times.Once());
         await using var verify = CreateContext();
-        Assert.That(await verify.UserPortraitUploadIntents.CountAsync(), Is.Zero);
+        Assert.That(await verify.UserPortraitDeletions.CountAsync(), Is.Zero);
     }
 
     [Test]
-    public async Task Recovery_DeletesOnlyTheIntentObjectWhenAnotherUploadHasTheSameHash()
+    public async Task DeleteCommitFailure_RollsBackPortraitAndOutboxTogether()
     {
+        Guid uploadId;
         await using (var context = CreateContext())
         {
-            context.UserPortraitUploads.Add(SeedPortrait(context, "same-hash"));
-            context.UserPortraitUploadIntents.Add(new UserPortraitUploadIntentModel
-            {
-                DiscordUserId = 100, Game = Game.Genshin, CharacterName = "Raiden",
-                SHA256Hash = "same-hash", S3Key = "100/orphan.png", CreatedAtUtc = DateTime.UtcNow.AddHours(-2)
-            });
+            var portrait = SeedPortrait(context, "delete-fault");
+            context.UserPortraitUploads.Add(portrait);
             await context.SaveChangesAsync();
+            uploadId = portrait.Id;
         }
-        await CreateRecoveryProcessor().ProcessPendingUploadIntentsAsync();
-        m_S3.Verify(s3 => s3.DeleteObjectAsync(It.Is<DeleteObjectRequest>(request => request.Key == "100/orphan.png"),
-            It.IsAny<CancellationToken>()), Times.Once);
-        m_S3.Verify(s3 => s3.DeleteObjectAsync(It.Is<DeleteObjectRequest>(request => request.Key != "100/orphan.png"),
-            It.IsAny<CancellationToken>()), Times.Never);
+        var fault = new UploadCommitFault(acknowledgementLost: false);
+        var options = new DbContextOptionsBuilder<CharacterDbContext>(m_ContextOptions)
+            .AddInterceptors(fault).Options;
+        await using var services = new ServiceCollection()
+            .AddScoped(_ => new CharacterDbContext(options)).BuildServiceProvider();
+        var service = new UserPortraitService(services.GetRequiredService<IServiceScopeFactory>(), m_S3.Object,
+            Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
+            NullLogger<UserPortraitService>.Instance);
+
+        Assert.ThrowsAsync<IOException>(() => service.DeletePortraitAsync(100L, uploadId));
         await using var verify = CreateContext();
-        Assert.That(await verify.UserPortraitUploads.CountAsync(), Is.EqualTo(1));
+        Assert.That(await verify.UserPortraitUploads.AnyAsync(upload => upload.Id == uploadId), Is.True);
+        Assert.That(await verify.UserPortraitDeletions.AnyAsync(), Is.False);
+        m_S3.Verify(s3 => s3.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -84,7 +86,6 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         var metadata = assembly.Migrations["20260907112450_ReconcileCharacterData"];
         var migration = assembly.CreateMigration(metadata, context.Database.ProviderName!);
         Assert.That(migration.TargetModel.FindEntityType(typeof(AliasConflictModel).FullName!), Is.Not.Null);
-        Assert.That(migration.TargetModel.FindEntityType(typeof(UserPortraitUploadIntentModel).FullName!), Is.Null);
         Assert.That(migration.TargetModel.FindEntityType(typeof(UserPortraitUpload).FullName!)!.GetIndexes()
             .Any(index => index.GetFilter() != null), Is.False);
         Assert.Throws<InvalidOperationException>(() => context.GetService<IMigrator>().GenerateScript(
@@ -146,7 +147,7 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         public override ValueTask<InterceptionResult> TransactionCommittingAsync(DbTransaction transaction,
             TransactionEventData eventData, InterceptionResult result, CancellationToken cancellationToken = default)
         {
-            if (++m_Commits == 2 && !acknowledgementLost)
+            if (++m_Commits == 1 && !acknowledgementLost)
             {
                 Injected = true;
                 throw new IOException("Injected failure before upload commit.");
@@ -157,7 +158,7 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         public override Task TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData,
             CancellationToken cancellationToken = default)
         {
-            if (m_Commits == 2 && acknowledgementLost)
+            if (m_Commits == 1 && acknowledgementLost)
             {
                 Injected = true;
                 throw new IOException("Injected lost commit acknowledgement.");

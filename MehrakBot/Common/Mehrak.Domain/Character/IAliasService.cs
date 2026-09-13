@@ -7,6 +7,4 @@ public interface IAliasService
     Dictionary<string, string> GetAliases(Game gameName);
     Task UpsertAliases(Game gameName, Dictionary<string, string> aliases);
     Task DeleteAlias(Game gameName, string alias);
-    Task ReconcileAliasesAsync(CancellationToken cancellationToken = default);
-    Task UpdateAllAliasesAsync();
 }

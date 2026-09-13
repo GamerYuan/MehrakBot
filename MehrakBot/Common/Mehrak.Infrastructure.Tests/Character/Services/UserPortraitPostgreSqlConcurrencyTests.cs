@@ -112,7 +112,7 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         m_S3.Invocations.Clear();
         m_RedisDatabase.Setup(database => database.CreateTransaction(It.IsAny<object>())).Returns(m_RedisTransaction.Object);
         await using var context = CreateContext();
-        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"UserPortraitUploadIntents\", \"UserPortraitDeletions\", \"UserPortraitConfigs\", \"UserPortraitUploads\", \"Characters\" RESTART IDENTITY CASCADE");
+        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"UserPortraitDeletions\", \"UserPortraitConfigs\", \"UserPortraitUploads\", \"Characters\" RESTART IDENTITY CASCADE");
         context.Characters.Add(new CharacterModel { Game = Game.Genshin, Name = "Raiden" });
         await context.SaveChangesAsync();
     }
@@ -195,55 +195,34 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
     }
 
     [Test]
-    public async Task AgedUploadIntentCannotBeCleanedWhilePutIsInFlight()
+    public async Task CacheFallback_DoesNotWaitForTheCharacterWriteLock()
     {
-        var s3 = new Mock<IAmazonS3>();
-        var putStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releasePut = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        s3.Setup(service => service.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
-            .Returns(async () =>
-            {
-                putStarted.SetResult();
-                await releasePut.Task;
-                return new PutObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.OK };
-            });
-        s3.Setup(service => service.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
+        await using var context = CreateContext();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(context, $"characters:{Game.Genshin}");
+        m_RedisDatabase.Setup(database => database.SetMembers(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "offline"));
 
-        var service = CreateService(s3.Object);
-        var uploadTask = service.UploadPortraitAsync(
-            100L, Game.Genshin, "Raiden", new MemoryStream(), "in-flight", "png");
-        await putStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var result = await Task.Run(() => CreateCharacterCacheService().GetCharacters(Game.Genshin))
+            .WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.That(result, Is.EqualTo(new[] { "Raiden" }));
+    }
 
-        Guid intentId;
+    [Test]
+    public async Task ConcurrentAliasUpsertsAcrossIndependentContexts_UseCanonicalIdentity()
+    {
         await using (var context = CreateContext())
         {
-            var intent = await context.UserPortraitUploadIntents.SingleAsync();
-            intent.CreatedAtUtc = DateTime.UtcNow.AddHours(-2);
-            intentId = intent.Id;
+            context.Aliases.RemoveRange(context.Aliases);
             await context.SaveChangesAsync();
         }
-
-        var processor = new UserPortraitDeletionProcessor(
-            m_ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
-            s3.Object,
-            Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
-            NullLogger<UserPortraitDeletionProcessor>.Instance);
-        var cleanupTask = processor.ProcessPendingUploadIntentAsync(intentId);
-
-        Assert.That(await Task.WhenAny(cleanupTask, Task.Delay(200)), Is.Not.SameAs(cleanupTask));
-        releasePut.SetResult();
-
-        var result = await uploadTask;
-        Assert.That(result.Succeeded, Is.True);
-        Assert.That(await cleanupTask, Is.True);
-
-        await using var verifyContext = CreateContext();
-        Assert.Multiple(() =>
-        {
-            Assert.That(verifyContext.UserPortraitUploads.Count(), Is.EqualTo(1));
-            Assert.That(verifyContext.UserPortraitUploadIntents.Count(), Is.EqualTo(0));
-        });
+        var services = Enumerable.Range(0, 4).Select(_ => new AliasService(
+            m_ServiceProvider.GetRequiredService<IServiceScopeFactory>(), NullLogger<AliasService>.Instance));
+        await Task.WhenAll(services.Select(service => service.UpsertAliases(Game.Genshin,
+            new() { ["  RAIDEN "] = "Raiden Shogun" })));
+        await using var verify = CreateContext();
+        Assert.That(await verify.Aliases.CountAsync(), Is.EqualTo(1));
+        Assert.That((await verify.Aliases.SingleAsync()).Alias, Is.EqualTo("raiden"));
     }
 
     private UserPortraitService CreateService(IAmazonS3? s3 = null)

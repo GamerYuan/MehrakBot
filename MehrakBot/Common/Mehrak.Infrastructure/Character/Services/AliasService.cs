@@ -3,12 +3,9 @@
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Infrastructure.Character.Models;
-using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using StackExchange.Redis;
 
 #endregion
 
@@ -16,33 +13,21 @@ namespace Mehrak.Infrastructure.Character.Services;
 
 public class AliasService : IAliasService
 {
-    private const int CacheRefreshAttempts = 3;
-
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AliasService> m_Logger;
-    private readonly IConnectionMultiplexer m_Redis;
-    private readonly string m_RedisInstanceName;
 
     public AliasService(
-        IOptions<RedisConfig> redisConfig,
         IServiceScopeFactory serviceScopeFactory,
-        IConnectionMultiplexer redis,
         ILogger<AliasService> logger)
     {
-        m_RedisInstanceName = redisConfig.Value.InstanceName;
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
-        m_Redis = redis;
     }
-
-    private IDatabase Db => m_Redis.GetDatabase();
-
-    private string GetAliasKey(Game game) => $"{m_RedisInstanceName}aliases:{game}";
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
-        // PostgreSQL is authoritative. Redis is a derived lookup cache and must
-        // never decide whether an alias can be created or which target it has.
+        // Legacy aliases are canonicalized once by the reconciliation migration.
+        // All subsequent writes normalize identity at the service boundary.
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
@@ -55,55 +40,6 @@ public class AliasService : IAliasService
         return aliases
             .GroupBy(alias => AliasModel.NormalizeAlias(alias.Alias), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().CharacterName, StringComparer.OrdinalIgnoreCase);
-    }
-
-    public async Task ReconcileAliasesAsync(CancellationToken cancellationToken = default)
-    {
-        using var scope = m_ServiceScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        await CharacterDbLock.AcquireAsync(context, "aliases:all", cancellationToken);
-
-        await ReconcileAliasesInContextAsync(context, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-    }
-
-    private static async Task ReconcileAliasesInContextAsync(
-        CharacterDbContext context, CancellationToken cancellationToken)
-    {
-        var aliases = await context.Aliases
-            .OrderBy(alias => alias.Game)
-            .ThenBy(alias => alias.Id)
-            .ToListAsync(cancellationToken);
-
-        var changed = false;
-        foreach (var group in aliases.GroupBy(alias => (alias.Game, Alias: AliasModel.NormalizeAlias(alias.Alias))))
-        {
-            var winner = group.First();
-            winner.Alias = group.Key.Alias;
-            changed = true;
-
-            foreach (var duplicate in group.Skip(1))
-            {
-                if (!string.Equals(winner.CharacterName, duplicate.CharacterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    context.AliasConflicts.Add(new AliasConflictModel
-                    {
-                        Game = duplicate.Game,
-                        Alias = group.Key.Alias,
-                        OriginalAlias = duplicate.Alias,
-                        CharacterName = duplicate.CharacterName,
-                        SourceAliasId = duplicate.Id
-                    });
-                }
-
-                context.Aliases.Remove(duplicate);
-                changed = true;
-            }
-        }
-
-        if (changed)
-            await context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpsertAliases(Game gameName, Dictionary<string, string> aliases)
@@ -125,8 +61,7 @@ public class AliasService : IAliasService
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
         await using var transaction = await context.Database.BeginTransactionAsync();
-        await CharacterDbLock.AcquireAsync(context, "aliases:all");
-        await ReconcileAliasesInContextAsync(context, CancellationToken.None);
+        await CharacterDbLock.AcquireAsync(context, $"aliases:{gameName}");
 
         var entries = normalized.ToDictionary(group => group.Key, group => group.First().CharacterName,
             StringComparer.OrdinalIgnoreCase);
@@ -153,7 +88,6 @@ public class AliasService : IAliasService
 
         await context.SaveChangesAsync();
         await transaction.CommitAsync();
-        await RefreshCacheFromDatabaseAsync(gameName);
 
         m_Logger.LogInformation("Upserted {Count} aliases for {Game}", entries.Count, gameName);
     }
@@ -167,8 +101,7 @@ public class AliasService : IAliasService
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
         await using var transaction = await context.Database.BeginTransactionAsync();
-        await CharacterDbLock.AcquireAsync(context, "aliases:all");
-        await ReconcileAliasesInContextAsync(context, CancellationToken.None);
+        await CharacterDbLock.AcquireAsync(context, $"aliases:{gameName}");
 
         var entity = await context.Aliases
             .FirstOrDefaultAsync(entry => entry.Game == gameName && entry.Alias == normalized);
@@ -177,90 +110,13 @@ public class AliasService : IAliasService
         {
             m_Logger.LogInformation("Alias {Alias} not found for game {Game}; nothing to delete", normalized, gameName);
             await transaction.CommitAsync();
-            await RefreshCacheFromDatabaseAsync(gameName);
             return;
         }
 
         context.Aliases.Remove(entity);
         await context.SaveChangesAsync();
         await transaction.CommitAsync();
-        await RefreshCacheFromDatabaseAsync(gameName);
 
         m_Logger.LogInformation("Deleted alias {Alias} for game {Game}", normalized, gameName);
-    }
-
-    public async Task UpdateAllAliasesAsync()
-    {
-        await ReconcileAliasesAsync();
-
-        var games = Enum.GetValues<Game>();
-        await Task.WhenAll(games.Select(RefreshCacheFromDatabaseAsync));
-    }
-
-    private async Task RefreshCacheFromDatabaseAsync(Game gameName)
-    {
-        try
-        {
-            using var scope = m_ServiceScopeFactory.CreateScope();
-            using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-            var aliases = await context.Aliases
-                .AsNoTracking()
-                .Where(alias => alias.Game == gameName)
-                .OrderBy(alias => alias.Alias)
-                .ToListAsync();
-
-            Exception? lastException = null;
-            for (var attempt = 1; attempt <= CacheRefreshAttempts; attempt++)
-            {
-                try
-                {
-                    var transaction = Db.CreateTransaction();
-                    var queuedCommands = new List<Task>
-                    {
-                        transaction.KeyDeleteAsync(GetAliasKey(gameName))
-                    };
-                    if (aliases.Count > 0)
-                    {
-                        queuedCommands.Add(transaction.HashSetAsync(GetAliasKey(gameName), aliases
-                            .Select(alias => new HashEntry(alias.Alias, alias.CharacterName))
-                            .ToArray()));
-                    }
-
-                    if (await transaction.ExecuteAsync())
-                    {
-                        await Task.WhenAll(queuedCommands);
-                        return;
-                    }
-
-                    throw new RedisException("Redis transaction was not committed.");
-                }
-                catch (Exception exception) when (attempt < CacheRefreshAttempts)
-                {
-                    lastException = exception;
-                    m_Logger.LogWarning(exception, "Alias cache refresh attempt {Attempt} failed for {Game}", attempt, gameName);
-                    await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt));
-                }
-                catch (Exception exception)
-                {
-                    lastException = exception;
-                }
-            }
-
-            try
-            {
-                await Db.KeyDeleteAsync(GetAliasKey(gameName));
-            }
-            catch (Exception invalidationException)
-            {
-                lastException = new AggregateException(lastException!, invalidationException);
-            }
-
-            m_Logger.LogWarning(lastException,
-                "Database committed for aliases in {Game}, but the unused Redis cache could not be refreshed", gameName);
-        }
-        catch (Exception exception)
-        {
-            m_Logger.LogWarning(exception, "Alias cache refresh failed for {Game}", gameName);
-        }
     }
 }

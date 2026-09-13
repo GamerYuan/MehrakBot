@@ -32,9 +32,7 @@ internal class AliasInitializationService : IHostedService
 
         try
         {
-            await m_AliasService.ReconcileAliasesAsync();
             await InitializeAliasesFromJsonFiles();
-            await m_AliasService.UpdateAllAliasesAsync();
             m_Logger.LogInformation("Alias initialization completed successfully");
         }
         catch (Exception ex)

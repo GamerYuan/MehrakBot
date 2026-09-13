@@ -9,7 +9,6 @@ using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Mehrak.Infrastructure.Character.Services;
@@ -22,21 +21,17 @@ internal class UserPortraitService : IUserPortraitService
     private readonly IAmazonS3 m_S3;
     private readonly string m_Bucket;
     private readonly ILogger<UserPortraitService> m_Logger;
-    private readonly UserPortraitDeletionProcessor m_DeletionProcessor;
 
     public UserPortraitService(
         IServiceScopeFactory scopeFactory,
         IAmazonS3 s3,
         IOptions<UserPortraitStorageConfig> options,
-        ILogger<UserPortraitService> logger,
-        UserPortraitDeletionProcessor? deletionProcessor = null)
+        ILogger<UserPortraitService> logger)
     {
         m_ScopeFactory = scopeFactory;
         m_S3 = s3;
         m_Bucket = options.Value.Bucket;
         m_Logger = logger;
-        m_DeletionProcessor = deletionProcessor ?? new UserPortraitDeletionProcessor(
-            scopeFactory, s3, options, NullLogger<UserPortraitDeletionProcessor>.Instance);
     }
 
     public async Task<IReadOnlyCollection<UserPortraitUploadDto>> GetUserPortraitsAsync(
@@ -48,8 +43,7 @@ internal class UserPortraitService : IUserPortraitService
         var query = context.UserPortraitUploads
             .AsNoTracking()
             .Include(u => u.Config)
-            .Where(u => u.DiscordUserId == discordUserId && u.Game == game &&
-                        !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id));
+            .Where(u => u.DiscordUserId == discordUserId && u.Game == game);
 
         if (!string.IsNullOrWhiteSpace(characterName))
         {
@@ -74,8 +68,7 @@ internal class UserPortraitService : IUserPortraitService
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
             .Include(u => u.Config)
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         return entity == null ? null : ToDto(entity);
     }
@@ -88,8 +81,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return null;
@@ -134,8 +126,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var exists = await context.UserPortraitUploads
             .AsNoTracking()
-            .AnyAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId && u.S3Key == s3Key &&
-                           !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .AnyAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId && u.S3Key == s3Key, ct);
 
         if (!exists)
             return null;
@@ -202,13 +193,7 @@ internal class UserPortraitService : IUserPortraitService
                 u.Game == game &&
                 u.CharacterName == normalizedCharacter, ct);
 
-        var pendingIntentCount = await context.UserPortraitUploadIntents
-            .CountAsync(i =>
-                i.DiscordUserId == discordUserId &&
-                i.Game == game &&
-                i.CharacterName == normalizedCharacter, ct);
-
-        if (existingCount + pendingIntentCount >= MaxPortraitsPerCharacter)
+        if (existingCount >= MaxPortraitsPerCharacter)
         {
             return new UploadPortraitResult
             {
@@ -234,65 +219,10 @@ internal class UserPortraitService : IUserPortraitService
             };
         }
 
-        var pendingDuplicateExists = await context.UserPortraitUploadIntents
-            .AnyAsync(i =>
-                i.DiscordUserId == discordUserId &&
-                i.Game == game &&
-                i.CharacterName == normalizedCharacter &&
-                i.SHA256Hash == sha256, ct);
-
-        if (pendingDuplicateExists)
-        {
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "This image is already being uploaded for this character."
-            };
-        }
-
+        // Upload to S3
         var uploadId = Guid.CreateVersion7();
         var s3Key = $"{discordUserId}/{uploadId}.{extension}";
         var contentType = extension == "png" ? "image/png" : "image/jpeg";
-
-        var intent = new UserPortraitUploadIntentModel
-        {
-            DiscordUserId = discordUserId,
-            Game = game,
-            CharacterName = normalizedCharacter,
-            SHA256Hash = sha256,
-            S3Key = s3Key
-        };
-        context.UserPortraitUploadIntents.Add(intent);
-        // Exclude cleanup while this upload is in flight, independently of
-        // the character transaction used to reserve and finalize its record.
-        using var operationScope = m_ScopeFactory.CreateScope();
-        using var operationContext = operationScope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        await using var operationLock = await CharacterDbLock.AcquireSessionAsync(
-            operationContext, $"portrait-upload:{intent.Id}", ct);
-
-        try
-        {
-            await context.SaveChangesAsync(ct);
-            await transaction.CommitAsync(ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            m_Logger.LogError(exception, "Failed to create portrait upload intent");
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "Failed to reserve upload. Please try again later."
-            };
-        }
-        finally
-        {
-            // End a failed reservation transaction before releasing the session lock.
-            await transaction.DisposeAsync();
-        }
 
         if (imageStream.CanSeek) imageStream.Position = 0;
 
@@ -305,71 +235,45 @@ internal class UserPortraitService : IUserPortraitService
             ContentType = contentType
         };
 
-        PutObjectResponse response;
-        try
-        {
-            response = await m_S3.PutObjectAsync(putReq, ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            m_Logger.LogWarning("Portrait upload was cancelled after reserving storage intent: {S3Key}", s3Key);
-            throw;
-        }
-        catch (Exception exception)
-        {
-            m_Logger.LogWarning(exception, "Portrait storage upload outcome is unknown: {S3Key}", s3Key);
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "Failed to upload image to storage. It will be cleaned up automatically if necessary."
-            };
-        }
-
-        if ((int)response.HttpStatusCode >= 300)
-        {
-            m_Logger.LogError("Failed to upload portrait to S3. Status: {StatusCode}", response.HttpStatusCode);
-            return new UploadPortraitResult
-            {
-                Succeeded = false,
-                Error = "Failed to upload image to storage. It will be cleaned up automatically if necessary."
-            };
-        }
-
         UserPortraitUpload? upload;
         try
         {
-            upload = await FinalizeUploadAsync(
-                intent.Id, uploadId, discordUserId, game, normalizedCharacter, sha256, s3Key, ct);
+            var response = await m_S3.PutObjectAsync(putReq, ct);
+            if ((int)response.HttpStatusCode >= 300)
+                throw new AmazonS3Exception($"S3 returned status {response.HttpStatusCode}.");
 
-            if (upload == null)
+            upload = new UserPortraitUpload
             {
-                upload = await RecoverUploadIntentAsync(
-                    intent.Id,
-                    uploadId,
-                    discordUserId,
-                    game,
-                    normalizedCharacter,
-                    sha256,
-                    s3Key,
-                    new InvalidOperationException("Portrait upload intent disappeared before finalization."));
-            }
+                Id = uploadId,
+                DiscordUserId = discordUserId,
+                Game = game,
+                CharacterName = normalizedCharacter,
+                SHA256Hash = sha256,
+                S3Key = s3Key,
+                IsActive = existingCount == 0,
+                Config = new UserPortraitConfigModel { Id = Guid.NewGuid() }
+            };
+            context.UserPortraitUploads.Add(upload);
+            await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (Exception exception)
         {
-            upload = await RecoverUploadIntentAsync(
-                intent.Id, uploadId, discordUserId, game, normalizedCharacter, sha256, s3Key, exception);
-
-            if (upload == null && exception is OperationCanceledException)
-                throw;
-        }
-
-        if (upload == null)
-        {
-            return new UploadPortraitResult
+            // Release the transaction before checking a possibly committed upload.
+            await transaction.DisposeAsync();
+            m_Logger.LogWarning(exception, "Portrait upload failed for {S3Key}", s3Key);
+            upload = await CheckFailedUploadAsync(discordUserId, game, normalizedCharacter, s3Key);
+            if (upload == null)
             {
-                Succeeded = false,
-                Error = "Failed to save upload record. The storage operation will be reconciled automatically."
-            };
+                if (exception is OperationCanceledException && ct.IsCancellationRequested)
+                    throw;
+
+                return new UploadPortraitResult
+                {
+                    Succeeded = false,
+                    Error = "Failed to upload portrait. Please try again."
+                };
+            }
         }
 
         m_Logger.LogInformation("Portrait uploaded: {UploadId} for {DiscordUserId} - {Game}/{Character}",
@@ -383,148 +287,33 @@ internal class UserPortraitService : IUserPortraitService
         };
     }
 
-    private async Task<UserPortraitUpload?> FinalizeUploadAsync(
-        Guid intentId,
-        Guid uploadId,
-        long discordUserId,
-        Game game,
-        string characterName,
-        string sha256,
-        string s3Key,
-        CancellationToken cancellationToken)
+    private async Task<UserPortraitUpload?> CheckFailedUploadAsync(
+        long discordUserId, Game game, string characterName, string s3Key)
     {
-        using var scope = m_ScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-
-        await CharacterDbLock.AcquireAsync(context,
-            $"portrait:{discordUserId}:{game}:{characterName}", cancellationToken);
-
-        var existingUpload = await context.UserPortraitUploads
-            .Include(upload => upload.Config)
-            .SingleOrDefaultAsync(upload =>
-                upload.Id == uploadId ||
-                (upload.DiscordUserId == discordUserId && upload.Game == game &&
-                 upload.CharacterName == characterName && upload.SHA256Hash == sha256), cancellationToken);
-        var intent = await context.UserPortraitUploadIntents
-            .SingleOrDefaultAsync(entry => entry.Id == intentId, cancellationToken);
-
-        if (existingUpload != null)
+        using var cleanupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var ct = cleanupTimeout.Token;
+        try
         {
-            if (intent != null)
-            {
-                if (!string.Equals(existingUpload.S3Key, s3Key, StringComparison.Ordinal))
-                {
-                    context.UserPortraitDeletions.Add(new UserPortraitDeletionModel
-                    {
-                        S3Key = s3Key
-                    });
-                }
+            using var scope = m_ScopeFactory.CreateScope();
+            using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            await using var transaction = await context.Database.BeginTransactionAsync(ct);
+            await CharacterDbLock.AcquireAsync(context, $"portrait:{discordUserId}:{game}:{characterName}", ct);
+            var committed = await context.UserPortraitUploads.Include(upload => upload.Config)
+                .SingleOrDefaultAsync(upload => upload.S3Key == s3Key, ct);
 
-                context.UserPortraitUploadIntents.Remove(intent);
-            }
+            // A lost commit acknowledgement must never cause deletion of a saved portrait.
+            if (committed != null)
+                return committed;
 
-            await context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return existingUpload;
+            context.UserPortraitDeletions.Add(new UserPortraitDeletionModel { S3Key = s3Key });
+            await context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
-
-        if (intent == null)
-            return null;
-
-        var isFirstForCharacter = !await context.UserPortraitUploads.AnyAsync(upload =>
-            upload.DiscordUserId == discordUserId &&
-            upload.Game == game &&
-            upload.CharacterName == characterName, cancellationToken);
-
-        var upload = new UserPortraitUpload
+        catch (Exception exception)
         {
-            Id = uploadId,
-            DiscordUserId = discordUserId,
-            Game = game,
-            CharacterName = characterName,
-            SHA256Hash = sha256,
-            S3Key = s3Key,
-            IsActive = isFirstForCharacter,
-            Config = new UserPortraitConfigModel
-            {
-                Id = Guid.NewGuid()
-            }
-        };
-
-        context.UserPortraitUploads.Add(upload);
-        context.UserPortraitUploadIntents.Remove(intent);
-        await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return upload;
-    }
-
-    private async Task<UserPortraitUpload?> RecoverUploadIntentAsync(
-        Guid intentId,
-        Guid uploadId,
-        long discordUserId,
-        Game game,
-        string characterName,
-        string sha256,
-        string s3Key,
-        Exception failure)
-    {
-        for (var attempt = 1; attempt <= 3; attempt++)
-        {
-            try
-            {
-                using var scope = m_ScopeFactory.CreateScope();
-                using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-                await using var transaction = await context.Database.BeginTransactionAsync(CancellationToken.None);
-
-                await CharacterDbLock.AcquireAsync(context,
-                    $"portrait:{discordUserId}:{game}:{characterName}", CancellationToken.None);
-
-                var upload = await context.UserPortraitUploads
-                    .Include(entity => entity.Config)
-                    .SingleOrDefaultAsync(entity => entity.Id == uploadId, CancellationToken.None);
-                var intent = await context.UserPortraitUploadIntents
-                    .SingleOrDefaultAsync(entity => entity.Id == intentId, CancellationToken.None);
-
-                if (upload != null)
-                {
-                    if (intent != null)
-                        context.UserPortraitUploadIntents.Remove(intent);
-
-                    await context.SaveChangesAsync(CancellationToken.None);
-                    await transaction.CommitAsync(CancellationToken.None);
-                    return upload;
-                }
-
-                intent ??= new UserPortraitUploadIntentModel
-                {
-                    Id = intentId,
-                    DiscordUserId = discordUserId,
-                    Game = game,
-                    CharacterName = characterName,
-                    SHA256Hash = sha256,
-                    S3Key = s3Key
-                };
-
-                intent.Attempts++;
-                intent.LastAttemptAtUtc = DateTime.UtcNow;
-                intent.LastError = failure.Message[..Math.Min(failure.Message.Length, 1000)];
-                if (context.Entry(intent).State == EntityState.Detached)
-                    context.UserPortraitUploadIntents.Add(intent);
-
-                await context.SaveChangesAsync(CancellationToken.None);
-                await transaction.CommitAsync(CancellationToken.None);
-                return null;
-            }
-            catch (Exception exception) when (attempt < 3)
-            {
-                m_Logger.LogWarning(exception, "Portrait upload recovery attempt {Attempt} failed for {S3Key}", attempt, s3Key);
-                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt), CancellationToken.None);
-            }
-            catch (Exception exception)
-            {
-                m_Logger.LogCritical(exception, "Could not durably recover portrait upload intent for {S3Key}", s3Key);
-            }
+            // Best effort only: a crash or database outage can leave an orphaned object.
+            // No persistent reservation prevents the user from retrying their upload.
+            m_Logger.LogWarning(exception, "Could not queue failed portrait upload cleanup for {S3Key}", s3Key);
         }
 
         return null;
@@ -538,8 +327,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .Include(u => u.Config)
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return false;
@@ -586,8 +374,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return false;
@@ -597,8 +384,7 @@ internal class UserPortraitService : IUserPortraitService
             $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
 
         entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
         if (entity == null)
             return false;
 
@@ -640,8 +426,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return false;
@@ -651,8 +436,7 @@ internal class UserPortraitService : IUserPortraitService
             $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
 
         entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
         if (entity == null)
             return false;
 
@@ -679,8 +463,7 @@ internal class UserPortraitService : IUserPortraitService
 
         var entity = await context.UserPortraitUploads
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
 
         if (entity == null)
             return false;
@@ -690,18 +473,18 @@ internal class UserPortraitService : IUserPortraitService
             $"portrait:{discordUserId}:{entity.Game}:{entity.CharacterName}", ct);
 
         entity = await context.UserPortraitUploads
-            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId &&
-                                      !context.UserPortraitDeletions.Any(deletion => deletion.UserPortraitUploadId == u.Id), ct);
+            .FirstOrDefaultAsync(u => u.Id == uploadId && u.DiscordUserId == discordUserId, ct);
         if (entity == null)
             return false;
 
-        // Commit the deletion intent before touching S3. The row is hidden from
-        // reads while this durable outbox entry is pending.
+        // Free quota and remove the portrait atomically with queuing its storage key.
+        // Retried storage deletion must never affect a replacement upload.
         var deletion = new UserPortraitDeletionModel
         {
             UserPortraitUploadId = entity.Id,
             S3Key = entity.S3Key
         };
+        context.UserPortraitUploads.Remove(entity);
         context.UserPortraitDeletions.Add(deletion);
 
         try
@@ -709,9 +492,7 @@ internal class UserPortraitService : IUserPortraitService
             await context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            // A failed storage call is intentionally recoverable; the hosted
-            // processor will retry the same idempotent deletion.
-            await m_DeletionProcessor.ProcessPendingDeletionAsync(deletion.Id, ct);
+            // The hosted processor retries storage deletion independently of the request.
             return true;
         }
         catch (DbUpdateException e)

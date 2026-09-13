@@ -372,65 +372,41 @@ internal sealed class UserPortraitServiceTests : IDisposable
         });
     }
 
-    [Test]
-    public async Task UploadPortraitAsync_StorageOutcomeUnknown_LeavesIntentForRecovery()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task UploadPortraitAsync_FailureOrCancellation_AllowsImmediateSameImageRetry(bool cancel)
     {
         SetupService();
-        await using (var ctx = CreateContext())
-        {
-            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
-        }
-
-        m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new AmazonS3Exception("storage timeout"));
-
-        var result = await m_Service.UploadPortraitAsync(
-            100L, Game.Genshin, "Raiden", new MemoryStream(), "unknown", "png");
-
-        Assert.That(result.Succeeded, Is.False);
-        await using (var verifyContext = CreateContext())
-        {
-            var intent = await verifyContext.UserPortraitUploadIntents.SingleAsync();
-            intent.CreatedAtUtc = DateTime.UtcNow.AddHours(-2);
-            await verifyContext.SaveChangesAsync();
-        }
-
-        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
-        var processor = new UserPortraitDeletionProcessor(
-            CreateScopeFactory(),
-            m_MockS3.Object,
-            Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
-            NullLogger<UserPortraitDeletionProcessor>.Instance);
-
-        await processor.ProcessPendingUploadIntentsAsync();
-
-        await using var finalContext = CreateContext();
-        Assert.That(await finalContext.UserPortraitUploadIntents.AnyAsync(), Is.False);
-    }
-
-    [Test]
-    public async Task UploadPortraitAsync_CancellationAfterIntentCommit_PreservesIntent()
-    {
-        SetupService();
-        await using (var ctx = CreateContext())
-        {
-            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
-        }
+        await using (var context = CreateContext())
+            await SeedCharacterAsync(context, Game.Genshin, "Raiden");
 
         using var cancellation = new CancellationTokenSource();
         m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
+                if (!cancel)
+                    return Task.FromException<PutObjectResponse>(new AmazonS3Exception("storage timeout"));
                 cancellation.Cancel();
                 return Task.FromCanceled<PutObjectResponse>(cancellation.Token);
             });
+        if (cancel)
+            Assert.CatchAsync<OperationCanceledException>(() => m_Service.UploadPortraitAsync(
+                100L, Game.Genshin, "Raiden", new MemoryStream(), "retry-hash", "png", cancellation.Token));
+        else
+            Assert.That((await m_Service.UploadPortraitAsync(
+                100L, Game.Genshin, "Raiden", new MemoryStream(), "retry-hash", "png")).Succeeded, Is.False);
 
-        Assert.CatchAsync<OperationCanceledException>(() => m_Service.UploadPortraitAsync(
-            100L, Game.Genshin, "Raiden", new MemoryStream(), "cancelled", "png", cancellation.Token));
-
-        await using var verifyContext = CreateContext();
-        Assert.That(await verifyContext.UserPortraitUploadIntents.AnyAsync(), Is.True);
+        await using (var context = CreateContext())
+        {
+            Assert.That(await context.UserPortraitUploads.AnyAsync(), Is.False);
+            Assert.That(await context.UserPortraitDeletions.CountAsync(), Is.EqualTo(1));
+        }
+        m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PutObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+        var retry = await m_Service.UploadPortraitAsync(
+            100L, Game.Genshin, "Raiden", new MemoryStream(), "retry-hash", "png");
+        Assert.That(retry.Succeeded, Is.True);
+        Assert.That(retry.Portrait!.IsActive, Is.True);
     }
 
     [Test]
@@ -458,64 +434,58 @@ internal sealed class UserPortraitServiceTests : IDisposable
         m_MockS3.Verify(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Test]
-    public async Task DeletePortraitAsync_StorageFailure_HidesPortraitAndLeavesRetryableOutbox()
+    [TestCase(1)]
+    [TestCase(5)]
+    public async Task DeletePortraitAsync_StorageFailure_FreesQuotaAndAllowsSameImageReplacement(int originalCount)
     {
         SetupService();
         UserPortraitUpload portrait;
-        await using (var ctx = CreateContext())
+        await using (var context = CreateContext())
         {
-            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
-            portrait = await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", s3Key: "100/delete.png");
+            await SeedCharacterAsync(context, Game.Genshin, "Raiden");
+            portrait = await SeedPortraitAsync(context, 100L, Game.Genshin, "Raiden",
+                sha256: "replace", s3Key: "100/deleted.png", isActive: true);
+            for (var index = 1; index < originalCount; index++)
+                await SeedPortraitAsync(context, 100L, Game.Genshin, "Raiden", sha256: $"other-{index}",
+                    s3Key: $"100/{index}.png", isActive: false);
         }
 
         m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AmazonS3Exception("temporary storage failure"));
-
-        var result = await m_Service.DeletePortraitAsync(100L, portrait.Id);
-
-        Assert.That(result, Is.True);
+        Assert.That(await m_Service.DeletePortraitAsync(100L, portrait.Id), Is.True);
         Assert.That(await m_Service.GetPortraitAsync(100L, portrait.Id), Is.Null);
-
-        await using var verifyCtx = CreateContext();
-        var pending = await verifyCtx.UserPortraitDeletions.SingleAsync(x => x.UserPortraitUploadId == portrait.Id);
-        Assert.That(pending.Attempts, Is.GreaterThanOrEqualTo(1));
-        Assert.That(await verifyCtx.UserPortraitUploads.AnyAsync(x => x.Id == portrait.Id), Is.True);
-    }
-
-    [Test]
-    public async Task UserPortraitDeletionProcessor_RetryAfterStorageFailure_RemovesRowIdempotently()
-    {
-        SetupService();
-        UserPortraitUpload portrait;
-        await using (var ctx = CreateContext())
-        {
-            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
-            portrait = await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", s3Key: "100/retry.png");
-            ctx.UserPortraitDeletions.Add(new UserPortraitDeletionModel
-            {
-                UserPortraitUploadId = portrait.Id,
-                S3Key = portrait.S3Key
-            });
-            await ctx.SaveChangesAsync();
-        }
-
-        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
-        var processor = new UserPortraitDeletionProcessor(
-            CreateScopeFactory(),
-            m_MockS3.Object,
+        var processor = new UserPortraitDeletionProcessor(CreateScopeFactory(), m_MockS3.Object,
             Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
             NullLogger<UserPortraitDeletionProcessor>.Instance);
+        m_MockS3.Verify(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        await processor.ProcessPendingDeletionsAsync();
+        await using (var context = CreateContext())
+        {
+            Assert.That(await context.UserPortraitUploads.AnyAsync(x => x.Id == portrait.Id), Is.False);
+            Assert.That(await context.UserPortraitConfigs.AnyAsync(x => x.UserPortraitUploadId == portrait.Id), Is.False);
+            Assert.That((await context.UserPortraitDeletions.SingleAsync()).Attempts, Is.GreaterThanOrEqualTo(1));
+        }
 
+        m_MockS3.Setup(s => s.PutObjectAsync(It.IsAny<PutObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PutObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+        var replacement = await m_Service.UploadPortraitAsync(
+            100L, Game.Genshin, "Raiden", new MemoryStream(), "replace", "png");
+        Assert.That(replacement.Succeeded, Is.True);
+        Assert.That(replacement.Portrait!.IsActive, Is.EqualTo(originalCount == 1));
+
+        m_MockS3.Invocations.Clear();
+        m_MockS3.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse { HttpStatusCode = System.Net.HttpStatusCode.NoContent });
+        await processor.ProcessPendingDeletionsAsync();
         await processor.ProcessPendingDeletionsAsync();
 
-        await using var verifyCtx = CreateContext();
-        Assert.Multiple(() =>
-        {
-            Assert.That(verifyCtx.UserPortraitUploads.Any(x => x.Id == portrait.Id), Is.False);
-            Assert.That(verifyCtx.UserPortraitDeletions.Any(x => x.UserPortraitUploadId == portrait.Id), Is.False);
-        });
+        m_MockS3.Verify(s => s.DeleteObjectAsync(It.Is<DeleteObjectRequest>(request => request.Key == portrait.S3Key),
+            It.IsAny<CancellationToken>()), Times.Once);
+        m_MockS3.Verify(s => s.DeleteObjectAsync(It.Is<DeleteObjectRequest>(request => request.Key != portrait.S3Key),
+            It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(await m_Service.GetPortraitAsync(100L, replacement.UploadId!.Value), Is.Not.Null);
+        await using var final = CreateContext();
+        Assert.That(await final.UserPortraitDeletions.AnyAsync(), Is.False);
     }
 
     #endregion

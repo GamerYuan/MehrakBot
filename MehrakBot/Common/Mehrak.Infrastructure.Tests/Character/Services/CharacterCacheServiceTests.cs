@@ -66,6 +66,27 @@ internal sealed class CharacterCacheServiceTests : IDisposable
             NullLogger<CharacterCacheService>.Instance);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task GetCharacters_CacheMissOrOutage_ReturnsDatabaseWithoutRepair(bool unavailable)
+    {
+        var service = CreateService(cacheRefreshSucceeds: false);
+        await using (var context = m_DbFactory.CreateDbContext<CharacterDbContext>())
+        {
+            context.Characters.Add(new CharacterModel { Game = Game.Genshin, Name = "Raiden" });
+            await context.SaveChangesAsync();
+        }
+        var read = m_RedisDatabase.Setup(database => database.SetMembers(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()));
+        if (unavailable)
+            read.Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "offline"));
+        else
+            read.Returns([]);
+
+        Assert.That(service.GetCharacters(Game.Genshin), Is.EqualTo(new[] { "Raiden" }));
+        m_RedisDatabase.Verify(database => database.CreateTransaction(It.IsAny<object>()), Times.Never);
+        m_RedisDatabase.Verify(database => database.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Never);
+    }
+
     [Test]
     public async Task UpsertCharacters_CacheFailureAfterCommit_ThrowsCommittedSynchronizationError()
     {

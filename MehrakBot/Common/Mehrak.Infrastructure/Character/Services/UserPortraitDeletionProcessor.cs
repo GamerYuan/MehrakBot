@@ -11,8 +11,6 @@ namespace Mehrak.Infrastructure.Character.Services;
 
 public sealed class UserPortraitDeletionProcessor
 {
-    private static readonly TimeSpan UploadIntentRecoveryAge = TimeSpan.FromHours(1);
-
     private readonly IServiceScopeFactory m_ScopeFactory;
     private readonly IAmazonS3 m_S3;
     private readonly string m_Bucket;
@@ -44,99 +42,6 @@ public sealed class UserPortraitDeletionProcessor
         foreach (var pendingId in pendingIds)
             await ProcessPendingDeletionAsync(pendingId, cancellationToken);
 
-        await ProcessPendingUploadIntentsAsync(cancellationToken);
-    }
-
-    public async Task ProcessPendingUploadIntentsAsync(CancellationToken cancellationToken = default)
-    {
-        using var scope = m_ScopeFactory.CreateScope();
-        using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        var cutoff = DateTime.UtcNow - UploadIntentRecoveryAge;
-        var pendingIds = await context.UserPortraitUploadIntents
-            .AsNoTracking()
-            .Where(intent => intent.CreatedAtUtc <= cutoff)
-            .OrderBy(intent => intent.CreatedAtUtc)
-            .Take(100)
-            .Select(intent => intent.Id)
-            .ToListAsync(cancellationToken);
-
-        foreach (var pendingId in pendingIds)
-            await ProcessPendingUploadIntentAsync(pendingId, cancellationToken);
-    }
-
-    public async Task<bool> ProcessPendingUploadIntentAsync(
-        Guid intentId, CancellationToken cancellationToken = default)
-    {
-        UserPortraitUploadIntentModel? discoveredIntent;
-        using (var scope = m_ScopeFactory.CreateScope())
-        using (var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>())
-        {
-            discoveredIntent = await context.UserPortraitUploadIntents
-                .AsNoTracking()
-                .SingleOrDefaultAsync(intent => intent.Id == intentId, cancellationToken);
-        }
-
-        if (discoveredIntent == null)
-            return true;
-
-        using var processingScope = m_ScopeFactory.CreateScope();
-        using var processingContext = processingScope.ServiceProvider.GetRequiredService<CharacterDbContext>();
-        await using var operationLock = await CharacterDbLock.AcquireSessionAsync(
-            processingContext, $"portrait-upload:{intentId}", cancellationToken);
-        await using var transaction = await processingContext.Database.BeginTransactionAsync(cancellationToken);
-        await CharacterDbLock.AcquireAsync(processingContext,
-            $"portrait:{discoveredIntent.DiscordUserId}:{discoveredIntent.Game}:{discoveredIntent.CharacterName}",
-            cancellationToken);
-
-        var intent = await processingContext.UserPortraitUploadIntents
-            .SingleOrDefaultAsync(entry => entry.Id == intentId, cancellationToken);
-        if (intent == null)
-            return true;
-
-        var uploadExists = await processingContext.UserPortraitUploads.AnyAsync(upload =>
-            upload.S3Key == intent.S3Key,
-            cancellationToken);
-        if (uploadExists)
-        {
-            processingContext.UserPortraitUploadIntents.Remove(intent);
-            await processingContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return true;
-        }
-
-        if (intent.CreatedAtUtc > DateTime.UtcNow - UploadIntentRecoveryAge)
-            return false;
-
-        try
-        {
-            var response = await m_S3.DeleteObjectAsync(new DeleteObjectRequest
-            {
-                BucketName = m_Bucket,
-                Key = intent.S3Key
-            }, cancellationToken);
-
-            if ((int)response.HttpStatusCode >= 300)
-                throw new AmazonS3Exception($"S3 returned status {response.HttpStatusCode}.");
-
-            processingContext.UserPortraitUploadIntents.Remove(intent);
-            await processingContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return true;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            intent.Attempts++;
-            intent.LastAttemptAtUtc = DateTime.UtcNow;
-            intent.LastError = exception.Message[..Math.Min(exception.Message.Length, 1000)];
-            await processingContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            m_Logger.LogWarning(exception, "Portrait upload intent remains pending for {IntentId}", intentId);
-            return false;
-        }
     }
 
     public async Task<bool> ProcessPendingDeletionAsync(Guid deletionId, CancellationToken cancellationToken = default)
@@ -179,14 +84,6 @@ public sealed class UserPortraitDeletionProcessor
             using var scope = m_ScopeFactory.CreateScope();
             using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-
-            if (deletion.UserPortraitUploadId is Guid uploadId)
-            {
-                var upload = await context.UserPortraitUploads
-                    .SingleOrDefaultAsync(entry => entry.Id == uploadId, cancellationToken);
-                if (upload != null)
-                    context.UserPortraitUploads.Remove(upload);
-            }
 
             var outboxEntry = await context.UserPortraitDeletions
                 .SingleOrDefaultAsync(entry => entry.Id == deletionId, cancellationToken);
