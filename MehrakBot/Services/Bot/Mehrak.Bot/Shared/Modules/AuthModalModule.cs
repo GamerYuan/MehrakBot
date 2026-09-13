@@ -67,14 +67,12 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly UserDbContext m_UserContext;
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ICacheService? m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
 
     public AuthModalModule(
         IEncryptionService cookieService,
         UserDbContext userRepository,
         IAuthenticationMiddlewareService authenticationMiddleware,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<AuthModalModule> logger,
         ICacheService? cacheService = null)
@@ -83,7 +81,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_CookieService = cookieService;
         m_UserContext = userRepository;
         m_AuthenticationMiddleware = authenticationMiddleware;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_CacheService = cacheService;
     }
@@ -96,22 +93,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
 
             await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
-
-            var user = await m_UserContext.Users
-                .Where(u => u.Id == (long)Context.User.Id)
-                .Include(u => u.Profiles)
-                .SingleOrDefaultAsync();
-
-            if (user == null)
-            {
-                user = new UserModel
-                {
-                    Id = (long)Context.User.Id,
-                    Timestamp = DateTime.UtcNow,
-                    Profiles = []
-                };
-                await m_UserContext.Users.AddAsync(user);
-            }
 
             var inputs = Context.Components
                 .OfType<Label>()
@@ -129,17 +110,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
 
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            if (user.Profiles.Any(x => x.LtUid == (long)ltuid))
-            {
-                m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Profile already exists!")));
-                return;
-            }
-
-            var hadProfiles = user.Profiles.Count > 0;
-
             if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
             {
                 // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
@@ -197,7 +167,6 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             UserProfileModel profile = new()
             {
                 UserId = (long)Context.User.Id,
-                ProfileId = user.Profiles.Count + 1,
                 LtUid = (long)ltuid,
                 LToken = await Task.Run(() =>
                     m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
@@ -215,22 +184,64 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 });
             }
 
-            user.Profiles.Add(profile);
-
             profile.GameUids.Sort((a, b) => a.GameUid.CompareTo(b.GameUid));
 
+            ProfileAddResult addResult;
             try
             {
-                await m_UserContext.SaveChangesAsync();
-                if (!hadProfiles)
-                    try
+                addResult = await m_UserContext.ExecuteUserProfileMutationAsync(
+                    (long)Context.User.Id,
+                    async () =>
                     {
-                        await m_UserTracker.AdjustUserCountAsync(1);
-                    }
-                    catch (Exception e)
-                    {
-                        m_Logger.LogWarning(e, "Failed to adjust user count for user {UserId}", Context.User.Id);
-                    }
+                        // The modal may have been submitted from a stale
+                        // profile list. Recheck all limits and uniqueness after
+                        // acquiring the shared per-user mutation lock.
+                        m_UserContext.ChangeTracker.Clear();
+
+                        var user = await m_UserContext.Users
+                            .Where(u => u.Id == (long)Context.User.Id)
+                            .Include(u => u.Profiles)
+                            .SingleOrDefaultAsync();
+
+                        if (user is null)
+                        {
+                            user = new UserModel
+                            {
+                                Id = (long)Context.User.Id,
+                                Timestamp = DateTime.UtcNow,
+                                Profiles = []
+                            };
+                            await m_UserContext.Users.AddAsync(user);
+                        }
+
+                        if (user.Profiles.Count >= 10)
+                            return new ProfileAddResult(ProfileAddStatus.TooMany);
+
+                        if (user.Profiles.Any(existing => existing.LtUid == (long)ltuid))
+                            return new ProfileAddResult(ProfileAddStatus.Duplicate);
+                        profile.ProfileId = user.Profiles.Count + 1;
+                        user.Profiles.Add(profile);
+                        await m_UserContext.SaveChangesAsync();
+                        return new ProfileAddResult(ProfileAddStatus.Added);
+                    });
+
+                if (addResult.Status == ProfileAddStatus.TooMany)
+                {
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("You can only have 10 profiles!")));
+                    return;
+                }
+
+                if (addResult.Status == ProfileAddStatus.Duplicate)
+                {
+                    m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
+                    await Context.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
+                            .AddComponents(new TextDisplayProperties("Profile already exists!")));
+                    return;
+                }
+
                 m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", Context.User.Id, gameProfilesResult.Data.Count);
 
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -415,6 +426,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                         "This authentication request has expired or is invalid. Please try again"))));
         }
     }
+
+    private enum ProfileAddStatus
+    {
+        Added,
+        TooMany,
+        Duplicate
+    }
+
+    private sealed record ProfileAddResult(ProfileAddStatus Status);
 }
 
 

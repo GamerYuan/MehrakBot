@@ -37,10 +37,22 @@ builder.Services.AddDbContext<DocumentationDbContext>((sp, options) =>
 builder.Services.AddDbContext<ReleaseNoteDbContext>((sp, options) =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddSingleton<Worker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Worker>());
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(Worker.ActivitySourceName));
 
 var host = builder.Build();
-host.Run();
+var worker = host.Services.GetRequiredService<Worker>();
+
+try
+{
+    host.Run();
+}
+catch
+{
+    return Worker.FailureExitCode;
+}
+
+return worker.ExitCode;

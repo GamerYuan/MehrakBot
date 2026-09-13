@@ -525,7 +525,7 @@ public class Hi3CharacterApplicationServiceTests
 
         BaseCardGenerationContext<Hi3CharacterDetail>? capturedContext = null;
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()))
-            .Callback<ICardGenerationContext<Hi3CharacterDetail>>(ctx => capturedContext = (BaseCardGenerationContext<Hi3CharacterDetail>)ctx)
+            .Callback<ICardGenerationContext<Hi3CharacterDetail>, CancellationToken>((ctx, _) => capturedContext = (BaseCardGenerationContext<Hi3CharacterDetail>)ctx)
             .ReturnsAsync(new MemoryStream());
 
         var context = CreateContext(1, 1ul, "test", ("character", character.Avatar.Name), ("server", Hi3Server.SEA.ToString()));

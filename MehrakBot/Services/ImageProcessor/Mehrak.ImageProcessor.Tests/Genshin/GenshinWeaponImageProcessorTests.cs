@@ -6,7 +6,6 @@ namespace Mehrak.ImageProcessor.Tests.Genshin;
 
 [Parallelizable(ParallelScope.All)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-[Explicit("Require OpenCV Runtime")]
 internal class GenshinWeaponImageProcessorTests
 {
     private static readonly string TestDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin", "TestAssets", "WeaponProcessor");
@@ -59,6 +58,77 @@ internal class GenshinWeaponImageProcessorTests
         }
     }
 
+    [Test]
+    public void AttemptEccRefinement_WhenInitialAffineNeedsRefinement_ImprovesAlphaOverlap()
+    {
+        const int imageSize = 128;
+        const double expectedTranslationX = 10;
+        const double expectedTranslationY = 8;
+
+        using var icon = CreatePatternImage(imageSize);
+        using var iconAlpha = icon.ExtractChannel(3);
+        using var ascended = new Mat();
+        using var ascendedAlpha = new Mat();
+        using var inverseTransform = CreateTranslationAffine(-expectedTranslationX, -expectedTranslationY);
+        using var initialTransform = CreateTranslationAffine(4, 3);
+        using var initiallyWarpedAlpha = new Mat();
+
+        Cv2.WarpAffine(icon, ascended, inverseTransform, new Size(imageSize, imageSize));
+        Cv2.ExtractChannel(ascended, ascendedAlpha, 3);
+        Cv2.WarpAffine(ascendedAlpha, initiallyWarpedAlpha, initialTransform,
+            new Size(imageSize, imageSize));
+
+        var initialIou = GenshinWeaponImageProcessor.ComputeIoU(initiallyWarpedAlpha, iconAlpha);
+        var refinedIou = GenshinWeaponImageProcessor.AttemptEccRefinement(
+            ascended, ascendedAlpha, icon, iconAlpha, initialTransform);
+
+        Assert.That(initialIou, Is.LessThan(0.80));
+        Assert.That(refinedIou, Is.GreaterThan(initialIou + 0.10));
+        Assert.That(refinedIou, Is.GreaterThan(0.90));
+        Assert.That(initialTransform.At<double>(0, 2), Is.EqualTo(expectedTranslationX).Within(1.0));
+        Assert.That(initialTransform.At<double>(1, 2), Is.EqualTo(expectedTranslationY).Within(1.0));
+    }
+
+    [Test]
+    public void AttemptEccRefinement_WhenInputHasNoIntensityVariation_ReturnsZeroAndLeavesTransformUnchanged()
+    {
+        const int imageSize = 64;
+
+        using var icon = new Mat(imageSize, imageSize, MatType.CV_8UC4, new Scalar(0, 0, 0, 255));
+        using var ascended = new Mat(imageSize, imageSize, MatType.CV_8UC4, new Scalar(0, 0, 0, 255));
+        using var iconAlpha = icon.ExtractChannel(3);
+        using var ascendedAlpha = ascended.ExtractChannel(3);
+        using var affine = CreateTranslationAffine(2, -3);
+
+        var result = GenshinWeaponImageProcessor.AttemptEccRefinement(
+            ascended, ascendedAlpha, icon, iconAlpha, affine);
+
+        Assert.That(result, Is.EqualTo(0));
+        Assert.That(affine.At<double>(0, 0), Is.EqualTo(1));
+        Assert.That(affine.At<double>(0, 1), Is.EqualTo(0));
+        Assert.That(affine.At<double>(0, 2), Is.EqualTo(2));
+        Assert.That(affine.At<double>(1, 0), Is.EqualTo(0));
+        Assert.That(affine.At<double>(1, 1), Is.EqualTo(1));
+        Assert.That(affine.At<double>(1, 2), Is.EqualTo(-3));
+    }
+
+    [Test]
+    public void AttemptEccRefinement_WhenInputChannelsAreInvalid_ReturnsZero()
+    {
+        const int imageSize = 64;
+
+        using var icon = new Mat(imageSize, imageSize, MatType.CV_8UC1, Scalar.All(0));
+        using var ascended = new Mat(imageSize, imageSize, MatType.CV_8UC1, Scalar.All(0));
+        using var iconAlpha = new Mat(imageSize, imageSize, MatType.CV_8UC1, Scalar.All(255));
+        using var ascendedAlpha = new Mat(imageSize, imageSize, MatType.CV_8UC1, Scalar.All(255));
+        using var affine = CreateTranslationAffine(1, 1);
+
+        var result = GenshinWeaponImageProcessor.AttemptEccRefinement(
+            ascended, ascendedAlpha, icon, iconAlpha, affine);
+
+        Assert.That(result, Is.EqualTo(0));
+    }
+
     #region Integration Tests
     [Test]
     [TestCase("icon_sword.png", "ascended_sword.png", "golden_sword.png")]
@@ -108,6 +178,30 @@ internal class GenshinWeaponImageProcessorTests
         // White rectangle, fully opaque
         Cv2.Rectangle(mat, new Rect(x, y, shapeSize, shapeSize), new Scalar(255, 255, 255, 255), -1);
 
+        return mat;
+    }
+
+    private static Mat CreatePatternImage(int size)
+    {
+        var mat = new Mat(size, size, MatType.CV_8UC4, Scalar.All(0));
+
+        Cv2.Rectangle(mat, new Rect(20, 22, 84, 78), new Scalar(35, 90, 180, 255), -1);
+        Cv2.Circle(mat, new Point(76, 62), 19, new Scalar(210, 35, 120, 255), -1);
+        Cv2.Line(mat, new Point(24, 94), new Point(104, 28), new Scalar(120, 220, 40, 255), 4);
+        Cv2.Rectangle(mat, new Rect(38, 44, 18, 14), new Scalar(240, 200, 30, 255), -1);
+
+        return mat;
+    }
+
+    private static Mat CreateTranslationAffine(double x, double y)
+    {
+        var mat = new Mat(2, 3, MatType.CV_64F);
+        mat.Set(0, 0, 1.0);
+        mat.Set(0, 1, 0.0);
+        mat.Set(0, 2, x);
+        mat.Set(1, 0, 0.0);
+        mat.Set(1, 1, 1.0);
+        mat.Set(1, 2, y);
         return mat;
     }
 

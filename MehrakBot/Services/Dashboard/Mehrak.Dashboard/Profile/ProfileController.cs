@@ -1,10 +1,11 @@
-﻿﻿﻿using System.Data.Common;
+﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.GameRole;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
 using Mehrak.Infrastructure.User.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,6 @@ public sealed class ProfileController : ControllerBase
     private readonly UserDbContext m_UserContext;
     private readonly IEncryptionService m_EncryptionService;
     private readonly ICacheService m_CacheService;
-    private readonly UserCountTrackerService m_UserTracker;
     private readonly GameRoleApiService m_GameRoleApi;
     private readonly ILogger<ProfileController> m_Logger;
 
@@ -29,14 +29,12 @@ public sealed class ProfileController : ControllerBase
         UserDbContext userContext,
         IEncryptionService encryptionService,
         ICacheService cacheService,
-        UserCountTrackerService userTracker,
         GameRoleApiService gameRoleApi,
         ILogger<ProfileController> logger)
     {
         m_UserContext = userContext;
         m_EncryptionService = encryptionService;
         m_CacheService = cacheService;
-        m_UserTracker = userTracker;
         m_GameRoleApi = gameRoleApi;
         m_Logger = logger;
     }
@@ -91,30 +89,6 @@ public sealed class ProfileController : ControllerBase
 
         m_Logger.LogInformation("Adding profile for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
 
-        var user = await m_UserContext.Users
-            .Where(u => u.Id == (long)discordUserId)
-            .Include(u => u.Profiles)
-            .FirstOrDefaultAsync(HttpContext.RequestAborted);
-
-        if (user == null)
-        {
-            user = new UserModel
-            {
-                Id = (long)discordUserId,
-                Timestamp = DateTime.UtcNow,
-                Profiles = []
-            };
-            await m_UserContext.Users.AddAsync(user, HttpContext.RequestAborted);
-        }
-
-        if (user.Profiles.Count >= 10)
-            return BadRequest(new { error = "You can only have 10 profiles." });
-
-        if (user.Profiles.Any(x => x.LtUid == (long)request.LtUid))
-            return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
-
-        var hadProfiles = user.Profiles.Count > 0;
-
         // Validate cookie and fetch all game profiles before saving
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
             discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
@@ -154,7 +128,6 @@ public sealed class ProfileController : ControllerBase
         UserProfileModel profile = new()
         {
             UserId = (long)discordUserId,
-            ProfileId = user.Profiles.Count + 1,
             LtUid = (long)request.LtUid,
             LToken = encryptedLToken
         };
@@ -171,11 +144,45 @@ public sealed class ProfileController : ControllerBase
             });
         }
 
-        user.Profiles.Add(profile);
-
+        ProfileAddResult addResult;
         try
         {
-            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+            addResult = await m_UserContext.ExecuteUserProfileMutationAsync(
+                (long)discordUserId,
+                async () =>
+                {
+                    // Any pre-lock state is only a request snapshot. Profile
+                    // limits, uniqueness and the next ID must be decided from
+                    // the rows visible after the per-user lock is held.
+                    m_UserContext.ChangeTracker.Clear();
+
+                    var user = await m_UserContext.Users
+                        .Where(u => u.Id == (long)discordUserId)
+                        .Include(u => u.Profiles)
+                        .FirstOrDefaultAsync(HttpContext.RequestAborted);
+
+                    if (user is null)
+                    {
+                        user = new UserModel
+                        {
+                            Id = (long)discordUserId,
+                            Timestamp = DateTime.UtcNow,
+                            Profiles = []
+                        };
+                        await m_UserContext.Users.AddAsync(user, HttpContext.RequestAborted);
+                    }
+
+                    if (user.Profiles.Count >= 10)
+                        return new ProfileAddResult(ProfileAddStatus.TooMany);
+
+                    if (user.Profiles.Any(existing => existing.LtUid == (long)request.LtUid))
+                        return new ProfileAddResult(ProfileAddStatus.Duplicate);
+                    profile.ProfileId = user.Profiles.Count + 1;
+                    user.Profiles.Add(profile);
+                    await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+                    return new ProfileAddResult(ProfileAddStatus.Added);
+                },
+                HttpContext.RequestAborted);
         }
         catch (DbUpdateException e) when (IsUniqueConstraintViolation(e))
         {
@@ -188,7 +195,11 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to add profile. Please try again later." });
         }
 
-        if (!hadProfiles) await m_UserTracker.AdjustUserCountAsync(1);
+        if (addResult.Status == ProfileAddStatus.TooMany)
+            return BadRequest(new { error = "You can only have 10 profiles." });
+
+        if (addResult.Status == ProfileAddStatus.Duplicate)
+            return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
 
         m_Logger.LogInformation("User {UserId} added new profile with {Count} game profiles", discordUserId, gameProfilesResult.Data.Count);
 
@@ -274,6 +285,7 @@ public sealed class ProfileController : ControllerBase
         m_Logger.LogInformation("Deleting profile {ProfileId} for user {UserId}", profileId, discordUserId);
 
         var profiles = await m_UserContext.UserProfiles
+            .AsNoTracking()
             .Where(p => p.UserId == (long)discordUserId)
             .OrderBy(p => p.ProfileId)
             .ToListAsync(HttpContext.RequestAborted);
@@ -285,37 +297,22 @@ public sealed class ProfileController : ControllerBase
         if (profile == null)
             return NotFound(new { error = $"No profile with ID {profileId} found." });
 
-        for (var i = profiles.Count - 1; i >= 0; i--)
-        {
-            if (profiles[i].ProfileId == profile.ProfileId)
-            {
-                m_UserContext.UserProfiles.Remove(profiles[i]);
-                profiles.RemoveAt(i);
-            }
-            else if (profiles[i].ProfileId > profile.ProfileId) profiles[i].ProfileId--;
-        }
-
         try
         {
-            await using var transaction = await m_UserContext.Database.BeginTransactionAsync(HttpContext.RequestAborted);
+            var deletion = await m_UserContext.DeleteAndReindexProfilesAsync(
+                profile, HttpContext.RequestAborted);
+            if (deletion is null)
+                return NotFound(new { error = $"No profile with ID {profileId} found." });
 
-            if (profiles.Count > 0)
-                m_UserContext.UserProfiles.UpdateRange(profiles);
+            // Deletion revokes both client caches.
+            await RevokeProfileCachesAsync(discordUserId, (ulong)deletion.LtUid, deletion.ProfileId);
 
-            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
-            await transaction.CommitAsync(HttpContext.RequestAborted);
         }
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profileId, discordUserId);
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profile. Please try again later." });
         }
-
-        // Deletion revokes both client caches.
-        await RevokeProfileCachesAsync(discordUserId, (ulong)profile.LtUid, profileId);
-
-        if (profiles.Count == 0)
-            await m_UserTracker.AdjustUserCountAsync(-1);
 
         return NoContent();
     }
@@ -331,18 +328,29 @@ public sealed class ProfileController : ControllerBase
         // Load-then-remove (no ExecuteDeleteAsync): providers without
         // bulk-delete support must still clear every profile, and the LtUids
         // are needed to revoke every credential cache entry below.
-        var allProfiles = await m_UserContext.UserProfiles
-            .Where(p => p.UserId == (long)discordUserId)
-            .ToListAsync(HttpContext.RequestAborted);
-
-        if (allProfiles.Count == 0)
-            return NoContent();
-
-        m_UserContext.UserProfiles.RemoveRange(allProfiles);
-
+        List<UserProfileModel> allProfiles;
         try
         {
-            await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+            allProfiles = await m_UserContext.ExecuteUserProfileMutationAsync(
+                (long)discordUserId,
+                async () =>
+                {
+                    // The snapshot and delete must be inside the same
+                    // per-user mutation lock as profile adds and reindexing.
+                    m_UserContext.ChangeTracker.Clear();
+                    var currentProfiles = await m_UserContext.UserProfiles
+                        .Where(p => p.UserId == (long)discordUserId)
+                        .ToListAsync(HttpContext.RequestAborted);
+
+                    if (currentProfiles.Count > 0)
+                    {
+                        m_UserContext.UserProfiles.RemoveRange(currentProfiles);
+                        await m_UserContext.SaveChangesAsync(HttpContext.RequestAborted);
+                    }
+
+                    return currentProfiles;
+                },
+                HttpContext.RequestAborted);
         }
         catch (DbUpdateException e)
         {
@@ -350,11 +358,12 @@ public sealed class ProfileController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to delete profiles. Please try again later." });
         }
 
+        if (allProfiles.Count == 0)
+            return NoContent();
+
         // Deleting every profile revokes both client caches for every profile.
         foreach (var existing in allProfiles)
             await RevokeProfileCachesAsync(discordUserId, (ulong)existing.LtUid, existing.ProfileId);
-
-        await m_UserTracker.AdjustUserCountAsync(-1);
 
         return NoContent();
     }
@@ -400,6 +409,15 @@ public sealed class ProfileController : ControllerBase
         return e.InnerException is DbException dbEx
             && dbEx.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
     }
+
+    private enum ProfileAddStatus
+    {
+        Added,
+        TooMany,
+        Duplicate
+    }
+
+    private sealed record ProfileAddResult(ProfileAddStatus Status);
 }
 
 

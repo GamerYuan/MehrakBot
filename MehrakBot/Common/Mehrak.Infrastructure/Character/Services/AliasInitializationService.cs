@@ -38,6 +38,7 @@ internal class AliasInitializationService : IHostedService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred during alias initialization");
+            throw;
         }
     }
 
@@ -114,6 +115,7 @@ internal class AliasInitializationService : IHostedService
         catch (Exception e)
         {
             m_Logger.LogError(e, "Error processing alias JSON file {FilePath}", filePath);
+            throw;
         }
     }
 }

@@ -110,11 +110,22 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var activePortrait = await PortraitResolutionHelper.GetActivePortraitAsync(
             m_UserPortraitService, context.UserId, Game.HonkaiImpact3, characterInfo.Avatar.Name, cancellationToken);
 
-        var extraData = activePortrait != null
-            ? $"{activePortrait.Key}_{JsonSerializer.Serialize(activePortrait.Config)}"
-            : null;
-        var fileName = GetFileName(JsonSerializer.Serialize(characterInfo), "jpg", profile.GameUid, extraData);
-        if (await AttachmentExistsAsync(fileName))
+        // HI3 portrait configs are keyed by costume id (CharacterServerId is seeded per costume),
+        // not avatar id, so the stock config must be looked up per costume.
+        async Task<CharacterPortraitConfig?> ResolveStockHi3Config()
+        {
+            foreach (var costume in characterInfo.Costumes)
+            {
+                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
+                if (config != null) return config;
+            }
+            return null;
+        }
+
+        var stockConfig = activePortrait == null ? await ResolveStockHi3Config() : null;
+        var fileName = GetCardFileName("hi3", "character", "v1", characterInfo, profile,
+            new { Server = server, Portrait = activePortrait, StockConfig = stockConfig });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());
@@ -147,30 +158,33 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
         cardContext.SetParameter("server", server);
 
-        // HI3 portrait configs are keyed by costume id (CharacterServerId is seeded per costume),
-        // not avatar id, so the stock config must be looked up per costume.
-        async Task<CharacterPortraitConfig?> ResolveStockHi3Config()
-        {
-            foreach (var costume in characterInfo.Costumes)
-            {
-                var config = await m_PortraitConfigService.GetConfigAsync(Game.HonkaiImpact3, costume.Id);
-                if (config != null) return config;
-            }
-            return null;
-        }
-
         var resolution = activePortrait != null
             ? await PortraitResolutionHelper.ResolveActivePortraitAsync(
                 m_UserPortraitService, context.UserId, activePortrait,
                 ResolveStockHi3Config, cancellationToken)
-            : new PortraitResolution(null, await ResolveStockHi3Config());
+            : new PortraitResolution(null, stockConfig);
+        if (resolution.UsedStockFallback)
+        {
+            fileName = GetCardFileName("hi3", "character", "v1", characterInfo, profile,
+                new { Server = server, Portrait = resolution.Config, StockConfig = resolution.Config });
+
+            if (await AttachmentExistsAsync(fileName, cancellationToken))
+            {
+                m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
+                    characterInfo.Avatar.Name.ToLowerInvariant());
+                return CommandResult.Success([
+                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
+                    new CommandAttachment(fileName)
+                ]);
+            }
+        }
         cardContext.PortraitImageStream = resolution.ImageStream;
         cardContext.PortraitConfig = resolution.Config;
 
         try
         {
-            await using var card = await m_CardService.GetCardAsync(cardContext);
-            if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+            await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+            if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
                 return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);

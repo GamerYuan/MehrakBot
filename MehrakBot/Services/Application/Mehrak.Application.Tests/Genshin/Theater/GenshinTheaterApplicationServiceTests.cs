@@ -291,6 +291,44 @@ public class GenshinTheaterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_CachedCard_SkipsImageUpdates()
+    {
+        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, _) =
+            SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
+        theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateTestCharacterList()));
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        attachmentStorageMock.SetupSequence(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+
+        await service.ExecuteAsync(context);
+        var updatesAfterCacheMiss = imageUpdaterMock.Invocations.Count(x =>
+            x.Method.Name == nameof(IImageUpdaterService.UpdateImageAsync));
+
+        var cachedResult = await service.ExecuteAsync(context);
+        var updatesAfterCacheHit = imageUpdaterMock.Invocations.Count(x =>
+            x.Method.Name == nameof(IImageUpdaterService.UpdateImageAsync));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatesAfterCacheMiss, Is.GreaterThan(0));
+            Assert.That(updatesAfterCacheHit, Is.EqualTo(updatesAfterCacheMiss));
+            Assert.That(cachedResult.IsSuccess, Is.True);
+        });
+    }
+
+    [Test]
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         var (service, theaterApiMock, _, gameRoleApiMock, _, attachmentStorageMock, userContext) = SetupMocks();

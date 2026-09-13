@@ -295,6 +295,51 @@ public class GenshinAbyssApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_CachedCard_SkipsImageUpdates()
+    {
+        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock,
+            attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
+        abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateTestCharacterList()));
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+        attachmentStorageMock.SetupSequence(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
+
+        await service.ExecuteAsync(context);
+        var updatesAfterCacheMiss = imageUpdaterMock.Invocations.Count(x =>
+            x.Method.Name == nameof(IImageUpdaterService.UpdateImageAsync));
+
+        var cachedResult = await service.ExecuteAsync(context);
+        var updatesAfterCacheHit = imageUpdaterMock.Invocations.Count(x =>
+            x.Method.Name == nameof(IImageUpdaterService.UpdateImageAsync));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(updatesAfterCacheMiss, Is.GreaterThan(0));
+            Assert.That(updatesAfterCacheHit, Is.EqualTo(updatesAfterCacheMiss));
+            Assert.That(cachedResult.IsSuccess, Is.True);
+        });
+        cardServiceMock.Verify(
+            x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()), Times.Once);
+        attachmentStorageMock.Verify(
+            x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange

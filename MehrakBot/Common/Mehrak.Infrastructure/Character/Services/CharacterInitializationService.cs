@@ -44,6 +44,7 @@ public class CharacterInitializationService : IHostedService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error occurred during character initialization");
+            throw;
         }
     }
 
@@ -169,6 +170,7 @@ public class CharacterInitializationService : IHostedService
         catch (Exception ex)
         {
             m_Logger.LogError(ex, "Error processing character JSON file: {FilePath}", jsonFilePath);
+            throw;
         }
     }
 }

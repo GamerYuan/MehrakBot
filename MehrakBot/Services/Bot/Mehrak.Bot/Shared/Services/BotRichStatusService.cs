@@ -42,7 +42,7 @@ internal class BotRichStatusService : BackgroundService
         {
             try
             {
-                var userCount = await m_UserTracker.GetUserCountAsync();
+                var userCount = await m_UserTracker.GetUserCountAsync(stoppingToken);
                 m_Logger.LogDebug("Updating presence with {UserCount} users", userCount);
                 if (userCount > 0)
                 {

@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Security.Cryptography;
+using System.Text.Json;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Utility;
 using Mehrak.Domain.Command.Models;
@@ -250,9 +251,35 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         return $"{Convert.ToHexString(hashBytes).ToLowerInvariant()}.{extension}";
     }
 
-    protected async Task<bool> StoreAttachmentAsync(ulong userId, string storageFileName, Stream fileStream)
+    protected static string GetCardFileName<TData>(
+        string game,
+        string mode,
+        string rendererVersion,
+        TData data,
+        GameProfileDto profile,
+        object? effectiveInputs = null)
     {
-        var uploadResult = await m_AttachmentStorageService.StoreAsync(storageFileName, fileStream);
+        var fingerprint = new CardRenderFingerprint<TData>(
+            SchemaVersion: 1,
+            Game: game,
+            Mode: mode,
+            RendererVersion: rendererVersion,
+            GameUid: profile.GameUid,
+            Nickname: profile.Nickname,
+            Level: profile.Level,
+            Data: data,
+            EffectiveInputs: effectiveInputs);
+
+        return GetFileName(JsonSerializer.Serialize(fingerprint), "jpg", profile.GameUid);
+    }
+
+    protected async Task<bool> StoreAttachmentAsync(
+        ulong userId,
+        string storageFileName,
+        Stream fileStream,
+        CancellationToken cancellationToken = default)
+    {
+        var uploadResult = await m_AttachmentStorageService.StoreAsync(storageFileName, fileStream, cancellationToken);
         if (!uploadResult)
         {
             Logger.LogError("Failed to upload attachment for User {UserId}, FileName {FileName}, Result {@Result}",
@@ -262,8 +289,21 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
         return true;
     }
 
-    protected async Task<bool> AttachmentExistsAsync(string storageFileName)
+    protected async Task<bool> AttachmentExistsAsync(
+        string storageFileName,
+        CancellationToken cancellationToken = default)
     {
-        return await m_AttachmentStorageService.ExistsAsync(storageFileName);
+        return await m_AttachmentStorageService.ExistsAsync(storageFileName, cancellationToken);
     }
 }
+
+internal sealed record CardRenderFingerprint<TData>(
+    int SchemaVersion,
+    string Game,
+    string Mode,
+    string RendererVersion,
+    string GameUid,
+    string Nickname,
+    int Level,
+    TData Data,
+    object? EffectiveInputs);

@@ -10,7 +10,7 @@ namespace Mehrak.Application.Shared.Services;
 
 /// <summary>
 /// Resolves which portrait a card should render: either the user's uploaded portrait
-/// (if one is active) or the stock per-character config. Two-phase so the application
+    /// (if one is active) or the stock per-character config. Two-phase so the application
 /// service can obtain the portrait key for cache invalidation without paying the image
 /// download cost on a cache hit.
 /// </summary>
@@ -51,7 +51,7 @@ public static class PortraitResolutionHelper
         {
             // Download failed — fall back to the stock image AND the stock config so the
             // card does not render a stock image with the user's tuned offset/scale.
-            return new PortraitResolution(null, await stockConfigFactory());
+            return new PortraitResolution(null, await stockConfigFactory(), UsedStockFallback: true);
         }
 
         return new PortraitResolution(portraitResult.Content, MapConfig(portrait.Config));
@@ -74,4 +74,7 @@ public sealed record ActivePortrait(string Key, Guid Id, UserPortraitConfigDto C
 /// The resolved portrait to render: the image stream (null = use stock image) and the
 /// portrait config that should be applied to whichever image is rendered.
 /// </summary>
-public sealed record PortraitResolution(Stream? ImageStream, CharacterPortraitConfig? Config);
+public sealed record PortraitResolution(
+    Stream? ImageStream,
+    CharacterPortraitConfig? Config,
+    bool UsedStockFallback = false);

@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Domain.Cache;
@@ -100,7 +100,7 @@ public class
                 await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
                     await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
-            if (json?.Data == null || json.Data.AvatarList.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
@@ -122,6 +122,13 @@ public class
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
+
+            if (json.Data == null || json.Data.AvatarList.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character information", requestUri);
             }
 
             HsrBasicCharacterData[] result = [json.Data];
@@ -242,7 +249,7 @@ public class
                 await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
                     await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
 
-            if (json?.Data == null || json.Data.AvatarList.Count == 0)
+            if (json == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
                 return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
@@ -263,6 +270,13 @@ public class
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
                 return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
+
+            if (json.Data == null || json.Data.AvatarList.Count == 0)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
+                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
+                    "Failed to retrieve character information", requestUri);
             }
 
             // Cache each character individually

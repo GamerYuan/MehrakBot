@@ -120,8 +120,9 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         _ = m_CharacterCache.UpsertCharacters(Game.Genshin,
             characterList.Select(x => new CharacterUpsertEntry(x.Name, x.Id)));
 
-        var filename = GetFileName(JsonSerializer.Serialize(characterList), "jpg", profile.GameUid);
-        if (await AttachmentExistsAsync(filename))
+        var filename = GetCardFileName("genshin", "char-list", "v1", characterList, profile,
+            new { Server = server });
+        if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             return CommandResult.Success(
             [
@@ -175,8 +176,8 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
                 characterList, profile);
         cardContext.SetParameter("server", server);
 
-        using var card = await m_CardService.GetCardAsync(cardContext);
-        if (!await StoreAttachmentAsync(context.UserId, filename, card))
+        using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
+        if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,

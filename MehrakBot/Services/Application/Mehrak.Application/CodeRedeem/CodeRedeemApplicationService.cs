@@ -70,14 +70,21 @@ public class CodeRedeemApplicationService : BaseApplicationService
 
         var codeStr = context.GetParameter("code");
 
-        var codes = RegexExpressions.RedeemCodeSplitRegex().Split(codeStr!).Where(x => !string.IsNullOrEmpty(x))
+        var codes = RegexExpressions.RedeemCodeSplitRegex().Split(codeStr!)
+            .Select(NormalizeCode)
+            .Where(x => !string.IsNullOrEmpty(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         if (codes.Count == 0)
-            codes = await m_CodeContext.Codes.AsNoTracking()
+            codes = (await m_CodeContext.Codes.AsNoTracking()
                 .Where(x => x.Game == game)
                 .Select(x => x.Code)
-                .ToListAsync();
+                .ToListAsync(cancellationToken))
+                .Select(NormalizeCode)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
         if (codes.Count == 0)
         {
@@ -95,16 +102,15 @@ public class CodeRedeemApplicationService : BaseApplicationService
         for (var i = 0; i < codes.Count; i++)
         {
             var code = codes[i];
-            var trimmedCode = code.ToUpperInvariant().Trim();
             var response = await m_ApiService.GetAsync(
                 new CodeRedeemApiContext(context.UserId, context.LtUid, context.LToken, gameUid, region,
-                    game, code.ToUpperInvariant().Trim()), cancellationToken);
+                    game, code), cancellationToken);
             if (response.IsSuccess)
             {
-                Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", trimmedCode,
+                Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", code,
                     context.UserId);
-                sb.Append($"{trimmedCode}: {response.Data.Message}\n");
-                successfulCodes.Add(trimmedCode, response.Data.Status);
+                sb.Append($"{code}: {response.Data.Message}\n");
+                successfulCodes.Add(code, response.Data.Status);
             }
             else if (response.StatusCode == StatusCode.Cancelled)
             {
@@ -116,21 +122,22 @@ public class CodeRedeemApplicationService : BaseApplicationService
             }
             else
             {
-                Logger.LogError("Failed to redeem code {Code} for user {UserId} Result {@Result}", trimmedCode,
+                Logger.LogError("Failed to redeem code {Code} for user {UserId} Result {@Result}", code,
                     context.UserId, response);
-                sb.Append($"{trimmedCode}: An error occurred while redeeming the code\n");
+                sb.Append($"{code}: An error occurred while redeeming the code\n");
             }
 
             if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay, cancellationToken);
         }
 
         if (successfulCodes.Count > 0)
-            _ = UpdateCodesAsync(game, successfulCodes);
+            await UpdateCodesAsync(game, successfulCodes, cancellationToken);
 
         return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
     }
 
-    private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes)
+    private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes,
+        CancellationToken cancellationToken)
     {
         var incoming = codes.Select(x => x.Key).ToHashSet();
 
@@ -169,7 +176,7 @@ public class CodeRedeemApplicationService : BaseApplicationService
 
         try
         {
-            await m_CodeContext.SaveChangesAsync();
+            await m_CodeContext.SaveChangesAsync(cancellationToken);
             Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
                 newValidCodes.Count, codesToRemove.Count, game);
         }
@@ -178,4 +185,6 @@ public class CodeRedeemApplicationService : BaseApplicationService
             Logger.LogError(e, "Failed to update Codes for game: {Game}", game);
         }
     }
+
+    private static string NormalizeCode(string code) => code.Trim().ToUpperInvariant();
 }

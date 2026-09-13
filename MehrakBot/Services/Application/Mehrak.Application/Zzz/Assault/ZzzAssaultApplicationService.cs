@@ -98,8 +98,9 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         var startTs = assaultData.StartTime.ToTimestamp(tz);
         var endTs = assaultData.EndTime.ToTimestamp(tz);
 
-        var fileName = GetFileName(JsonSerializer.Serialize(assaultData), "jpg", gameUid);
-        if (await AttachmentExistsAsync(fileName))
+        var fileName = GetCardFileName("zzz", "assault", "v1", assaultData, profile,
+            new { Server = server });
+        if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             return CommandResult.Success([
                     new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
@@ -148,9 +149,9 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
         cardContext.SetParameter("server", server);
 
-        await using var card = await m_CardService.GetCardAsync(cardContext);
+        await using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
 
-        if (!await StoreAttachmentAsync(context.UserId, fileName, card))
+        if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);

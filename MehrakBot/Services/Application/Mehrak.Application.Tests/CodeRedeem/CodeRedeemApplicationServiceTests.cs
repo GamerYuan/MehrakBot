@@ -14,6 +14,7 @@ using Mehrak.Infrastructure.CodeRedeem;
 using Mehrak.Infrastructure.CodeRedeem.Models;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -335,6 +336,80 @@ public class CodeRedeemApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_DuplicateCodesWithMixedCase_RedeemsOnlyOnce()
+    {
+        // Arrange
+        var (service, codeContext, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
+        var requestedCodes = new List<string>();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .Callback<CodeRedeemApiContext, CancellationToken>((context, _) => requestedCodes.Add(context.Code))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(
+                new CodeRedeemResult("Success", CodeStatus.Valid)));
+
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", " code1, CODE1, cOdE1 "),
+            ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        // Assert
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(requestedCodes, Is.EqualTo(["CODE1"]));
+            Assert.That(await codeContext.Codes.CountAsync(), Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AwaitsCodeCacheUpdateBeforeReturning()
+    {
+        // Arrange
+        var saveChangesStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowSaveChanges = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var connection = new SqliteConnection("Filename=:memory:");
+        connection.Open();
+        var options = new DbContextOptionsBuilder<CodeRedeemDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        using var codeContext = new DelayedCodeRedeemDbContext(options, saveChangesStarted, allowSaveChanges);
+        codeContext.Database.EnsureCreated();
+
+        var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks(codeContext);
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(
+                new CodeRedeemResult("Success", CodeStatus.Valid)));
+
+        var context = CreateContext(1, 12345ul, "test_token",
+            ("game", Game.Genshin), ("code", "CODE1"),
+            ("server", Server.Asia.ToString()));
+
+        // Act
+        var execution = service.ExecuteAsync(context);
+        await saveChangesStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Assert before releasing the delayed database operation: a fire-and-forget update would have already returned.
+        Assert.That(execution.IsCompleted, Is.False);
+
+        allowSaveChanges.SetResult(true);
+        var result = await execution;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(await codeContext.Codes.AnyAsync(x => x.Code == "CODE1"), Is.True);
+        }
+    }
+
+    [Test]
     [TestCase(Game.Genshin)]
     [TestCase(Game.HonkaiStarRail)]
     [TestCase(Game.ZenlessZoneZero)]
@@ -505,9 +580,9 @@ public class CodeRedeemApplicationServiceTests
         Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>> CodeRedeemApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         UserDbContext UserContext
-        ) SetupMocks()
+        ) SetupMocks(CodeRedeemDbContext? codeContext = null)
     {
-        var codeContext = m_DbFactory1.CreateDbContext<CodeRedeemDbContext>();
+        codeContext ??= m_DbFactory1.CreateDbContext<CodeRedeemDbContext>();
         var userContext = m_DbFactory2.CreateDbContext<UserDbContext>();
 
         var codeRedeemApiMock = new Mock<IApiService<CodeRedeemResult, CodeRedeemApiContext>>();
@@ -522,6 +597,20 @@ public class CodeRedeemApplicationServiceTests
             loggerMock.Object);
 
         return (service, codeContext, codeRedeemApiMock, gameRoleApiMock, userContext);
+    }
+
+    private sealed class DelayedCodeRedeemDbContext(
+        DbContextOptions<CodeRedeemDbContext> options,
+        TaskCompletionSource<bool> saveChangesStarted,
+        TaskCompletionSource<bool> allowSaveChanges)
+        : CodeRedeemDbContext(options)
+    {
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            saveChangesStarted.SetResult(true);
+            await allowSaveChanges.Task.WaitAsync(cancellationToken);
+            return await base.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static IApplicationContext CreateContext(ulong userId, ulong ltUid, string lToken, params (string Key, object Value)[] parameters)
