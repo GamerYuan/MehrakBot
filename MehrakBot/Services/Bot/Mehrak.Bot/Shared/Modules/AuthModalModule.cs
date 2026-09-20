@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Domain.Cache;
@@ -33,10 +33,32 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         passphrase.Length >= MinPassphraseLength &&
         passphrase.Length <= MaxPassphraseLength;
 
+    /// <summary>
+    /// Resolves a pasted full cookie string (ltoken_v2 + ltuid_v2) into the credential pair. When
+    /// <paramref name="expectedLtUid"/> is supplied (profile update), a cookie UID that differs from the stored
+    /// UID is rejected just like a malformed cookie, before any upstream call. Outputs are cleared on failure so
+    /// hostile input never flows back to callers.
+    /// </summary>
+    internal static bool TryResolveCookieCredentials(string? cookieInput, ulong? expectedLtUid, out ulong ltUid, out string ltoken)
+    {
+        ltUid = 0;
+        ltoken = string.Empty;
+
+        if (!CookieCredentialParser.TryParse(cookieInput, out var parsedUid, out var parsedToken))
+            return false;
+
+        if (expectedLtUid.HasValue && parsedUid != expectedLtUid.Value)
+            return false;
+
+        ltUid = parsedUid;
+        ltoken = parsedToken;
+        return true;
+    }
+
     public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
         .WithComponents([
-            new LabelProperties("HoYoLAB UID", new TextInputProperties("ltuid", TextInputStyle.Short)),
-            new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
+            new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)
+                .WithPlaceholder("Paste your full HoYoLAB cookie string (ltoken_v2 and ltuid_v2) here")),
             new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
                 .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
         ]);
@@ -55,7 +77,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         return new ModalProperties($"update_auth_modal:{profile.ProfileId}", "Update Authentication")
             .WithComponents([
                 new TextDisplayProperties($"## Profile {profile.ProfileId}\n### HoYoLAB UID: {profile.LtUid}"),
-                new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)),
+                new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)
+                .WithPlaceholder("Paste your full HoYoLAB cookie string (ltoken_v2 and ltuid_v2) here")),
                 new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
                     .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
             ]);
@@ -100,22 +123,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            if (!ulong.TryParse(inputs["ltuid"], out var ltuid))
+            // Parse the pasted cookie string first, before any upstream request or encryption. Only the extracted
+            // values flow downstream: the raw string is never logged, encrypted, or sent upstream, and the value
+            // itself is never logged.
+            m_Logger.LogDebug("Resolving cookie for user {UserId}", Context.User.Id);
+            if (!TryResolveCookieCredentials(inputs["ltoken"], null, out var ltuid, out var ltoken))
             {
-                m_Logger.LogWarning("User {UserId} provided invalid UID format", Context.User.Id);
-                await Context.Interaction.SendFollowupMessageAsync(
-                    new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Invalid UID!")));
-                return;
-            }
-
-            m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
-            {
-                // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
-                // construction, where illegal characters would throw a credential-embedding FormatException into
-                // retained logs. Never log the value itself.
-                m_Logger.LogWarning("User {UserId} provided malformed cookie format", Context.User.Id);
+                m_Logger.LogWarning("User {UserId} provided an unparsable cookie string", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
@@ -135,7 +149,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             // Validate cookie and fetch all game profiles before saving
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, ltuid, inputs["ltoken"], bypassCache: true);
+                Context.User.Id, ltuid, ltoken, bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {
@@ -169,7 +183,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 UserId = (long)Context.User.Id,
                 LtUid = (long)ltuid,
                 LToken = await Task.Run(() =>
-                    m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
+                    m_CookieService.Encrypt(ltoken, inputs["passphrase"]))
             };
 
             // Save all game UIDs from validation
@@ -309,12 +323,13 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
-            // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
-            // construction, where illegal characters would throw a credential-embedding FormatException into retained
-            // logs. Never log the value itself.
-            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            // Parse the pasted cookie string before any upstream request or encryption. A cookie UID that differs
+            // from the stored profile UID is rejected here, before upstream validation or persistence. Only the
+            // extracted token flows downstream; the raw string is never logged, encrypted, or sent upstream, and the
+            // value itself is never logged.
+            if (!TryResolveCookieCredentials(inputs["ltoken"], profile.LtUid, out _, out var ltoken))
             {
-                m_Logger.LogWarning("User {UserId} provided malformed cookie format during update", Context.User.Id);
+                m_Logger.LogWarning("User {UserId} provided an unparsable or mismatched cookie string during update", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
@@ -334,7 +349,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, profile.LtUid, inputs["ltoken"], bypassCache: true);
+                Context.User.Id, profile.LtUid, ltoken, bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {
@@ -363,7 +378,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            var newLToken = await Task.Run(() => m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]));
+            var newLToken = await Task.Run(() => m_CookieService.Encrypt(ltoken, inputs["passphrase"]));
 
             try
             {
