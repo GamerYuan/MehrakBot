@@ -83,7 +83,10 @@ public class CharacterModuleRenderer
     {
         var canvasSize = CanvasSize;
         var avatarPos = new Point(position.X + AvatarOffset.X, position.Y + AvatarOffset.Y);
-        _ = canvas.SaveLayer();
+        // Isolation is needed only around this tile, not the entire roster canvas.
+        // Include the centered border stroke and its antialiasing fringe.
+        _ = canvas.SaveLayer(new GraphicsOptions(), new Rectangle(
+            position.X - 2, position.Y - 2, canvasSize.Width + 4, canvasSize.Height + 4));
         DrawAvatar(canvas, data, avatarPos);
 
         if (m_Style.DrawWeapon)
@@ -95,7 +98,7 @@ public class CharacterModuleRenderer
             }
             else
             {
-                _ = canvas.SaveLayer();
+                _ = canvas.SaveLayer(new GraphicsOptions(), new Rectangle(weaponPos, WeaponSize));
                 var path = new RoundedRectanglePolygon(new RectangleF(weaponPos.X, weaponPos.Y, WeaponSize.Width, WeaponSize.Height), 10);
                 canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(69, 69, 69))), path);
                 if (m_Style.PlaceholderWeaponIcon != null)
@@ -233,7 +236,8 @@ public class CharacterModuleRenderer
         var moduleStartX = footerX + (footerWidth - totalScaledWidth) / 2f + scaledFooterPadding;
         var moduleStartY = footerY + (footerHeight - moduleH * scale) / 2f;
 
-        _ = canvas.SaveLayer();
+        _ = canvas.SaveLayer(new GraphicsOptions(), new Rectangle(
+            footerX - 2, footerY - 2, footerWidth + 4, footerHeight + 4));
 
         canvas.DrawRoundedRectangleOverlay(footerWidth, footerHeight, new PointF(footerX, footerY),
             new RoundedRectangleOverlayStyle(Color.Transparent, BorderColor, BorderWidth: 2, CornerRadius: 15));

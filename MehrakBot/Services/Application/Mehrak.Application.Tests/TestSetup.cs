@@ -1,5 +1,6 @@
 ﻿namespace Mehrak.Application.Tests;
 
+using Mehrak.Application.Tests.Genshin.CharList;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Image.Models;
 
@@ -14,6 +15,13 @@ public class TestSetup
         m_DbTestHelper = new S3TestHelper();
 
         var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets");
+
+        if (CharListBenchmarkSupport.IsBenchmarkMode())
+        {
+            await CharListBenchmarkSupport.SeedStaticAssetsAsync(
+                m_DbTestHelper.S3Client, m_DbTestHelper.BucketName, assetsRoot);
+            return;
+        }
 
         foreach (var image in Directory.EnumerateFiles(assetsRoot, "*.png", SearchOption.AllDirectories))
         {

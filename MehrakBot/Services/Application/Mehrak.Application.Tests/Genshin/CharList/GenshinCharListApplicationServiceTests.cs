@@ -1,9 +1,11 @@
 ﻿#region
 
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Genshin.CharList;
 using Mehrak.Application.Shared.Abstractions;
+using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
@@ -24,8 +26,10 @@ using Mehrak.GameApi.Wiki;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 #endregion
@@ -181,6 +185,11 @@ public class GenshinCharListApplicationServiceTests
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
+        foreach (var weaponName in charList.List!.Where(x => x.Weapon.Level > 40)
+                     .Select(x => x.Weapon.ToAscendedImageName()).Distinct())
+            imageRepoMock.Verify(x => x.FileExistsAsync(weaponName, It.IsAny<CancellationToken>()), Times.Once);
+        characterApiMock.Verify(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
@@ -290,7 +299,8 @@ public class GenshinCharListApplicationServiceTests
         await service.ExecuteAsync(context);
 
         // Assert
-        var expectedImageCount = charList.List!.Count * 2; // Avatar + Weapon for each character
+        var expectedImageCount = charList.List!.DistinctBy(x => x.ToImageName()).Count()
+            + charList.List.DistinctBy(x => x.Weapon.ToBaseImageName()).Count();
         var expectedAscendedCount = charList.List.DistinctBy(c => c.Weapon.Id).Count(c => c.Weapon.Level > 40);
 
         imageUpdaterMock.Verify(
@@ -410,6 +420,70 @@ public class GenshinCharListApplicationServiceTests
             It.Is<IMultiImageData>(d => d.Name.Equals("genshin/weapon_ascended_11101.png") && d.AdditionalUrls.Contains("ascended_url")),
             It.IsAny<IMultiImageProcessor>()), Times.Once);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task ExecuteAsync_Level40SharedWeapon_UsesPerCharacterAscensionAndSkipsExistingArtwork(bool assetExists)
+    {
+        var (service, characterApi, updater, profileApi, cardService, _, repository, wiki, _, _) = SetupMocks();
+        var characters = Enumerable.Range(1, 2).Select(id => new GenshinBasicCharacterData
+        {
+            Id = id, Name = $"Character{id}", Icon = "https://example.com/avatar.png",
+            Weapon = new Weapon { Id = 11101, Name = "Weapon", Icon = "https://example.com/weapon.png", Level = 40 }
+        }).ToList();
+        profileApi.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApi.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(characters));
+        var detail = new GenshinCharacterDetail
+        {
+            List = characters.Select((character, index) => new GenshinCharacterInformation
+            {
+                Base = new BaseCharacterDetail
+                {
+                    Id = character.Id!.Value, Name = character.Name, Icon = character.Icon,
+                    Image = character.Icon, Weapon = character.Weapon
+                },
+                Weapon = new WeaponDetail
+                {
+                    Id = 11101, Name = "Weapon", Icon = "https://example.com/weapon.png",
+                    Level = 40, PromoteLevel = index == 0 ? 2 : 1, TypeName = "Sword",
+                    MainProperty = new StatProperty { Base = "100", Final = "100" }
+                },
+                Relics = [], Constellations = [], SelectedProperties = [], BaseProperties = [],
+                ExtraProperties = [], ElementProperties = [], Skills = []
+            }).ToList(),
+            AvatarWiki = [], WeaponWiki = new() { ["11101"] = "https://example.com/wiki/11101" }
+        };
+        characterApi.Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(detail));
+        repository.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(assetExists);
+        updater.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        updater.Setup(x => x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var gallery = JsonSerializer.Serialize(new { list = new[] { new { img = "base" }, new { img = "ascended" } } });
+        var wikiData = JsonSerializer.SerializeToNode(new
+        {
+            data = new { page = new { modules = new[] { new { components = new[] { new { component_id = "gallery_character", data = gallery } } } } } }
+        });
+        wiki.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(wikiData!));
+        cardService.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var result = await service.ExecuteAsync(CreateContext(1, 1, "test", ("server", Server.Asia.ToString())));
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(characters[0].Weapon.Ascended, Is.True);
+        Assert.That(characters[1].Weapon.Ascended, Is.False);
+        characterApi.Verify(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>(), It.IsAny<CancellationToken>()), Times.Once);
+        repository.Verify(x => x.FileExistsAsync("genshin/weapon_ascended_11101.png", It.IsAny<CancellationToken>()), Times.Once);
+        wiki.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()), assetExists ? Times.Never() : Times.Once());
+        updater.Verify(x => x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>(), It.IsAny<CancellationToken>()),
+            assetExists ? Times.Never() : Times.Once());
+        updater.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
     [Test]
@@ -649,9 +723,20 @@ public class GenshinCharListApplicationServiceTests
     }
 
     [Test]
+    [NonParallelizable]
     [Explicit("This test calls real API - only run manually")]
     public async Task IntegrationTest_WithRealApi_FullFlow()
     {
+        // Cold benchmark mode: faithful empty-dynamic-S3 measurement selected by
+        // MEHRAK_CHARLIST_BENCHMARK=1. Only the parent harness runs this path with
+        // existing credentials from appsettings.test.json. Ordinary
+        // runs keep the historical file-based behavior below unchanged.
+        if (CharListBenchmarkSupport.IsBenchmarkMode())
+        {
+            await RunColdBenchmarkAsync();
+            return;
+        }
+
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.test.json").Build()
             .GetRequiredSection("Credentials");
 
@@ -692,6 +777,215 @@ public class GenshinCharListApplicationServiceTests
             await using var fileStream = File.Create(outputImagePath);
             await storedStream.CopyToAsync(fileStream);
         }
+    }
+
+    #endregion
+
+    #region Cold Benchmark (MEHRAK_CHARLIST_BENCHMARK=1)
+
+    /// <summary>
+    /// Faithful cold benchmark for the charlist flow. Only the parent harness runs
+    /// this with existing credentials from appsettings.test.json.
+    /// Measured flow uses real GameRole/character/wiki APIs, real downloads, real
+    /// weapon processing through loopback gRPC, and real local-S3 storage starting
+    /// from empty dynamic assets. Character autocomplete upsert stays mocked and is
+    /// excluded by design. All assertions and output are secret-safe: no game UID,
+    /// nickname, token, URL, character payload, or image bytes are ever printed.
+    /// No private JPGs are written to disk in benchmark mode.
+    /// </summary>
+    private async Task RunColdBenchmarkAsync()
+    {
+        var config = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.test.json").Build();
+        using var configLifetime = config as IDisposable;
+        var credentials = config.GetRequiredSection("Credentials");
+        var lToken = credentials["LToken"];
+        Assert.That(ulong.TryParse(credentials["LtUid"], out var ltUid) && ltUid > 0, Is.True,
+            "Benchmark credentials are missing from appsettings.test.json.");
+        Assert.That(string.IsNullOrEmpty(lToken), Is.False,
+            "Benchmark credentials are missing from appsettings.test.json.");
+
+        // Must match the production RegionUtility mapping for Server.Asia.
+        const string benchmarkRegion = "os_asia";
+        const Server benchmarkServer = Server.Asia;
+
+        // Setup is excluded from measurement: fresh existence cache, one shared
+        // real repository, cold dynamic S3 with only static element icons.
+        using var existsCache = new MemoryCache(new MemoryCacheOptions());
+        var imageRepository = S3TestHelper.Instance.CreateImageRepository(existsCache);
+        var attachmentStorage = S3TestHelper.Instance.CreateAttachmentStorage();
+
+        Task<List<string>> ListKeysAsync(string prefix) => CharListBenchmarkSupport.ListKeysAsync(
+            S3TestHelper.Instance.S3Client, S3TestHelper.Instance.BucketName, prefix);
+
+        var initialAvatars = await ListKeysAsync("genshin/avatar_");
+        var initialBases = await ListKeysAsync("genshin/weapon_base_");
+        var initialAscended = await ListKeysAsync("genshin/weapon_ascended_");
+        var initialDynamicCount = initialAvatars.Count + initialBases.Count + initialAscended.Count;
+        if (initialDynamicCount != 0)
+        {
+            FailBenchmark("Benchmark cold state is not empty.");
+            return;
+        }
+        var elementIcons = await ListKeysAsync("genshin/element_");
+        Assert.That(elementIcons.Count, Is.EqualTo(CharListBenchmarkSupport.StaticElements.Length),
+            "Benchmark static element icons are incomplete.");
+
+        using var httpClientFactory = new BenchmarkHttpClientFactory();
+        // Fresh per-run API caches: empty at start, shared across services like production.
+        var apiCache = new InMemoryBenchmarkCacheService();
+        var gameRoleApi = new GameRoleApiService(
+            httpClientFactory, apiCache, NullLogger<GameRoleApiService>.Instance);
+        var characterApi = new GenshinCharacterApiService(
+            apiCache, httpClientFactory, NullLogger<GenshinCharacterApiService>.Instance);
+        var wikiApi = new WikiApiService(
+            httpClientFactory, NullLogger<WikiApiService>.Instance);
+        var imageUpdater = new ImageUpdaterService(
+            imageRepository, httpClientFactory, NullLogger<ImageUpdaterService>.Instance);
+
+        // Real weapon processing: production processor through loopback HTTP/2 gRPC.
+        await using var weaponHost = new WeaponGrpcBenchmarkHost();
+        await weaponHost.StartAsync();
+        var weaponProcessor = new WeaponImageProcessorGrpcClient(
+            new Mehrak.Domain.Protobuf.ImageProcessorService.ImageProcessorServiceClient(weaponHost.Channel),
+            NullLogger<WeaponImageProcessorGrpcClient>.Instance);
+
+        var metrics = new CharListBenchmarkMetrics();
+        var cardService = new GenshinCharListCardService(
+            imageRepository,
+            NullLogger<GenshinCharListCardService>.Instance,
+            metrics);
+        await cardService.InitializeAsync();
+
+        var characterCacheMock = new Mock<ICharacterCacheService>();
+
+        // Fresh SQLite database per run: no cached game UID, like a first-ever request.
+        var userContext = m_DbFactory.CreateDbContext<UserDbContext>();
+
+        var service = new GenshinCharListApplicationService(
+            imageUpdater,
+            cardService,
+            characterApi,
+            gameRoleApi,
+            userContext,
+            characterCacheMock.Object,
+            imageRepository,
+            wikiApi,
+            attachmentStorage,
+            weaponProcessor,
+            NullLogger<GenshinCharListApplicationService>.Instance);
+
+        var context = CreateContext(
+            S3TestHelper.Instance.GetUniqueUserId(), ltUid, lToken!, ("server", benchmarkServer.ToString()));
+
+        var stopwatch = Stopwatch.StartNew();
+        CommandResult result;
+        try
+        {
+            result = await service.ExecuteAsync(context);
+        }
+        catch (Exception)
+        {
+            stopwatch.Stop();
+            FailBenchmark("Benchmark run raised an unclassified error.");
+            return;
+        }
+        stopwatch.Stop();
+
+        if (!result.IsSuccess)
+        {
+            FailBenchmark("Benchmark run did not succeed.");
+            return;
+        }
+
+        var attachment = result.Data?.Components.OfType<CommandAttachment>().FirstOrDefault();
+        Assert.That(attachment, Is.Not.Null, "Benchmark run produced no attachment.");
+        Assert.That(attachmentStorage.IsValidStorageFileName(attachment!.FileName), Is.True,
+            "Benchmark attachment name is invalid.");
+
+        // Real persistence check, outside the measured interval.
+        var download = await attachmentStorage.DownloadAsync(attachment.FileName);
+        Assert.That(download, Is.Not.Null, "Benchmark attachment was not persisted.");
+        await using var downloadedContent = download!.Content;
+        var outputBytes = downloadedContent.Length;
+        Assert.That(outputBytes, Is.GreaterThan(0), "Benchmark attachment is empty.");
+
+        // Roster reload is served from this run's own API caches (warm by construction).
+        var profileResult = await gameRoleApi.GetAsync(
+            new GameRoleApiContext(context.UserId, ltUid, lToken!, Game.Genshin, benchmarkRegion));
+        Assert.That(profileResult.IsSuccess, Is.True, "Benchmark verification could not reload the game profile.");
+        var verifiedGameUid = profileResult.Data?.GameUid;
+        Assert.That(string.IsNullOrEmpty(verifiedGameUid), Is.False, "Benchmark verification found no game profile.");
+        var listResult = await characterApi.GetAllCharactersAsync(
+            new GenshinCharacterApiContext(context.UserId, ltUid, lToken!, verifiedGameUid, benchmarkRegion));
+        Assert.That(listResult.IsSuccess, Is.True, "Benchmark verification could not reload the character roster.");
+        var roster = listResult.Data?.ToList() ?? [];
+        Assert.That(roster.Count, Is.GreaterThan(0), "Benchmark roster is empty.");
+
+        var uniqueWeaponIds = roster
+            .Where(x => x.Weapon.Id.HasValue)
+            .Select(x => x.Weapon.Id!.Value)
+            .Distinct()
+            .ToList();
+        var level40Count = roster.Count(x => x.Weapon.Level == 40);
+        var expectedAscendedIds = roster
+            .Where(x => (x.Weapon.Level ?? 0) > 40 && x.Weapon.Id.HasValue)
+            .Select(x => x.Weapon.Id!.Value)
+            .Distinct()
+            .ToList();
+        var fingerprint = CharListBenchmarkSupport.ComputeRosterFingerprint(roster.Select(x => new CharListRosterEntry(
+            x.Id ?? 0, x.Level ?? 0, x.Rarity ?? 0, x.Element ?? "unknown",
+            x.Weapon.Id ?? 0, x.Weapon.Level ?? 0, x.Weapon.Rarity ?? 0,
+            x.ActivedConstellationNum ?? 0, x.Weapon.AffixLevel ?? 0)));
+
+        var storedAvatars = await ListKeysAsync("genshin/avatar_");
+        var storedBases = await ListKeysAsync("genshin/weapon_base_");
+        var storedAscended = await ListKeysAsync("genshin/weapon_ascended_");
+        var storedAscendedIds = storedAscended
+            .Select(ParseWeaponAscendedAssetId)
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .ToHashSet();
+        var missingAscended = expectedAscendedIds.Count(x => !storedAscendedIds.Contains(x));
+
+        Assert.That(storedAvatars.Count, Is.EqualTo(roster.Count), "Benchmark avatar asset count mismatch.");
+        Assert.That(storedBases.Count, Is.EqualTo(uniqueWeaponIds.Count), "Benchmark weapon asset count mismatch.");
+        Assert.That(metrics.LastCardDurationMs, Is.GreaterThanOrEqualTo(0), "Benchmark card timer did not record.");
+        if (expectedAscendedIds.Count > 0)
+            Assert.That(storedAscended.Count, Is.GreaterThan(0), "Benchmark stored no ascended weapon assets.");
+
+        var line = CharListBenchmarkSupport.BuildBenchmarkLine(
+            "ok",
+            stopwatch.Elapsed.TotalMilliseconds,
+            metrics.LastCardDurationMs,
+            roster.Count,
+            uniqueWeaponIds.Count,
+            level40Count,
+            fingerprint,
+            initialDynamicCount,
+            outputBytes,
+            storedAvatars.Count,
+            storedBases.Count,
+            storedAscended.Count,
+            expectedAscendedIds.Count,
+            missingAscended);
+        Assert.That(line.Any(x => x is '\r' or '\n'), Is.False, "Benchmark line must be a single line.");
+        TestContext.Progress.WriteLine($"{CharListBenchmarkSupport.BenchmarkLinePrefix} {line}");
+    }
+
+    private static void FailBenchmark(string message)
+    {
+        TestContext.Progress.WriteLine(
+            $"{CharListBenchmarkSupport.BenchmarkLinePrefix} {CharListBenchmarkSupport.BuildBenchmarkErrorLine()}");
+        Assert.Fail(message);
+    }
+
+    private static int? ParseWeaponAscendedAssetId(string key)
+    {
+        var file = key.Split('/')[^1];
+        var idPart = file.Replace("weapon_ascended_", string.Empty).Replace(".png", string.Empty);
+        return int.TryParse(idPart, out var id) ? id : null;
     }
 
     #endregion

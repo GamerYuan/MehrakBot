@@ -120,7 +120,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
 
         try
         {
-            var background = CreateBackground();
+            var background = CreateBackground(context);
             disposables.Add(background);
 
             await RenderCardAsync(background, context, disposables, cancellationToken);
@@ -156,6 +156,8 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
             disposables.Dispose();
         }
     }
+
+    protected virtual Image<Rgba32> CreateBackground(ICardGenerationContext<TData> context) => CreateBackground();
 
     protected virtual Image<Rgba32> CreateBackground()
     {
