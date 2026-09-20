@@ -1,4 +1,4 @@
-﻿﻿﻿using Mehrak.Bot.Shared.Modules;
+﻿using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.User.Models;
 using NetCord.Rest;
 

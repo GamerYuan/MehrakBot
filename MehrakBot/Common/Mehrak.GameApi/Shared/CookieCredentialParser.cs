@@ -1,4 +1,4 @@
-﻿﻿﻿namespace Mehrak.GameApi.Shared;
+﻿namespace Mehrak.GameApi.Shared;
 
 /// <summary>
 /// Parses a full pasted browser cookie string into the HoYoLAB credential pair

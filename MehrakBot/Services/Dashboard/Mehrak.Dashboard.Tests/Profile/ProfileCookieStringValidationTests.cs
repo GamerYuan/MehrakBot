@@ -1,4 +1,4 @@
-﻿﻿﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.GameApi.Shared;
 

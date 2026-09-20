@@ -1,4 +1,4 @@
-﻿﻿﻿using Mehrak.GameApi.Shared;
+﻿using Mehrak.GameApi.Shared;
 
 namespace Mehrak.GameApi.Tests.Shared;
 

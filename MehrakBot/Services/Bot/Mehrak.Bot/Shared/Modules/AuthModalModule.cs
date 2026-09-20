@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Domain.Cache;
