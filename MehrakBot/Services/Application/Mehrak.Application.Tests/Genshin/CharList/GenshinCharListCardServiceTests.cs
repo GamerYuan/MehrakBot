@@ -5,11 +5,14 @@ using Mehrak.Application.Genshin.CharList;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
+using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 #endregion
 
@@ -79,6 +82,56 @@ public class GenshinCharListCardServiceTests
         Assert.That(bytes, Is.Not.Empty);
         using var goldenStream = new MemoryStream(goldenImage);
         Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream));
+    }
+
+    [Test]
+    public async Task GetCardAsync_StartsAvatarLoadBeforeWeaponCompletes_AndKeepsLayoutDimensions()
+    {
+        using var image = new Image<Rgba32>(150, 150);
+        using var encoded = new MemoryStream();
+        await image.SaveAsPngAsync(encoded);
+        var bytes = encoded.ToArray();
+        var weaponStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var avatarStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseWeapon = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var repository = new Mock<IImageRepository>();
+        repository.Setup(x => x.DownloadFileToStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string name, CancellationToken token) =>
+            {
+                if (name.StartsWith("genshin/weapon_", StringComparison.Ordinal))
+                {
+                    weaponStarted.TrySetResult();
+                    await releaseWeapon.Task.WaitAsync(token);
+                }
+                if (name.StartsWith("genshin/avatar_", StringComparison.Ordinal)) avatarStarted.TrySetResult();
+                return new MemoryStream(bytes, writable: false);
+            });
+        var service = new GenshinCharListCardService(repository.Object,
+            Mock.Of<ILogger<GenshinCharListCardService>>(), Mock.Of<IApplicationMetrics>());
+        await service.InitializeAsync();
+        var data = new[]
+        {
+            new GenshinBasicCharacterData
+            {
+                Id = 1, Name = "Test", Icon = "avatar", Level = 90, Rarity = 5, Element = "Pyro",
+                Weapon = new Weapon { Id = 1, Name = "Weapon", Icon = "weapon", Level = 20, Rarity = 3, AffixLevel = 1 }
+            }
+        };
+        var context = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(TestUserId, data, GetTestUserGameData());
+        var generation = service.GetCardAsync(context);
+        try
+        {
+            await weaponStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await avatarStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.That(generation.IsCompleted, Is.False, "Rendering must still await the weapon.");
+        }
+        finally
+        {
+            releaseWeapon.TrySetResult();
+            using var result = await generation;
+            using var output = await Image.LoadAsync(result);
+            Assert.That(output.Size, Is.EqualTo(new Size(430, 590)));
+        }
     }
 
     private static GameProfileDto GetTestUserGameData()

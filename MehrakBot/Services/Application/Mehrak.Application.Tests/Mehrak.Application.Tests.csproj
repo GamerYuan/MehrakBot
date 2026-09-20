@@ -44,7 +44,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="../Mehrak.Application/Mehrak.Application.csproj" />
+        <ProjectReference Include="../../ImageProcessor/Mehrak.ImageProcessor/Mehrak.ImageProcessor.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
         <ProjectReference
             Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
