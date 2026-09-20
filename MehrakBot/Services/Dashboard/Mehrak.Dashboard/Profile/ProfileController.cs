@@ -1,9 +1,10 @@
-﻿using System.Data.Common;
+﻿﻿﻿using System.Data.Common;
 using System.Security.Claims;
 using Mehrak.Dashboard.Profile.Models;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.GameRole;
+using Mehrak.GameApi.Shared;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Extensions;
 using Mehrak.Infrastructure.User.Models;
@@ -89,15 +90,33 @@ public sealed class ProfileController : ControllerBase
 
         m_Logger.LogInformation("Adding profile for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
 
+        // A full cookie string replaces the legacy LtUid/LToken pair (mixing both is rejected by model validation).
+        // Only the extracted values flow downstream: the raw string is never logged, encrypted, or sent upstream.
+        ulong ltUid;
+        string ltoken;
+        if (!string.IsNullOrEmpty(request.CookieString))
+        {
+            if (!CookieCredentialParser.TryParse(request.CookieString, out ltUid, out ltoken))
+            {
+                m_Logger.LogWarning("User {UserId} provided an unparsable cookie string", discordUserId);
+                return BadRequest(new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+            }
+        }
+        else
+        {
+            ltUid = request.LtUid;
+            ltoken = request.LToken!;
+        }
+
         // Validate cookie and fetch all game profiles before saving
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-            discordUserId, request.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
+            discordUserId, ltUid, ltoken, HttpContext.RequestAborted, bypassCache: true);
 
         if (!gameProfilesResult.IsSuccess)
         {
             if (gameProfilesResult.StatusCode == Domain.Shared.Models.StatusCode.Unauthorized)
             {
-                m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", discordUserId, request.LtUid);
+                m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", discordUserId, ltUid);
                 return StatusCode(StatusCodes.Status403Forbidden,
                     new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
             }
@@ -108,7 +127,7 @@ public sealed class ProfileController : ControllerBase
 
         if (gameProfilesResult.Data.Count == 0)
         {
-            m_Logger.LogWarning("No supported game profiles found for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
+            m_Logger.LogWarning("No supported game profiles found for user {UserId}, LtUid {LtUid}", discordUserId, ltUid);
             return BadRequest(new { error = "No supported game profiles were found for this HoYoLAB account." });
         }
 
@@ -116,7 +135,7 @@ public sealed class ProfileController : ControllerBase
         try
         {
             encryptedLToken = await Task.Run(
-                () => m_EncryptionService.Encrypt(request.LToken, request.Passphrase),
+                () => m_EncryptionService.Encrypt(ltoken, request.Passphrase),
                 HttpContext.RequestAborted);
         }
         catch (Exception e)
@@ -128,7 +147,7 @@ public sealed class ProfileController : ControllerBase
         UserProfileModel profile = new()
         {
             UserId = (long)discordUserId,
-            LtUid = (long)request.LtUid,
+            LtUid = (long)ltUid,
             LToken = encryptedLToken
         };
 
@@ -175,7 +194,7 @@ public sealed class ProfileController : ControllerBase
                     if (user.Profiles.Count >= 10)
                         return new ProfileAddResult(ProfileAddStatus.TooMany);
 
-                    if (user.Profiles.Any(existing => existing.LtUid == (long)request.LtUid))
+                    if (user.Profiles.Any(existing => existing.LtUid == (long)ltUid))
                         return new ProfileAddResult(ProfileAddStatus.Duplicate);
                     profile.ProfileId = user.Profiles.Count + 1;
                     user.Profiles.Add(profile);
@@ -186,7 +205,7 @@ public sealed class ProfileController : ControllerBase
         }
         catch (DbUpdateException e) when (IsUniqueConstraintViolation(e))
         {
-            m_Logger.LogWarning(e, "Duplicate profile for user {UserId}, LtUid {LtUid}", discordUserId, request.LtUid);
+            m_Logger.LogWarning(e, "Duplicate profile for user {UserId}, LtUid {LtUid}", discordUserId, ltUid);
             return Conflict(new { error = "A profile with this HoYoLAB UID already exists." });
         }
         catch (DbUpdateException e)
@@ -206,7 +225,7 @@ public sealed class ProfileController : ControllerBase
         return CreatedAtAction(nameof(ListProfiles), new
         {
             profileId = profile.ProfileId,
-            ltUid = request.LtUid,
+            ltUid = ltUid,
             gameProfileCount = gameProfilesResult.Data.Count
         });
     }
@@ -229,9 +248,34 @@ public sealed class ProfileController : ControllerBase
         if (profile == null)
             return NotFound(new { error = $"No profile with ID {profileId} found." });
 
+        // A full cookie string replaces the legacy LToken (mixing both is rejected by model validation). The cookie
+        // UID must match the stored profile UID, checked here before any upstream call or persistence. Only the
+        // extracted token flows downstream: the raw string is never logged, encrypted, or sent upstream.
+        string ltoken;
+        if (!string.IsNullOrEmpty(request.CookieString))
+        {
+            if (!CookieCredentialParser.TryParse(request.CookieString, out var cookieUid, out var cookieToken))
+            {
+                m_Logger.LogWarning("User {UserId} provided an unparsable cookie string during update", discordUserId);
+                return BadRequest(new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+            }
+
+            if (cookieUid != (ulong)profile.LtUid)
+            {
+                m_Logger.LogWarning("User {UserId} provided a cookie UID that does not match profile {ProfileId} during update", discordUserId, profileId);
+                return BadRequest(new { error = "Invalid HoYoLAB UID or Cookies. Please check your credentials and try again." });
+            }
+
+            ltoken = cookieToken;
+        }
+        else
+        {
+            ltoken = request.LToken!;
+        }
+
         // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
         var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-            discordUserId, (ulong)profile.LtUid, request.LToken, HttpContext.RequestAborted, bypassCache: true);
+            discordUserId, (ulong)profile.LtUid, ltoken, HttpContext.RequestAborted, bypassCache: true);
 
         if (!gameProfilesResult.IsSuccess)
         {
@@ -253,7 +297,7 @@ public sealed class ProfileController : ControllerBase
         }
 
         var newLToken = await Task.Run(
-            () => m_EncryptionService.Encrypt(request.LToken, request.Passphrase),
+            () => m_EncryptionService.Encrypt(ltoken, request.Passphrase),
             HttpContext.RequestAborted);
 
         // Load-then-save (no ExecuteUpdateAsync) so rotation stays testable on
