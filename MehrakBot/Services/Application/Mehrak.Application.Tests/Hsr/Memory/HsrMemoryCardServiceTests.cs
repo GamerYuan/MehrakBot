@@ -32,7 +32,7 @@ public class HsrMemoryCardServiceTests
         m_Service = new HsrMemoryCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrMemoryCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 

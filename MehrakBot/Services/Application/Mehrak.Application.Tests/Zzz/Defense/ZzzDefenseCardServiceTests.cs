@@ -5,11 +5,16 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Application.Zzz.Defense;
+using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 using Moq;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 #endregion
 
@@ -20,7 +25,7 @@ public class ZzzDefenseCardServiceTests
 {
     private static string TestDataPath => Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz");
 
-    private ZzzDefenseCardService m_Service;
+    private TestableZzzDefenseCardService m_Service;
 
     private const string TestNickName = "Test";
     private const string TestUid = "1300000000";
@@ -29,10 +34,10 @@ public class ZzzDefenseCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_Service = new ZzzDefenseCardService(
+        m_Service = new TestableZzzDefenseCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzDefenseCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 
@@ -82,6 +87,70 @@ public class ZzzDefenseCardServiceTests
         Assert.That(memoryStream, IsImage.IdenticalTo(goldenStream), "Generated image should match the golden image");
     }
 
+    [Test]
+    public async Task PreparedBackground_MatchesLegacyTransformAndReturnsIndependentClones()
+    {
+        await using var backgroundStream = await S3TestHelper.Instance.ImageRepository
+            .DownloadFileToStreamAsync(FileNameFormat.Zzz.ShiyuBackgroundName);
+        using var expected = await Image.LoadAsync<Rgba32>(backgroundStream);
+        expected.Mutate(ctx => ctx.Resize(new ResizeOptions
+        {
+            CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
+            Size = new Size(1000, 1080),
+            Mode = ResizeMode.Crop,
+            Sampler = KnownResamplers.Bicubic
+        }));
+
+        var cloneTasks = Enumerable.Range(0, 4)
+            .Select(_ => Task.Run(m_Service.CreateBackgroundForTest))
+            .ToArray();
+        var clones = await Task.WhenAll(cloneTasks);
+        try
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(clones, Has.All.Property(nameof(Image.Width)).EqualTo(1000));
+                Assert.That(clones, Has.All.Property(nameof(Image.Height)).EqualTo(1080));
+            });
+
+            clones[0].Mutate(ctx => ctx.Brightness(0.1f));
+            using var expectedStream = new MemoryStream();
+            using var untouchedStream = new MemoryStream();
+            await expected.SaveAsPngAsync(expectedStream);
+            await clones[1].SaveAsPngAsync(untouchedStream);
+            Assert.That(untouchedStream, IsImage.PerceptuallyEquivalentTo(expectedStream));
+        }
+        finally
+        {
+            foreach (var clone in clones)
+                clone.Dispose();
+        }
+    }
+
+    [Test]
+    public async Task GetCardAsync_ConcurrentRequests_ReturnUnchangedIndependentResults()
+    {
+        var defenseData = JsonSerializer.Deserialize<ZzzDefenseDataV2>(
+            await File.ReadAllTextAsync(Path.Combine(TestDataPath, "Shiyu_TestData_1.json")))!;
+        var context = new BaseCardGenerationContext<ZzzDefenseDataV2>(
+            TestUserId, defenseData, GetTestUserGameData());
+        context.SetParameter("server", Server.Asia);
+
+        var streams = await Task.WhenAll(
+            m_Service.GetCardAsync(context),
+            m_Service.GetCardAsync(context));
+        try
+        {
+            Assert.That(streams[0], Is.Not.SameAs(streams[1]));
+            Assert.That(streams[0], IsImage.PerceptuallyEquivalentTo(streams[1]));
+        }
+        finally
+        {
+            foreach (var stream in streams)
+                await stream.DisposeAsync();
+        }
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
@@ -90,6 +159,15 @@ public class ZzzDefenseCardServiceTests
             Nickname = TestNickName,
             Level = 60
         };
+    }
+
+    private sealed class TestableZzzDefenseCardService(
+        IImageRepository imageRepository,
+        ILogger<ZzzDefenseCardService> logger,
+        IApplicationMetrics metrics)
+        : ZzzDefenseCardService(imageRepository, logger, metrics)
+    {
+        public Image<Rgba32> CreateBackgroundForTest() => base.CreateBackground();
     }
 
     [Explicit]

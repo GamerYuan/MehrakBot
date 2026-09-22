@@ -32,7 +32,7 @@ public class GenshinAbyssCardServiceTests
     {
         m_Service = new GenshinAbyssCardService(S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinAbyssCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 

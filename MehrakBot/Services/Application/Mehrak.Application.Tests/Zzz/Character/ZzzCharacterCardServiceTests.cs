@@ -32,7 +32,7 @@ public class ZzzCharacterCardServiceTests
         m_Service = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 
@@ -90,7 +90,7 @@ public class ZzzCharacterCardServiceTests
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         var characterDetail =
@@ -128,7 +128,7 @@ public class ZzzCharacterCardServiceTests
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         var characterDetail =
@@ -177,7 +177,7 @@ public class ZzzCharacterCardServiceTests
         var cardService = new ZzzCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         var characterDetail =

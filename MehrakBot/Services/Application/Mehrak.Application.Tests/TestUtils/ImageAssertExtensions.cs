@@ -1,34 +1,63 @@
-﻿// AverageHash ported from Coenm.ImageHash (MIT) — see https://github.com/coenm/ImageHash
-using System.Numerics;
-using NUnit.Framework.Constraints;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+﻿using NUnit.Framework.Constraints;
 
 namespace Mehrak.Application.Tests.TestUtils;
 
 public static class IsImage
 {
-    public static ImageIdenticalConstraint IdenticalTo(byte[] expected, double similarityThreshold = 98.0)
-        => new(expected, similarityThreshold);
+    /// <summary>
+    /// Retained for existing golden-image tests. This is a perceptual comparison, not byte or pixel identity.
+    /// The optional threshold is the minimum global DCT-hash similarity percentage; fixed color, structure,
+    /// dimension, and localized-region guardrails are also required.
+    /// </summary>
+    public static ImageIdenticalConstraint IdenticalTo(byte[] expected,
+        double similarityThreshold = PerceptualImageComparator.DefaultDctSimilarityPercent)
+        => PerceptuallyEquivalentTo(expected, similarityThreshold);
 
-    public static ImageIdenticalConstraint IdenticalTo(Stream expected, double similarityThreshold = 98.0)
+    /// <inheritdoc cref="IdenticalTo(byte[],double)"/>
+    public static ImageIdenticalConstraint IdenticalTo(Stream expected,
+        double similarityThreshold = PerceptualImageComparator.DefaultDctSimilarityPercent)
+        => PerceptuallyEquivalentTo(expected, similarityThreshold);
+
+    public static ImageIdenticalConstraint PerceptuallyEquivalentTo(byte[] expected,
+        double minimumDctSimilarityPercent = PerceptualImageComparator.DefaultDctSimilarityPercent)
+        => new(expected, minimumDctSimilarityPercent);
+
+    public static ImageIdenticalConstraint PerceptuallyEquivalentTo(Stream expected,
+        double minimumDctSimilarityPercent = PerceptualImageComparator.DefaultDctSimilarityPercent)
+        => new(ReadStreamPreservingPosition(expected), minimumDctSimilarityPercent);
+
+    private static byte[] ReadStreamPreservingPosition(Stream stream)
     {
-        using var ms = new MemoryStream();
-        expected.Position = 0;
-        expected.CopyTo(ms);
-        return new(ms.ToArray(), similarityThreshold);
+        ArgumentNullException.ThrowIfNull(stream);
+        var originalPosition = stream.CanSeek ? stream.Position : (long?)null;
+        try
+        {
+            if (stream.CanSeek)
+                stream.Position = 0;
+
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            return copy.ToArray();
+        }
+        finally
+        {
+            if (originalPosition.HasValue)
+                stream.Position = originalPosition.Value;
+        }
     }
 }
 
-public class ImageIdenticalConstraint : Constraint
+public sealed class ImageIdenticalConstraint : Constraint
 {
     private readonly byte[] m_Expected;
-    private readonly double m_SimilarityThreshold;
-    public ImageIdenticalConstraint(byte[] expected, double similarityThreshold)
+    private readonly double m_MinimumDctSimilarityPercent;
+
+    public ImageIdenticalConstraint(byte[] expected, double minimumDctSimilarityPercent)
     {
-        m_Expected = expected;
-        m_SimilarityThreshold = similarityThreshold;
+        ArgumentNullException.ThrowIfNull(expected);
+        PerceptualImageComparator.ValidateThreshold(minimumDctSimilarityPercent);
+        m_Expected = (byte[])expected.Clone();
+        m_MinimumDctSimilarityPercent = minimumDctSimilarityPercent;
     }
 
     public override ConstraintResult ApplyTo<TActual>(TActual actual)
@@ -36,91 +65,82 @@ public class ImageIdenticalConstraint : Constraint
         var actualBytes = actual switch
         {
             byte[] bytes => bytes,
-            Stream stream => ReadStream(stream),
+            Stream stream => ReadStreamPreservingPosition(stream),
             _ => throw new ArgumentException($"Expected byte[] or Stream, got {typeof(TActual)}")
         };
 
-        using var actualMs = new MemoryStream(actualBytes);
-        using var expectedMs = new MemoryStream(m_Expected);
-
-        var actualHash = AverageHash(actualMs);
-        var expectedHash = AverageHash(expectedMs);
-
-        var actualSimilarity = Similarity(actualHash, expectedHash);
-
-        var isSuccess = actualSimilarity >= m_SimilarityThreshold;
-
-        return new ImageConstraintResult(this, actual, isSuccess, actualSimilarity, m_SimilarityThreshold);
+        var comparison = PerceptualImageComparator.Compare(m_Expected, actualBytes,
+            m_MinimumDctSimilarityPercent);
+        return new ImageConstraintResult(this, actual, comparison);
     }
 
-    private static ulong AverageHash(Stream stream)
+    private static byte[] ReadStreamPreservingPosition(Stream stream)
     {
-        using var image = Image.Load<Rgba32>(stream);
-        image.Mutate(ctx => ctx
-            .Resize(8, 8)
-            .Grayscale(GrayscaleMode.Bt601)
-            .AutoOrient());
-
-        ulong hash = 0;
-
-        image.ProcessPixelRows(accessor =>
+        var originalPosition = stream.CanSeek ? stream.Position : (long?)null;
+        try
         {
-            uint average = 0;
-            for (var y = 0; y < 8; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < 8; x++)
-                    average += row[x].R;
-            }
-            average /= 64;
+            if (stream.CanSeek)
+                stream.Position = 0;
 
-            var mask = 1UL << 63;
-            for (var y = 0; y < 8; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (var x = 0; x < 8; x++)
-                {
-                    if (row[x].R >= average)
-                        hash |= mask;
-                    mask >>= 1;
-                }
-            }
-        });
-
-        return hash;
-    }
-
-    private static double Similarity(ulong a, ulong b)
-        => (64 - BitOperations.PopCount(a ^ b)) / 64.0 * 100.0;
-
-    private static byte[] ReadStream(Stream stream)
-    {
-        using var ms = new MemoryStream();
-        stream.Position = 0;
-        stream.CopyTo(ms);
-        return ms.ToArray();
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            return copy.ToArray();
+        }
+        finally
+        {
+            if (originalPosition.HasValue)
+                stream.Position = originalPosition.Value;
+        }
     }
 
     public override string Description
-        => $"image with >= {m_SimilarityThreshold}% perceptual similarity to golden image";
+        => $"same-size image with >= {m_MinimumDctSimilarityPercent:F2}% global DCT-hash similarity "
+           + "and the calibrated color, structure, and localized-detail guardrails";
 
-    private class ImageConstraintResult : ConstraintResult
+    private sealed class ImageConstraintResult : ConstraintResult
     {
-        private readonly double m_Similarity;
-        private readonly double m_Threshold;
+        private readonly PerceptualComparison m_Comparison;
 
-        public ImageConstraintResult(IConstraint constraint, object? actualValue, bool isSuccess,
-            double similarity, double threshold)
-            : base(constraint, actualValue, isSuccess)
+        internal ImageConstraintResult(IConstraint constraint, object? actualValue,
+            PerceptualComparison comparison)
+            : base(constraint, actualValue, comparison.IsEquivalent)
         {
-            m_Similarity = similarity;
-            m_Threshold = threshold;
+            m_Comparison = comparison;
         }
 
         public override void WriteMessageTo(MessageWriter writer)
         {
-            writer.Write($"Expected image to have >= {m_Threshold}% perceptual similarity to golden image, " +
-                         $"but similarity was {m_Similarity:F2}%.");
+            if (!m_Comparison.DimensionsMatch)
+            {
+                writer.Write($"Expected oriented dimensions {m_Comparison.ExpectedWidth}x{m_Comparison.ExpectedHeight}, "
+                             + $"but actual oriented dimensions were {m_Comparison.ActualWidth}x{m_Comparison.ActualHeight}.");
+                return;
+            }
+
+            writer.Write("Perceptual image comparison failed. "
+                         + $"DCT hash: {m_Comparison.DctSimilarityPercent:F2}% "
+                         + $"(minimum {m_Comparison.DctThresholdPercent:F2}%); "
+                         + $"global color: {m_Comparison.GlobalColorSimilarityPercent:F2}% "
+                         + $"(minimum {PerceptualImageComparator.MinimumGlobalColorSimilarityPercent:F2}%); "
+                         + $"global structure: {m_Comparison.GlobalStructureSimilarityPercent:F2}% "
+                         + $"(minimum {PerceptualImageComparator.MinimumGlobalStructureSimilarityPercent:F2}%); "
+                         + $"local detail: {m_Comparison.LocalSimilarityPercent:F2}% "
+                         + $"(minimum {PerceptualImageComparator.MinimumLocalSimilarityPercent:F2}%).");
+
+            if (m_Comparison.WorstRegions.Count == 0)
+                return;
+
+            writer.Write(" Most different regions (expected-image coordinates): ");
+            for (var index = 0; index < m_Comparison.WorstRegions.Count; index++)
+            {
+                if (index > 0)
+                    writer.Write("; ");
+
+                var region = m_Comparison.WorstRegions[index];
+                writer.Write($"[{region.X},{region.Y},{region.Width}x{region.Height}: "
+                             + $"color {region.ColorSimilarityPercent:F2}%, "
+                             + $"structure {region.StructureSimilarityPercent:F2}%]");
+            }
         }
     }
 }

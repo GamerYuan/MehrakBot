@@ -36,7 +36,7 @@ public class HsrCharListCardServiceTests
         m_Service = new HsrCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrCharListCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.LoadStaticResourcesAsync();
     }
 

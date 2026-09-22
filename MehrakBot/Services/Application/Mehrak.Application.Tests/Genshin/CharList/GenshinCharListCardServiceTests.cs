@@ -35,7 +35,7 @@ public class GenshinCharListCardServiceTests
         m_Service = new GenshinCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharListCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
 
         await m_Service.InitializeAsync();
     }
@@ -107,7 +107,7 @@ public class GenshinCharListCardServiceTests
                 return new MemoryStream(bytes, writable: false);
             });
         var service = new GenshinCharListCardService(repository.Object,
-            Mock.Of<ILogger<GenshinCharListCardService>>(), Mock.Of<IApplicationMetrics>());
+            Mock.Of<ILogger<GenshinCharListCardService>>(), CardBenchmarkMetrics.Create());
         await service.InitializeAsync();
         var data = new[]
         {

@@ -32,7 +32,7 @@ public class ZzzCharListCardServiceTests
         m_Service = new ZzzCharListCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzCharListCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 
