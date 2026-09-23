@@ -3,6 +3,8 @@
 Baseline production revision: `ae5be081` (the Genshin charlist optimization).
 Follow-up branch: `perf/card-rendering`.
 
+**Follow-up:** [Paired per-card measurements](per-card-rendering.md) supersede causal interpretation of these non-interleaved timing differences and document the selectively retained optimizations.
+
 ## Decision and scope
 
 Each optimization group was implemented, checked against unchanged goldens, and measured in three fresh test processes. The retention threshold was a **10% reduction in the declared group's mean `GetCardAsync` duration**. Groups below the threshold were reverted, including their candidate-specific tests. The stronger perceptual comparator and opt-in timing harness remain independently useful test improvements.

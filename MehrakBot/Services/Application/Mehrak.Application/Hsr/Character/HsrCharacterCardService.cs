@@ -265,7 +265,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                         region.Brightness(0.35f);
                     });
 
-                canvas.DrawTextWithShadow(characterInformation.Name!, new RichTextOptions(Fonts.Title)
+                canvas.DrawBoundedTextWithShadow(characterInformation.Name!, new RichTextOptions(Fonts.Title)
                 {
                     Origin = new PointF(70, 50),
                     WrappingLength = 700,
@@ -282,13 +282,13 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                         VerticalAlignment = VerticalAlignment.Top
                     });
 
-                canvas.DrawTextWithShadow($"Lv. {characterInformation.Level}", Fonts.Normal,
+                canvas.DrawBoundedTextWithShadow($"Lv. {characterInformation.Level}", Fonts.Normal,
                     new PointF(70, bounds.Bottom + 20), Color.White);
 
-                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1110), Color.White);
-                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1150), Color.White);
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(70, 1110), Color.White);
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(70, 1150), Color.White);
 
-                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                canvas.DrawBoundedAttribution(new RichTextOptions(Fonts.Tiny)
                 {
                     Origin = new PointF(790, 1180),
                     HorizontalAlignment = HorizontalAlignment.Right,
@@ -300,7 +300,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                 {
                     var offset = i * 100;
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
-                    canvas.DrawCenteredIcon(ranks[i].Image, new PointF(900, 1115 - offset), 45, 5, Color.DarkSlateGray,
+                    canvas.DrawBoundedCenteredIcon(ranks[i].Image, new PointF(900, 1115 - offset), 45, 5, Color.DarkSlateGray,
                         accentColor, 5f);
                 }
 
@@ -312,10 +312,10 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                         "Elation Skill" => Color.FromPixel(new Rgb24(255, 176, 161)),
                         _ => accentColor
                     };
-                    canvas.DrawCenteredIcon(baseSkillImages[i].Image, new PointF(900, 80 + offset), 45, 5,
+                    canvas.DrawBoundedCenteredIcon(baseSkillImages[i].Image, new PointF(900, 80 + offset), 45, 5,
                         Color.DarkSlateGray, skillColor, 5f);
 
-                    canvas.DrawCenteredTextInEllipse(
+                    canvas.DrawBoundedCenteredTextInEllipse(
                         baseSkillImages[i].Data.Level!.ToString()!,
                         new PointF(865, 115 + offset),
                         20,
@@ -337,13 +337,13 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                         if (skill.Data.PointType == 3)
                         {
                             var xOffset = j * 100;
-                            canvas.DrawCenteredIcon(skill.Image, new PointF(1020 + xOffset, 80 + yOffset), 45, 5,
+                            canvas.DrawBoundedCenteredIcon(skill.Image, new PointF(1020 + xOffset, 80 + yOffset), 45, 5,
                                 Color.DarkSlateGray, accentColor, 5f);
                         }
                         else
                         {
                             var xOffset = (j - 1) * 100;
-                            canvas.DrawCenteredIcon(skill.Image, new PointF(1120 + xOffset, 80 + yOffset), 30, 5,
+                            canvas.DrawBoundedCenteredIcon(skill.Image, new PointF(1120 + xOffset, 80 + yOffset), 30, 5,
                                 Color.DarkSlateGray, accentColor, 5f);
                         }
                     }
@@ -354,7 +354,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                 for (var i = 0; i < servantImages.Length; i++)
                 {
                     var offset = (i + type4Skill) * 120;
-                    canvas.DrawCenteredIcon(servantImages[i].Image, new PointF(900 + offset, 480), 45, 5,
+                    canvas.DrawBoundedCenteredIcon(servantImages[i].Image, new PointF(900 + offset, 480), 45, 5,
                         Color.DarkSlateGray, accentColor, 5f);
 
                     EllipsePolygon levelEllipse = new(new PointF(865 + offset, 515), 20);
@@ -378,7 +378,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                         WrappingLength = 300,
                         VerticalAlignment = VerticalAlignment.Bottom
                     }, characterInformation.Equip.Name!, Brushes.Solid(Color.White), null);
-                    canvas.DrawCenteredTextInEllipse(
+                    canvas.DrawBoundedCenteredTextInEllipse(
                         ((char)(0x215F + characterInformation.Equip.Rank)).ToString(),
                         new PointF(1020, 690),
                         20,
@@ -423,7 +423,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                             property.PropertyType);
                     }
 
-                    canvas.DrawStatLine(
+                    canvas.DrawBoundedStatLine(
                         new StatLineData(
                             StatMappingUtility.HsrMapping[property.PropertyType!.Value],
                             property.Final!),

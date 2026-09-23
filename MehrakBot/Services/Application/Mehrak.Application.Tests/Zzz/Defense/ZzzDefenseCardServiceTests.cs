@@ -34,11 +34,13 @@ public class ZzzDefenseCardServiceTests
     [SetUp]
     public async Task Setup()
     {
-        m_Service = new TestableZzzDefenseCardService(
-            S3TestHelper.Instance.ImageRepository,
-            Mock.Of<ILogger<ZzzDefenseCardService>>(),
-            CardBenchmarkMetrics.Create());
-        await m_Service.InitializeAsync();
+        m_Service = await CreateServiceAsync();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        m_Service.Dispose();
     }
 
     [Test]
@@ -128,6 +130,23 @@ public class ZzzDefenseCardServiceTests
     }
 
     [Test]
+    public async Task BenchmarkLegacyBackground_MatchesPreparedBackground()
+    {
+        using var expected = m_Service.CreateBackgroundForTest();
+        using var scope = CardBenchmarkMetrics.BeginScope(
+            "defense-legacy-background-equivalence",
+            useLegacyBackgrounds: true);
+        using var legacyService = await CreateServiceAsync();
+        using var actual = legacyService.CreateScopedBackgroundForTest();
+
+        using var expectedStream = new MemoryStream();
+        using var actualStream = new MemoryStream();
+        await expected.SaveAsPngAsync(expectedStream);
+        await actual.SaveAsPngAsync(actualStream);
+        Assert.That(actualStream, IsImage.PerceptuallyEquivalentTo(expectedStream));
+    }
+
+    [Test]
     public async Task GetCardAsync_ConcurrentRequests_ReturnUnchangedIndependentResults()
     {
         var defenseData = JsonSerializer.Deserialize<ZzzDefenseDataV2>(
@@ -151,6 +170,26 @@ public class ZzzDefenseCardServiceTests
         }
     }
 
+    private static async Task<TestableZzzDefenseCardService> CreateServiceAsync()
+    {
+        var service = new TestableZzzDefenseCardService(
+            S3TestHelper.Instance.ImageRepository,
+            Mock.Of<ILogger<ZzzDefenseCardService>>(),
+            CardBenchmarkMetrics.Create());
+        try
+        {
+            await service.InitializeAsync();
+            if (CardBenchmarkMetrics.IsBenchmarkScope)
+                await service.LoadBenchmarkOriginalBackgroundAsync();
+            return service;
+        }
+        catch
+        {
+            service.Dispose();
+            throw;
+        }
+    }
+
     private static GameProfileDto GetTestUserGameData()
     {
         return new GameProfileDto
@@ -165,9 +204,57 @@ public class ZzzDefenseCardServiceTests
         IImageRepository imageRepository,
         ILogger<ZzzDefenseCardService> logger,
         IApplicationMetrics metrics)
-        : ZzzDefenseCardService(imageRepository, logger, metrics)
+        : ZzzDefenseCardService(imageRepository, logger, metrics), IDisposable
     {
+        private Image<Rgba32>? m_BenchmarkOriginalBackground;
+
+        public async Task LoadBenchmarkOriginalBackgroundAsync()
+        {
+            await using var stream = await S3TestHelper.Instance.ImageRepository
+                .DownloadFileToStreamAsync(FileNameFormat.Zzz.ShiyuBackgroundName);
+            var background = await Image.LoadAsync<Rgba32>(stream);
+            m_BenchmarkOriginalBackground?.Dispose();
+            m_BenchmarkOriginalBackground = background;
+        }
+
+        protected override Image<Rgba32> CreateBackground()
+        {
+            if (!CardBenchmarkMetrics.UseLegacyBackgrounds)
+                return base.CreateBackground();
+
+            var source = m_BenchmarkOriginalBackground
+                         ?? throw new InvalidOperationException(
+                             "The original Defense background was not loaded for the benchmark scope");
+            var background = source.CloneAs<Rgba32>();
+            try
+            {
+                background.Mutate(ctx => ctx.Resize(new ResizeOptions
+                {
+                    CenterCoordinates = new PointF(
+                        ctx.GetCurrentSize().Width / 2f,
+                        ctx.GetCurrentSize().Height / 2f),
+                    Size = new Size(1000, 1080),
+                    Mode = ResizeMode.Crop,
+                    Sampler = KnownResamplers.Bicubic
+                }));
+                return background;
+            }
+            catch
+            {
+                background.Dispose();
+                throw;
+            }
+        }
+
         public Image<Rgba32> CreateBackgroundForTest() => base.CreateBackground();
+
+        public Image<Rgba32> CreateScopedBackgroundForTest() => CreateBackground();
+
+        public void Dispose()
+        {
+            m_BenchmarkOriginalBackground?.Dispose();
+            m_BenchmarkOriginalBackground = null;
+        }
     }
 
     [Explicit]

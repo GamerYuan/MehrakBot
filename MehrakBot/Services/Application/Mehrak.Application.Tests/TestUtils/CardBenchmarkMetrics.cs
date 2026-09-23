@@ -27,6 +27,7 @@ public sealed class CardBenchmarkMetrics : IApplicationMetrics
     private const string OutputEnvironmentVariable = "MEHRAK_CARD_BENCHMARK_OUTPUT";
 
     private static readonly object FileAppendLock = new();
+    private static readonly AsyncLocal<BenchmarkScope?> CurrentScope = new();
 
     private readonly string? m_OutputPath;
 
@@ -47,10 +48,35 @@ public sealed class CardBenchmarkMetrics : IApplicationMetrics
     /// </summary>
     public static CardBenchmarkMetrics Create() => new();
 
-    public IDisposable ObserveCardGenerationDuration(string cardType) =>
-        string.IsNullOrWhiteSpace(m_OutputPath)
+    /// <summary>
+    /// Overrides the test identity recorded by timers created in the current
+    /// asynchronous flow. Benchmark fixture warmups use this scope to exercise
+    /// the unchanged golden-image test without recording a measured sample.
+    /// </summary>
+    internal static bool IsBenchmarkScope => CurrentScope.Value is not null;
+
+    internal static bool UseLegacyBackgrounds => CurrentScope.Value?.UseLegacyBackgrounds == true;
+
+    internal static IDisposable BeginScope(
+        string testIdentity,
+        bool suppressSamples = false,
+        bool useLegacyBackgrounds = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(testIdentity);
+
+        var previous = CurrentScope.Value;
+        var scope = new BenchmarkScope(testIdentity, suppressSamples, useLegacyBackgrounds);
+        CurrentScope.Value = scope;
+        return new BenchmarkScopeLease(scope, previous);
+    }
+
+    public IDisposable ObserveCardGenerationDuration(string cardType)
+    {
+        var scope = CurrentScope.Value;
+        return string.IsNullOrWhiteSpace(m_OutputPath) || scope?.SuppressSamples == true
             ? NullTimer.Instance
-            : new JsonLineTimer(m_OutputPath, cardType);
+            : new JsonLineTimer(m_OutputPath, cardType, scope?.TestIdentity);
+    }
 
     public void TrackCharacterSelection(string game, string character)
     {
@@ -64,6 +90,25 @@ public sealed class CardBenchmarkMetrics : IApplicationMetrics
 
     public void RecordCardGenerationDuration(string cardType, TimeSpan duration)
     {
+    }
+
+    private sealed record BenchmarkScope(
+        string TestIdentity,
+        bool SuppressSamples,
+        bool UseLegacyBackgrounds);
+
+    private sealed class BenchmarkScopeLease(BenchmarkScope scope, BenchmarkScope? previous) : IDisposable
+    {
+        private int m_Disposed;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref m_Disposed, 1) != 0)
+                return;
+
+            if (ReferenceEquals(CurrentScope.Value, scope))
+                CurrentScope.Value = previous;
+        }
     }
 
     private sealed class NullTimer : IDisposable
@@ -82,10 +127,10 @@ public sealed class CardBenchmarkMetrics : IApplicationMetrics
     /// Append failures propagate so a misconfigured output path fails loudly
     /// instead of silently dropping benchmark samples.
     /// </summary>
-    private sealed class JsonLineTimer(string outputPath, string cardType) : IDisposable
+    private sealed class JsonLineTimer(string outputPath, string cardType, string? testIdentity) : IDisposable
     {
         private readonly long m_StartTimestamp = Stopwatch.GetTimestamp();
-        private readonly string m_TestFullName = TestContext.CurrentContext.Test?.FullName ?? "unknown";
+        private readonly string m_TestFullName = testIdentity ?? TestContext.CurrentContext.Test?.FullName ?? "unknown";
         private int m_Disposed;
 
         public void Dispose()

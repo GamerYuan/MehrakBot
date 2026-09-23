@@ -161,6 +161,33 @@ public class GenshinTheaterCardServiceTests
     }
 
     [Test]
+    public async Task BenchmarkLegacyBackground_RenderedOutputMatchesCachedBackgroundAndGoldenImage()
+    {
+        const string testDataFileName = "Theater_TestData_4.json";
+        var context = await CreateContextAsync(testDataFileName);
+        var goldenImage = await File.ReadAllBytesAsync(Path.Combine(
+            AppContext.BaseDirectory,
+            "Assets",
+            "Genshin",
+            "TestAssets",
+            testDataFileName.Replace("TestData", "GoldenImage").Replace(".json", ".jpg")));
+
+        using var cached = await m_Service.GetCardAsync(context);
+        using var legacyScope = CardBenchmarkMetrics.BeginScope(
+            "theater-legacy-background-equivalence",
+            useLegacyBackgrounds: true);
+        using var legacy = await m_Service.GetCardAsync(context);
+
+        using var cachedGolden = new MemoryStream(goldenImage);
+        using var legacyGolden = new MemoryStream(goldenImage);
+        Assert.Multiple(() =>
+        {
+            Assert.That(cached, IsImage.IdenticalTo(cachedGolden));
+            Assert.That(legacy, IsImage.IdenticalTo(legacyGolden));
+        });
+    }
+
+    [Test]
     public async Task ApplicationStartup_InitializationScopeDoesNotDisposeTheaterSingleton()
     {
         var services = new ServiceCollection();
@@ -279,6 +306,14 @@ public class GenshinTheaterCardServiceTests
         IApplicationMetrics metrics)
         : GenshinTheaterCardService(imageRepository, logger, metrics)
     {
+        protected override Image<Rgba32> CreateBackground(
+            ICardGenerationContext<GenshinTheaterInformation> context)
+        {
+            return CardBenchmarkMetrics.UseLegacyBackgrounds
+                ? base.CreateBackground()
+                : base.CreateBackground(context);
+        }
+
         public Image<Rgba32> CreateBackgroundForTest(
             ICardGenerationContext<GenshinTheaterInformation> context) => base.CreateBackground(context);
 

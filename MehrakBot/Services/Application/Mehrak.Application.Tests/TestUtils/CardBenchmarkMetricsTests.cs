@@ -165,6 +165,84 @@ public sealed class CardBenchmarkMetricsTests
             "captured elapsedMs should reflect the observed card generation wait");
     }
 
+    [Test]
+    public async Task BeginScope_OverridesRunnerTestIdentity()
+    {
+        var outputPath = await CreateTempOutputPath();
+        var metrics = new CardBenchmarkMetrics(outputPath);
+
+        using (CardBenchmarkMetrics.BeginScope("Original.Fixture.GoldenCase(\"data.json\")"))
+        using (metrics.ObserveCardGenerationDuration(CardType))
+        {
+        }
+
+        var record = JsonSerializer.Deserialize<JsonElement>((await File.ReadAllLinesAsync(outputPath)).Single());
+        Assert.That(record.GetProperty("test").GetString(),
+            Is.EqualTo("Original.Fixture.GoldenCase(\"data.json\")"));
+    }
+
+    [Test]
+    public async Task BeginScope_SuppressSamples_DoesNotWriteWarmupRecordAndRestoresOuterScope()
+    {
+        var outputPath = await CreateTempOutputPath();
+        var metrics = new CardBenchmarkMetrics(outputPath);
+
+        using (CardBenchmarkMetrics.BeginScope("measured-case"))
+        {
+            using (CardBenchmarkMetrics.BeginScope("warmup-case", true))
+            using (metrics.ObserveCardGenerationDuration(CardType))
+            {
+            }
+
+            using (metrics.ObserveCardGenerationDuration(CardType))
+            {
+            }
+        }
+
+        var lines = await File.ReadAllLinesAsync(outputPath);
+        Assert.That(lines, Has.Length.EqualTo(1));
+        var record = JsonSerializer.Deserialize<JsonElement>(lines.Single());
+        Assert.That(record.GetProperty("test").GetString(), Is.EqualTo("measured-case"));
+    }
+
+    [Test]
+    public async Task BeginScope_BackgroundFlagsFlowAcrossAsyncWorkAndRestoreNestedScope()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(CardBenchmarkMetrics.IsBenchmarkScope, Is.False);
+            Assert.That(CardBenchmarkMetrics.UseLegacyBackgrounds, Is.False);
+        });
+
+        using (CardBenchmarkMetrics.BeginScope("legacy-case", useLegacyBackgrounds: true))
+        {
+            await Task.Yield();
+            Assert.Multiple(() =>
+            {
+                Assert.That(CardBenchmarkMetrics.IsBenchmarkScope, Is.True);
+                Assert.That(CardBenchmarkMetrics.UseLegacyBackgrounds, Is.True);
+            });
+
+            using (CardBenchmarkMetrics.BeginScope("cached-case"))
+            {
+                await Task.Yield();
+                Assert.Multiple(() =>
+                {
+                    Assert.That(CardBenchmarkMetrics.IsBenchmarkScope, Is.True);
+                    Assert.That(CardBenchmarkMetrics.UseLegacyBackgrounds, Is.False);
+                });
+            }
+
+            Assert.That(CardBenchmarkMetrics.UseLegacyBackgrounds, Is.True);
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CardBenchmarkMetrics.IsBenchmarkScope, Is.False);
+            Assert.That(CardBenchmarkMetrics.UseLegacyBackgrounds, Is.False);
+        });
+    }
+
     private Task<string> CreateTempOutputPath()
     {
         Directory.CreateDirectory(m_OutputDirectory);
