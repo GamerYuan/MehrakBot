@@ -87,24 +87,20 @@ There were no material fixture regressions. Theater's existing unprepared-backgr
 
 ## Reproduce
 
-The new scripts require PowerShell 7. Build two source variants with the same test harness and fixtures. Snapshot only these files from `MehrakBot/Services/Application/Mehrak.Application.Tests/bin/Release/net10.0/` after each Release build:
+The PowerShell orchestration scripts have been removed; the explicit NUnit benchmark harness remains. Build each source variant in Release with the same test harness and fixtures. For each invocation, set `MEHRAK_CARD_BENCHMARK_OUTPUT` to a new absolute JSONL file path in an existing directory. Optionally set `MEHRAK_CARD_BENCHMARK_FILTER` to semicolon-separated fixture-name substrings; leaving it unset selects all 73 cases.
 
-- `Mehrak.Application.dll` and `.pdb`
-- `Mehrak.Application.Tests.dll` and `.pdb`
-
-From the repository root:
+Run from `MehrakBot/` after building the desired variant:
 
 ```powershell
-./scripts/benchmark-card-pairs.ps1 `
-    -BaselineDirectory <baseline-snapshot> `
-    -CandidateDirectory <candidate-snapshot> `
-    -OutputDirectory <new-results-directory> `
-    -Filter 'GenshinCharacterCardServiceTests;HsrCharacterCardServiceTests;ZzzCharacterCardServiceTests'
-
-./scripts/summarize-card-pairs.ps1 -Directory <results-directory>
+dotnet test Services/Application/Mehrak.Application.Tests/Mehrak.Application.Tests.csproj `
+    -c Release --no-build `
+    --filter 'FullyQualifiedName=Mehrak.Application.Tests.Benchmarks.CardFixtureBenchmarkTests.RunGoldenCardFixtures_WithWarmup_RecordsMeasuredSamples' `
+    -- NUnit.NumberOfTestWorkers=0
 ```
 
-Omit `-Filter` for all 73 cases. For the matched cache control, use the same current snapshot for both variants, filter to `GenshinTheaterCardServiceTests;ZzzDefenseCardServiceTests`, and add `-BaselineLegacyBackgrounds`. The scripts reject incomplete batches and mismatching case identities. They do not build source or regenerate goldens.
+For character-card confirmation, filter to `GenshinCharacterCardServiceTests;HsrCharacterCardServiceTests;ZzzCharacterCardServiceTests`. For the matched cache control, use the same build for both variants, filter to `GenshinTheaterCardServiceTests;ZzzDefenseCardServiceTests`, and set `MEHRAK_CARD_BENCHMARK_LEGACY_BACKGROUNDS=1` only for legacy runs; unset it for cached runs.
+
+Manually alternate five baseline/candidate pairs and apply the acceptance policy above. Reject failed or incomplete batches and verify matching case identities before calculating results. Restore benchmark environment variables after use. Do not run golden-generation or live-API tests.
 
 Raw data/manifests are local under `.pi/benchmarks/per-card/`: `aa-control`, `bounded-all-pairs`, `hsr-charlist-pairs`, `background-pairs`, `final-selection-restarted`, and `accepted-three-pairs`. The interrupted `final-selection-pairs` directory is explicitly invalid.
 
