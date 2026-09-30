@@ -188,7 +188,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                     new LinearLineSegment(new PointF(600, 1400), new PointF(700, 0), new PointF(810, 0), new PointF(710, 1400))));
 
 
-                canvas.DrawTextWithShadow(character.Name!, new RichTextOptions(Fonts.Title)
+                canvas.DrawBoundedTextWithShadow(character.Name!, new RichTextOptions(Fonts.Title)
                 {
                     Origin = new PointF(50, 50),
                     WrappingLength = 700,
@@ -204,13 +204,13 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                     VerticalAlignment = VerticalAlignment.Top
                 });
 
-                canvas.DrawTextWithShadow($"Lv. {character.Level}", Fonts.Normal,
+                canvas.DrawBoundedTextWithShadow($"Lv. {character.Level}", Fonts.Normal,
                     new PointF(50, bounds.Bottom + 10), Color.White);
 
-                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(50, 1300), Color.White);
-                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(50, 1340), Color.White);
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.Nickname, Fonts.Normal, new PointF(50, 1300), Color.White);
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.GameUid, Fonts.Small, new PointF(50, 1340), Color.White);
 
-                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                canvas.DrawBoundedAttribution(new RichTextOptions(Fonts.Tiny)
                 {
                     Origin = new PointF(570, 1380),
                     HorizontalAlignment = HorizontalAlignment.Right,
@@ -245,7 +245,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                     canvas.DrawImage(skillImg, skillImg.Bounds,
                         new RectangleF(830 + xOffset, 80 + yOffset, skillImg.Width, skillImg.Height),
                         KnownResamplers.Bicubic);
-                    canvas.DrawCenteredTextInEllipse(
+                    canvas.DrawBoundedCenteredTextInEllipse(
                         skill.Level.ToString(),
                         new PointF(910 + xOffset, 160 + yOffset),
                         25,
@@ -272,7 +272,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
                     var originY = 410 + statsYOffset;
                     var width = 800 + statsYOffset * MaskGradient;
 
-                    canvas.DrawStatLine(
+                    canvas.DrawBoundedStatLine(
                         new StatLineData(
                             stat.PropertyName,
                             stat.Final!,

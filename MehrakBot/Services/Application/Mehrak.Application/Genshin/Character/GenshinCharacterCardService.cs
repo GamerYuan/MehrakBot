@@ -272,27 +272,30 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
 
                 var textColor = Color.White;
 
-                _ = canvas.SaveLayer();
                 var offsetX = context.PortraitConfig?.OffsetX ?? 0;
                 var offsetY = context.PortraitConfig?.OffsetY ?? 0;
-                canvas.DrawImage(characterPortrait, characterPortrait.Bounds,
-                    new RectangleF((1280 - characterPortrait.Width) / 2 + offsetX, 100 + (1080 - characterPortrait.Height) / 2 + offsetY,
-                        characterPortrait.Width, characterPortrait.Height),
-                    KnownResamplers.Bicubic);
+                var portraitDestination = new RectangleF(
+                    (1280 - characterPortrait.Width) / 2 + offsetX,
+                    100 + (1080 - characterPortrait.Height) / 2 + offsetY,
+                    characterPortrait.Width,
+                    characterPortrait.Height);
+                _ = LayerBoundsUtility.SaveLayer(canvas,
+                    LayerBoundsUtility.Inflate(portraitDestination, LayerBoundsUtility.AntialiasingFringe));
+                canvas.DrawImage(characterPortrait, characterPortrait.Bounds, portraitDestination, KnownResamplers.Bicubic);
                 canvas.Restore();
 
-                canvas.DrawTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
+                canvas.DrawBoundedTextWithShadow(charInfo.Base.Name, Fonts.Title, new PointF(70, 55), textColor);
 
                 var ascLevel = context.GetParameter<int?>("ascension");
 
                 if (ascLevel != null)
                 {
-                    canvas.DrawTextWithShadow($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", Fonts.Normal,
+                    canvas.DrawBoundedTextWithShadow($"Lv. {charInfo.Base.Level}/{ascLevel.Value}", Fonts.Normal,
                         new PointF(70, 135), textColor);
                 }
                 else
                 {
-                    canvas.DrawTextWithShadow($"Lv. {charInfo.Base.Level}", Fonts.Normal,
+                    canvas.DrawBoundedTextWithShadow($"Lv. {charInfo.Base.Level}", Fonts.Normal,
                         new PointF(70, 135), textColor);
                 }
 
@@ -300,9 +303,9 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                 {
                     var skill = skillIcons[i];
                     var offset = i * 150;
-                    canvas.DrawCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 10, Color.DarkSlateGray,
+                    canvas.DrawBoundedCenteredIcon(skill.Image, new PointF(120, 900 - offset), 60, 10, Color.DarkSlateGray,
                         backgroundColor, 5f);
-                    canvas.DrawCenteredTextInEllipse(
+                    canvas.DrawBoundedCenteredTextInEllipse(
                         skill.Data.Level.ToString()!,
                         new PointF(120, 960 - offset),
                         25,
@@ -312,13 +315,13 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                             skill.Data.IsConstAffected ? Color.DodgerBlue : Color.DarkGray));
                 }
 
-                canvas.DrawTextWithShadow(context.GameProfile.Nickname, Fonts.Normal,
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.Nickname, Fonts.Normal,
                     new PointF(60, 1000), textColor);
 
-                canvas.DrawTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
+                canvas.DrawBoundedTextWithShadow(context.GameProfile.GameUid, Fonts.Small,
                     new PointF(60, 1040), textColor);
 
-                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                canvas.DrawBoundedAttribution(new RichTextOptions(Fonts.Tiny)
                 {
                     Origin = new PointF(960, 1070),
                     HorizontalAlignment = HorizontalAlignment.Right,
@@ -332,7 +335,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                     if (!constellation.Active)
                         constellation.Image.Mutate(x => x.Brightness(0.5f));
                     var offset = i * 140;
-                    canvas.DrawCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 5,
+                    canvas.DrawBoundedCenteredIcon(constellation.Image, new PointF(1050, 1000 - offset), 50, 5,
                         Color.DarkSlateGray, backgroundColor, 5f);
                 }
 
@@ -402,7 +405,7 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
                     var y = 360 + spacing * i;
                     var isBase = StatMappingUtility.IsBaseStat(stat.PropertyType!.Value);
 
-                    canvas.DrawStatLine(
+                    canvas.DrawBoundedStatLine(
                         new StatLineData(
                             StatMappingUtility.GenshinMapping[stat.PropertyType.Value],
                             stat.Final,

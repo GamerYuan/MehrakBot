@@ -28,7 +28,7 @@ public class ZzzTowerCardServiceTests
         m_Service = new ZzzTowerCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<ZzzTowerCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 

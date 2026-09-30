@@ -132,16 +132,20 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         }
 
         // Start avatar/weapon image updates immediately
-        var avatarTasks = characterList.Select(x =>
+        var avatarTasks = characterList.DistinctBy(x => x.ToImageName()).Select(x =>
             m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(), ImageProcessors.AvatarProcessor, cancellationToken)).ToList();
-        var weaponTasks = characterList.Select(x =>
+        var weaponProcessor = new ImageProcessorBuilder().Resize(200, 0).Build();
+        var weaponTasks = characterList.DistinctBy(x => x.Weapon.ToBaseImageName()).Select(x =>
             m_ImageUpdaterService.UpdateImageAsync(x.Weapon.ToImageData(),
-                new ImageProcessorBuilder().Resize(200, 0).Build(), cancellationToken)).ToList();
+                weaponProcessor, cancellationToken)).ToList();
 
-        // Find weapons needing ascended images (parallel checks)
+        // Share in-flight existence checks for repeated weapon artwork.
+        var ascendedExistsTasks = characterList.Where(x => x.Weapon.Level > 40)
+            .Select(x => x.Weapon.ToAscendedImageName()).Distinct()
+            .ToDictionary(name => name, name => m_ImageRepository.FileExistsAsync(name, cancellationToken));
         var existenceChecks = characterList.Select(async x =>
         {
-            var needsAscended = x.Weapon.Level > 40 && !await m_ImageRepository.FileExistsAsync(x.Weapon.ToAscendedImageName(), cancellationToken);
+            var needsAscended = x.Weapon.Level > 40 && !await ascendedExistsTasks[x.Weapon.ToAscendedImageName()];
             return (Character: x, NeedsAscended: needsAscended, LevelExact40: x.Weapon.Level == 40);
         }).ToList();
         var existenceResults = await Task.WhenAll(existenceChecks);
@@ -204,37 +208,39 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         if (!charDetailResponse.IsSuccess) return;
         var charDetail = charDetailResponse.Data;
 
-        // Fire all wiki lookups in parallel
-        var wikiTasks = charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
-            .DistinctBy(x => x.Weapon.Id)
-            .Select(async x =>
-            {
-                if (!charDetail.WeaponWiki.TryGetValue(x.Weapon.Id.ToString()!, out var wikiUrl))
-                    return (Data: x, Url: Result<string>.Failure(StatusCode.ExternalServerError));
-                var urlResult = await GetWeaponUrlsAsync(context, profile, x.Weapon.Name, wikiUrl.Split('/')[^1], cancellationToken);
-                return (Data: x, Url: urlResult);
-            })
-            .ToList();
+        // A level-40 weapon can be either ascended or unascended. Resolve each
+        // equipped instance from detail data, but fetch its shared artwork only once.
+        foreach (var detail in charDetail.List.Where(x => x.Weapon.PromoteLevel < 2))
+        {
+            if (weaponDict.TryGetValue(detail.Base.Id, out var character) && character.Weapon.Level == 40)
+                character.Weapon.Ascended = false;
+        }
 
-        var wikiResults = await Task.WhenAll(wikiTasks);
-
-        // Process all ascended weapons in parallel
-        var updateTasks = wikiResults
-            .Where(x => x.Url.IsSuccess)
-            .Select(async x =>
+        var updateTasks = charDetail.List.Where(x => x.Weapon.PromoteLevel >= 2)
+            .GroupBy(x => x.Weapon.Id)
+            .Select(async group =>
             {
-                var updated = await m_ImageUpdaterService.UpdateMultiImageAsync(
-                    new MultiImageData(x.Data.Weapon.ToAscendedImageName(),
-                        [x.Data.Weapon.Icon, x.Url.Data!]),
-                    m_WeaponImageProcessor,
-                    cancellationToken
-                );
-                if (updated)
+                var weapon = group.First().Weapon;
+                var imageName = weapon.ToAscendedImageName();
+                var ready = await m_ImageRepository.FileExistsAsync(imageName, cancellationToken);
+                if (!ready)
                 {
-                    foreach (var character in weaponDict.Values.Where(c => c.Weapon.Id == x.Data.Weapon.Id))
-                        character.Weapon.Ascended = true;
+                    if (!charDetail.WeaponWiki.TryGetValue(weapon.Id.ToString()!, out var wikiUrl)) return;
+                    var url = await GetWeaponUrlsAsync(context, profile, weapon.Name, wikiUrl.Split('/')[^1], cancellationToken);
+                    if (!url.IsSuccess) return;
+                    ready = await m_ImageUpdaterService.UpdateMultiImageAsync(
+                        new MultiImageData(imageName, [weapon.Icon, url.Data!]),
+                        m_WeaponImageProcessor, cancellationToken);
                 }
-                return updated;
+
+                if (ready)
+                {
+                    foreach (var detail in group)
+                    {
+                        if (weaponDict.TryGetValue(detail.Base.Id, out var character))
+                            character.Weapon.Ascended = true;
+                    }
+                }
             }).ToList();
 
         await Task.WhenAll(updateTasks);

@@ -10,6 +10,7 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Domain;
 using Mehrak.Domain.Card;
 using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Genshin.Types;
 
 #endregion
@@ -43,7 +44,9 @@ internal static class GenshinApplicationServiceExtensions
 
         services.AddSingleton<ICardService<GenshinTheaterInformation>,
                 GenshinTheaterCardService>();
-        services.RegisterAsyncInitializableFor<ICardService<GenshinTheaterInformation>, GenshinTheaterCardService>();
+        // A scoped alias would dispose this IDisposable singleton when startup's initialization scope ends.
+        services.AddSingleton<IAsyncInitializable>(sp =>
+            (GenshinTheaterCardService)sp.GetRequiredService<ICardService<GenshinTheaterInformation>>());
         services.AddKeyedTransient<IApplicationService, GenshinTheaterApplicationService>(CommandName.Genshin.Theater);
 
         services.AddKeyedTransient<IApplicationService, GenshinRealTimeNotesApplicationService>(CommandName.Genshin.RealTimeNotes);

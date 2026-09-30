@@ -30,35 +30,61 @@ public static class EllipseTextExtensions
         PointF center,
         float radius,
         EllipseTextStyle style)
+        => DrawCenteredTextInEllipseCore(canvas, text, center, radius, style, false);
+
+    internal static void DrawBoundedCenteredTextInEllipse(
+        this DrawingCanvas canvas,
+        string text,
+        PointF center,
+        float radius,
+        EllipseTextStyle style)
+        => DrawCenteredTextInEllipseCore(canvas, text, center, radius, style, true);
+
+    private static void DrawCenteredTextInEllipseCore(
+        DrawingCanvas canvas,
+        string text,
+        PointF center,
+        float radius,
+        EllipseTextStyle style,
+        bool useBoundedLayer)
     {
         if (radius <= 0)
             throw new ArgumentOutOfRangeException(nameof(radius), "Radius must be positive.");
 
-        _ = canvas.SaveLayer();
         var ellipse = new EllipsePolygon(center, radius);
-        canvas.Fill(Brushes.Solid(style.Background), ellipse);
-
-        if (style.Outline != null && style.OutlineWidth > 0)
-        {
-            canvas.Draw(Pens.Solid(style.Outline.Value, style.OutlineWidth), ellipse);
-        }
-
         var actualFont = style.ShrinkToFit
             ? GetFittingFont(text, style.Font, radius * 2 - 4)
             : style.Font;
-
         var bounds = TextMeasurer.MeasureBounds(text, new RichTextOptions(actualFont)
         {
             Origin = PointF.Empty
         });
-
-        var drawY = (center.Y - radius * 0.05f) - (bounds.Height / 2f);
-
-        canvas.DrawText(new RichTextOptions(actualFont)
+        var drawY = center.Y - radius * 0.05f - bounds.Height / 2f;
+        var textOptions = new RichTextOptions(actualFont)
         {
             Origin = new PointF(center.X, drawY),
             HorizontalAlignment = HorizontalAlignment.Center
-        }, text, Brushes.Solid(style.TextColor), null);
+        };
+
+        if (useBoundedLayer)
+        {
+            var outlineExtent = (style.Outline != null && style.OutlineWidth > 0 ? style.OutlineWidth / 2f : 0)
+                                + LayerBoundsUtility.AntialiasingFringe;
+            var ellipseBounds = LayerBoundsUtility.Inflate(
+                new RectangleF(center.X - radius, center.Y - radius, radius * 2, radius * 2), outlineExtent);
+            _ = LayerBoundsUtility.SaveLayer(canvas, ellipseBounds,
+                LayerBoundsUtility.GetTextBounds(text, textOptions));
+        }
+        else
+        {
+            _ = canvas.SaveLayer();
+        }
+
+        canvas.Fill(Brushes.Solid(style.Background), ellipse);
+        if (style.Outline != null && style.OutlineWidth > 0)
+            canvas.Draw(Pens.Solid(style.Outline.Value, style.OutlineWidth), ellipse);
+
+        canvas.DrawText(textOptions, text, Brushes.Solid(style.TextColor), null);
         canvas.Restore();
     }
 

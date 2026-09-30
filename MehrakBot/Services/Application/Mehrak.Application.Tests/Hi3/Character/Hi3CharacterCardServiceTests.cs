@@ -32,7 +32,7 @@ internal class Hi3CharacterCardServiceTests
         m_CharacterCardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_CharacterCardService.InitializeAsync();
     }
 
@@ -105,7 +105,7 @@ internal class Hi3CharacterCardServiceTests
         var service = new Hi3CharacterCardService(
             imageRepositoryMock.Object,
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
 
         await service.InitializeAsync();
 
@@ -128,7 +128,7 @@ internal class Hi3CharacterCardServiceTests
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         JsonSerializerOptions options = new()
@@ -171,7 +171,7 @@ internal class Hi3CharacterCardServiceTests
         var cardService = new Hi3CharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<Hi3CharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         JsonSerializerOptions options = new()

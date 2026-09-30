@@ -37,7 +37,7 @@ public class HsrPureFictionCardServiceTests
         m_Service = new HsrPureFictionCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrPureFictionCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 
@@ -148,7 +148,7 @@ public class HsrApocalypticShadowCardServiceTests
         m_Service = new HsrApocalypticShadowCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_Service.InitializeAsync();
     }
 

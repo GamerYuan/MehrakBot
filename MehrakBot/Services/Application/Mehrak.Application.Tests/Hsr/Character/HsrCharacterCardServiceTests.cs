@@ -219,7 +219,7 @@ public class HsrCharacterCardServiceTests
             S3TestHelper.Instance.ImageRepository,
             scopeFactory,
             Mock.Of<ILogger<HsrCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await characterCardService.InitializeAsync();
 
         return (relicContext, characterCardService);

@@ -25,17 +25,16 @@ public static class DropShadowTextExtensions
         PointF origin,
         Color textColor,
         DropShadowTextStyle? style = null)
-    {
-        _ = canvas.SaveLayer();
-        style ??= new DropShadowTextStyle();
-        var shadowColor = style.ShadowColor ?? Color.Black;
-        var shadowOrigin = new PointF(origin.X + style.ShadowOffsetX, origin.Y + style.ShadowOffsetY);
+        => DrawTextWithShadowCore(canvas, text, new RichTextOptions(font) { Origin = origin }, textColor, style, false);
 
-        canvas.DrawText(new RichTextOptions(font) { Origin = shadowOrigin }, text, Brushes.Solid(shadowColor), null);
-
-        canvas.DrawText(new RichTextOptions(font) { Origin = origin }, text, Brushes.Solid(textColor), null);
-        canvas.Restore();
-    }
+    internal static void DrawBoundedTextWithShadow(
+        this DrawingCanvas canvas,
+        string text,
+        Font font,
+        PointF origin,
+        Color textColor,
+        DropShadowTextStyle? style = null)
+        => DrawTextWithShadowCore(canvas, text, new RichTextOptions(font) { Origin = origin }, textColor, style, true);
 
     /// <summary>
     /// Draws text with RichTextOptions and an optional drop shadow.
@@ -46,17 +45,43 @@ public static class DropShadowTextExtensions
         RichTextOptions options,
         Color textColor,
         DropShadowTextStyle? style = null)
+        => DrawTextWithShadowCore(canvas, text, options, textColor, style, false);
+
+    internal static void DrawBoundedTextWithShadow(
+        this DrawingCanvas canvas,
+        string text,
+        RichTextOptions options,
+        Color textColor,
+        DropShadowTextStyle? style = null)
+        => DrawTextWithShadowCore(canvas, text, options, textColor, style, true);
+
+    private static void DrawTextWithShadowCore(
+        DrawingCanvas canvas,
+        string text,
+        RichTextOptions options,
+        Color textColor,
+        DropShadowTextStyle? style,
+        bool useBoundedLayer)
     {
-        _ = canvas.SaveLayer();
         style ??= new DropShadowTextStyle();
         var shadowColor = style.ShadowColor ?? Color.Black;
-
         var shadowOptions = new RichTextOptions(options)
         {
             Origin = new PointF(options.Origin.X + style.ShadowOffsetX, options.Origin.Y + style.ShadowOffsetY)
         };
-        canvas.DrawText(shadowOptions, text, Brushes.Solid(shadowColor), null);
 
+        if (useBoundedLayer)
+        {
+            _ = LayerBoundsUtility.SaveLayer(canvas,
+                LayerBoundsUtility.GetTextBounds(text, shadowOptions),
+                LayerBoundsUtility.GetTextBounds(text, options));
+        }
+        else
+        {
+            _ = canvas.SaveLayer();
+        }
+
+        canvas.DrawText(shadowOptions, text, Brushes.Solid(shadowColor), null);
         canvas.DrawText(options, text, Brushes.Solid(textColor), null);
         canvas.Restore();
     }

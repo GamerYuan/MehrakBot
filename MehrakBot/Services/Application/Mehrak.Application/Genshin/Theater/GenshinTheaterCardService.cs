@@ -1,6 +1,7 @@
 ﻿#region
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Mehrak.Application.Genshin;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Renderers;
@@ -21,11 +22,16 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Mehrak.Application.Services.Genshin.Theater;
 
-internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInformation>
+internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInformation>, IDisposable
 {
+    private readonly object m_BackgroundLock = new();
+    private readonly ConditionalWeakTable<Image<Rgba32>, object> m_PreparedBackgroundClones = new();
+    private readonly object m_PreparedBackgroundMarker = new();
+    private Image<Rgba32>[] m_PreparedBackgrounds = [];
     private Image<Rgba32> m_TheaterStarLit = null!;
     private Image<Rgba32> m_TheaterStarUnlit = null!;
     private Image<Rgba32> m_TheaterBuff = null!;
+    private bool m_Disposed;
 
     public GenshinTheaterCardService(IImageRepository imageRepository, ILogger<GenshinTheaterCardService> logger, IApplicationMetrics metrics)
         : base(
@@ -52,6 +58,53 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
             await ImageRepository.DownloadFileToStreamAsync(FileNameFormat.Genshin.TheaterBackgroundName, cancellationToken),
             cancellationToken);
         StaticBackground.Mutate(x => x.Brightness(0.35f));
+
+        // Keep five read-only variants (~69 MiB of pixel memory) so resize/crop/blur cost is paid once at startup.
+        var preparedBackgrounds = new Image<Rgba32>[5];
+        Image<Rgba32>[] previousBackgrounds;
+        try
+        {
+            for (var difficulty = 1; difficulty <= preparedBackgrounds.Length; difficulty++)
+            {
+                var preparedBackground = StaticBackground.CloneAs<Rgba32>();
+                preparedBackgrounds[difficulty - 1] = preparedBackground;
+                PrepareBackground(preparedBackground, GetMaxRound(difficulty));
+            }
+
+            lock (m_BackgroundLock)
+            {
+                ObjectDisposedException.ThrowIf(m_Disposed, this);
+                previousBackgrounds = m_PreparedBackgrounds;
+                m_PreparedBackgrounds = preparedBackgrounds;
+            }
+        }
+        catch
+        {
+            foreach (var preparedBackground in preparedBackgrounds)
+                preparedBackground?.Dispose();
+            throw;
+        }
+
+        foreach (var previousBackground in previousBackgrounds)
+            previousBackground.Dispose();
+    }
+
+    protected override Image<Rgba32> CreateBackground(
+        ICardGenerationContext<GenshinTheaterInformation> context)
+    {
+        var difficulty = context.Data.Stat.DifficultyId;
+        _ = GetMaxRound(difficulty);
+
+        lock (m_BackgroundLock)
+        {
+            ObjectDisposedException.ThrowIf(m_Disposed, this);
+            if (m_PreparedBackgrounds.Length != 5)
+                throw new InvalidOperationException("Theater backgrounds have not been initialized");
+
+            var background = m_PreparedBackgrounds[difficulty - 1].CloneAs<Rgba32>();
+            m_PreparedBackgroundClones.Add(background, m_PreparedBackgroundMarker);
+            return background;
+        }
     }
 
     public override async Task RenderCardAsync(
@@ -114,19 +167,11 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
             .ToDictionary(x => x.AvatarId, x => x.Image);
 
         var maxRound = GetMaxRound(theaterData.Stat.DifficultyId);
+        if (!m_PreparedBackgroundClones.Remove(background))
+            PrepareBackground(background, maxRound);
 
-        var height = 620 +
-                     (maxRound + 1) / 2 * 300;
-        // 1900 x height
-        if (height > background.Height)
-            background.Mutate(ctx => ctx.Resize(0, height));
-        var rectangle = new Rectangle(background.Width / 2 - 1900 / 2,
-            background.Height / 2 - height / 2, 1900, height);
         background.Mutate(ctx =>
         {
-            ctx.Crop(rectangle);
-            ctx.GaussianBlur(10);
-
             ctx.Paint(canvas =>
             {
                 canvas.DrawText(new RichTextOptions(Fonts.Title)
@@ -427,7 +472,7 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
 
                 canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
                 {
-                    Origin = new PointF(rectangle.Width - 20, rectangle.Height - 20),
+                    Origin = new PointF(background.Width - 20, background.Height - 20),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom,
                     TextAlignment = TextAlignment.End,
@@ -435,6 +480,39 @@ internal class GenshinTheaterCardService : CardServiceBase<GenshinTheaterInforma
                 );
             });
         });
+    }
+
+    private static void PrepareBackground(Image<Rgba32> background, int maxRound)
+    {
+        var height = 620 +
+                     (maxRound + 1) / 2 * 300;
+        if (height > background.Height)
+            background.Mutate(ctx => ctx.Resize(0, height));
+
+        var rectangle = new Rectangle(background.Width / 2 - 1900 / 2,
+            background.Height / 2 - height / 2, 1900, height);
+        background.Mutate(ctx =>
+        {
+            ctx.Crop(rectangle);
+            ctx.GaussianBlur(10);
+        });
+    }
+
+    public void Dispose()
+    {
+        Image<Rgba32>[] preparedBackgrounds;
+        lock (m_BackgroundLock)
+        {
+            if (m_Disposed)
+                return;
+
+            m_Disposed = true;
+            preparedBackgrounds = m_PreparedBackgrounds;
+            m_PreparedBackgrounds = [];
+        }
+
+        foreach (var preparedBackground in preparedBackgrounds)
+            preparedBackground.Dispose();
     }
 
     private static string GetDifficultyString(int difficulty)

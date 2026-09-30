@@ -32,7 +32,7 @@ public class GenshinCharacterCardServiceTests
         m_GenshinCharacterCardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await m_GenshinCharacterCardService.InitializeAsync();
     }
 
@@ -140,7 +140,7 @@ public class GenshinCharacterCardServiceTests
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         var characterDetail =
@@ -180,7 +180,7 @@ public class GenshinCharacterCardServiceTests
         var cardService = new GenshinCharacterCardService(
             S3TestHelper.Instance.ImageRepository,
             Mock.Of<ILogger<GenshinCharacterCardService>>(),
-            Mock.Of<IApplicationMetrics>());
+            CardBenchmarkMetrics.Create());
         await cardService.InitializeAsync();
 
         var characterDetail =

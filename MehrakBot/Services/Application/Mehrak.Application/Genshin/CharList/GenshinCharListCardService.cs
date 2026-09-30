@@ -75,6 +75,18 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
         }
     }
 
+    protected override Image<Rgba32> CreateBackground(
+        ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>> context)
+    {
+        var layout = CalculateLayout(context.Data.Count());
+        return new Image<Rgba32>(layout.OutputWidth, layout.OutputHeight + 50);
+    }
+
+    private static ImageUtility.GridLayout CalculateLayout(int count) =>
+        ImageUtility.CalculateGridLayout(count,
+            CharacterModuleRenderer.DefaultCanvasSize.Width,
+            CharacterModuleRenderer.DefaultCanvasSize.Height, [170, 50, 120, 50]);
+
     public override async Task RenderCardAsync(
         Image<Rgba32> background,
         ICardGenerationContext<IEnumerable<GenshinBasicCharacterData>> context,
@@ -96,12 +108,6 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             x => x.Key,
             x => LoadWeaponImageAsync(x.Weapon, disposables, cancellationToken));
 
-        await Task.WhenAll(weaponTasks.Values);
-
-        var weaponImages = weaponTasks.ToDictionary(
-            kvp => kvp.Key,
-            kvp => kvp.Value.Result);
-
         var moduleStyle = new CharacterModuleStyle(
             Fonts,
             RarityColors,
@@ -120,23 +126,26 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .ThenBy(x => x.Name)
             .ToList();
 
-        var avatarTasks = sortedCharData.Select(async x =>
-        {
-            var avatarImage = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
-            var moduleData = new CharacterModuleData(
+        var avatarTasks = sortedCharData.Select(x =>
+            LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken)).ToList();
+
+        // Join both groups, including on failure, before the shared disposable bag is released.
+        await Task.WhenAll(weaponTasks.Values.Concat(avatarTasks));
+
+        var avatarDataList = sortedCharData.Select((x, index) => (
+            Character: x,
+            ModuleData: new CharacterModuleData(
                 x.Name,
                 x.Level!.Value,
                 x.Rarity!.Value,
-                avatarImage,
+                avatarTasks[index].Result,
                 x.ActivedConstellationNum,
                 Icon: m_SmallElementIcons.TryGetValue(x.Element!, out var value) ? value : null,
                 Weapon: new WeaponModuleData(
                     x.Weapon.Level!.Value,
                     x.Weapon.Rarity!.Value,
                     x.Weapon.AffixLevel,
-                    weaponImages[GetWeaponKey(x.Weapon)]));
-            return (Character: x, ModuleData: moduleData);
-        }).ToList();
+                    weaponTasks[GetWeaponKey(x.Weapon)].Result)))).ToArray();
 
         var charCountByElem = charData.GroupBy(x => x.Element!)
             .OrderBy(x => Array.IndexOf(Elements, x.Key))
@@ -145,12 +154,8 @@ public class GenshinCharListCardService : CardServiceBase<IEnumerable<GenshinBas
             .OrderBy(x => x.Key)
             .Select(x => new { Rarity = x.Key, Count = x.Count() }).ToList();
 
-        var avatarDataList = await Task.WhenAll(avatarTasks);
-
         var renderer = new CharacterModuleRenderer(moduleStyle);
-        var layout =
-            ImageUtility.CalculateGridLayout(avatarDataList.Length,
-                renderer.CanvasSize.Width, renderer.CanvasSize.Height, [170, 50, 120, 50]);
+        var layout = CalculateLayout(avatarDataList.Length);
 
         var outputWidth = layout.OutputWidth;
         var outputHeight = layout.OutputHeight + 50;

@@ -86,6 +86,13 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
             .ToDictionary();
         m_BaseBuddyImage = buddyTask.Result;
         StaticBackground = backgroundTask.Result;
+        StaticBackground.Mutate(ctx => ctx.Resize(new ResizeOptions
+        {
+            CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
+            Size = new Size(1000, 1080),
+            Mode = ResizeMode.Crop,
+            Sampler = KnownResamplers.Bicubic
+        }));
 
         int[] boundaries = [199, 299, 599, 2099, (int.MaxValue)];
         m_RankIcons.AddRange(boundaries.Zip(rankTasks, (boundary, task) => (boundary, task.Result)));
@@ -151,14 +158,6 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
 
         background.Mutate(ctx =>
         {
-            ctx.Resize(new ResizeOptions
-            {
-                CenterCoordinates = new PointF(ctx.GetCurrentSize().Width / 2f, ctx.GetCurrentSize().Height / 2f),
-                Size = new Size(1000, 1080),
-                Mode = ResizeMode.Crop,
-                Sampler = KnownResamplers.Bicubic
-            });
-
             var imageSize = ctx.GetCurrentSize();
 
             ctx.Paint(canvas =>
