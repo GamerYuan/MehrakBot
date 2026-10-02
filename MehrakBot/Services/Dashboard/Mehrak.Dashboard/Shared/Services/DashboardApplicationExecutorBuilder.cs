@@ -64,12 +64,14 @@ internal class DashboardApplicationExecutorBuilder : IDashboardApplicationExecut
         var profileAuthService = m_ServiceProvider.GetRequiredService<IDashboardProfileAuthenticationService>();
         var userContext = m_ServiceProvider.GetRequiredService<UserDbContext>();
         var logger = m_ServiceProvider.GetRequiredService<ILogger<DashboardApplicationExecutorService>>();
+        var httpContextAccessor = m_ServiceProvider.GetRequiredService<IHttpContextAccessor>();
 
         var executor = new DashboardApplicationExecutorService(
             m_ServiceProvider,
             profileAuthService,
             userContext,
-            logger
+            logger,
+            httpContextAccessor
         )
         {
             DiscordUserId = m_DiscordUserId,

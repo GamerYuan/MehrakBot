@@ -39,7 +39,7 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
         IDashboardProfileAuthenticationService profileAuthenticationService,
         UserDbContext userContext,
         ILogger<DashboardApplicationExecutorService> logger,
-        IHttpContextAccessor? httpContextAccessor = null)
+        IHttpContextAccessor httpContextAccessor)
     {
         m_ServiceProvider = serviceProvider;
         m_ProfileAuthenticationService = profileAuthenticationService;
@@ -83,7 +83,7 @@ internal class DashboardApplicationExecutorService : IDashboardApplicationExecut
         // Unlock tickets are bound to the owning login session, so the current
         // session claim must travel with the request. Without it the stored
         // ticket never matches and every command demands re-authentication.
-        var sessionToken = m_HttpContextAccessor?.HttpContext?.User.FindFirstValue("dashboard_session");
+        var sessionToken = m_HttpContextAccessor.HttpContext?.User.FindFirstValue("dashboard_session");
 
         var authResult = await m_ProfileAuthenticationService
             .AuthenticateAsync(DiscordUserId, profileId, null, ct, sessionToken)
