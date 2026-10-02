@@ -6,6 +6,7 @@ using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Proto = Mehrak.Domain.Protobuf;
@@ -41,7 +42,8 @@ public class DashboardApplicationExecutorServiceTests
             m_ServiceProviderMock.Object,
             m_AuthServiceMock.Object,
             userContext,
-            m_LoggerMock.Object
+            m_LoggerMock.Object,
+            new HttpContextAccessor()
         );
     }
 
@@ -150,8 +152,9 @@ public class DashboardApplicationExecutorServiceTests
         m_ApplicationClientMock.Verify(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Test]
-    public async Task ExecuteAsync_PropagatesSessionTokenToAuthentication()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExecuteAsync_PropagatesSessionTokenToAuthentication(bool useBuilder)
     {
         // Unlock tickets are bound to the owning login session: the session
         // claim of the current request must reach the authentication service,
@@ -167,12 +170,22 @@ public class DashboardApplicationExecutorServiceTests
         var options = new DbContextOptionsBuilder<UserDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        var service = new DashboardApplicationExecutorService(
-            m_ServiceProviderMock.Object,
-            m_AuthServiceMock.Object,
-            new UserDbContext(options),
-            m_LoggerMock.Object,
-            httpContextAccessorMock.Object);
+        using var userContext = new UserDbContext(options);
+        using var serviceProvider = new ServiceCollection()
+            .AddDashboardApplicationExecutor()
+            .AddSingleton(m_AuthServiceMock.Object)
+            .AddSingleton(userContext)
+            .AddSingleton(m_LoggerMock.Object)
+            .AddSingleton(httpContextAccessorMock.Object)
+            .AddSingleton(m_ApplicationClientMock.Object)
+            .BuildServiceProvider();
+
+        var service = useBuilder
+            ? serviceProvider.GetRequiredService<IDashboardApplicationExecutorBuilder>()
+                .WithDiscordUserId(123)
+                .WithCommandName("testCommand")
+                .Build()
+            : serviceProvider.GetRequiredService<IDashboardApplicationExecutorService>();
         service.DiscordUserId = 123;
         service.CommandName = "testCommand";
 
