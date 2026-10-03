@@ -23,5 +23,5 @@ public class AliasModel
     public string CharacterName { get; set; } = string.Empty;
 
     public static string NormalizeAlias(string alias) =>
-        alias.ReplaceLineEndings("").Trim().ToLowerInvariant();
+        alias.ReplaceLineEndings("").Trim();
 }

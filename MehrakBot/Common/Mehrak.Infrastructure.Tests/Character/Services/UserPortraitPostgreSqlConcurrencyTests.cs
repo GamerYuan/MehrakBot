@@ -209,7 +209,7 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
     }
 
     [Test]
-    public async Task ConcurrentAliasUpsertsAcrossIndependentContexts_UseCanonicalIdentity()
+    public async Task ConcurrentAliasUpsertsAcrossIndependentContexts_UseCaseInsensitiveIdentity()
     {
         await using (var context = CreateContext())
         {
@@ -218,11 +218,13 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
         }
         var services = Enumerable.Range(0, 4).Select(_ => new AliasService(
             m_ServiceProvider.GetRequiredService<IServiceScopeFactory>(), NullLogger<AliasService>.Instance));
-        await Task.WhenAll(services.Select(service => service.UpsertAliases(Game.Genshin,
-            new() { ["  RAIDEN "] = "Raiden Shogun" })));
+        var spellings = new[] { "Raiden", "RAIDEN", "raIDen", "rAiDeN" };
+        await Task.WhenAll(services.Select((service, index) => service.UpsertAliases(Game.Genshin,
+            new() { [$"  {spellings[index]} "] = "Raiden Shogun" })));
         await using var verify = CreateContext();
         Assert.That(await verify.Aliases.CountAsync(), Is.EqualTo(1));
-        Assert.That((await verify.Aliases.SingleAsync()).Alias, Is.EqualTo("raiden"));
+        var alias = (await verify.Aliases.SingleAsync()).Alias;
+        Assert.That(spellings, Does.Contain(alias));
     }
 
     private UserPortraitService CreateService(IAmazonS3? s3 = null)
