@@ -26,8 +26,7 @@ public class AliasService : IAliasService
 
     public Dictionary<string, string> GetAliases(Game gameName)
     {
-        // Legacy aliases are canonicalized once by the reconciliation migration.
-        // All subsequent writes normalize identity at the service boundary.
+        // Preserve display spelling while keeping alias lookup case-insensitive.
         using var scope = m_ServiceScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
 
@@ -65,9 +64,14 @@ public class AliasService : IAliasService
 
         var entries = normalized.ToDictionary(group => group.Key, group => group.First().CharacterName,
             StringComparer.OrdinalIgnoreCase);
-        var existing = await context.Aliases
-            .Where(alias => alias.Game == gameName && entries.Keys.Contains(alias.Alias))
-            .ToDictionaryAsync(alias => alias.Alias, StringComparer.OrdinalIgnoreCase);
+        // Match with the same comparer used for request deduplication and lookup,
+        // rather than relying on the database's case-sensitive alias comparison.
+        var storedAliases = await context.Aliases
+            .Where(alias => alias.Game == gameName)
+            .ToListAsync();
+        var existing = storedAliases
+            .Where(alias => entries.ContainsKey(alias.Alias))
+            .ToDictionary(alias => alias.Alias, StringComparer.OrdinalIgnoreCase);
 
         foreach (var (alias, characterName) in entries)
         {
@@ -103,8 +107,11 @@ public class AliasService : IAliasService
         await using var transaction = await context.Database.BeginTransactionAsync();
         await CharacterDbLock.AcquireAsync(context, $"aliases:{gameName}");
 
-        var entity = await context.Aliases
-            .FirstOrDefaultAsync(entry => entry.Game == gameName && entry.Alias == normalized);
+        var storedAliases = await context.Aliases
+            .Where(entry => entry.Game == gameName)
+            .ToListAsync();
+        var entity = storedAliases.FirstOrDefault(entry =>
+            string.Equals(entry.Alias, normalized, StringComparison.OrdinalIgnoreCase));
 
         if (entity == null)
         {
