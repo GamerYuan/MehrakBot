@@ -70,7 +70,7 @@ public class Hi3CharacterApplicationServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         });
     }
 
@@ -96,12 +96,12 @@ public class Hi3CharacterApplicationServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character data"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterData));
         }
     }
 
     [Test]
-    public async Task ExecuteAsync_CharacterNotFound_ReturnsEphemeralMessage()
+    public async Task ExecuteAsync_CharacterNotFound_ReturnsEmptyOutcome()
     {
         // Arrange
         var (service, characterApiMock, _, _, gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
@@ -122,9 +122,8 @@ public class Hi3CharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("NonExistent"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.All(x => x.Status == CharacterCardStatus.NotFound), Is.True);
         }
     }
 
@@ -161,7 +160,7 @@ public class Hi3CharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -199,7 +198,7 @@ public class Hi3CharacterApplicationServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
     }
 
@@ -233,8 +232,8 @@ public class Hi3CharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data, Is.Not.Null);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(result.Outcome, Is.Not.Null);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -268,7 +267,7 @@ public class Hi3CharacterApplicationServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
 
         cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<Hi3CharacterDetail>>()), Times.Never);
@@ -305,8 +304,8 @@ public class Hi3CharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -340,8 +339,8 @@ public class Hi3CharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
             character.Avatar.Name.ToLowerInvariant()), Times.Once);
@@ -566,15 +565,15 @@ public class Hi3CharacterApplicationServiceTests
         // Assert
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         }
 
-        var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
         Assert.That(attachment, Is.Not.Null);
-        Assert.That(!string.IsNullOrWhiteSpace(attachment.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]

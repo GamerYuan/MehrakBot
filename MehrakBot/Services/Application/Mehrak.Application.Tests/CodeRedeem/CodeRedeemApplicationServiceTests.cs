@@ -65,7 +65,7 @@ public class CodeRedeemApplicationServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -80,7 +80,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
+                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", "TESTCODE123"),
@@ -93,9 +93,9 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("TESTCODE123"));
-            Assert.That(content, Does.Contain("Redeemed successfully"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("TESTCODE123"));
+            Assert.That(items.Single().Outcome, Is.EqualTo(RedemptionOutcome.Redeemed));
         }
 
         Assert.That(await codeContext.Codes.AnyAsync(c => c.Code == "TESTCODE123" && c.Game == Game.Genshin), Is.True);
@@ -112,7 +112,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
+                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", "CODE1, CODE2, CODE3"),
@@ -125,10 +125,10 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("CODE1"));
-            Assert.That(content, Does.Contain("CODE2"));
-            Assert.That(content, Does.Contain("CODE3"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("CODE1"));
+            Assert.That(items.Select(x => x.Code), Does.Contain("CODE2"));
+            Assert.That(items.Select(x => x.Code), Does.Contain("CODE3"));
         }
 
         codeRedeemApiMock.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Exactly(3));
@@ -152,7 +152,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid)));
+                new CodeRedeemResult("Redeemed successfully", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", ""),
@@ -165,9 +165,9 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("CACHED1"));
-            Assert.That(content, Does.Contain("CACHED2"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("CACHED1"));
+            Assert.That(items.Select(x => x.Code), Does.Contain("CACHED2"));
         }
 
         codeRedeemApiMock.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Exactly(2));
@@ -193,9 +193,8 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("No known codes found"));
+            Assert.That(((CodeRedemptionOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((CodeRedemptionOutcome)result.Outcome!).Items, Is.Empty);
         }
     }
 
@@ -214,7 +213,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Code already redeemed", CodeStatus.Invalid)));
+                new CodeRedeemResult("Code already redeemed", CodeStatus.Invalid, RedemptionOutcome.AlreadyUsed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", "ALREADYUSED"),
@@ -228,16 +227,16 @@ public class CodeRedeemApplicationServiceTests
         // Assert
         using (Assert.EnterMultipleScope())
         {
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("ALREADYUSED"));
-            Assert.That(content, Does.Contain("Code already redeemed"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("ALREADYUSED"));
+            Assert.That(items.Single().Outcome, Is.EqualTo(RedemptionOutcome.AlreadyUsed));
         }
 
         Assert.That(await codeContext.Codes.AnyAsync(c => c.Code == "ALREADYUSED"), Is.False);
     }
 
     [Test]
-    public async Task ExecuteAsync_ApiError_ShowsErrorMessage()
+    public async Task ExecuteAsync_ApiError_ReturnsCodedFailure()
     {
         // Arrange
         var (service, _, codeRedeemApiMock, gameRoleApiMock, _) = SetupMocks();
@@ -260,9 +259,10 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("ERRORCODE"));
-            Assert.That(content, Does.Contain("An error occurred"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("ERRORCODE"));
+            Assert.That(items.Single().Error!.Code, Is.EqualTo(CommandErrorCode.ApiUnavailable));
+            Assert.That(((CodeRedemptionOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Failed));
         }
     }
 
@@ -277,7 +277,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.SetupSequence(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)))
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)))
             .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError, "Error"));
 
         var context = CreateContext(1, 12345ul, "test_token",
@@ -291,9 +291,9 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("SUCCESS"));
-            Assert.That(content, Does.Contain("FAIL"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("SUCCESS"));
+            Assert.That(items.Select(x => x.Code), Does.Contain("FAIL"));
         }
 
         Assert.That(await codeContext.Codes.CountAsync(), Is.EqualTo(1));
@@ -311,7 +311,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)));
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", " lowercase123 "),
@@ -324,8 +324,8 @@ public class CodeRedeemApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("LOWERCASE123"));
+            var items = ((CodeRedemptionOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Code), Does.Contain("LOWERCASE123"));
         }
 
         Assert.That(await codeContext.Codes.AnyAsync(c => c.Code == "LOWERCASE123"), Is.True);
@@ -348,7 +348,7 @@ public class CodeRedeemApplicationServiceTests
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .Callback<CodeRedeemApiContext, CancellationToken>((context, _) => requestedCodes.Add(context.Code))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)));
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", " code1, CODE1, cOdE1 "),
@@ -386,7 +386,7 @@ public class CodeRedeemApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)));
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", "CODE1"),
@@ -423,7 +423,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)));
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", game), ("code", "GAMECODE"),
@@ -452,7 +452,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
             .ReturnsAsync(Result<CodeRedeemResult>.Success(
-                new CodeRedeemResult("Success", CodeStatus.Valid)));
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test_token",
             ("game", Game.Genshin), ("code", "CODE1, , CODE2, , CODE3"),
@@ -482,7 +482,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
-            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test",
             ("game", Game.Genshin), ("code", "CODE1"),
@@ -524,7 +524,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
-            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test",
             ("game", Game.Genshin), ("code", "CODE1"),
@@ -554,7 +554,7 @@ public class CodeRedeemApplicationServiceTests
 
         codeRedeemApiMock
             .Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
-            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid)));
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult("ok", CodeStatus.Valid, RedemptionOutcome.Redeemed)));
 
         var context = CreateContext(1, 12345ul, "test",
             ("game", Game.Genshin), ("code", "CODE1"),
@@ -568,6 +568,59 @@ public class CodeRedeemApplicationServiceTests
         SeedUserProfile(userContext, 1ul, 2, 99999ul);
         await service.ExecuteAsync(context);
         Assert.That(await userContext.GameUids.AnyAsync(), Is.False);
+    }
+
+    [TestCase(RedemptionOutcome.Redeemed, CodeStatus.Valid)]
+    [TestCase(RedemptionOutcome.Expired, CodeStatus.Invalid)]
+    [TestCase(RedemptionOutcome.Invalid, CodeStatus.Invalid)]
+    [TestCase(RedemptionOutcome.Cooldown, CodeStatus.Valid)]
+    [TestCase(RedemptionOutcome.AlreadyUsed, CodeStatus.Valid)]
+    public async Task ExecuteAsync_UsesSemanticApiOutcome_NotUpstreamMessage(RedemptionOutcome semanticOutcome, CodeStatus cacheStatus)
+    {
+        var (service, codeContext, api, profileApi, _) = SetupMocks();
+        profileApi.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        api.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(new CodeRedeemResult(
+                "untrusted unrelated upstream text", cacheStatus, semanticOutcome)));
+        var result = await service.ExecuteAsync(CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", " code1, CODE1 "), ("server", Server.Asia.ToString())));
+        var outcome = (CodeRedemptionOutcome)result.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Complete));
+            Assert.That(outcome.Items.Single().Code, Is.EqualTo("CODE1"));
+            Assert.That(outcome.Items.Single().Outcome, Is.EqualTo(semanticOutcome));
+            Assert.That(outcome.Items.Single().Error, Is.Null);
+        });
+        Assert.That(await codeContext.Codes.AnyAsync(), Is.EqualTo(cacheStatus == CodeStatus.Valid));
+        api.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_Timeout_RetainsOrderedUnattemptedCodesWithoutCacheWrites()
+    {
+        var (service, codeContext, api, profileApi, _) = SetupMocks();
+        profileApi.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        api.Setup(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.Timeout, "untrusted timeout text"));
+        var result = await service.ExecuteAsync(CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", "first,SECOND,first"), ("server", Server.Asia.ToString())));
+        var outcome = (CodeRedemptionOutcome)result.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.Timeout));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.Timeout));
+            Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Failed));
+            Assert.That(outcome.Items.Select(x => x.Code), Is.EqualTo(new[] { "FIRST", "SECOND" }));
+            Assert.That(outcome.Items[0].Outcome, Is.EqualTo(RedemptionOutcome.Failed));
+            Assert.That(outcome.Items[1].Outcome, Is.EqualTo(RedemptionOutcome.NotAttempted));
+            Assert.That(outcome.Items[1].Error, Is.Null);
+        });
+        Assert.That(await codeContext.Codes.AnyAsync(), Is.False);
+        api.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Once);
     }
 
     #endregion

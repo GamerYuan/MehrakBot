@@ -76,7 +76,7 @@ public class GenshinCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -105,7 +105,7 @@ public class GenshinCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character List"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterList));
         }
     }
 
@@ -140,7 +140,7 @@ public class GenshinCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
     }
 
@@ -179,8 +179,8 @@ public class GenshinCharListApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((RosterOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
+            Assert.That(((RosterOutcome)result.Outcome!).Image, Is.Not.Null);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -655,7 +655,7 @@ public class GenshinCharListApplicationServiceTests
         // Assert
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
             // Intended behavior: the GameRole profile API is always called, even when the GameUid is cached.
             gameRoleApiMock.Verify(x => x.GetAsync(It.IsAny<GameRoleApiContext>()), Times.Once);
             // The cached GameUid is used to start the primary call in parallel with the profile fetch.
@@ -697,18 +697,18 @@ public class GenshinCharListApplicationServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         }
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(((RosterOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = (result.Outcome as RosterOutcome)?.Image;
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        if (storedAttachments.TryGetValue(attachment.FileName, out var stored))
+        if (storedAttachments.TryGetValue(attachment.StorageFileName, out var stored))
         {
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
             Directory.CreateDirectory(outputDirectory);
@@ -756,12 +756,12 @@ public class GenshinCharListApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            var attachment = (result.Outcome as RosterOutcome)?.Image;
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
 
             using (Assert.EnterMultipleScope())
             {
@@ -899,13 +899,13 @@ public class GenshinCharListApplicationServiceTests
             return;
         }
 
-        var attachment = result.Data?.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = (result.Outcome as RosterOutcome)?.Image;
         Assert.That(attachment, Is.Not.Null, "Benchmark run produced no attachment.");
-        Assert.That(attachmentStorage.IsValidStorageFileName(attachment!.FileName), Is.True,
+        Assert.That(attachmentStorage.IsValidStorageFileName(attachment!.StorageFileName), Is.True,
             "Benchmark attachment name is invalid.");
 
         // Real persistence check, outside the measured interval.
-        var download = await attachmentStorage.DownloadAsync(attachment.FileName);
+        var download = await attachmentStorage.DownloadAsync(attachment.StorageFileName);
         Assert.That(download, Is.Not.Null, "Benchmark attachment was not persisted.");
         await using var downloadedContent = download!.Content;
         var outputBytes = downloadedContent.Length;

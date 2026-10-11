@@ -105,10 +105,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             if (charResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
             if (charResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterList);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var characters = charResponse.Data;
@@ -129,9 +129,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 null)
             {
                 Logger.LogInformation(LogMessage.CharNotFoundInfo, characterName, context.UserId, gameUid);
-                return CommandResult.Success(
-                    [new CommandText(string.Format(ResponseMessage.CharacterNotFound, characterName))],
-                    isEphemeral: true);
+                return CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, profile.GameUid,
+                    [CharacterCardItem.NotFound(characterName)], OperationOutcome.Empty));
             }
         }
 
@@ -144,10 +143,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             if (response.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(response.ErrorMessage ?? "Cancelled");
             if (response.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterData);
             Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, response);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterData);
         }
 
         var characterData = response.Data;
@@ -182,10 +181,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName)
-            ]);
+            return CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, charInfo.Name, charInfo.Id, StorageReference.Attachment(fileName))]));
         }
 
         Task<Result<JsonArray>>? galleryTask = null;
@@ -255,10 +252,10 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                     if (!hasExistingPortrait)
                     {
                         if (galleryResult.StatusCode == StatusCode.Timeout)
-                            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                            return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterImage);
                         Logger.LogError("Failed to fetch Character {Character} image from wiki", charInfo.Name);
                         return CommandResult.Failure(CommandFailureReason.ApiError,
-                            string.Format(ResponseMessage.ApiError, "Character Image"));
+                            CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterImage);
                     }
 
                     Logger.LogWarning("Failed to fetch Character {Character} image from wiki; using existing portrait",
@@ -305,7 +302,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(charInfo));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         outfitPortraitAvailable = isOutfitPortrait &&
@@ -332,10 +329,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             if (await AttachmentExistsAsync(fileName, cancellationToken))
             {
                 m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
-                return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName)
-                ]);
+                return CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, charInfo.Name, charInfo.Id, StorageReference.Attachment(fileName))]));
             }
         }
 
@@ -356,10 +351,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             if (await AttachmentExistsAsync(fileName, cancellationToken))
             {
                 m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
-                return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName)
-                ]);
+                return CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, charInfo.Name, charInfo.Id, StorageReference.Attachment(fileName))]));
             }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
@@ -371,7 +364,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+                return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
             }
         }
         finally
@@ -382,9 +375,8 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), charInfo.Name.ToLowerInvariant());
 
-        return CommandResult.Success([
-            new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
-        ]);
+        return CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, charInfo.Name, charInfo.Id, StorageReference.Attachment(fileName))]));
     }
 
     private async Task<bool> UpdateOptionalPortraitAsync(IImageData data,

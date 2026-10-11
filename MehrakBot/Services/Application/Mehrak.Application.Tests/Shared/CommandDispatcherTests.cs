@@ -96,6 +96,21 @@ public sealed class CommandDispatcherTests
         await fixture.Dispatcher.StopAsync(CancellationToken.None);
     }
 
+    [Test]
+    public async Task MissingCommand_ReturnsSafeInvalidRequestError()
+    {
+        using var fixture = new DispatcherFixture(maxConcurrency: 1);
+        await fixture.Dispatcher.StartAsync(CancellationToken.None);
+        var completion = NewCompletionSource();
+        await fixture.Dispatcher.DispatchAsync(new QueuedCommand(
+            new Proto.ExecuteRequest { CommandName = "untrusted-request-text" }, completion, CancellationToken.None));
+        var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.InvalidRequest));
+        Assert.That(result.Error.Message, Does.Not.Contain("untrusted-request-text"));
+        await fixture.Dispatcher.StopAsync(CancellationToken.None);
+    }
+
     private static TaskCompletionSource<CommandResult> NewCompletionSource() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -161,7 +176,7 @@ public sealed class CommandDispatcherTests
                 await state.ReleaseFirst.Task.WaitAsync(cancellationToken);
             }
 
-            return CommandResult.Success();
+            return CommandResult.Success(DailyCheckInOutcome.Empty());
         }
 
         public void Dispose() => state.IsDisposed = true;

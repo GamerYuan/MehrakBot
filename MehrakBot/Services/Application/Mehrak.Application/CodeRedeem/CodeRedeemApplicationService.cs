@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Text;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Shared.Services;
 using Mehrak.Application.Shared.Utility;
@@ -56,9 +55,9 @@ public class CodeRedeemApplicationService : BaseApplicationService
             if (profileResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
             if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.GameProfile);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+            return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
         }
         var profile = profileResult.Data;
         var gameUid = profile.GameUid;
@@ -91,12 +90,10 @@ public class CodeRedeemApplicationService : BaseApplicationService
             Logger.LogWarning(
                 "User {UserId} used the code command but no codes were provided or found in the cache",
                 context.UserId);
-            return CommandResult.Success(
-                [new CommandText("No known codes found in database. Please provide a valid code")],
-                isEphemeral: true);
+            return CommandResult.Success(CodeRedemptionOutcome.Empty(game, gameUid));
         }
 
-        StringBuilder sb = new();
+        List<RedemptionItem> items = [];
         Dictionary<string, CodeStatus> successfulCodes = [];
 
         for (var i = 0; i < codes.Count; i++)
@@ -109,7 +106,10 @@ public class CodeRedeemApplicationService : BaseApplicationService
             {
                 Logger.LogInformation("Successfully redeemed code {Code} for user {UserId}", code,
                     context.UserId);
-                sb.Append($"{code}: {response.Data.Message}\n");
+                items.Add(response.Data.Outcome is RedemptionOutcome.Redeemed or RedemptionOutcome.Expired
+                    or RedemptionOutcome.Invalid or RedemptionOutcome.Cooldown or RedemptionOutcome.AlreadyUsed
+                    ? RedemptionItem.Completed(code, response.Data.Outcome)
+                    : RedemptionItem.Failed(code, new(CommandErrorCode.InvalidResponse, CommandErrorTarget.CodeRedemption)));
                 successfulCodes.Add(code, response.Data.Status);
             }
             else if (response.StatusCode == StatusCode.Cancelled)
@@ -118,13 +118,20 @@ public class CodeRedeemApplicationService : BaseApplicationService
             }
             else if (response.StatusCode == StatusCode.Timeout)
             {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                items.Add(RedemptionItem.Failed(code, new(CommandErrorCode.Timeout, CommandErrorTarget.CodeRedemption)));
+                items.AddRange(codes.Skip(i + 1).Select(RedemptionItem.NotAttempted));
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout,
+                    CommandErrorTarget.CodeRedemption, CodeRedemptionOutcome.Create(game, gameUid, items,
+                        items.Any(x => x.Outcome != RedemptionOutcome.Failed && x.Outcome != RedemptionOutcome.NotAttempted)
+                            ? OperationOutcome.Partial : OperationOutcome.Failed));
             }
             else
             {
                 Logger.LogError("Failed to redeem code {Code} for user {UserId} Result {@Result}", code,
                     context.UserId, response);
-                sb.Append($"{code}: An error occurred while redeeming the code\n");
+                items.Add(RedemptionItem.Failed(code, new(
+                    response.StatusCode == StatusCode.Unauthorized ? CommandErrorCode.AuthenticationRequired : CommandErrorCode.ApiUnavailable,
+                    CommandErrorTarget.CodeRedemption)));
             }
 
             if (i < codes.Count - 1) await Task.Delay(m_RedeemDelay, cancellationToken);
@@ -133,7 +140,9 @@ public class CodeRedeemApplicationService : BaseApplicationService
         if (successfulCodes.Count > 0)
             await UpdateCodesAsync(game, successfulCodes, cancellationToken);
 
-        return CommandResult.Success([new CommandText(sb.ToString().TrimEnd())]);
+        var completedCount = items.Count(x => x.Outcome != RedemptionOutcome.Failed);
+        return CommandResult.Success(CodeRedemptionOutcome.Create(game, gameUid, items,
+            completedCount == items.Count ? OperationOutcome.Complete : completedCount > 0 ? OperationOutcome.Partial : OperationOutcome.Failed));
     }
 
     private async Task UpdateCodesAsync(Game game, Dictionary<string, CodeStatus> codes,

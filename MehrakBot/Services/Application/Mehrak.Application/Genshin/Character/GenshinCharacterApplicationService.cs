@@ -101,9 +101,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         if (input.Length > MaxRequestCount)
         {
-            return CommandResult.Success(
-                [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
-                isEphemeral: true);
+            return CommandResult.Success(CharacterCardsOutcome.LimitExceeded(Game.Genshin, input, MaxRequestCount));
         }
 
         var (profile, charListResult) = await FetchProfileAndPrimaryAsync(
@@ -119,11 +117,11 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             if (charListResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charListResult.ErrorMessage ?? "Cancelled");
             if (charListResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterList);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, profile.GameUid,
                 charListResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var characters = charListResult.Data;
@@ -132,7 +130,8 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         var names = characters.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
         HashSet<int> validCharacters = [];
-        List<string> failureMessages = [];
+        List<CharacterCardItem> items = [];
+        Dictionary<int, string> requestedNames = [];
 
         foreach (var c in input)
         {
@@ -146,21 +145,23 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                     (character = names.GetValueOrDefault(name)) == null)
                 {
                     Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
-                    failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
+                    items.Add(CharacterCardItem.NotFound(c));
                 }
             }
 
             if (character != null)
             {
-                validCharacters.Add(character.Id!.Value);
+                if (requestedNames.TryAdd(character.Id!.Value, c))
+                {
+                    validCharacters.Add(character.Id!.Value);
+                    items.Add(CharacterCardItem.NotAttempted(c, character.Name, character.Id!.Value));
+                }
             }
         }
 
         if (validCharacters.Count == 0)
         {
-            return CommandResult.Success(
-                [new CommandText(string.Join('\n', failureMessages))],
-                isEphemeral: true);
+            return CommandResult.Success(CharacterCardsOutcome.Create(Game.Genshin, gameUid, items, OperationOutcome.Empty));
         }
 
         var characterInfo = await m_CharacterApi.GetCharacterDetailAsync(
@@ -171,14 +172,16 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             if (characterInfo.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(characterInfo.ErrorMessage ?? "Cancelled");
             if (characterInfo.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterData,
+                    CharacterCardsOutcome.Create(Game.Genshin, gameUid, items, OperationOutcome.Failed));
             Logger.LogError(LogMessage.ApiError, "Character Detail", context.UserId, profile.GameUid,
                 characterInfo);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterData,
+                CharacterCardsOutcome.Create(Game.Genshin, gameUid, items.Select(x => x.CharacterId.HasValue
+                    ? CharacterCardItem.Failed(x.RequestedName, new(CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterData), x.CharacterName, x.CharacterId)
+                    : x), OperationOutcome.Failed));
         }
-
-        List<string> attachments = [];
 
         var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
             characterInfo.Data.List,
@@ -187,37 +190,23 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             m_DispatcherConfig.Value.MaxCharacterParallelism,
             cancellationToken);
 
-        if (timedOut)
-            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-
         for (var i = 0; i < results.Count; i++)
         {
+            var charData = characterInfo.Data.List[i];
+            var requestedName = requestedNames[charData.Base.Id];
+            var index = items.FindIndex(x => x.CharacterId == charData.Base.Id);
             var result = results[i];
-            if (result.IsSuccess)
-            {
-                attachments.Add(result.Data);
-            }
-            else
-            {
-                failureMessages.Add($"{characterInfo.Data.List[i].Base.Name}: {result.ErrorMessage}");
-            }
+            items[index] = result == null
+                ? CharacterCardItem.NotAttempted(requestedName, charData.Base.Name, charData.Base.Id)
+                : result.Error != null
+                    ? CharacterCardItem.Failed(requestedName, result.Error, charData.Base.Name, charData.Base.Id)
+                    : CharacterCardItem.Generated(requestedName, charData.Base.Name, charData.Base.Id, StorageReference.Attachment(result.FileName!));
         }
 
-        if (attachments.Count == 0)
-        {
-            return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Join('\n', failureMessages));
-        }
-
-        List<ICommandResultComponent> components = [];
-        components.Add(new CommandText($"<@{context.UserId}>"));
-        components.AddRange(attachments.Select(x => new CommandAttachment(x)));
-
-        return CommandResult.Success(components,
-            ephemeralMessage: string.Join('\n', failureMessages));
+        return CharacterBatchProcessor.Complete(Game.Genshin, gameUid, items, timedOut);
     }
 
-    private async Task<Result<string>> ProcessCharacterAsync(
+    private async Task<CharacterRenderResult> ProcessCharacterAsync(
         IApplicationContext context, Server server,
         GameProfileDto profile, GenshinCharacterInformation charData,
         Dictionary<string, string> avatarWiki, Dictionary<string, string> weaponWiki,
@@ -244,7 +233,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
-            return Result<string>.Success(filename);
+            return CharacterRenderResult.Generated(filename);
         }
 
         List<Task<bool>> tasks = [];
@@ -285,10 +274,9 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                     if (charImage.StatusCode == StatusCode.Cancelled)
                         throw new OperationCanceledException(charImage.ErrorMessage ?? "Cancelled");
                     if (charImage.StatusCode == StatusCode.Timeout)
-                        return Result<string>.Failure(StatusCode.Timeout, ResponseMessage.TimeoutError);
+                        return CharacterRenderResult.Failed(CommandErrorCode.Timeout, CommandErrorTarget.CharacterImage);
                     Logger.LogError("Failed to fetch Character {Character} image from wiki", charData.Base.Name);
-                    return Result<string>.Failure(StatusCode.ExternalServerError,
-                        string.Format(ResponseMessage.ApiError, "Character Image"));
+                    return CharacterRenderResult.Failed(CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterImage);
                 }
 
                 var url = charImage.Data;
@@ -319,7 +307,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(charData));
-            return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
+            return CharacterRenderResult.Failed(CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var portraitTask = activePortrait != null
@@ -344,7 +332,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             if (await AttachmentExistsAsync(filename, cancellationToken))
             {
                 m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
-                return Result<string>.Success(filename);
+                return CharacterRenderResult.Generated(filename);
             }
         }
 
@@ -364,8 +352,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
             if (!await StoreAttachmentAsync(context.UserId, filename, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
-                return Result<string>.Failure(StatusCode.BotError,
-                    ResponseMessage.AttachmentStoreError);
+                return CharacterRenderResult.Failed(CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
             }
         }
         finally
@@ -376,7 +363,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         m_MetricsService.TrackCharacterSelection(nameof(Game.Genshin), charData.Base.Name.ToLowerInvariant());
 
-        return Result<string>.Success(filename);
+        return CharacterRenderResult.Generated(filename);
     }
 
     private async Task<Result<string>> GetCharacterImageUrlAsync(IApplicationContext context, GameProfileDto profile,

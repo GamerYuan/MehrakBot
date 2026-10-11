@@ -44,20 +44,20 @@ public abstract class BaseApplicationService : IApplicationService
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+            return CommandResult.Failure(CommandFailureReason.Cancelled, CommandErrorCode.Cancelled, CommandErrorTarget.None);
         }
         catch (OperationCanceledException)
         {
-            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+            return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.None);
         }
         catch (UnauthorizedAccessException)
         {
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+            return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            return CommandResult.Failure(CommandFailureReason.Unknown, CommandErrorCode.Unknown, CommandErrorTarget.None);
         }
     }
 
@@ -162,7 +162,7 @@ public abstract class BaseApplicationService : IApplicationService
             if (profileResult.StatusCode == StatusCode.Timeout)
                 throw new OperationCanceledException(profileResult.ErrorMessage ?? "Timeout");
             Logger.LogWarning(LogMessage.InvalidLogin, userId);
-            throw new UnauthorizedAccessException(ResponseMessage.AuthError);
+            throw new UnauthorizedAccessException();
         }
 
         var profile = profileResult.Data;
@@ -206,11 +206,11 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+                return CommandResult.Failure(CommandFailureReason.Cancelled, CommandErrorCode.Cancelled, CommandErrorTarget.None);
             }
             catch (OperationCanceledException)
             {
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.None);
             }
             catch (ImageNotFoundException ex)
             {
@@ -218,7 +218,7 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
                     context.UserId, CommandName, ex.Message);
                 if (attempt == 3)
                 {
-                    return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
+                    return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
                 }
                 continue;
             }
@@ -226,20 +226,20 @@ public abstract class BaseAttachmentApplicationService : BaseApplicationService
             {
                 Logger.LogError(ex, "Command error for User {UserId}, Command {CommandName}: {Message}",
                     context.UserId, CommandName, ex.Message);
-                return CommandResult.Failure(CommandFailureReason.BotError, ex.Message);
+                return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.Unknown, CommandErrorTarget.None);
             }
             catch (UnauthorizedAccessException)
             {
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+                return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, LogMessage.UnknownError, CommandName, context.UserId, ex.Message);
-                return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+                return CommandResult.Failure(CommandFailureReason.Unknown, CommandErrorCode.Unknown, CommandErrorTarget.None);
             }
         }
         Logger.LogError("Failed to execute command {CommandName} for User {UserId} after 3 attempts", CommandName, context.UserId);
-        return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+        return CommandResult.Failure(CommandFailureReason.Unknown, CommandErrorCode.Unknown, CommandErrorTarget.None);
     }
 
     protected static string GetFileName(string serializedData, string extension, string gameUid, string? extraData = null)

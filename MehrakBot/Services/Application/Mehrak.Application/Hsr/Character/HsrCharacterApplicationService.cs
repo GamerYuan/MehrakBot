@@ -96,9 +96,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         if (input.Length > MaxRequestCount)
         {
-            return CommandResult.Success(
-                [new CommandText("Exceeded the maximum number of characters per request! (Max 4)")],
-                isEphemeral: true);
+            return CommandResult.Success(CharacterCardsOutcome.LimitExceeded(Game.HonkaiStarRail, input, MaxRequestCount));
         }
 
         var (profile, charResponse) = await FetchProfileAndPrimaryAsync(
@@ -113,10 +111,10 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             if (charResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
             if (charResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterData);
             Logger.LogError(LogMessage.ApiError, "Character", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterData);
         }
 
         var characterList = charResponse.Data.First();
@@ -125,7 +123,8 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
 
         var names = characterList.AvatarList.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase);
         Dictionary<int, HsrCharacterInformation> validCharacters = [];
-        List<string> failureMessages = [];
+        List<CharacterCardItem> items = [];
+        Dictionary<int, string> requestedNames = [];
 
         foreach (var c in input)
         {
@@ -139,24 +138,24 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                     (character = names.GetValueOrDefault(name)) == null)
                 {
                     Logger.LogInformation(LogMessage.CharNotFoundInfo, c, context.UserId, gameUid);
-                    failureMessages.Add(string.Format(ResponseMessage.CharacterNotFound, c));
+                    items.Add(CharacterCardItem.NotFound(c));
                 }
             }
 
             if (character != null)
             {
-                validCharacters.TryAdd(character.Id, character);
+                if (requestedNames.TryAdd(character.Id, c))
+                {
+                    validCharacters.TryAdd(character.Id, character);
+                    items.Add(CharacterCardItem.NotAttempted(c, character.Name, character.Id));
+                }
             }
         }
 
         if (validCharacters.Count == 0)
         {
-            return CommandResult.Success(
-                [new CommandText(string.Join('\n', failureMessages))],
-                isEphemeral: true);
+            return CommandResult.Success(CharacterCardsOutcome.Create(Game.HonkaiStarRail, gameUid, items, OperationOutcome.Empty));
         }
-
-        List<string> attachments = [];
 
         var charList = validCharacters.Values.ToList();
         var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
@@ -166,37 +165,23 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             m_DispatcherConfig.Value.MaxCharacterParallelism,
             cancellationToken);
 
-        if (timedOut)
-            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
-
         for (var i = 0; i < results.Count; i++)
         {
+            var charData = charList[i];
+            var requestedName = requestedNames[charData.Id];
+            var index = items.FindIndex(x => x.CharacterId == charData.Id);
             var result = results[i];
-            if (result.IsSuccess)
-            {
-                attachments.Add(result.Data);
-            }
-            else
-            {
-                failureMessages.Add($"{charList[i].Name}: {result.ErrorMessage}");
-            }
+            items[index] = result == null
+                ? CharacterCardItem.NotAttempted(requestedName, charData.Name, charData.Id)
+                : result.Error != null
+                    ? CharacterCardItem.Failed(requestedName, result.Error, charData.Name, charData.Id)
+                    : CharacterCardItem.Generated(requestedName, charData.Name, charData.Id, StorageReference.Attachment(result.FileName!));
         }
 
-        if (attachments.Count == 0)
-        {
-            return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Join('\n', failureMessages));
-        }
-
-        List<ICommandResultComponent> components = [];
-        components.Add(new CommandText($"<@{context.UserId}>"));
-        components.AddRange(attachments.Select(x => new CommandAttachment(x)));
-
-        return CommandResult.Success(components,
-            ephemeralMessage: string.Join('\n', failureMessages));
+        return CharacterBatchProcessor.Complete(Game.HonkaiStarRail, gameUid, items, timedOut);
     }
 
-    private async Task<Result<string>> ProcessCharacterAsync(
+    private async Task<CharacterRenderResult> ProcessCharacterAsync(
         IApplicationContext context, Server server,
         GameProfileDto profile, HsrCharacterInformation characterInfo,
         Dictionary<string, string> relicWiki, Dictionary<string, string> equipWiki,
@@ -217,7 +202,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
                 characterInfo.Name.ToLowerInvariant());
-            return Result<string>.Success(fileName);
+            return CharacterRenderResult.Generated(fileName);
         }
 
         var uniqueRelicSet = await characterInfo.Relics.Concat(characterInfo.Ornaments)
@@ -351,8 +336,9 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 {
                     Logger.LogError(LogMessage.ApiError, "Equip Wiki", context.UserId, profile.GameUid,
                         "Failed to retrieve Icon Url");
-                    return Result<string>.Failure(bestStatus,
-                        string.Format(ResponseMessage.ApiError, "Light Cone Data"));
+                    return CharacterRenderResult.Failed(bestStatus == StatusCode.Timeout ? CommandErrorCode.Timeout :
+                        bestStatus == StatusCode.Cancelled ? CommandErrorCode.Cancelled : CommandErrorCode.ApiUnavailable,
+                        CommandErrorTarget.LightConeData);
                 }
 
                 tasks.Add(m_ImageUpdaterService.UpdateImageAsync(
@@ -384,7 +370,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(characterInfo));
-            return Result<string>.Failure(StatusCode.ExternalServerError, ResponseMessage.ImageUpdateError);
+            return CharacterRenderResult.Failed(CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<HsrCharacterInformation>(context.UserId, characterInfo, profile);
@@ -405,7 +391,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             {
                 m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
                     characterInfo.Name.ToLowerInvariant());
-                return Result<string>.Success(fileName);
+                return CharacterRenderResult.Generated(fileName);
             }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
@@ -417,8 +403,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return Result<string>.Failure(StatusCode.BotError,
-                    ResponseMessage.AttachmentStoreError);
+                return CharacterRenderResult.Failed(CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
             }
         }
         finally
@@ -430,7 +415,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiStarRail),
             characterInfo.Name.ToLowerInvariant());
 
-        return Result<string>.Success(fileName);
+        return CharacterRenderResult.Generated(fileName);
     }
     private async Task AddSetName(int setId, string setName)
     {

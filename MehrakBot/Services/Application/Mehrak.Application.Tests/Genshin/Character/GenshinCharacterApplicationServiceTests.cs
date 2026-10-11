@@ -76,7 +76,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -104,7 +104,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character List"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterList));
         });
     }
 
@@ -159,9 +159,8 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("NonExistentCharacter"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.All(x => x.Status == CharacterCardStatus.NotFound), Is.True);
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
@@ -211,7 +210,7 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -247,7 +246,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character data"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterData));
         });
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
@@ -293,7 +292,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterImage));
         }
     }
 
@@ -343,7 +342,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterImage));
         });
     }
 
@@ -382,7 +381,7 @@ public class GenshinCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
     }
 
@@ -417,8 +416,8 @@ public class GenshinCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "traveler"), Times.Once);
         cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Never);
@@ -468,8 +467,8 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -477,6 +476,24 @@ public class GenshinCharacterApplicationServiceTests
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "traveler"), Times.Once);
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.Genshin, It.IsAny<IEnumerable<CharacterUpsertEntry>>()), Times.Once);
+
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var cachedResult = await service.ExecuteAsync(context);
+        var generated = (CharacterCardsOutcome)result.Outcome!;
+        var cached = (CharacterCardsOutcome)cachedResult.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(cachedResult.IsSuccess, Is.True);
+            Assert.That(cached.State, Is.EqualTo(generated.State));
+            Assert.That(cached.Game, Is.EqualTo(generated.Game));
+            Assert.That(cached.GameUid, Is.EqualTo(generated.GameUid));
+            Assert.That(cached.Items, Is.EqualTo(generated.Items));
+            Assert.That(cached.Items.Single().Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+        });
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+
     }
 
     [Test]
@@ -522,7 +539,7 @@ public class GenshinCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
 
         cardServiceMock.Verify(x => x.GetCardAsync(
             It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
@@ -574,7 +591,7 @@ public class GenshinCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
 
         cardServiceMock.Verify(x => x.GetCardAsync(
             It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
@@ -641,7 +658,7 @@ public class GenshinCharacterApplicationServiceTests
 
         // Assert
         Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
@@ -949,7 +966,7 @@ public class GenshinCharacterApplicationServiceTests
         // Assert
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
             // Intended behavior: the GameRole profile API is always called, even when the GameUid is cached.
             gameRoleApiMock.Verify(x => x.GetAsync(It.IsAny<GameRoleApiContext>()), Times.Once);
             // The cached GameUid is used to start the primary call in parallel with the profile fetch.
@@ -1017,7 +1034,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
         wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
@@ -1081,7 +1098,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.CN), It.IsAny<CancellationToken>()), Times.Once);
         wikiApiMock.Verify(x => x.GetAsync(It.Is<WikiApiContext>(c => c.Locale == WikiLocales.EN), It.IsAny<CancellationToken>()), Times.Once);
@@ -1089,7 +1106,7 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
+    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsRequestLimitOutcome()
     {
         // Arrange
         var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
@@ -1107,9 +1124,8 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Max 4").IgnoreCase);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.RequestLimitExceeded));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).RequestLimit, Is.EqualTo(4));
         }
     }
 
@@ -1138,10 +1154,10 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            var text = result.Data.Components.OfType<CommandText>().First().Content;
-            Assert.That(text, Does.Contain("Unknown1"));
-            Assert.That(text, Does.Contain("Unknown2"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            var requestedNames = ((CharacterCardsOutcome)result.Outcome!).Items.Select(x => x.RequestedName);
+            Assert.That(requestedNames, Does.Contain("Unknown1"));
+            Assert.That(requestedNames, Does.Contain("Unknown2"));
         }
     }
 
@@ -1188,9 +1204,10 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.False);
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
-            Assert.That(result.Data.EphemeralMessage, Does.Contain("NonExistent"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Any(x => x.Status == CharacterCardStatus.Generated), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Partial));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Status != CharacterCardStatus.Generated).Select(x => x.RequestedName), Does.Contain("NonExistent"));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -1239,9 +1256,9 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.False);
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(2));
-            Assert.That(result.Data.Components.OfType<CommandText>().Any(t => t.Content.Contains("1")), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Any(x => x.Status == CharacterCardStatus.Generated), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(2));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -1292,7 +1309,7 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -1349,9 +1366,10 @@ public class GenshinCharacterApplicationServiceTests
         {
             // Assert — command succeeds with partial results
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.False);
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
-            Assert.That(result.Data.EphemeralMessage, Does.Contain("Jean"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Any(x => x.Status == CharacterCardStatus.Generated), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Partial));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Status != CharacterCardStatus.Generated).Select(x => x.RequestedName), Does.Contain("Jean"));
         }
 
         // Only Traveler's card should be generated and stored
@@ -1393,11 +1411,7 @@ public class GenshinCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert — should NOT return the "exceeded max" ephemeral; it proceeds past the check
-        if (result.IsSuccess && result.Data!.IsEphemeral)
-        {
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Not.Contain("Max 4").IgnoreCase);
-        }
+        Assert.That((result.Outcome as CharacterCardsOutcome)?.State, Is.Not.EqualTo(OperationOutcome.RequestLimitExceeded));
     }
 
     [Test]
@@ -1444,7 +1458,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
 
         var expectedId = charList.First(x => x.Name == "Traveler").Id!.Value;
 
@@ -1502,8 +1516,8 @@ public class GenshinCharacterApplicationServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
         }
         cardServiceMock.Verify(
             x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Never);
@@ -1556,7 +1570,7 @@ public class GenshinCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
 
         cardServiceMock.Verify(x => x.GetCardAsync(
             It.Is<ICardGenerationContext<GenshinCharacterInformation>>(ctx =>
@@ -1601,16 +1615,16 @@ public class GenshinCharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         }
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -1642,12 +1656,12 @@ public class GenshinCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
 
             using (Assert.EnterMultipleScope())
             {
@@ -2030,19 +2044,8 @@ public class GenshinCharacterApplicationServiceTests
         };
     }
 
-    private static async Task<GenshinCharacterDetail> CreateMultiCharacterDetailAsync()
-    {
-        var detail = await LoadTestDataAsync<GenshinCharacterDetail>("Aether_TestData.json");
-        var json = JsonSerializer.Serialize(detail.List[0]);
-        var cloned = JsonSerializer.Deserialize<GenshinCharacterInformation>(json)!;
-
-        return new GenshinCharacterDetail
-        {
-            List = [detail.List[0], cloned],
-            AvatarWiki = detail.AvatarWiki,
-            WeaponWiki = detail.WeaponWiki
-        };
-    }
+    private static Task<GenshinCharacterDetail> CreateMultiCharacterDetailAsync() =>
+        CreateDistinctMultiCharacterDetailAsync();
 
     /// <summary>
     /// Creates a two-character detail where the second entry (Jean) has a different Base.Id,

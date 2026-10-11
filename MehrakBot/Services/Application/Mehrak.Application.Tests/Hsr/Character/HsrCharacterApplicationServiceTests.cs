@@ -79,7 +79,7 @@ public class HsrCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -105,7 +105,7 @@ public class HsrCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character data"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterData));
         }
     }
 
@@ -154,9 +154,8 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("NonExistentCharacter"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.All(x => x.Status == CharacterCardStatus.NotFound), Is.True);
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -198,7 +197,7 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -272,7 +271,7 @@ public class HsrCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Light Cone Data"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Target, Is.EqualTo(CommandErrorTarget.LightConeData));
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -314,7 +313,7 @@ public class HsrCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -346,8 +345,8 @@ public class HsrCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), "trailblazer"), Times.Once);
         cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()), Times.Never);
@@ -485,11 +484,11 @@ public class HsrCharacterApplicationServiceTests
         Assert.Multiple(() =>
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         });
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-        Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.HonkaiStarRail), "trailblazer"),
             Times.Once);
@@ -686,7 +685,7 @@ public class HsrCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
         Assert.That(await relicContext.HsrRelics.AnyAsync(x => x.SetId == 118 && x.SetName == "Missing Set Module"), Is.True);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url.Contains("relic_cn_1")), It.IsAny<IImageProcessor>()), Times.Once);
         imageUpdaterMock.Verify(x => x.UpdateImageAsync(It.Is<IImageData>(d => d.Url.Contains("relic_cn_4")), It.IsAny<IImageProcessor>()), Times.Once);
@@ -740,7 +739,7 @@ public class HsrCharacterApplicationServiceTests
         var context = CreateContext(2, 2ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var result = await service.ExecuteAsync(context);
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
 
         Assert.That(calledLocales, Does.Contain(WikiLocales.EN), "EN locale should have been called");
         Assert.That(await relicContext.HsrRelics.AnyAsync(x => x.SetId == 118 && x.SetName == "EN Relic Set"), Is.True);
@@ -792,7 +791,7 @@ public class HsrCharacterApplicationServiceTests
         var firstResult = await service1.ExecuteAsync(context1);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(firstResult.IsSuccess, Is.True, firstResult.ErrorMessage);
+            Assert.That(firstResult.IsSuccess, Is.True, firstResult.Error?.Message);
             Assert.That(existingFiles.Count(f => f.StartsWith("hsr/relic_118")), Is.EqualTo(2));
         }
 
@@ -836,7 +835,7 @@ public class HsrCharacterApplicationServiceTests
         var context2 = CreateContext(3, 3ul, "test", ("character", "Trailblazer"), ("server", Server.Asia.ToString()));
 
         var secondResult = await service2.ExecuteAsync(context2);
-        Assert.That(secondResult.IsSuccess, Is.True, secondResult.ErrorMessage);
+        Assert.That(secondResult.IsSuccess, Is.True, secondResult.Error?.Message);
 
         Assert.That(existingFiles.Count(f => f.StartsWith("hsr/relic_118")), Is.EqualTo(4));
         attachmentStorageMock1.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -844,7 +843,7 @@ public class HsrCharacterApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsEphemeralError()
+    public async Task ExecuteAsync_ExceedsMaxRequestCount_ReturnsRequestLimitOutcome()
     {
         // Arrange
         var (service, _, _, _, _, _, _, _, gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
@@ -861,9 +860,8 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Max 4").IgnoreCase);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.RequestLimitExceeded));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).RequestLimit, Is.EqualTo(4));
         }
     }
 
@@ -890,10 +888,10 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            var text = result.Data.Components.OfType<CommandText>().First().Content;
-            Assert.That(text, Does.Contain("Unknown1"));
-            Assert.That(text, Does.Contain("Unknown2"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            var requestedNames = ((CharacterCardsOutcome)result.Outcome!).Items.Select(x => x.RequestedName);
+            Assert.That(requestedNames, Does.Contain("Unknown1"));
+            Assert.That(requestedNames, Does.Contain("Unknown2"));
         }
     }
 
@@ -935,9 +933,10 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.False);
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
-            Assert.That(result.Data.EphemeralMessage, Does.Contain("NonExistent"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Any(x => x.Status == CharacterCardStatus.Generated), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Partial));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Status != CharacterCardStatus.Generated).Select(x => x.RequestedName), Does.Contain("NonExistent"));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -981,9 +980,9 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.False);
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(2));
-            Assert.That(result.Data.Components.OfType<CommandText>().Any(t => t.Content.Contains("1")), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Any(x => x.Status == CharacterCardStatus.Generated), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(2));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -1029,7 +1028,7 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -1055,11 +1054,7 @@ public class HsrCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert — should NOT return the "exceeded max" ephemeral; it proceeds past the check
-        if (result.IsSuccess && result.Data!.IsEphemeral)
-        {
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Not.Contain("Max 4").IgnoreCase);
-        }
+        Assert.That((result.Outcome as CharacterCardsOutcome)?.State, Is.Not.EqualTo(OperationOutcome.RequestLimitExceeded));
     }
 
     [Test]
@@ -1101,7 +1096,7 @@ public class HsrCharacterApplicationServiceTests
         {
             // Assert — deduplicated by TryAdd, so only 1 attachment
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Count(), Is.EqualTo(1));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Count(), Is.EqualTo(1));
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -1144,7 +1139,7 @@ public class HsrCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
 
         var expectedId = charList.AvatarList.First(x => x.Name == "Trailblazer").Id;
 
@@ -1192,7 +1187,7 @@ public class HsrCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
 
         using (Assert.EnterMultipleScope())
         {
@@ -1228,16 +1223,16 @@ public class HsrCharacterApplicationServiceTests
         Assert.Multiple(() =>
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         });
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -1266,13 +1261,13 @@ public class HsrCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
             Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
