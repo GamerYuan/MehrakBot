@@ -4,6 +4,7 @@ using Grpc.Core;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Tests.TestUtils;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Domain.Shared.Services;
@@ -61,11 +62,7 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
-            {
-                IsSuccess = true,
-                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
-            }));
+            .Returns(CreateUnaryCall(Mehrak.Domain.Command.Models.CommandResult.Success(Mehrak.Domain.Command.Models.DailyCheckInOutcome.Empty()).ToProto()));
 
         m_Service = new CommandExecutorService(
             m_UserContext,
@@ -264,16 +261,11 @@ public class CheckInExecutorServiceTests
             .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
             .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
 
-        const string errorMessage = "Check-in failed: Already checked in today";
-
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
-            {
-                IsSuccess = false,
-                ErrorMessage = errorMessage,
-                FailureReason = Mehrak.Domain.Protobuf.CommandFailureReason.ApiError
-            }));
+            .Returns(CreateUnaryCall(Mehrak.Domain.Command.Models.CommandResult.Failure(
+                Mehrak.Domain.Command.Models.CommandFailureReason.ApiError,
+                Mehrak.Domain.Command.Models.CommandErrorCode.ApiUnavailable).ToProto()));
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -341,12 +333,9 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
-            {
-                IsSuccess = false,
-                ErrorMessage = "Error",
-                FailureReason = Mehrak.Domain.Protobuf.CommandFailureReason.ApiError
-            }));
+            .Returns(CreateUnaryCall(Mehrak.Domain.Command.Models.CommandResult.Failure(
+                Mehrak.Domain.Command.Models.CommandFailureReason.ApiError,
+                Mehrak.Domain.Command.Models.CommandErrorCode.ApiUnavailable).ToProto()));
 
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
@@ -423,11 +412,7 @@ public class CheckInExecutorServiceTests
 
         m_MockApplicationClient
             .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(new CommandResult
-            {
-                IsSuccess = true,
-                Data = new CommandResultData { IsContainer = false, IsEphemeral = false }
-            }))
+            .Returns(CreateUnaryCall(Mehrak.Domain.Command.Models.CommandResult.Success(Mehrak.Domain.Command.Models.DailyCheckInOutcome.Empty()).ToProto()))
             .Callback(() => callOrder.Add("Execute"));
 
         m_MockMetricsService

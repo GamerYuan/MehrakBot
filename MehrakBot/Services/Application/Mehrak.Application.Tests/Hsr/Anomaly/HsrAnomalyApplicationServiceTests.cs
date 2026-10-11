@@ -3,12 +3,14 @@ using Mehrak.Application.Hsr.Anomaly;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Card;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
@@ -62,12 +64,14 @@ public class HsrAnomalyApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile)));
         }
     }
 
-    [Test]
-    public async Task ExecuteAsync_ApiError_ReturnsApiError()
+    [TestCase(StatusCode.ExternalServerError)]
+    [TestCase(StatusCode.Timeout)]
+    [TestCase(StatusCode.Cancelled)]
+    public async Task ExecuteAsync_ApiError_ReturnsApiError(StatusCode status)
     {
         // Arrange
         var (service, apiMock, _, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -76,7 +80,7 @@ public class HsrAnomalyApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
+            .ReturnsAsync(Result<HsrAnomalyInformation>.Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -87,8 +91,10 @@ public class HsrAnomalyApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Anomaly Arbitration data"));
+            Assert.That(result.FailureReason, Is.EqualTo(status == StatusCode.ExternalServerError ? CommandFailureReason.ApiError : CommandFailureReason.Timeout));
+            Assert.That(result.Error, Is.EqualTo(status == StatusCode.ExternalServerError ? new CommandError(CommandErrorCode.ApiUnavailable, CommandErrorTarget.AnomalyArbitration) : new CommandError(CommandErrorCode.Timeout, CommandErrorTarget.None)));
+            Assert.That(result.Error!.Message, Does.Not.Contain("unsafe upstream text"));
+            Assert.That(result.Outcome, Is.Null);
         }
     }
 
@@ -122,14 +128,13 @@ public class HsrAnomalyApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("no clear records").IgnoreCase);
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
         }
     }
 
-    [Test]
-    public async Task ExecuteAsync_NoMatchingBestRecord_ReturnsNoClearRecords()
+    [TestCase(RankIconType.ChallengePeakRankIconTypeNone)]
+    [TestCase(RankIconType.ChallengePeakRankIconTypeBronze)]
+    public async Task ExecuteAsync_NoMatchingBestRecord_ReturnsNoClearRecords(RankIconType rank)
     {
         // Arrange
         var (service, apiMock, _, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -161,7 +166,7 @@ public class HsrAnomalyApplicationServiceTests
             ],
             BestRecord = new RecordBrief
             {
-                RankIconType = RankIconType.ChallengePeakRankIconTypeBronze,
+                RankIconType = rank,
                 BossStars = 1,
                 MobStars = 1,
                 RankIcon = ""
@@ -180,9 +185,7 @@ public class HsrAnomalyApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("no clear records").IgnoreCase);
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
         }
     }
 
@@ -212,13 +215,15 @@ public class HsrAnomalyApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image)));
         });
     }
 
     [Test]
-    [TestCase("Anomaly_TestData_1.json")]
-    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile)
+    [TestCase("Anomaly_TestData_1.json", Server.Asia)]
+    [TestCase("Anomaly_TestData_1.json", Server.Europe)]
+    [TestCase("Anomaly_TestData_1.json", Server.America)]
+    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(string testDataFile, Server server)
     {
         // Arrange
         var (service, apiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, attachmentStorageMock, _) = SetupMocks();
@@ -237,7 +242,7 @@ public class HsrAnomalyApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrAnomalyInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+        var context = CreateContext(1, 1ul, "test", ("server", server.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -246,13 +251,65 @@ public class HsrAnomalyApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>()
-                    .Any(x => x.Content.Contains("Anomaly Arbitration Summary")),
-                Is.True);
+            Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
+            Assert.That(GetOutcome(result).Image, Is.Not.Null);
+            Assert.That(GetOutcome(result).Mode, Is.EqualTo(EndgameMode.AnomalyArbitration));
         }
 
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        var offset = server.GetTimeZoneInfo().BaseUtcOffset;
+        var selected = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
+            ? anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.BossStars == anomalyData.BestRecord.BossStars && x.MobStars == anomalyData.BestRecord.MobStars)
+            : anomalyData.ChallengeRecords.First(x => x.HasChallengeRecord && x.MobStars == anomalyData.BestRecord.MobStars);
+        Assert.That(GetOutcome(result).CycleStart, Is.EqualTo(new DateTimeOffset(selected.Group.BeginTime.ToDateTime(), offset).ToUniversalTime()));
+        Assert.That(GetOutcome(result).CycleEnd, Is.EqualTo(new DateTimeOffset(selected.Group.EndTime.ToDateTime(), offset).ToUniversalTime()));
+
+        // A cache hit must return the exact same business facts and actual storage key.
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var imageCalls = imageUpdaterMock.Invocations.Count;
+        var cached = await service.ExecuteAsync(context);
+        Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
+        Assert.That(cached.IsSuccess, Is.True);
+        Assert.That(cached.Outcome, Is.EqualTo(result.Outcome));
+        Assert.That(GetOutcome(cached).Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+        Assert.That(GetOutcome(cached).Image!.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        var finalKey = GetOutcome(result).Image!.StorageFileName;
+        attachmentStorageMock.Verify(x => x.StoreAsync(finalKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    [TestCase("Anomaly_TestData_1.json", Server.Asia)]
+    public async Task ExecuteAsync_AttachmentStorageFailure_ReturnsSafeCodedError(string testDataFile, Server server)
+    {
+        // Arrange
+        var (service, apiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var anomalyData = await LoadTestDataAsync(testDataFile);
+        apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrAnomalyInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = CreateContext(1, 1ul, "test", ("server", server.ToString()));
+
+        // Act
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        var result = await service.ExecuteAsync(context);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment)));
+            Assert.That(result.Outcome, Is.Null);
+        }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -350,18 +407,18 @@ public class HsrAnomalyApplicationServiceTests
         Assert.Multiple(() =>
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
         });
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = GetOutcome(result).Image;
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment!.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        if (storedAttachments.TryGetValue(attachment.FileName, out var stored))
+        if (storedAttachments.TryGetValue(attachment!.StorageFileName, out var stored))
         {
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
             Directory.CreateDirectory(outputDirectory);
@@ -533,4 +590,74 @@ public class HsrAnomalyApplicationServiceTests
     }
 
     #endregion
+    [TestCase(RankIconType.ChallengePeakRankIconTypeNone, 1)]
+    [TestCase(RankIconType.ChallengePeakRankIconTypeBronze, 2)]
+    public async Task ExecuteAsync_SelectedRecordSuppliesCycleAndIgnoresUnclearedAndLaterMatches(RankIconType rank, int selectedIndex)
+    {
+        var (service, api, updater, profile, card, storage, _) = SetupMocks();
+        profile.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>())).ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        ChallengeRecord Record(int index, bool hasRecord, int bossStars) => new()
+        {
+            HasChallengeRecord = hasRecord, BossStars = bossStars, MobStars = 3,
+            Group = new AnomalyGroup
+            {
+                BeginTime = new ScheduleTime { Year = 2025, Month = 11, Day = 10 + index, Hour = 4 },
+                EndTime = new ScheduleTime { Year = 2025, Month = 11, Day = 20 + index, Hour = 4 },
+                Name = "", ThemePicPath = "", GameVersion = "3.7"
+            },
+            BossInfo = new BossInfo { Icon = "", Name = "", MazeId = 0 }, MobInfo = [], MobRecords = []
+        };
+        var data = new HsrAnomalyInformation
+        {
+            BestRecord = new RecordBrief { RankIcon = "", RankIconType = rank, BossStars = 3, MobStars = 3 },
+            ChallengeRecords = [Record(0, false, 3), Record(1, true, 0), Record(2, true, 3), Record(3, true, 3)]
+        };
+        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>())).ReturnsAsync(Result<HsrAnomalyInformation>.Success(data));
+        storage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var result = await service.ExecuteAsync(CreateContext(1, 1, "test", ("server", Server.Asia)));
+        Assert.That(result.IsSuccess, Is.True);
+        var outcome = GetOutcome(result);
+        Assert.That(outcome.CycleStart, Is.EqualTo(new DateTimeOffset(2025, 11, 10 + selectedIndex, 4, 0, 0, TimeSpan.FromHours(8)).ToUniversalTime()));
+        Assert.That(outcome.CycleEnd, Is.EqualTo(new DateTimeOffset(2025, 11, 20 + selectedIndex, 4, 0, 0, TimeSpan.FromHours(8)).ToUniversalTime()));
+        updater.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()), Times.Never);
+        card.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrAnomalyInformation>>()), Times.Never);
+    }
+    private static EndgameOutcome GetOutcome(CommandResult result)
+    {
+        Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
+        var outcome = (EndgameOutcome)result.Outcome!;
+        Assert.That(outcome.Game, Is.EqualTo(Game.HonkaiStarRail));
+        Assert.That(outcome.Mode, Is.EqualTo(EndgameMode.AnomalyArbitration));
+        Assert.That(outcome.GameUid, Is.Not.Empty);
+        Assert.That(result.ToProto().ToDomain().Outcome, Is.EqualTo(outcome));
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.CycleStart, Is.Not.Null);
+            Assert.That(outcome.CycleEnd, Is.Not.Null);
+            Assert.That(outcome.CycleStart!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(outcome.CycleEnd!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+        }
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.Image, Is.Not.Null);
+            Assert.That(outcome.Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+            Assert.That(outcome.Image.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        }
+        Assert.That(outcome.Floor, Is.Null);
+
+        return outcome;
+    }
+
+    private static void AssertEmptyOutcome(CommandResult result, OperationOutcome state)
+    {
+        var outcome = GetOutcome(result);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(outcome.State, Is.EqualTo(state));
+            Assert.That(outcome.GameUid, Is.EqualTo(CreateTestProfile().GameUid));
+            Assert.That(outcome.Image, Is.Null);
+            Assert.That(outcome.CycleStart, Is.Null);
+            Assert.That(outcome.CycleEnd, Is.Null);
+        }
+    }
 }

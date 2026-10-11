@@ -61,10 +61,10 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
             if (anomalyResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(anomalyResult.ErrorMessage ?? "Cancelled");
             if (anomalyResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Anomaly Arbitration", context.UserId, gameUid, anomalyResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Anomaly Arbitration data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.AnomalyArbitration);
         }
 
         var anomalyData = anomalyResult.Data;
@@ -72,9 +72,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         if (anomalyData.ChallengeRecords.Count == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, EndgameMode.AnomalyArbitration));
         }
 
         var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
@@ -86,29 +84,21 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         if (bestRecord == null)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Anomaly Arbitration"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, EndgameMode.AnomalyArbitration));
         }
 
         var tz = server.GetTimeZoneInfo();
         var startTime = new DateTimeOffset(bestRecord.Group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
         var endTime = new DateTimeOffset(bestRecord.Group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
 
         var fileName = GetCardFileName("hsr", "anomaly", "v1", anomalyData, profile,
             new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success(
-                [
-                    new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, EndgameMode.AnomalyArbitration,
+                StorageReference.Attachment(fileName), startTime, endTime));
         }
 
         List<Task<bool>> tasks = [];
@@ -135,7 +125,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Anomaly Arbitration", context.UserId,
                 JsonSerializer.Serialize(anomalyData));
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<HsrAnomalyInformation>(context.UserId, anomalyData, profile);
@@ -147,16 +137,10 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success(
-            [
-                new CommandText($"<@{context.UserId}>'s Anomaly Arbitration Summary", CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, EndgameMode.AnomalyArbitration,
+                StorageReference.Attachment(fileName), startTime, endTime));
     }
 }

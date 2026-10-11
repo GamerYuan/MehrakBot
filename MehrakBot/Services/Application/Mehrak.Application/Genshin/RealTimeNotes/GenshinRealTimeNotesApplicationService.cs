@@ -50,82 +50,45 @@ internal class GenshinRealTimeNotesApplicationService : BaseApplicationService
             if (notesResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(notesResult.ErrorMessage ?? "Cancelled");
             if (notesResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, profile.GameUid, notesResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Real-Time Notes data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.RealTimeNotes);
         }
 
-        return await BuildRealTimeNotes(notesResult.Data, server, profile.GameUid);
+        return CommandResult.Success(BuildOutcome(notesResult.Data, server, profile.GameUid, DateTimeOffset.UtcNow));
 
     }
 
-    private async Task<CommandResult> BuildRealTimeNotes(GenshinRealTimeNotesData data,
-        Server server, string uid)
+    internal static GenshinNotesOutcome BuildOutcome(GenshinRealTimeNotesData data,
+        Server server, string uid, DateTimeOffset observedAt)
     {
-        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var weeklyReset = server.GetNextWeeklyResetUnix();
+        observedAt = observedAt.ToUniversalTime();
+        var tz = server.GetTimeZoneInfo();
+        var nowLocal = TimeZoneInfo.ConvertTime(observedAt, tz);
+        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)nowLocal.DayOfWeek + 7) % 7;
+        if (daysUntilMonday == 0 && nowLocal.TimeOfDay >= TimeSpan.FromHours(4))
+            daysUntilMonday = 7;
+        var resetLocal = nowLocal.Date.AddDays(daysUntilMonday).AddHours(4);
+        var weeklyReset = new DateTimeOffset(resetLocal, tz.GetUtcOffset(resetLocal)).ToUniversalTime();
 
-        List<ICommandResultComponent> components =
-        [
-            new CommandText($"Real Time Notes for UID: {uid}", CommandText.TextType.Header2),
-            new CommandSection([
-                    new CommandText("Original Resin", CommandText.TextType.Header3),
-                    new CommandText($"{data.CurrentResin}/{data.MaxResin}"),
-                    new CommandText(data.CurrentResin == data.MaxResin
-                            ? "Already Full!"
-                            : $"Recovers <t:{currTime + long.Parse(data.ResinRecoveryTime!)}:R>",
-                        CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("genshin_resin.png", AttachmentSourceType.ImageStorage, "genshin/resin.png")
-            ),
-            new CommandSection([
-                    new CommandText("Expeditions", CommandText.TextType.Header3),
-                    new CommandText(data.CurrentExpeditionNum > 0
-                        ? $"{data.CurrentExpeditionNum}/{data.MaxExpeditionNum}"
-                        : "None Dispatched!"),
-                    new CommandText(data.CurrentExpeditionNum > 0
-                        ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!)) > 0
-                            ? $"Completes <t:{currTime + data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))}:R>"
-                            : "All Expeditions Completed"
-                        : "To be dispatched", CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("genshin_expedition.png", AttachmentSourceType.ImageStorage, "genshin/expedition.png")
-            ),
-            new CommandSection([
-                    new CommandText("Serenitea Pot", CommandText.TextType.Header3),
-                    new CommandText(data.CurrentHomeCoin == data.MaxHomeCoin
-                        ? "Already Full!"
-                        : $"{data.CurrentHomeCoin}/{data.MaxHomeCoin}"),
-                    new CommandText(data.CurrentHomeCoin == data.MaxHomeCoin
-                            ? "To be collected"
-                            : $"Recovers <t:{currTime + long.Parse(data.HomeCoinRecoveryTime!)}:R>",
-                        CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("genshin_teapot.png", AttachmentSourceType.ImageStorage, "genshin/teapot.png")
-            ),
-            new CommandSection([
-                    new CommandText("Weekly Bosses", CommandText.TextType.Header3),
-                    new CommandText(
-                        $"Remaining Resin Discount: {data.RemainResinDiscountNum}/{data.ResinDiscountNumLimit}"),
-                    new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("genshin_weekly.png", AttachmentSourceType.ImageStorage, "genshin/weekly.png")
-            )
-        ];
+        var remaining = data.CurrentExpeditionNum > 0
+            ? data.Expeditions!.Max(x => long.Parse(x.RemainedTime!))
+            : 0;
+        var expeditionState = data.CurrentExpeditionNum <= 0
+            ? ExpeditionOutcome.Undispatched
+            : remaining > 0 ? ExpeditionOutcome.InProgress : ExpeditionOutcome.Completed;
 
-        if (data.Transformer?.Obtained == true)
-            components.Add(
-                new CommandSection([
-                        new CommandText("Parametric Transformer", CommandText.TextType.Header3),
-                        new CommandText(data.Transformer.RecoveryTime!.Reached
-                            ? "Not Claimed!"
-                            : "Claimed!"),
-                        new CommandText($"Resets <t:{weeklyReset}:R>", CommandText.TextType.Footer)
-                    ],
-                    new CommandAttachment("genshin_transformer.png", AttachmentSourceType.ImageStorage, "genshin/transformer.png")
-                ));
-
-        return CommandResult.Success(components, true, true);
+        return new GenshinNotesOutcome(uid, observedAt,
+            new NotesResource(data.CurrentResin, data.MaxResin,
+                data.CurrentResin == data.MaxResin ? null : observedAt.AddSeconds(long.Parse(data.ResinRecoveryTime!))),
+            new ExpeditionNotes(data.CurrentExpeditionNum, data.MaxExpeditionNum, expeditionState,
+                expeditionState == ExpeditionOutcome.InProgress ? observedAt.AddSeconds(remaining) : null),
+            new NotesResource(data.CurrentHomeCoin, data.MaxHomeCoin,
+                data.CurrentHomeCoin == data.MaxHomeCoin ? null : observedAt.AddSeconds(long.Parse(data.HomeCoinRecoveryTime!))),
+            data.RemainResinDiscountNum, data.ResinDiscountNumLimit, weeklyReset,
+            data.Transformer?.Obtained == true
+                ? new TransformerNotes(data.Transformer.RecoveryTime!.Reached, weeklyReset)
+                : null);
     }
 }

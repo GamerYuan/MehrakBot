@@ -1,24 +1,24 @@
 ﻿#region
 
 using Mehrak.Bot.Shared.Extensions;
+using Mehrak.Bot.Shared.Models;
 using Mehrak.Domain.Command.Models;
 using NetCord;
 using NetCord.Rest;
-using static Mehrak.Domain.Command.Models.CommandResult;
-using static Mehrak.Domain.Command.Models.CommandText;
+using static Mehrak.Bot.Shared.Models.CommandText;
 
 #endregion
 
 namespace Mehrak.Bot.Tests.Shared.Extensions;
 
 /// <summary>
-/// Unit tests for CommandResultDataExtensions validating message conversion,
+/// Unit tests for CommandPresentationExtensions validating message conversion,
 /// component handling, attachment processing, and text formatting.
 /// </summary>
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-public class CommandResultDataExtensionsTests
+public class CommandPresentationExtensionsTests
 {
     #region ToFormattedString Tests
 
@@ -225,7 +225,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponents_ReturnsMessageWithFlags()
     {
         // Arrange
-        var data = new CommandResultData(null, false, false);
+        var data = new CommandPresentation(null, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -239,11 +239,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_SingleTextComponent_AddsTextDisplay()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("Test message", TextType.Plain)
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -258,13 +258,13 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_MultipleTextComponents_AddsAllTexts()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("First", TextType.Header1),
             new CommandText("Second", TextType.Plain),
             new CommandText("Third", TextType.Bold)
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -279,9 +279,9 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_SingleAttachment_CreatesMediaGallery()
     {
         // Arrange
-        var attachment = new TestAttachment("test.png");
-        var components = new List<ICommandResultComponent> { attachment };
-        var data = new CommandResultData(components, false, false);
+        var attachment = new CommandAttachment("test.png");
+        var components = new List<IPresentationComponent> { attachment };
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -296,13 +296,13 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_MultipleAttachments_AddsToSameGallery()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestAttachment("image1.png"),
-            new TestAttachment("image2.jpg"),
-            new TestAttachment("image3.gif")
+            new CommandAttachment("image1.png"),
+            new CommandAttachment("image2.jpg"),
+            new CommandAttachment("image3.gif")
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -318,14 +318,14 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_MixedTextAndAttachments_CreatesCorrectStructure()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("Title", TextType.Header1),
-            new TestAttachment("image.png"),
+            new CommandAttachment("image.png"),
             new CommandText("Description", TextType.Plain),
-            new TestAttachment("image2.png")
+            new CommandAttachment("image2.png")
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -345,14 +345,14 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithSingleSection_CreatesContainerWithSection()
     {
         // Arrange
-        var section = new TestCommandSection(
+        var section = CreateSection(
             "section.png",
             [
                 new CommandText("Section Title", TextType.Header2),
                 new CommandText("Section Content", TextType.Plain)
             ]);
-        var components = new List<ICommandResultComponent> { section };
-        var data = new CommandResultData(components, true, false);
+        var components = new List<IPresentationComponent> { section };
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -369,13 +369,13 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithMultipleSections_AddsAllSections()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestCommandSection("section1.png", [new CommandText("Section 1", TextType.Header2)]),
-            new TestCommandSection("section2.png", [new CommandText("Section 2", TextType.Header2)]),
-            new TestCommandSection("section3.png", [new CommandText("Section 3", TextType.Header2)])
+            CreateSection("section1.png", [new CommandText("Section 1", TextType.Header2)]),
+            CreateSection("section2.png", [new CommandText("Section 2", TextType.Header2)]),
+            CreateSection("section3.png", [new CommandText("Section 3", TextType.Header2)])
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -389,12 +389,12 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithAttachments_CreatesMediaGalleryInContainer()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestAttachment("image1.png"),
-            new TestAttachment("image2.png")
+            new CommandAttachment("image1.png"),
+            new CommandAttachment("image2.png")
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -409,11 +409,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithTextComponent_AddsTextDisplayToContainer()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("Container Text", TextType.Bold)
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -427,13 +427,13 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithMixedComponents_OrganizesCorrectly()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestCommandSection("section.png", [new CommandText("Section", TextType.Header2)]),
+            CreateSection("section.png", [new CommandText("Section", TextType.Header2)]),
             new CommandText("Text", TextType.Plain),
-            new TestAttachment("image.png")
+            new CommandAttachment("image.png")
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -449,15 +449,15 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerWithSectionAndMultipleAttachments_GroupsAttachmentsInGallery()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestCommandSection("section.png",
+            CreateSection("section.png",
                 [new CommandText("Title", TextType.Header1)]),
-            new TestAttachment("image1.png"),
-            new TestAttachment("image2.png"),
-            new TestAttachment("image3.png")
+            new CommandAttachment("image1.png"),
+            new CommandAttachment("image2.png"),
+            new CommandAttachment("image3.png")
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -479,9 +479,9 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_AttachmentWithFileName_NotAddedToAttachments()
     {
         // Arrange
-        var attachment = new TestAttachment("test-image.png");
-        var components = new List<ICommandResultComponent> { attachment };
-        var data = new CommandResultData(components, false, false);
+        var attachment = new CommandAttachment("test-image.png");
+        var components = new List<IPresentationComponent> { attachment };
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -494,13 +494,13 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_MultipleAttachmentsWithDifferentNames_NotAddedToAttachments()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
-            new TestAttachment("file1.png"),
-            new TestAttachment("file2.jpg"),
-            new TestAttachment("file3.gif")
+            new CommandAttachment("file1.png"),
+            new CommandAttachment("file2.jpg"),
+            new CommandAttachment("file3.gif")
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -513,11 +513,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_SectionWithAttachment_DoesNotAddToAttachments()
     {
         // Arrange
-        var section = new TestCommandSection(
+        var section = CreateSection(
             "thumbnail.png",
             [new CommandText("Test", TextType.Plain)]);
-        var components = new List<ICommandResultComponent> { section };
-        var data = new CommandResultData(components, true, false);
+        var components = new List<IPresentationComponent> { section };
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -534,7 +534,7 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_EmptyComponentsList_ReturnsValidMessage()
     {
         // Arrange
-        var data = new CommandResultData([], false, false);
+        var data = new CommandPresentation([], false, false);
 
         // Act
         var result = data.ToMessage();
@@ -548,11 +548,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_OnlyUnknownComponentType_HandlesGracefully()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new TestUnknownComponent()
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -566,11 +566,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerTrue_CreatesComponentContainer()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("Test", TextType.Plain)
         };
-        var data = new CommandResultData(components, true, false);
+        var data = new CommandPresentation(components, true, false);
 
         // Act
         var result = data.ToMessage();
@@ -584,11 +584,11 @@ public class CommandResultDataExtensionsTests
     public void ToMessage_ContainerFalse_DoesNotCreateComponentContainer()
     {
         // Arrange
-        var components = new List<ICommandResultComponent>
+        var components = new List<IPresentationComponent>
         {
             new CommandText("Test", TextType.Plain)
         };
-        var data = new CommandResultData(components, false, false);
+        var data = new CommandPresentation(components, false, false);
 
         // Act
         var result = data.ToMessage();
@@ -602,32 +602,13 @@ public class CommandResultDataExtensionsTests
 
     #region Helper Classes
 
-    /// <summary>
-    /// Test implementation of CommandAttachment for testing purposes
-    /// </summary>
-    private class TestAttachment : CommandAttachment
-    {
-        public TestAttachment(string fileName)
-            : base(fileName)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Test implementation of CommandSection for testing purposes
-    /// </summary>
-    private class TestCommandSection : CommandSection
-    {
-        public TestCommandSection(string attachmentFileName, IEnumerable<CommandText> components)
-            : base(components, new CommandAttachment(attachmentFileName, AttachmentSourceType.AttachmentStorage))
-        {
-        }
-    }
+    private static CommandSection CreateSection(string fileName, IEnumerable<CommandText> components) =>
+        new(components, new CommandAttachment(fileName));
 
     /// <summary>
     /// Unknown component type for testing default case handling
     /// </summary>
-    private class TestUnknownComponent : ICommandResultComponent
+    private class TestUnknownComponent : IPresentationComponent
     {
     }
 

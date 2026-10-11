@@ -114,7 +114,7 @@ public class DailyCheckInService : IApplicationService
                             break;
 
                         default:
-                            checkInResults.Add(CheckInItem.Failed(game, new(CommandErrorCode.InvalidResponse, CommandErrorTarget.DailyCheckIn)));
+                            checkInResults.Add(CheckInItem.Completed(game, CheckInOutcome.Unknown));
                             break;
                     }
                 }

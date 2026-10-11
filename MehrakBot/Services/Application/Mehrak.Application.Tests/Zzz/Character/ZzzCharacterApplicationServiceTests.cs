@@ -1802,7 +1802,7 @@ public class ZzzCharacterApplicationServiceTests
         protected override Task<CommandResult> ExecuteCommandAsync(
             IApplicationContext context,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(CommandResult.Success());
+            Task.FromResult(CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, null, [])));
     }
 
     private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)

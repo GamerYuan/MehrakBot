@@ -4,10 +4,10 @@ using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Common;
-using Microsoft.Extensions.Logging.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Mehrak.Application.Tests.Shared;

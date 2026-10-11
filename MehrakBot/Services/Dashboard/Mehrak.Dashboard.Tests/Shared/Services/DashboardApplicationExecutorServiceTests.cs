@@ -2,8 +2,12 @@
 using Grpc.Core;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Dashboard.Shared.Services;
+using Mehrak.Domain.Command.Extensions;
+using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
+using Mehrak.Infrastructure.User.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -104,11 +108,7 @@ public class DashboardApplicationExecutorServiceTests
         m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
             .ReturnsAsync(authResult);
 
-        var commandResultProto = new Proto.CommandResult
-        {
-            IsSuccess = true,
-            Data = new Proto.CommandResultData { IsContainer = false, IsEphemeral = false }
-        };
+        var commandResultProto = CommandResult.Success(RosterOutcome.Empty(Game.Genshin, "123456789")).ToProto();
         m_ApplicationClientMock.Setup(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()))
             .Returns(CreateUnaryCall(commandResultProto));
 
@@ -194,11 +194,7 @@ public class DashboardApplicationExecutorServiceTests
         m_AuthServiceMock.Setup(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), sessionToken))
             .ReturnsAsync(authResult);
 
-        var commandResultProto = new Proto.CommandResult
-        {
-            IsSuccess = true,
-            Data = new Proto.CommandResultData { IsContainer = false, IsEphemeral = false }
-        };
+        var commandResultProto = CommandResult.Success(RosterOutcome.Empty(Game.Genshin, "123456789")).ToProto();
         m_ApplicationClientMock.Setup(c => c.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()))
             .Returns(CreateUnaryCall(commandResultProto));
 
@@ -208,6 +204,80 @@ public class DashboardApplicationExecutorServiceTests
         m_AuthServiceMock.Verify(s => s.AuthenticateAsync(123, profileId, null, It.IsAny<CancellationToken>(), sessionToken), Times.Once);
     }
 
+    [TestCase("card", false)]
+    [TestCase("card", true)]
+    [TestCase("empty", false)]
+    [TestCase("empty", true)]
+    [TestCase("failure", false)]
+    [TestCase("failure", true)]
+    [TestCase("malformed", false)]
+    [TestCase("malformed", true)]
+    public async Task ExecuteAsync_LastUsedServerChangesOnlyForSuccessfulCommand(string responseKind, bool existingRegion)
+    {
+        var options = new DbContextOptionsBuilder<UserDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        using var context = new UserDbContext(options);
+        var profile = new UserProfileModel { Id = 42, UserId = 123, ProfileId = 1, LtUid = 456 };
+        context.UserProfiles.Add(profile);
+        if (existingRegion)
+            context.Regions.Add(new ProfileRegion { ProfileId = profile.Id, Game = Game.Genshin, Region = "America" });
+        await context.SaveChangesAsync();
+        var service = new DashboardApplicationExecutorService(m_ServiceProviderMock.Object, m_AuthServiceMock.Object,
+            context, m_LoggerMock.Object, new HttpContextAccessor())
+        {
+            DiscordUserId = 123,
+            CommandName = "genshin charlist",
+            Parameters = new Dictionary<string, object> { ["game"] = Game.Genshin, ["server"] = "Asia" }
+        };
+        var user = new UserDto { Id = 123, Profiles = [new UserProfileDto { Id = profile.Id, ProfileId = 1 }] };
+        m_AuthServiceMock.Setup(auth => auth.AuthenticateAsync(123, 1, null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .ReturnsAsync(DashboardProfileAuthenticationResult.Success(user, 456, "test-token"));
+        var response = responseKind switch
+        {
+            "card" => CommandResult.Success(RosterOutcome.Card(Game.Genshin, "123456789", StorageReference.Attachment("card.png"))).ToProto(),
+            "empty" => CommandResult.Success(RosterOutcome.Empty(Game.Genshin, "123456789")).ToProto(),
+            "failure" => CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ApiUnavailable).ToProto(),
+            _ => new Proto.CommandResult { IsSuccess = true }
+        };
+        m_ApplicationClientMock.Setup(client => client.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()))
+            .Returns(CreateUnaryCall(response));
+
+        var result = await service.ExecuteAsync(1);
+        var region = await context.Regions.SingleOrDefaultAsync();
+        var shouldUpdate = responseKind is "card" or "empty";
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CommandResult!.IsSuccess, Is.EqualTo(shouldUpdate));
+            Assert.That(region?.Region, Is.EqualTo(shouldUpdate ? "Asia" : existingRegion ? "America" : null));
+            Assert.That(region?.Game, Is.EqualTo(shouldUpdate || existingRegion ? Game.Genshin : (Game?)null));
+        });
+        m_ApplicationClientMock.Verify(client => client.ExecuteCommandAsync(
+            It.Is<Proto.ExecuteRequest>(request => request.Parameters["game"] == "Genshin" && request.Parameters["server"] == "Asia"),
+            null, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestCase(DashboardAuthStatus.PassphraseRequired, DashboardExecutionStatus.AuthenticationRequired, 403)]
+    [TestCase(DashboardAuthStatus.InvalidPassphrase, DashboardExecutionStatus.AuthenticationFailed, 401)]
+    [TestCase(DashboardAuthStatus.NotFound, DashboardExecutionStatus.NotFound, 404)]
+    [TestCase(DashboardAuthStatus.RateLimited, DashboardExecutionStatus.RateLimited, 429)]
+    public async Task ExecuteAsync_AuthenticationStopsBeforeApplication(DashboardAuthStatus status, DashboardExecutionStatus expected, int httpStatus)
+    {
+        m_Service.DiscordUserId = 123;
+        m_Service.CommandName = "genshin charlist";
+        var authResult = status switch
+        {
+            DashboardAuthStatus.PassphraseRequired => DashboardProfileAuthenticationResult.PassphraseRequired("Unlock required."),
+            DashboardAuthStatus.InvalidPassphrase => DashboardProfileAuthenticationResult.InvalidPassphrase("Invalid passphrase."),
+            DashboardAuthStatus.NotFound => DashboardProfileAuthenticationResult.NotFound("Missing profile."),
+            _ => DashboardProfileAuthenticationResult.RateLimited("Try again later.")
+        };
+        m_AuthServiceMock.Setup(auth => auth.AuthenticateAsync(123, 1, null, It.IsAny<CancellationToken>(), It.IsAny<string?>()))
+            .ReturnsAsync(authResult);
+        var result = await m_Service.ExecuteAsync(1);
+        Assert.That(result.Status, Is.EqualTo(expected));
+        Assert.That(((Microsoft.AspNetCore.Mvc.ObjectResult)result.MapToActionResult()).StatusCode, Is.EqualTo(httpStatus));
+        m_ApplicationClientMock.Verify(client => client.ExecuteCommandAsync(It.IsAny<Proto.ExecuteRequest>(), null, null, It.IsAny<CancellationToken>()), Times.Never);
+    }
     private static AsyncUnaryCall<Proto.CommandResult> CreateUnaryCall(Proto.CommandResult result)
     {
         return new AsyncUnaryCall<Proto.CommandResult>(

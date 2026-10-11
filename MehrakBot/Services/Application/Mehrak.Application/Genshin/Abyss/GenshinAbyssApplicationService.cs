@@ -71,11 +71,11 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             if (abyssResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(abyssResult.ErrorMessage ?? "Cancelled");
             if (abyssResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError,
                 "Abyss Data", context.UserId, profile.GameUid, abyssResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Spiral Abyss data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.SpiralAbyss);
         }
 
         var abyssData = abyssResult.Data;
@@ -85,10 +85,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogInformation(LogMessage.NoClearRecords, $"Abyss (Floor {floor})", context.UserId,
                 profile.GameUid);
-            return CommandResult.Success([
-                new CommandText(
-                        string.Format(ResponseMessage.NoClearRecords, $"Spiral Abyss (Floor {floor})"))
-            ], isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid, EndgameMode.SpiralAbyss, floor: floor));
         }
 
         var charListResponse = await m_CharacterApi.GetAllCharactersAsync(
@@ -100,11 +97,11 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             if (charListResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
             if (charListResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError,
                 "Character List", context.UserId, profile.GameUid, charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var charList = charListResponse.Data.ToList();
@@ -119,13 +116,8 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             });
         if (await AttachmentExistsAsync(filename, cancellationToken))
         {
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
-                        CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ], isEphemeral: false);
+            return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.SpiralAbyss,
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!)), floor: floor));
         }
 
         List<Task<bool>> tasks = [];
@@ -152,7 +144,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
             Logger.LogError(LogMessage.ImageUpdateError, "Abyss", context.UserId,
                 JsonSerializer.Serialize(abyssData));
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.ImageUpdateError);
+                CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<GenshinAbyssInformation>(context.UserId, abyssData, profile);
@@ -166,17 +158,10 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Spiral Abyss Summary (Floor {floor})",
-                        CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{abyssData.StartTime}:f>\nCycle end: <t:{abyssData.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true
-        );
+        return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.SpiralAbyss,
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(abyssData.EndTime!)), floor: floor));
     }
 }

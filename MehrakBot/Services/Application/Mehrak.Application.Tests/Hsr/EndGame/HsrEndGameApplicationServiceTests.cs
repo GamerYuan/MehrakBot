@@ -7,12 +7,14 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
@@ -70,14 +72,18 @@ public class HsrEndGameApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile)));
         }
     }
 
     [Test]
-    [TestCase(HsrEndGameMode.PureFiction)]
-    [TestCase(HsrEndGameMode.ApocalypticShadow)]
-    public async Task ExecuteAsync_EndGameApiError_ReturnsApiError(HsrEndGameMode mode)
+    [TestCase(HsrEndGameMode.PureFiction, StatusCode.ExternalServerError)]
+    [TestCase(HsrEndGameMode.PureFiction, StatusCode.Timeout)]
+    [TestCase(HsrEndGameMode.PureFiction, StatusCode.Cancelled)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, StatusCode.ExternalServerError)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, StatusCode.Timeout)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, StatusCode.Cancelled)]
+    public async Task ExecuteAsync_EndGameApiError_ReturnsApiError(HsrEndGameMode mode, StatusCode status)
     {
         // Arrange
         var (service, endGameApiMock, _, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -86,7 +92,7 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
+            .ReturnsAsync(Result<HsrEndInformation>.Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", Server.Asia.ToString()));
 
@@ -97,15 +103,21 @@ public class HsrEndGameApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain($"{mode.GetString()} data"));
+            Assert.That(result.FailureReason, Is.EqualTo(status == StatusCode.ExternalServerError ? CommandFailureReason.ApiError : CommandFailureReason.Timeout));
+            Assert.That(result.Error, Is.EqualTo(status == StatusCode.ExternalServerError ? new CommandError(CommandErrorCode.ApiUnavailable, mode == HsrEndGameMode.PureFiction ? CommandErrorTarget.PureFiction : CommandErrorTarget.ApocalypticShadow) : new CommandError(CommandErrorCode.Timeout, CommandErrorTarget.None)));
+            Assert.That(result.Error!.Message, Does.Not.Contain("unsafe upstream text"));
+            Assert.That(result.Outcome, Is.Null);
         }
     }
 
     [Test]
-    [TestCase(HsrEndGameMode.PureFiction)]
-    [TestCase(HsrEndGameMode.ApocalypticShadow)]
-    public async Task ExecuteAsync_NoData_ReturnsNoClearRecords(HsrEndGameMode mode)
+    [TestCase(HsrEndGameMode.PureFiction, false, false)]
+    [TestCase(HsrEndGameMode.PureFiction, true, false)]
+    [TestCase(HsrEndGameMode.PureFiction, true, true)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, false, false)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, true, false)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, true, true)]
+    public async Task ExecuteAsync_NoData_ReturnsNoClearRecords(HsrEndGameMode mode, bool hasData, bool nullNodes)
     {
         // Arrange
         var (service, endGameApiMock, _, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -115,9 +127,9 @@ public class HsrEndGameApplicationServiceTests
 
         var endGameData = new HsrEndInformation
         {
-            HasData = false,
+            HasData = hasData,
             Groups = [],
-            AllFloorDetail = [],
+            AllFloorDetail = nullNodes ? [new HsrEndFloorDetail { Name = "uncleared" }] : [],
             MaxFloor = "0",
             StarNum = 0,
             BattleNum = 0,
@@ -136,9 +148,8 @@ public class HsrEndGameApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("no clear records").IgnoreCase);
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
+            Assert.That(GetOutcome(result).Mode, Is.EqualTo(mode == HsrEndGameMode.PureFiction ? EndgameMode.PureFiction : EndgameMode.ApocalypticShadow));
         }
     }
 
@@ -171,14 +182,18 @@ public class HsrEndGameApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image)));
         }
     }
 
     [Test]
-    [TestCase(HsrEndGameMode.PureFiction, "Pf_TestData_1.json")]
-    [TestCase(HsrEndGameMode.ApocalypticShadow, "As_TestData_1.json")]
-    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(HsrEndGameMode mode, string testDataFile)
+    [TestCase(HsrEndGameMode.PureFiction, "Pf_TestData_1.json", Server.Asia)]
+    [TestCase(HsrEndGameMode.PureFiction, "Pf_TestData_1.json", Server.Europe)]
+    [TestCase(HsrEndGameMode.PureFiction, "Pf_TestData_1.json", Server.America)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, "As_TestData_1.json", Server.Asia)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, "As_TestData_1.json", Server.Europe)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, "As_TestData_1.json", Server.America)]
+    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(HsrEndGameMode mode, string testDataFile, Server server)
     {
         // Arrange
         var (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, attachmentStorageMock) = SetupMocks();
@@ -197,7 +212,7 @@ public class HsrEndGameApplicationServiceTests
         cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
             .ReturnsAsync(cardStream);
 
-        var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", Server.Asia.ToString()));
+        var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", server.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -206,13 +221,63 @@ public class HsrEndGameApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>()
-                    .Any(x => x.Content.Contains($"{mode.GetString()} Summary")),
-                Is.True);
+            Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
+            Assert.That(GetOutcome(result).Image, Is.Not.Null);
+            Assert.That(GetOutcome(result).Mode, Is.EqualTo(mode == HsrEndGameMode.PureFiction ? EndgameMode.PureFiction : EndgameMode.ApocalypticShadow));
         }
 
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        var offset = server.GetTimeZoneInfo().BaseUtcOffset;
+        Assert.That(GetOutcome(result).CycleStart, Is.EqualTo(new DateTimeOffset(endGameData.Groups[0].BeginTime.ToDateTime(), offset).ToUniversalTime()));
+        Assert.That(GetOutcome(result).CycleEnd, Is.EqualTo(new DateTimeOffset(endGameData.Groups[0].EndTime.ToDateTime(), offset).ToUniversalTime()));
+
+        // A cache hit must return the exact same business facts and actual storage key.
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var imageCalls = imageUpdaterMock.Invocations.Count;
+        var cached = await service.ExecuteAsync(context);
+        Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
+        Assert.That(cached.IsSuccess, Is.True);
+        Assert.That(cached.Outcome, Is.EqualTo(result.Outcome));
+        Assert.That(GetOutcome(cached).Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+        Assert.That(GetOutcome(cached).Image!.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        var finalKey = GetOutcome(result).Image!.StorageFileName;
+        attachmentStorageMock.Verify(x => x.StoreAsync(finalKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    [TestCase(HsrEndGameMode.PureFiction, "Pf_TestData_1.json", Server.Asia)]
+    [TestCase(HsrEndGameMode.ApocalypticShadow, "As_TestData_1.json", Server.Asia)]
+    public async Task ExecuteAsync_AttachmentStorageFailure_ReturnsSafeCodedError(HsrEndGameMode mode, string testDataFile, Server server)
+    {
+        // Arrange
+        var (service, endGameApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, attachmentStorageMock) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var endGameData = await LoadTestDataAsync(testDataFile);
+        endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
+            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var cardStream = new MemoryStream();
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrEndInformation>>()))
+            .ReturnsAsync(cardStream);
+
+        var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", server.ToString()));
+
+        // Act
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        var result = await service.ExecuteAsync(context);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment)));
+            Assert.That(result.Outcome, Is.Null);
+        }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -370,16 +435,16 @@ public class HsrEndGameApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
         }
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = GetOutcome(result).Image;
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment!.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -409,13 +474,13 @@ public class HsrEndGameApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = GetOutcome(result).Image;
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
             Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
@@ -700,4 +765,42 @@ public class HsrEndGameApplicationServiceTests
     }
 
     #endregion
+    private static EndgameOutcome GetOutcome(CommandResult result)
+    {
+        Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
+        var outcome = (EndgameOutcome)result.Outcome!;
+        Assert.That(outcome.Game, Is.EqualTo(Game.HonkaiStarRail));
+        Assert.That(outcome.Mode, Is.AnyOf(EndgameMode.PureFiction, EndgameMode.ApocalypticShadow));
+        Assert.That(outcome.GameUid, Is.Not.Empty);
+        Assert.That(result.ToProto().ToDomain().Outcome, Is.EqualTo(outcome));
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.CycleStart, Is.Not.Null);
+            Assert.That(outcome.CycleEnd, Is.Not.Null);
+            Assert.That(outcome.CycleStart!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(outcome.CycleEnd!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+        }
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.Image, Is.Not.Null);
+            Assert.That(outcome.Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+            Assert.That(outcome.Image.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        }
+        Assert.That(outcome.Floor, Is.Null);
+
+        return outcome;
+    }
+
+    private static void AssertEmptyOutcome(CommandResult result, OperationOutcome state)
+    {
+        var outcome = GetOutcome(result);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(outcome.State, Is.EqualTo(state));
+            Assert.That(outcome.GameUid, Is.EqualTo(CreateTestProfile().GameUid));
+            Assert.That(outcome.Image, Is.Null);
+            Assert.That(outcome.CycleStart, Is.Null);
+            Assert.That(outcome.CycleEnd, Is.Null);
+        }
+    }
 }

@@ -2,8 +2,8 @@
 
 using System.Collections.Concurrent;
 using Mehrak.Application.Shared.Services;
-using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Command.Extensions;
+using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 
 #endregion

@@ -245,4 +245,3 @@ public sealed partial record CheckInItem(Game Game, CheckInOutcome Outcome, Comm
 public sealed partial record DailyCheckInOutcome(OperationOutcome State, ImmutableArray<CheckInItem> Items) : CommandOutcome
 {
 }
-
