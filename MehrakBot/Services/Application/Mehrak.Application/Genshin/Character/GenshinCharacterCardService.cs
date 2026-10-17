@@ -106,7 +106,8 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
         {
             ctx.Paint(canvas =>
             {
-                _ = canvas.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
+                _ = canvas.Save(ClipOptions);
+                canvas.Clip(new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
                 canvas.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))),
                     new Rectangle(0, 0, 970, 170));
                 canvas.Restore();
@@ -481,7 +482,8 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
         relicImage.Mutate(x => x.Transform(new AffineTransformBuilder().AppendTranslation(new PointF(-40, -40))));
 
         using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 970, 170));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))), new Rectangle(0, 0, 970, 170));
         region.DrawImage(relicImage, relicImage.Bounds,
             new RectangleF(0, 0, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
@@ -552,7 +554,8 @@ internal class GenshinCharacterCardService : CharacterCardServiceBase<GenshinCha
     private void DrawTemplateRelicSlotImage(DrawingCanvas canvas, Point position, int slotIndex)
     {
         using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 970, 170));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(0, 0, 970, 170), 15));
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(0, 0, 0, 0.25f))), new Rectangle(0, 0, 970, 170));
 
         var relicImage = m_RelicTemplateImages[slotIndex];

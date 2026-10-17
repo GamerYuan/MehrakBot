@@ -212,7 +212,8 @@ internal class HsrAnomalyCardService : CardServiceBase<HsrAnomalyInformation>
         Dictionary<int, HsrAvatar> avatarLookup)
     {
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(1150, 300)));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1150, 300)), 15));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1150, 300)), 15));
         region.Fill(Brushes.Solid(OverlayColor));
         region.DrawImage(bossImage, bossImage.Bounds, new RectangleF(0, 0, bossImage.Width, bossImage.Height), KnownResamplers.Bicubic);
         region.Restore();

@@ -504,7 +504,8 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
     private void DrawRelicSlotImage(DrawingCanvas canvas, Relic relic, Image<Rgba32> relicImage, Point position)
     {
         using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 750, 150));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(255, 255, 255, 0.1f))), new Rectangle(0, 0, 750, 150));
         region.DrawImage(relicImage, relicImage.Bounds,
             new RectangleF(10, 0, relicImage.Width, relicImage.Height), KnownResamplers.Bicubic);
@@ -562,7 +563,8 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
     private void DrawTemplateRelicSlotImage(DrawingCanvas canvas, Point position, int slotIndex)
     {
         using var region = canvas.CreateRegion(new Rectangle(position.X, position.Y, 750, 150));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(0, 0, 750, 150), 30));
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgba32(255, 255, 255, 0.1f))), new Rectangle(0, 0, 750, 150));
 
         var relicImage = m_RelicTemplateImages[slotIndex];
