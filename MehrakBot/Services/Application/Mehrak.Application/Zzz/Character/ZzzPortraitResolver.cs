@@ -41,15 +41,18 @@ internal sealed class ZzzPortraitResolver(
 
         try
         {
+            token.ThrowIfCancellationRequested();
             // The vertical painting follows the equipped outfit even when the square
             // avatar still shows the base outfit (as in the Yixuan fixture).
             var baseReferenceUrl = GetBaseReferenceUrl(avatar);
-            var outfitReferenceUrl = avatar.GetPortraitSubId() is { } outfitId &&
-                avatar.RoleVerticalPaintingUrl.Contains($"_{avatar.Id}_{outfitId}.", StringComparison.Ordinal)
+            var outfitReferenceUrl = baseReferenceUrl != avatar.RoleVerticalPaintingUrl
                 ? avatar.RoleVerticalPaintingUrl
                 : avatar.RoleSquareUrl;
             var baseReference = needBase ? await FetchReferenceAsync(baseReferenceUrl) : null;
             var outfitReference = needOutfit ? await FetchReferenceAsync(outfitReferenceUrl) : null;
+
+            if (!needBase && outfitReference == null)
+                return Result<ZzzPortraitUrls>.Failure(bestStatus, "Outfit reference image unavailable");
 
             foreach (var locale in Enum.GetValues<WikiLocales>())
             {
@@ -64,28 +67,39 @@ internal sealed class ZzzPortraitResolver(
                     continue;
                 }
 
-                var page = result.Data["data"]?["page"];
+                var page = ((result.Data as JsonObject)?["data"] as JsonObject)?["page"] as JsonObject;
                 // A wiki header is a fallback reference only for the base artwork.
                 // It is never saved as a full portrait.
                 if (needBase && baseReference == null)
-                    baseReference = await FetchReferenceAsync(page?["header_img_url"]?.GetValue<string>());
+                    baseReference = await FetchReferenceAsync(GetString(page?["header_img_url"]));
+
+                if (baseReference == null && outfitReference == null)
+                    continue;
 
                 foreach (var url in GetGalleryUrls(page))
                 {
                     if (!visited.Add(url))
                         continue;
                     var bytes = await imageFetcher.FetchBytesAsync(url, token);
-                    if (bytes == null || !imageHashes.Add(Convert.ToHexString(SHA256.HashData(bytes))) ||
-                        !IsPortraitCandidate(bytes))
+                    if (bytes == null || !imageHashes.Add(Convert.ToHexString(SHA256.HashData(bytes))))
                         continue;
+                    if (!IsPortraitCandidate(bytes))
+                    {
+                        logger.LogDebug("Skipping ZZZ portrait {Url}: invalid PNG, transparency, or full-art bounds", url);
+                        continue;
+                    }
 
-                    if (needBase && baseUrl == null && baseReference != null &&
-                        (await portraitMatcher.MatchAsync(baseReference, bytes, token)).IsMatch)
-                        baseUrl = url;
-
-                    if (needOutfit && outfitUrl == null && outfitReference != null &&
-                        (await portraitMatcher.MatchAsync(outfitReference, bytes, token)).IsMatch)
-                        outfitUrl = url;
+                    var matchesBase = needBase && baseUrl == null && baseReference != null &&
+                        (await portraitMatcher.MatchAsync(baseReference, bytes, token)).IsMatch;
+                    var matchesOutfit = needOutfit && outfitUrl == null && outfitReference != null &&
+                        (await portraitMatcher.MatchAsync(outfitReference, bytes, token)).IsMatch;
+                    if (matchesBase && matchesOutfit)
+                    {
+                        logger.LogDebug("Skipping ambiguous ZZZ portrait {Url} matching both base and outfit", url);
+                        continue;
+                    }
+                    if (matchesBase) baseUrl = url;
+                    if (matchesOutfit) outfitUrl = url;
 
                     if ((!needBase || baseUrl != null) && (!needOutfit || outfitUrl != null))
                         return Result<ZzzPortraitUrls>.Success(new(baseUrl, outfitUrl));
@@ -113,7 +127,7 @@ internal sealed class ZzzPortraitResolver(
                 bytes = await imageFetcher.FetchBytesAsync(url, token);
                 references[url] = bytes;
             }
-            return bytes;
+            return bytes is { Length: > 0 } ? bytes : null;
         }
     }
 
@@ -121,32 +135,38 @@ internal sealed class ZzzPortraitResolver(
     {
         // Game-record artwork URLs use _{avatarId}_{outfitId}.png for skins.
         return Regex.Replace(avatar.RoleVerticalPaintingUrl,
-            $@"_{avatar.Id}_\d+(?=\.png(?:\?|$))", $"_{avatar.Id}", RegexOptions.IgnoreCase);
+            $@"_{avatar.Id}_\d+(?=\.[^./?#]+(?:[?#]|$))", $"_{avatar.Id}", RegexOptions.IgnoreCase);
     }
 
-    private static IEnumerable<string> GetGalleryUrls(JsonNode? page)
+    private static string? GetString(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    private static IEnumerable<string> GetGalleryUrls(JsonObject? page)
     {
-        foreach (var component in page?["modules"]?.AsArray()
-            .SelectMany(x => x?["components"]?.AsArray() ?? []) ?? [])
+        foreach (var module in page?["modules"] as JsonArray ?? [])
         {
-            if (component?["component_id"]?.GetValue<string>() != "gallery_character")
-                continue;
-            JsonArray? entries;
-            try
+            foreach (var component in (module as JsonObject)?["components"] as JsonArray ?? [])
             {
-                var data = component["data"]?.GetValue<string>();
-                entries = string.IsNullOrWhiteSpace(data) ? null : JsonNode.Parse(data)?["list"]?.AsArray();
-            }
-            catch (System.Text.Json.JsonException)
-            {
-                continue;
-            }
-            foreach (var entry in entries ?? [])
-            {
-                var url = entry?["img"]?.GetValue<string>();
-                if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-                    uri.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-                    yield return url!;
+                if (component is not JsonObject obj || GetString(obj["component_id"]) != "gallery_character")
+                    continue;
+                JsonArray? entries;
+                try
+                {
+                    var data = GetString(obj["data"]);
+                    entries = string.IsNullOrWhiteSpace(data) ? null :
+                        (JsonNode.Parse(data) as JsonObject)?["list"] as JsonArray;
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    continue;
+                }
+                foreach (var entry in entries ?? [])
+                {
+                    var url = GetString((entry as JsonObject)?["img"]);
+                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+                        uri.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                        yield return url!;
+                }
             }
         }
     }
@@ -159,7 +179,7 @@ internal sealed class ZzzPortraitResolver(
                 return false;
             using var image = Image.Load<Rgba32>(bytes);
             long transparent = 0, visible = 0;
-            var bottomVisible = 0;
+            var lastRowOpaqueCount = 0;
             image.ProcessPixelRows(accessor =>
             {
                 for (var y = 0; y < accessor.Height; y++)
@@ -171,16 +191,16 @@ internal sealed class ZzzPortraitResolver(
                         if (pixel.A > 128) visible++;
                         if (pixel.A > 128) rowVisible++;
                     }
-                    if (rowVisible > 0) bottomVisible = rowVisible;
+                    if (rowVisible > 0) lastRowOpaqueCount = rowVisible;
                 }
             });
             // Actual transparency, not merely an alpha channel. A broad solid
             // bottom edge of the visible content indicates a cropped header/thumbnail,
             // including headers with transparent padding below the crop.
             return transparent >= (long)image.Width * image.Height / 100 && visible > 0 &&
-                bottomVisible <= image.Width * 0.2;
+                lastRowOpaqueCount <= image.Width * 0.2;
         }
-        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
+        catch (Exception ex) when (ex is ImageFormatException or NotSupportedException)
         {
             return false;
         }

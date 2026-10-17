@@ -716,10 +716,11 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode(
                 "https://example.com/base.png", "https://example.com/outfit.png")));
         m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreatePortraitBytes(1));
+            .ReturnsAsync((string url, CancellationToken _) =>
+                CreatePortraitBytes((byte)(url.Contains("outfit.png") || url.Contains("role_square_avatar") ? 2 : 1)));
         m_PortraitMatcherMock.Setup(x => x.MatchAsync(
                 It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((true, 1f));
+            .ReturnsAsync((byte[] reference, byte[] candidate, CancellationToken _) => (reference[^1] == candidate[^1], 1f));
 
         var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 
@@ -752,6 +753,47 @@ public class ZzzCharacterApplicationServiceTests
             Assert.That(capturedContext!.PortraitImageStream, Is.Not.Null);
             Assert.That(capturedContext.PortraitConfig!.OffsetX, Is.EqualTo(7));
         }
+    }
+
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    public async Task ExecuteAsync_ActiveCustomPortraitWithoutStock_OnlyRequiresSuccessfulCustomDownload(
+        bool wikiFails, bool customDownloadSucceeds)
+    {
+        var (service, characterApi, _, _, imageRepository, imageUpdater, gameRoleApi, wikiApi,
+            cardService, _, _, _, _, _) = SetupMocks();
+        gameRoleApi.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        characterApi.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
+        var data = await LoadTestDataAsync("Jane_TestData.json");
+        if (!wikiFails) data.AvatarWiki.Clear();
+        characterApi.Setup(x => x.GetCharacterDetailAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<ZzzFullAvatarData>.Success(data));
+        imageRepository.Setup(x => x.FileExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string file, CancellationToken _) => Task.FromResult(file != "zzz/portrait_1261.png"));
+        imageUpdater.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        wikiApi.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.Timeout, "Wiki unavailable"));
+        var uploadId = Guid.NewGuid();
+        m_UserPortraitServiceMock.Setup(x => x.GetUserPortraitsAsync(1, Game.ZenlessZoneZero, "Jane", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new UserPortraitUploadDto
+            {
+                Id = uploadId, S3Key = "portraits/custom.png", IsActive = true, Config = new UserPortraitConfigDto()
+            }]);
+        m_UserPortraitServiceMock.Setup(x => x.GetPortraitImageAsync(1, "portraits/custom.png", uploadId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customDownloadSucceeds ? new AttachmentDownloadResult(new MemoryStream([1]), "image/png") : null);
+        cardService.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var result = await service.ExecuteAsync(CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString())));
+
+        Assert.That(result.IsSuccess, Is.EqualTo(customDownloadSucceeds), result.ErrorMessage);
+        cardService.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>(), It.IsAny<CancellationToken>()),
+            customDownloadSucceeds ? Times.Once() : Times.Never());
     }
 
     [Test]
@@ -907,10 +949,11 @@ public class ZzzCharacterApplicationServiceTests
             .ReturnsAsync(Result<JsonNode>.Success(CreateWikiGalleryNode(
                 "https://example.com/base.png", "https://example.com/outfit.png")));
         m_ImageFetcherMock.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreatePortraitBytes(1));
+            .ReturnsAsync((string url, CancellationToken _) =>
+                CreatePortraitBytes((byte)(url.Contains("outfit.png") || url.Contains("role_square_avatar") ? 2 : 1)));
         m_PortraitMatcherMock.Setup(x => x.MatchAsync(
                 It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((true, 1f));
+            .ReturnsAsync((byte[] reference, byte[] candidate, CancellationToken _) => (reference[^1] == candidate[^1], 1f));
 
         var context = CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString()));
 

@@ -251,7 +251,7 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 {
                     if (galleryResult.StatusCode == StatusCode.Cancelled)
                         throw new OperationCanceledException(galleryResult.ErrorMessage ?? "Cancelled");
-                    if (!hasExistingPortrait)
+                    if (!hasExistingPortrait && activePortrait == null)
                     {
                         if (galleryResult.StatusCode == StatusCode.Timeout)
                             return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
@@ -295,14 +295,15 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
             await Task.WhenAll(tasks);
         }
 
+        var baseRequired = !hasExistingPortrait && activePortrait == null && outfitPortraitUpdateTask?.Result != true;
         var requiredImageUpdateFailed = tasks
             .Where(x => x != outfitPortraitUpdateTask &&
-                (x != basePortraitUpdateTask || (!hasExistingPortrait && outfitPortraitUpdateTask?.Result != true)))
+                (x != basePortraitUpdateTask || baseRequired))
             .Any(x => !x.Result);
 
         var hasPortrait = hasExistingPortrait || basePortraitUpdateTask?.Result == true ||
             outfitPortraitUpdateTask?.Result == true;
-        if (requiredImageUpdateFailed || !hasPortrait)
+        if (requiredImageUpdateFailed || (activePortrait == null && !hasPortrait))
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(charInfo));
@@ -349,6 +350,9 @@ internal class ZzzCharacterApplicationService : BaseAttachmentApplicationService
                 () => m_PortraitConfigService.GetConfigAsync(Game.ZenlessZoneZero, charInfo.Id, portraitSubId), cancellationToken)
             : new PortraitResolution(null,
                 stockConfig);
+        if (resolution.UsedStockFallback && !hasPortrait)
+            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+
         if (resolution.UsedStockFallback)
         {
             fileName = GetCardFileName("zzz", "character", "v1", characterData, profile,

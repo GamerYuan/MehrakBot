@@ -98,15 +98,127 @@ public class ZzzPortraitResolverTests
         matcher.Verify(x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Test]
-    public async Task ResolveAsync_PropagatesCallerCancellation()
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task ResolveAsync_PropagatesCallerCancellation(bool needBase)
     {
         var avatar = await LoadYixuanAsync();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
         var resolver = new ZzzPortraitResolver(Mock.Of<IApiService<JsonNode, WikiApiContext>>(),
             Mock.Of<IImageFetcher>(), Mock.Of<IPortraitMatcher>(), NullLogger.Instance);
-        Assert.ThrowsAsync<OperationCanceledException>(() => resolver.ResolveAsync(1, "752", avatar, true, true, cts.Token));
+        Assert.ThrowsAsync<OperationCanceledException>(() => resolver.ResolveAsync(1, "752", avatar, needBase, true, cts.Token));
+    }
+
+    [Test]
+    public async Task ResolveAsync_InternalCancellationReturnsTimeout()
+    {
+        var avatar = await LoadYixuanAsync();
+        var fetcher = new Mock<IImageFetcher>();
+        fetcher.Setup(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        var resolver = new ZzzPortraitResolver(Mock.Of<IApiService<JsonNode, WikiApiContext>>(),
+            fetcher.Object, Mock.Of<IPortraitMatcher>(), NullLogger.Instance);
+
+        var result = await resolver.ResolveAsync(1, "752", avatar, true, true, CancellationToken.None);
+
+        Assert.That(result.IsSuccess, Is.False);
+        Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Timeout));
+    }
+
+    [Test]
+    public async Task ResolveAsync_SkipsMalformedWikiFieldsAndContinuesToValidEntries()
+    {
+        var avatar = await LoadYixuanAsync();
+        var page = Gallery("YixuanOutfitPortrait.png");
+        page["data"]!["page"]!["header_img_url"] = 42;
+        var components = page["data"]!["page"]!["modules"]![0]!["components"]!.AsArray();
+        components.Insert(0, new JsonObject { ["component_id"] = 42 });
+        components.Insert(0, new JsonObject { ["component_id"] = "gallery_character", ["data"] = 42 });
+        components.Insert(0, new JsonObject { ["component_id"] = "gallery_character", ["data"] = "{invalid" });
+        components.Insert(0, new JsonObject
+        {
+            ["component_id"] = "gallery_character",
+            ["data"] = "{\"list\":[null,42,{\"img\":42},{\"img\":{}}]}"
+        });
+        var wiki = new Mock<IApiService<JsonNode, WikiApiContext>>();
+        wiki.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(page));
+        var fetcher = Fetcher(avatar.RoleVerticalPaintingUrl, "YixuanOutfitReference.png");
+        fetcher.Setup(x => x.FetchBytesAsync(ZzzPortraitResolver.GetBaseReferenceUrl(avatar), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        var resolver = new ZzzPortraitResolver(wiki.Object, fetcher.Object, RealMatcher().Object, NullLogger.Instance);
+
+        var result = await resolver.ResolveAsync(1, "752", avatar, true, true, CancellationToken.None);
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Data!.Outfit, Does.EndWith("YixuanOutfitPortrait.png"));
+        Assert.That(result.Data.Base, Is.Null);
+    }
+
+    [Test]
+    public async Task ResolveAsync_AmbiguousCandidateCannotFillBothSlots()
+    {
+        var avatar = await LoadYixuanAsync();
+        var wiki = new Mock<IApiService<JsonNode, WikiApiContext>>();
+        wiki.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(Gallery("YixuanBasePortrait.png")));
+        var fetcher = Fetcher(avatar.RoleVerticalPaintingUrl, "YixuanOutfitReference.png");
+        fetcher.Setup(x => x.FetchBytesAsync(ZzzPortraitResolver.GetBaseReferenceUrl(avatar), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(File.ReadAllBytes(Path.Combine(PortraitPath, "YixuanBaseReference.png")));
+        var matcher = new Mock<IPortraitMatcher>();
+        matcher.Setup(x => x.MatchAsync(It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, 1f));
+        var resolver = new ZzzPortraitResolver(wiki.Object, fetcher.Object, matcher.Object, NullLogger.Instance);
+
+        var result = await resolver.ResolveAsync(1, "752", avatar, true, true, CancellationToken.None);
+
+        Assert.That(result.IsSuccess, Is.False);
+    }
+
+    [Test]
+    public async Task ResolveAsync_MissingOutfitReferenceDoesNotDownloadGalleries()
+    {
+        var avatar = await LoadYixuanAsync();
+        var wiki = new Mock<IApiService<JsonNode, WikiApiContext>>();
+        var fetcher = new Mock<IImageFetcher>();
+        var resolver = new ZzzPortraitResolver(wiki.Object, fetcher.Object, Mock.Of<IPortraitMatcher>(), NullLogger.Instance);
+
+        var result = await resolver.ResolveAsync(1, "752", avatar, false, true, CancellationToken.None);
+
+        Assert.That(result.IsSuccess, Is.False);
+        wiki.Verify(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()), Times.Never);
+        fetcher.Verify(x => x.FetchBytesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ResolveAsync_MissingGameReferenceStillUsesWikiHeaderFallback()
+    {
+        var avatar = await LoadYixuanAsync();
+        var page = Gallery("EllenPortrait.png");
+        page["data"]!["page"]!["header_img_url"] = "https://example.com/EllenReference.png";
+        var wiki = new Mock<IApiService<JsonNode, WikiApiContext>>();
+        wiki.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<JsonNode>.Success(page));
+        var fetcher = Fetcher("https://example.com/EllenReference.png", "EllenReference.png");
+        fetcher.Setup(x => x.FetchBytesAsync(ZzzPortraitResolver.GetBaseReferenceUrl(avatar), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        var resolver = new ZzzPortraitResolver(wiki.Object, fetcher.Object, RealMatcher().Object, NullLogger.Instance);
+
+        var result = await resolver.ResolveAsync(1, "29", avatar, true, false, CancellationToken.None);
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Data!.Base, Does.EndWith("EllenPortrait.png"));
+    }
+
+    [TestCase("https://example.com/role_1371_3113711.png?x=1", "https://example.com/role_1371.png?x=1")]
+    [TestCase("https://example.com/role_1371_3113711.webp#art", "https://example.com/role_1371.webp#art")]
+    [TestCase("https://example.com/role_1371.png", "https://example.com/role_1371.png")]
+    public async Task GetBaseReferenceUrl_UsesSameSuffixRuleForAllFormats(string url, string expected)
+    {
+        var avatar = await LoadYixuanAsync();
+        avatar.RoleVerticalPaintingUrl = url;
+        Assert.That(ZzzPortraitResolver.GetBaseReferenceUrl(avatar), Is.EqualTo(expected));
     }
 
     [TestCase("EllenMindscape.png", false)]
