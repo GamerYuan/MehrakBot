@@ -242,7 +242,8 @@ internal class Hi3CharacterCardService : CharacterCardServiceBase<Hi3CharacterDe
     private void DrawStigmataIcon(DrawingCanvas canvas, Point location, Image stigmataImage, Hi3Stigmata info)
     {
         using var region = canvas.CreateRegion(new Rectangle(location, new Size(132, 148)));
-        region.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, 132, 148, 10));
+        region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(0, 0, 132, 148, 10));
         region.Fill(Brushes.Solid(m_RarityColor[info.Rarity]));
         region.Fill(Brushes.Solid(Color.White), new Rectangle(0, 0, 132, 16));
         region.Fill(Brushes.Solid(Color.White), new Rectangle(0, 132, 132, 16));
