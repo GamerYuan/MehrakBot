@@ -226,7 +226,8 @@ public class ZzzTowerCardService : CardServiceBase<ZzzTowerData>
     private void DrawStyledDisplayEntry(DrawingCanvas canvas, Point position, ZzzTowerAvatar data, ZzzAvatar avatar)
     {
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(DisplayEntryWidth, DisplayEntryHeight)));
-        region.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, DisplayEntryWidth, DisplayEntryHeight, 15));
+        region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(0, 0, DisplayEntryWidth, DisplayEntryHeight, 15));
         region.Fill(Brushes.Solid(OverlayColor));
         region.Restore();
 

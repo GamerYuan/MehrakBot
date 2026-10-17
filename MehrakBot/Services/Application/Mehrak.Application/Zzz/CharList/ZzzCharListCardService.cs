@@ -72,7 +72,7 @@ public class ZzzCharListCardService : CardServiceBase<(IEnumerable<ZzzBasicAvata
             return (Key: name, Large: image.Clone(x => x.Resize(40, 0, KnownResamplers.Bicubic)), Small: image.Clone(x => x.Resize(30, 0, KnownResamplers.Bicubic)));
         }).ToList();
 
-        var professionTasks = Enumerable.Range(1, 6).Select(async professionId =>
+        var professionTasks = Enumerable.Range(1, 7).Select(async professionId =>
         {
             var iconName = string.Format(FileNameFormat.Zzz.ProfessionName, professionId);
             await using var stream = await ImageRepository.DownloadFileToStreamAsync(iconName, cancellationToken);

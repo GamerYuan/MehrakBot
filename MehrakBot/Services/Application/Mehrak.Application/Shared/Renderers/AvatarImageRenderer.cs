@@ -42,10 +42,7 @@ public record AvatarImageStyle(
 
 public static class AvatarImageRenderer
 {
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
-    };
+    private static readonly DrawingOptions ClipOptions = new();
 
     /// <summary>
     /// Draws a styled avatar image with rarity background, level overlay, and optional constellation/rank badge.
@@ -74,7 +71,8 @@ public static class AvatarImageRenderer
 
         using var region = canvas.CreateRegion(new Rectangle(location, size));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, size), style.CornerRadius);
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
 
         // Rarity background
         region.Fill(Brushes.Solid(rarity == 4 ? style.PurpleBackgroundColor : style.GoldBackgroundColor));

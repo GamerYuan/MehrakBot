@@ -256,7 +256,8 @@ internal class ZzzDefenseCardService : CardServiceBase<ZzzDefenseDataV2>
         Image? buddyImage)
     {
         using var region = canvas.CreateRegion(new Rectangle(location.X, location.Y, 900, 260));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(0, 0, 900, 260, 15));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(0, 0, 900, 260, 15));
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.DrawImage(bossImage, bossImage.Bounds,
             new RectangleF(0, 0, bossImage.Width, bossImage.Height), KnownResamplers.Bicubic);

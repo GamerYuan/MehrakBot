@@ -66,13 +66,7 @@ public class CharacterModuleRenderer
 
     private static readonly Size LevelOverlaySize = new(150, 30);
 
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions()
-        {
-            BooleanOperation = BooleanOperation.Intersection,
-        }
-    };
+    private static readonly DrawingOptions ClipOptions = new();
 
     public CharacterModuleRenderer(CharacterModuleStyle style)
     {
@@ -260,7 +254,8 @@ public class CharacterModuleRenderer
 
         using var region = canvas.CreateRegion(new Rectangle(position, AvatarSize));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, AvatarSize), 10);
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
 
         var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
             LevelOverlaySize.Width, LevelOverlaySize.Height);
@@ -287,7 +282,8 @@ public class CharacterModuleRenderer
             },
                 data.ConstellationNum.ToString()!,
                 Brushes.Solid(data.ConstellationNum == 6 ? m_Style.GoldConstTextColor : Color.White), null);
-            _ = region.Save(ClipOptions, clipPath);
+            _ = region.Save(ClipOptions);
+            region.Clip(clipPath);
         }
 
         if (data.Icon != null)
@@ -317,7 +313,8 @@ public class CharacterModuleRenderer
 
         using var region = canvas.CreateRegion(new Rectangle(position, WeaponSize));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, WeaponSize), 10);
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
 
         var rectangle = new Rectangle(0, height - LevelOverlaySize.Height,
             LevelOverlaySize.Width, LevelOverlaySize.Height);
@@ -345,7 +342,8 @@ public class CharacterModuleRenderer
             },
                 weapon.AffixLevel.ToString()!,
                 Brushes.Solid(weapon.AffixLevel == 5 ? m_Style.GoldConstTextColor : Color.White), null);
-            _ = region.Save(ClipOptions, clipPath);
+            _ = region.Save(ClipOptions);
+            region.Clip(clipPath);
         }
 
         if (m_Style.AvatarBorderColor.HasValue)

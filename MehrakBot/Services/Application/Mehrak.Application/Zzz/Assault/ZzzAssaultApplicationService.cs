@@ -35,13 +35,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly IApiService<ZzzAssaultData, BaseHoYoApiContext> m_ApiService;
 
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions
-        {
-            BooleanOperation = BooleanOperation.Intersection
-        }
-    };
+    private static readonly DrawingOptions ClipOptions = new();
 
     protected override string CommandName => "Assault";
     protected override string CardName => "Deadly Assault";
@@ -193,7 +187,8 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                 var border = new RoundedRectanglePolygon(0, 0, background.Width, background.Height, 15);
                 ctx.Paint(canvas =>
                 {
-                    _ = canvas.Save(ClipOptions, border);
+                    _ = canvas.Save(ClipOptions);
+                    canvas.Clip(border);
                     canvas.DrawImage(background, background.Bounds,
                         new RectangleF(0, 0, background.Width, background.Height), KnownResamplers.Bicubic);
                     canvas.Restore();

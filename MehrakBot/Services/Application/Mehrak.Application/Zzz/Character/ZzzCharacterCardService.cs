@@ -89,7 +89,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
 
         List<Task<(int x, Image)>> professionTasks =
         [
-            .. Enumerable.Range(1, 6).Select(async i =>
+            .. Enumerable.Range(1, 7).Select(async i =>
                 (i, await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
                     string.Format(FileNameFormat.Zzz.ProfessionName, i), cancellationToken), cancellationToken)))
         ];
@@ -356,7 +356,8 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
     private void DrawWeaponModule(DrawingCanvas canvas, Point position, Weapon? weapon, Image? weaponImage)
     {
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(450, 330)));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(450, 330)), 30));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(450, 330)), 30));
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.Restore();
 
@@ -415,7 +416,8 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
     {
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(850, 190)));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(850, 190)), 30);
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.Restore();
         region.DrawText(new RichTextOptions(Fonts.Normal)
@@ -430,7 +432,8 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
     {
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(850, 190)));
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(850, 190)), 30);
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
         region.Fill(Brushes.Solid(LocalOverlayColor));
         region.DrawImage(diskImage, diskImage.Bounds,
             new RectangleF(10, 25, diskImage.Width, diskImage.Height), KnownResamplers.Bicubic);
