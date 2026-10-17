@@ -23,7 +23,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode-go/claude-haiku-5.5
+          model: opencode-go/claude-haiku-5-5
           use_github_token: true
           prompt: |
             Review this pull request:
