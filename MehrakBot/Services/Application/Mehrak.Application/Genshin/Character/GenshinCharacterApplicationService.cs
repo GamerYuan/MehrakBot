@@ -183,8 +183,14 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
                     : x), OperationOutcome.Failed));
         }
 
+        // The detail API may return characters outside the requested set; filter them out
+        // before rendering so they are never processed and cannot break result association.
+        var requestedCharacterData = characterInfo.Data.List
+            .Where(x => requestedNames.ContainsKey(x.Base.Id))
+            .ToList();
+
         var (results, timedOut) = await CharacterBatchProcessor.ProcessAsync(
-            characterInfo.Data.List,
+            requestedCharacterData,
             (charData, ct) => ProcessCharacterAsync(context, server, profile, charData,
                 characterInfo.Data.AvatarWiki, characterInfo.Data.WeaponWiki, ct),
             m_DispatcherConfig.Value.MaxCharacterParallelism,
@@ -192,7 +198,7 @@ internal class GenshinCharacterApplicationService : BaseAttachmentApplicationSer
 
         for (var i = 0; i < results.Count; i++)
         {
-            var charData = characterInfo.Data.List[i];
+            var charData = requestedCharacterData[i];
             var requestedName = requestedNames[charData.Base.Id];
             var index = items.FindIndex(x => x.CharacterId == charData.Base.Id);
             var result = results[i];

@@ -623,6 +623,44 @@ public class CodeRedeemApplicationServiceTests
         api.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Once);
     }
 
+    [Test]
+    public async Task ExecuteAsync_SuccessfulRedeemFollowedByTimeout_PersistsPriorStatuses()
+    {
+        // Arrange
+        var (service, codeContext, api, profileApi, _) = SetupMocks();
+        profileApi.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        api.SetupSequence(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()))
+            .ReturnsAsync(Result<CodeRedeemResult>.Success(
+                new CodeRedeemResult("Success", CodeStatus.Valid, RedemptionOutcome.Redeemed)))
+            .ReturnsAsync(Result<CodeRedeemResult>.Failure(StatusCode.Timeout, "timed out"));
+
+        // Act
+        var result = await service.ExecuteAsync(CreateContext(1, 12345ul, "test",
+            ("game", Game.Genshin), ("code", "SUCCESS,TIMEDOUT,UNTRIED"), ("server", Server.Asia.ToString())));
+
+        // Assert — timeout envelope retains ordered outcome items
+        var outcome = (CodeRedemptionOutcome)result.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.Timeout));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.Timeout));
+            Assert.That(outcome.Items.Select(x => x.Code), Is.EqualTo(new[] { "SUCCESS", "TIMEDOUT", "UNTRIED" }));
+            Assert.That(outcome.Items[0].Outcome, Is.EqualTo(RedemptionOutcome.Redeemed));
+            Assert.That(outcome.Items[1].Outcome, Is.EqualTo(RedemptionOutcome.Failed));
+            Assert.That(outcome.Items[1].Error!.Code, Is.EqualTo(CommandErrorCode.Timeout));
+            Assert.That(outcome.Items[2].Outcome, Is.EqualTo(RedemptionOutcome.NotAttempted));
+            Assert.That(outcome.Items[2].Error, Is.Null);
+            Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Partial));
+        });
+
+        // Prior successful redemption is persisted; timed-out and unattempted codes are not written
+        Assert.That(await codeContext.Codes.CountAsync(), Is.EqualTo(1));
+        Assert.That(await codeContext.Codes.AnyAsync(c => c.Code == "SUCCESS" && c.Game == Game.Genshin), Is.True);
+        api.Verify(x => x.GetAsync(It.IsAny<CodeRedeemApiContext>()), Times.Exactly(2));
+    }
+
     #endregion
 
     #region Helper Methods

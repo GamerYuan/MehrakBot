@@ -1214,6 +1214,63 @@ public class GenshinCharacterApplicationServiceTests
     }
 
     [Test]
+    public async Task ExecuteAsync_DetailListContainsUnrequestedCharacters_RendersOnlyRequested()
+    {
+        // Arrange — detail API returns an extra character that was not requested
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, metricsMock, attachmentStorageMock, _, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        characterApiMock
+            .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateTestCharacterList()));
+
+        var characterDetail = await CreateDistinctMultiCharacterDetailAsync();
+        characterApiMock
+            .Setup(x => x.GetCharacterDetailAsync(It.IsAny<GenshinCharacterApiContext>()))
+            .ReturnsAsync(Result<GenshinCharacterDetail>.Success(characterDetail));
+
+        imageRepositoryMock
+            .Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        imageUpdaterMock
+            .Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        cardServiceMock
+            .Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var context = CreateContext(1, 1ul, "test", ("character", "Traveler"), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // Assert — only the requested character is rendered; the unrequested detail entry
+            // must neither be rendered nor add an outcome slot.
+            Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+            var items = ((CharacterCardsOutcome)result.Outcome!).Items;
+            Assert.That(items, Has.Length.EqualTo(1));
+            Assert.That(items[0].RequestedName, Is.EqualTo("Traveler"));
+            Assert.That(items[0].CharacterId, Is.EqualTo(10000005));
+            Assert.That(items[0].Status, Is.EqualTo(CharacterCardStatus.Generated));
+            Assert.That(items[0].Image, Is.Not.Null);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Complete));
+        }
+
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinCharacterInformation>>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "traveler"), Times.Once);
+        metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.Genshin), "jean"), Times.Never);
+    }
+
+    [Test]
     public async Task ExecuteAsync_MultipleValidCharacters_ReturnsMultipleAttachments()
     {
         // Arrange

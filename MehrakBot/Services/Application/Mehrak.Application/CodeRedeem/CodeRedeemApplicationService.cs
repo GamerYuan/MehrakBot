@@ -120,6 +120,10 @@ public class CodeRedeemApplicationService : BaseApplicationService
             {
                 items.Add(RedemptionItem.Failed(code, new(CommandErrorCode.Timeout, CommandErrorTarget.CodeRedemption)));
                 items.AddRange(codes.Skip(i + 1).Select(RedemptionItem.NotAttempted));
+                // Persist statuses accumulated before the timeout so prior successful
+                // redemptions are not lost from the cache; timeout precedence is kept.
+                if (successfulCodes.Count > 0)
+                    await UpdateCodesAsync(game, successfulCodes, cancellationToken);
                 return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout,
                     CommandErrorTarget.CodeRedemption, CodeRedemptionOutcome.Create(game, gameUid, items,
                         items.Any(x => x.Outcome != RedemptionOutcome.Failed && x.Outcome != RedemptionOutcome.NotAttempted)
