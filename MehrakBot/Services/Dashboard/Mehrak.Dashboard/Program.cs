@@ -22,12 +22,28 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Client;
+using OpenIddict.Client.WebIntegration;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Mehrak.Dashboard;
 
 public class Program
 {
+    internal static void ConfigureDiscordIssuerSupport(OpenIddictClientOptions options)
+    {
+        // OpenIddict 7.5 embeds Discord metadata from before its RFC 9207 rollout.
+        // Amend it after provider configuration so the built-in issuer validation stays enabled.
+        foreach (var registration in options.Registrations)
+        {
+            if (registration.ProviderType == OpenIddictClientWebIntegrationConstants.ProviderTypes.Discord &&
+                registration.Configuration is { } configuration)
+            {
+                configuration.AuthorizationResponseIssParameterSupported = true;
+            }
+        }
+    }
+
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -242,6 +258,8 @@ public class Program
                                   .SetRedirectUri("/auth/callback");
                        });
             });
+
+        builder.Services.PostConfigure<OpenIddictClientOptions>(ConfigureDiscordIssuerSupport);
 
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy("RequireSuperAdmin", policy =>
