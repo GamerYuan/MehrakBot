@@ -162,7 +162,8 @@ public class ImageRepository : IImageRepository
 
             var response = await m_S3.ListObjectsV2Async(listReq, cancellationToken).ConfigureAwait(false);
 
-            keys.AddRange(response.S3Objects.Select(o => o.Key));
+            if (response.S3Objects is { } objects)
+                keys.AddRange(objects.Select(o => o.Key));
             continuationToken = response.IsTruncated ?? false ? response.NextContinuationToken : null;
 
         } while (continuationToken != null);
