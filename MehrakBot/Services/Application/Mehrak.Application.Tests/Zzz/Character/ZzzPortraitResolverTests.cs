@@ -18,7 +18,7 @@ namespace Mehrak.Application.Tests.Zzz.Character;
 [Parallelizable(ParallelScope.All)]
 public class ZzzPortraitResolverTests
 {
-    private static readonly string PortraitPath = Path.Combine(AppContext.BaseDirectory, "TestData", "Zzz", "Portraits");
+    private static readonly string PortraitPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz", "TestData");
 
     [Test]
     public async Task ResolveAsync_EllenRejectsMindscapeAndCroppedHeaderBeforeRetryingAnotherLocale()
