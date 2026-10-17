@@ -89,7 +89,7 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
 
         List<Task<(int x, Image)>> professionTasks =
         [
-            .. Enumerable.Range(1, 6).Select(async i =>
+            .. Enumerable.Range(1, 7).Select(async i =>
                 (i, await Image.LoadAsync(await ImageRepository.DownloadFileToStreamAsync(
                     string.Format(FileNameFormat.Zzz.ProfessionName, i), cancellationToken), cancellationToken)))
         ];
