@@ -16,10 +16,7 @@ internal static class AvatarImageUtility
 {
     private static readonly AvatarImageStyle Style;
 
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
-    };
+    private static readonly DrawingOptions ClipOptions = new();
 
     static AvatarImageUtility()
     {
@@ -69,6 +66,7 @@ internal static class AvatarImageUtility
             Origin = new PointF(textX, 3),
             VerticalAlignment = VerticalAlignment.Top
         }, badgeText, Brushes.Solid(Color.White), null);
-        region.Save(ClipOptions, clipPath);
+        region.Save(ClipOptions);
+        region.Clip(clipPath);
     }
 }

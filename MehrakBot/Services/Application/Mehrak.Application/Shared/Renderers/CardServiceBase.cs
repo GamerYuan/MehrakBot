@@ -72,13 +72,7 @@ public abstract class CardServiceBase<TData> : ICardService<TData>, IAsyncInitia
 
     protected Image<Rgba32>? StaticBackground;
 
-    protected static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions()
-        {
-            BooleanOperation = BooleanOperation.Intersection,
-        }
-    };
+    protected static readonly DrawingOptions ClipOptions = new();
 
     protected CardServiceBase(
         string cardTypeName,

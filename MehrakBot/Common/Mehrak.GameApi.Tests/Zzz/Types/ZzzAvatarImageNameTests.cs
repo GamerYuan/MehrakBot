@@ -4,6 +4,39 @@ using Mehrak.GameApi.Zzz.Types;
 namespace Mehrak.GameApi.Tests.Zzz.Types;
 
 [TestFixture]
+public class ZzzAvatarDataPortraitTests
+{
+    [TestCase("1371_3113711", "1371", 3113711)]
+    [TestCase("1371_3113711", "1371_8888", 3113711)]
+    [TestCase("1371", "1371_8888", 8888)]
+    [TestCase("1371", "1371", null)]
+    public void PortraitIdentity_PrefersEquippedVerticalPainting(string verticalId, string squareId, int? expectedOutfit)
+    {
+        var avatar = new ZzzAvatarData
+        {
+            Id = 1371,
+            Name = "Yixuan",
+            FullName = "Yixuan",
+            CampName = "Yunkui Summit",
+            Rarity = "S",
+            GroupIconPath = "group.png",
+            HollowIconPath = "hollow.png",
+            Equip = [],
+            Properties = [],
+            Skills = [],
+            Ranks = [],
+            RoleVerticalPaintingUrl = $"https://example.com/role_vertical_painting_{verticalId}.png?x=1",
+            RoleSquareUrl = $"https://example.com/role_square_avatar_{squareId}.png?x=1",
+            VerticalPaintingColor = "#ffffff",
+            AwakenState = "0"
+        };
+
+        Assert.That(avatar.ToImageName(), Is.EqualTo(expectedOutfit is { } id
+            ? $"zzz/portrait_1371_{id}.png" : "zzz/portrait_1371.png"));
+    }
+}
+
+[TestFixture]
 public class ZzzBasicAvatarDataTests
 {
     [TestCase(

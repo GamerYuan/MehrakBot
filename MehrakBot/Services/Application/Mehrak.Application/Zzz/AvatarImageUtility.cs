@@ -16,10 +16,7 @@ internal static class AvatarImageUtility
 {
     private static readonly AvatarImageStyle Style;
 
-    private static readonly DrawingOptions ClipOptions = new()
-    {
-        ShapeOptions = new ShapeOptions() { BooleanOperation = BooleanOperation.Intersection }
-    };
+    private static readonly DrawingOptions ClipOptions = new();
 
     static AvatarImageUtility()
     {
@@ -49,7 +46,8 @@ internal static class AvatarImageUtility
     {
         var clipPath = new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(150, 180)), 15);
         using var region = canvas.CreateRegion(new Rectangle(position, new Size(150, 180)));
-        _ = region.Save(ClipOptions, clipPath);
+        _ = region.Save(ClipOptions);
+        region.Clip(clipPath);
         region.Fill(Brushes.Solid(Color.FromPixel(new Rgb24(24, 24, 24))));
         region.DrawImage(buddyImage, buddyImage.Bounds,
             new RectangleF(0, 0, buddyImage.Width, buddyImage.Height),

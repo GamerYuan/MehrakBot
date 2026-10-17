@@ -7,7 +7,7 @@ internal static class ZzzAvatarUtility
 {
     internal static string GetPortraitImageName(this ZzzAvatarData data)
     {
-        return string.Format(FileNameFormat.Zzz.PortraitName, GetOutfitSuffix(data.Id, data.RoleSquareUrl) ?? data.Id.ToString());
+        return string.Format(FileNameFormat.Zzz.PortraitName, GetPortraitOutfitSuffix(data) ?? data.Id.ToString());
     }
 
     internal static string GetAvatarImageName(int avatarId, string avatarUrl)
@@ -16,15 +16,20 @@ internal static class ZzzAvatarUtility
     }
 
     /// <summary>
-    /// Returns the equipped outfit id when the avatar URL carries a skin suffix
+    /// Returns the equipped outfit id when the vertical portrait or square avatar URL carries a skin suffix
     /// (<c>_{CharacterServerId}_{CharacterOutfitId}</c>), otherwise <see langword="null"/> for the base outfit.
     /// </summary>
     internal static int? GetPortraitSubId(this ZzzAvatarData data)
     {
-        var suffix = GetOutfitSuffix(data.Id, data.RoleSquareUrl);
+        var suffix = GetPortraitOutfitSuffix(data);
         return suffix != null && int.TryParse(suffix.Split('_')[1], out var subId)
             ? subId
             : null;
+    }
+
+    private static string? GetPortraitOutfitSuffix(ZzzAvatarData data)
+    {
+        return GetOutfitSuffix(data.Id, data.RoleVerticalPaintingUrl) ?? GetOutfitSuffix(data.Id, data.RoleSquareUrl);
     }
 
     private static string? GetOutfitSuffix(int avatarId, string avatarUrl)

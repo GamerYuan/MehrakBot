@@ -201,7 +201,8 @@ public class GenshinStygianCardService : CardServiceBase<StygianData>
     private void DrawChallengeImage(DrawingCanvas canvas, Point location, Challenge data, IEnumerable<GenshinAvatar> teamAvatars, Image monsterImage)
     {
         using var region = canvas.CreateRegion(new Rectangle(location, new Size(1000, 300)));
-        _ = region.Save(ClipOptions, new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1000, 300)), 15));
+        _ = region.Save(ClipOptions);
+        region.Clip(new RoundedRectanglePolygon(new RectangleF(Point.Empty, new Size(1000, 300)), 15));
 
         region.Fill(Brushes.Solid(OverlayColor));
         region.DrawImage(monsterImage, monsterImage.Bounds,

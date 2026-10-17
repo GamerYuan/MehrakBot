@@ -18,15 +18,16 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
       # anomalyco/opencode/github@latest (dev); pin updated manually
-      - uses: anomalyco/opencode/github@42922d0930bbf344e2bce3c4086f74fbcb4d92e9
+      - uses: anomalyco/opencode/github@80865407e084a20d1e8677ac12ad2cc1d7767a4a
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode-go/gpt-5.6-luna
+          model: opencode-go/claude-haiku-5-5
           use_github_token: true
           prompt: |
             Review this pull request:
             - Check for code quality issues
             - Look for potential bugs
             - Suggest improvements
+            - Always start from first principles and explain your reasoning
