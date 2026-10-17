@@ -8,8 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../../../Common/Mehrak.Domain/Mehrak.Domain.csproj" />
-        <ProjectReference
-            Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
+        <ProjectReference Include="../../../Common/Mehrak.Infrastructure/Mehrak.Infrastructure.csproj" />
         <ProjectReference Include="../../../Common/Mehrak.GameApi/Mehrak.GameApi.csproj" />
         <ProjectReference Include="../../Mehrak.ServiceDefaults/Mehrak.ServiceDefaults.csproj" />
     </ItemGroup>
@@ -18,8 +17,8 @@
         <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
         <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
         <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />
-        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="3.0.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="4.1.3" />
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="3.1.3" />
     </ItemGroup>
 
     <ItemGroup>
@@ -32,8 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="../../../Assets/**/*.*"
-            Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
+        <None Include="../../../Assets/**/*.*" Exclude="../../../Assets/.git/**/*;../../../Assets/.gitattributes">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>Assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
         </None>
