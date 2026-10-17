@@ -65,10 +65,10 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
             if (defenseResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(defenseResponse.ErrorMessage ?? "Cancelled");
             if (defenseResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Defense", context.UserId, gameUid, defenseResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Shiyu Defense data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.ShiyuDefense);
         }
 
         var defenseData = defenseResponse.Data!;
@@ -76,31 +76,21 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         if (defenseData.Brief == null)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense));
         }
 
         var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList;
         if (nonNull == null || nonNull.Count == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Shiyu Defense"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense));
         }
 
         var fileName = GetCardFileName("zzz", "defense", "v1", defenseData, profile, new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
-                        new CommandText(
-                            $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense,
+                StorageReference.Attachment(fileName), DateTimeOffset.FromUnixTimeSeconds(long.Parse(defenseData.BeginTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(defenseData.EndTime!))));
         }
 
         var updateImageTask = nonNull.SelectMany(x => x.AvatarList)
@@ -122,7 +112,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         if (completed.Any(x => !x))
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Shiyu Defense", context.UserId, gameUid);
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<ZzzDefenseDataV2>(context.UserId, defenseData, profile);
@@ -133,16 +123,10 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
         if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Shiyu Defense Summary", CommandText.TextType.Header3),
-                    new CommandText(
-                        $"Cycle start: <t:{defenseData.BeginTime}:f>\nCycle end: <t:{defenseData.EndTime}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense,
+                StorageReference.Attachment(fileName), DateTimeOffset.FromUnixTimeSeconds(long.Parse(defenseData.BeginTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(defenseData.EndTime!))));
     }
 }

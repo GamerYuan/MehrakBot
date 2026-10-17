@@ -35,7 +35,7 @@ public class CommandDispatcher : BackgroundService
             SingleWriter = false,
             FullMode = BoundedChannelFullMode.DropWrite
         }, item => item.CompletionSource
-            .TrySetResult(CommandResult.Failure(CommandFailureReason.BotError, "Server under high load")));
+            .TrySetResult(CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.ApiUnavailable)));
     }
 
     public async Task DispatchAsync(QueuedCommand command)
@@ -141,7 +141,7 @@ public class CommandDispatcher : BackgroundService
             {
                 m_Logger.LogWarning("No service registered for command {CommandName}", command.Request.CommandName);
                 var failure = CommandResult.Failure(CommandFailureReason.BotError,
-                    $"No service registered for command {command.Request.CommandName}");
+                    CommandErrorCode.InvalidRequest);
                 command.CompletionSource.TrySetResult(failure);
                 return;
             }

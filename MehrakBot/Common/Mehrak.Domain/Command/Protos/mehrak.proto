@@ -1,45 +1,8 @@
 ﻿syntax = "proto3";
 
 package mehrak.v1;
-
 option csharp_namespace = "Mehrak.Domain.Protobuf";
-
-enum AttachmentSourceType {
-  ATTACHMENT_SOURCE_TYPE_UNSPECIFIED = 0;
-  ATTACHMENT_SOURCE_TYPE_IMAGE_STORAGE = 1;
-  ATTACHMENT_SOURCE_TYPE_ATTACHMENT_STORAGE = 2;
-}
-
-message AttachmentReference {
-  string file_name = 1;
-  AttachmentSourceType source_type = 2;
-  string storage_file_name = 3;
-}
-
-message CommandText {
-  string content = 1;
-  int32 type_flags = 2; // Maps to TextType [Flags]
-}
-
-message CommandSection {
-  repeated CommandText components = 1;
-  AttachmentReference attachment = 2;
-}
-
-message CommandComponent {
-  oneof component {
-    CommandText text = 1;
-    CommandSection section = 2;
-    AttachmentReference attachment = 3;
-  }
-}
-
-message CommandResultData {
-  repeated CommandComponent components = 1;
-  bool is_container = 2;
-  bool is_ephemeral = 3;
-  string ephemeral_message = 4;
-}
+import "google/protobuf/timestamp.proto";
 
 enum CommandFailureReason {
   COMMAND_FAILURE_REASON_UNKNOWN = 0;
@@ -50,16 +13,305 @@ enum CommandFailureReason {
   COMMAND_FAILURE_REASON_TIMEOUT = 5;
 }
 
+enum AttachmentSourceType {
+  ATTACHMENT_SOURCE_TYPE_UNKNOWN = 0;
+  ATTACHMENT_SOURCE_TYPE_IMAGE_STORAGE = 1;
+  ATTACHMENT_SOURCE_TYPE_ATTACHMENT_STORAGE = 2;
+}
+
+enum OperationOutcome {
+  OPERATION_OUTCOME_UNKNOWN = 0;
+  OPERATION_OUTCOME_COMPLETE = 1;
+  OPERATION_OUTCOME_EMPTY = 2;
+  OPERATION_OUTCOME_NOT_UNLOCKED = 3;
+  OPERATION_OUTCOME_PARTIAL = 4;
+  OPERATION_OUTCOME_REQUEST_LIMIT_EXCEEDED = 5;
+  OPERATION_OUTCOME_ALREADY_COMPLETED = 6;
+  OPERATION_OUTCOME_FAILED = 7;
+}
+
+enum CommandErrorCode {
+  COMMAND_ERROR_CODE_UNKNOWN = 0;
+  COMMAND_ERROR_CODE_AUTHENTICATION_REQUIRED = 1;
+  COMMAND_ERROR_CODE_API_UNAVAILABLE = 2;
+  COMMAND_ERROR_CODE_IMAGE_UPDATE_FAILED = 3;
+  COMMAND_ERROR_CODE_ATTACHMENT_STORE_FAILED = 4;
+  COMMAND_ERROR_CODE_CANCELLED = 5;
+  COMMAND_ERROR_CODE_TIMEOUT = 6;
+  COMMAND_ERROR_CODE_INVALID_REQUEST = 7;
+  COMMAND_ERROR_CODE_INVALID_RESPONSE = 8;
+  COMMAND_ERROR_CODE_CHARACTER_NOT_FOUND = 9;
+  COMMAND_ERROR_CODE_REQUEST_LIMIT_EXCEEDED = 10;
+}
+
+enum CommandErrorTarget {
+  COMMAND_ERROR_TARGET_NONE = 0;
+  COMMAND_ERROR_TARGET_GAME_PROFILE = 1;
+  COMMAND_ERROR_TARGET_CHARACTER_LIST = 2;
+  COMMAND_ERROR_TARGET_CHARACTER_DATA = 3;
+  COMMAND_ERROR_TARGET_CHARACTER_IMAGE = 4;
+  COMMAND_ERROR_TARGET_LIGHT_CONE_DATA = 5;
+  COMMAND_ERROR_TARGET_BANGBOO_LIST = 6;
+  COMMAND_ERROR_TARGET_REAL_TIME_NOTES = 7;
+  COMMAND_ERROR_TARGET_SPIRAL_ABYSS = 8;
+  COMMAND_ERROR_TARGET_IMAGINARIUM_THEATER = 9;
+  COMMAND_ERROR_TARGET_STYGIAN_ONSLAUGHT = 10;
+  COMMAND_ERROR_TARGET_MEMORY_OF_CHAOS = 11;
+  COMMAND_ERROR_TARGET_PURE_FICTION = 12;
+  COMMAND_ERROR_TARGET_APOCALYPTIC_SHADOW = 13;
+  COMMAND_ERROR_TARGET_ANOMALY_ARBITRATION = 14;
+  COMMAND_ERROR_TARGET_SHIYU_DEFENSE = 15;
+  COMMAND_ERROR_TARGET_DEADLY_ASSAULT = 16;
+  COMMAND_ERROR_TARGET_SIMULATED_BATTLE_TRIAL = 17;
+  COMMAND_ERROR_TARGET_CODE_REDEMPTION = 18;
+  COMMAND_ERROR_TARGET_DAILY_CHECK_IN = 19;
+  COMMAND_ERROR_TARGET_IMAGE = 20;
+  COMMAND_ERROR_TARGET_ATTACHMENT = 21;
+}
+
+enum CharacterCardStatus {
+  CHARACTER_CARD_STATUS_UNKNOWN = 0;
+  CHARACTER_CARD_STATUS_GENERATED = 1;
+  CHARACTER_CARD_STATUS_NOT_FOUND = 2;
+  CHARACTER_CARD_STATUS_FAILED = 3;
+  CHARACTER_CARD_STATUS_NOT_ATTEMPTED = 4;
+}
+
+enum EndgameMode {
+  ENDGAME_MODE_UNKNOWN = 0;
+  ENDGAME_MODE_SPIRAL_ABYSS = 1;
+  ENDGAME_MODE_IMAGINARIUM_THEATER = 2;
+  ENDGAME_MODE_STYGIAN_ONSLAUGHT = 3;
+  ENDGAME_MODE_MEMORY_OF_CHAOS = 4;
+  ENDGAME_MODE_PURE_FICTION = 5;
+  ENDGAME_MODE_APOCALYPTIC_SHADOW = 6;
+  ENDGAME_MODE_ANOMALY_ARBITRATION = 7;
+  ENDGAME_MODE_SHIYU_DEFENSE = 8;
+  ENDGAME_MODE_DEADLY_ASSAULT = 9;
+  ENDGAME_MODE_SIMULATED_BATTLE_TRIAL = 10;
+}
+
+enum RedemptionOutcome {
+  REDEMPTION_OUTCOME_UNKNOWN = 0;
+  REDEMPTION_OUTCOME_REDEEMED = 1;
+  REDEMPTION_OUTCOME_EXPIRED = 2;
+  REDEMPTION_OUTCOME_INVALID = 3;
+  REDEMPTION_OUTCOME_COOLDOWN = 4;
+  REDEMPTION_OUTCOME_ALREADY_USED = 5;
+  REDEMPTION_OUTCOME_FAILED = 6;
+  REDEMPTION_OUTCOME_NOT_ATTEMPTED = 7;
+}
+
+enum CheckInOutcome {
+  CHECK_IN_OUTCOME_UNKNOWN = 0;
+  CHECK_IN_OUTCOME_SUCCEEDED = 1;
+  CHECK_IN_OUTCOME_ALREADY_CHECKED_IN = 2;
+  CHECK_IN_OUTCOME_NO_VALID_PROFILE = 3;
+  CHECK_IN_OUTCOME_FAILED = 4;
+  CHECK_IN_OUTCOME_NOT_ATTEMPTED = 5;
+}
+
+enum ExpeditionOutcome {
+  EXPEDITION_OUTCOME_UNKNOWN = 0;
+  EXPEDITION_OUTCOME_UNDISPATCHED = 1;
+  EXPEDITION_OUTCOME_IN_PROGRESS = 2;
+  EXPEDITION_OUTCOME_COMPLETED = 3;
+}
+
+enum ScratchCardOutcome {
+  SCRATCH_CARD_OUTCOME_UNKNOWN = 0;
+  SCRATCH_CARD_OUTCOME_INCOMPLETE = 1;
+  SCRATCH_CARD_OUTCOME_COMPLETED = 2;
+}
+
+enum VideoStoreOutcome {
+  VIDEO_STORE_OUTCOME_UNKNOWN = 0;
+  VIDEO_STORE_OUTCOME_WAITING_TO_OPEN = 1;
+  VIDEO_STORE_OUTCOME_OPEN = 2;
+  VIDEO_STORE_OUTCOME_REVENUE_AVAILABLE = 3;
+}
+
+enum TempleAdventureOutcome {
+  TEMPLE_ADVENTURE_OUTCOME_UNKNOWN = 0;
+  TEMPLE_ADVENTURE_OUTCOME_DISPATCHABLE = 1;
+  TEMPLE_ADVENTURE_OUTCOME_ADVENTURING = 2;
+  TEMPLE_ADVENTURE_OUTCOME_COMPLETED = 3;
+}
+
+enum TempleCraftingOutcome {
+  TEMPLE_CRAFTING_OUTCOME_UNKNOWN = 0;
+  TEMPLE_CRAFTING_OUTCOME_CRAFTING = 1;
+  TEMPLE_CRAFTING_OUTCOME_CRAFTABLE = 2;
+}
+
+enum TempleSalesOutcome {
+  TEMPLE_SALES_OUTCOME_UNKNOWN = 0;
+  TEMPLE_SALES_OUTCOME_NOT_SELLING = 1;
+  TEMPLE_SALES_OUTCOME_SELLING = 2;
+  TEMPLE_SALES_OUTCOME_OUT_OF_STOCK = 3;
+}
+
+enum CommandGame {
+  COMMAND_GAME_UNKNOWN = 0;
+  COMMAND_GAME_GENSHIN = 10;
+  COMMAND_GAME_HONKAI_STAR_RAIL = 20;
+  COMMAND_GAME_ZENLESS_ZONE_ZERO = 30;
+  COMMAND_GAME_HONKAI_IMPACT3 = 40;
+  COMMAND_GAME_TEARS_OF_THEMIS = 50;
+}
+
+message StorageReference {
+  AttachmentSourceType source_type = 1;
+  string storage_file_name = 2;
+}
+
+message CommandError {
+  CommandErrorCode code = 1;
+  CommandErrorTarget target = 2;
+}
+
+message CharacterCardItem {
+  string requested_name = 1;
+  optional string character_name = 2;
+  optional int32 character_id = 3;
+  CharacterCardStatus status = 4;
+  StorageReference image = 5;
+  CommandError error = 6;
+}
+
+message CharacterCardsOutcome {
+  CommandGame game = 1;
+  optional string game_uid = 2;
+  OperationOutcome state = 3;
+  repeated CharacterCardItem items = 4;
+  optional int32 request_limit = 5;
+}
+
+message RosterOutcome {
+  CommandGame game = 1;
+  string game_uid = 2;
+  OperationOutcome state = 3;
+  StorageReference image = 4;
+}
+
+message EndgameOutcome {
+  CommandGame game = 1;
+  string game_uid = 2;
+  EndgameMode mode = 3;
+  OperationOutcome state = 4;
+  StorageReference image = 5;
+  optional int32 floor = 6;
+  google.protobuf.Timestamp cycle_start = 7;
+  google.protobuf.Timestamp cycle_end = 8;
+}
+
+message NotesResource {
+  int32 current = 1;
+  int32 maximum = 2;
+  google.protobuf.Timestamp recovery_at = 3;
+}
+
+message NotesCounter {
+  int32 current = 1;
+  int32 maximum = 2;
+  google.protobuf.Timestamp reset_at = 3;
+}
+
+message ExpeditionNotes {
+  int32 current = 1;
+  int32 maximum = 2;
+  ExpeditionOutcome state = 3;
+  google.protobuf.Timestamp completion_at = 4;
+}
+
+message TransformerNotes {
+  bool is_ready = 1;
+  google.protobuf.Timestamp reset_at = 2;
+}
+
+message GenshinNotesOutcome {
+  string game_uid = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  NotesResource resin = 3;
+  ExpeditionNotes expeditions = 4;
+  NotesResource home_coin = 5;
+  int32 remaining_weekly_discounts = 6;
+  int32 weekly_discount_limit = 7;
+  google.protobuf.Timestamp weekly_reset_at = 8;
+  TransformerNotes transformer = 9;
+}
+
+message HsrNotesOutcome {
+  string game_uid = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  NotesResource trailblaze_power = 3;
+  int32 echoes_of_war_remaining = 4;
+  int32 echoes_of_war_limit = 5;
+  google.protobuf.Timestamp echoes_of_war_reset_at = 6;
+  NotesCounter simulated_universe = 7;
+  NotesCounter currency_wars = 8;
+}
+
+message ZzzNotesOutcome {
+  string game_uid = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  NotesResource battery = 3;
+  NotesCounter daily_engagement = 4;
+  ScratchCardOutcome scratch_card = 5;
+  VideoStoreOutcome video_store = 6;
+  NotesCounter bounty_commission = 7;
+  NotesCounter weekly_points = 8;
+  NotesCounter omnicoins = 9;
+  TempleAdventureOutcome adventure = 10;
+  TempleCraftingOutcome crafting = 11;
+  TempleSalesOutcome sales = 12;
+}
+
+message RedemptionItem {
+  string code = 1;
+  RedemptionOutcome outcome = 2;
+  CommandError error = 3;
+}
+
+message CodeRedemptionOutcome {
+  CommandGame game = 1;
+  string game_uid = 2;
+  OperationOutcome state = 3;
+  repeated RedemptionItem items = 4;
+}
+
+message CheckInItem {
+  CommandGame game = 1;
+  CheckInOutcome outcome = 2;
+  CommandError error = 3;
+}
+
+message DailyCheckInOutcome {
+  OperationOutcome state = 1;
+  repeated CheckInItem items = 2;
+}
+
 message CommandResult {
   bool is_success = 1;
-  string error_message = 2;
+  reserved 2, 4;
+  reserved "error_message", "data";
   CommandFailureReason failure_reason = 3;
-  CommandResultData data = 4;
+  CommandError error = 5;
+  oneof outcome {
+    CharacterCardsOutcome character_cards = 10;
+    RosterOutcome roster = 11;
+    EndgameOutcome endgame = 12;
+    GenshinNotesOutcome genshin_notes = 13;
+    HsrNotesOutcome hsr_notes = 14;
+    ZzzNotesOutcome zzz_notes = 15;
+    CodeRedemptionOutcome code_redemption = 16;
+    DailyCheckInOutcome daily_check_in = 17;
+  }
 }
 
 message ExecuteRequest {
     string command_name = 1;
-    map<string, string> parameters = 2; 
+    map<string, string> parameters = 2;
     uint64 discord_user_id = 3;
     uint64 lt_uid = 4;
     string l_token = 5;

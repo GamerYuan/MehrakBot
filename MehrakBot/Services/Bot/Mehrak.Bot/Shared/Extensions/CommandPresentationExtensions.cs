@@ -1,19 +1,18 @@
 ﻿#region
 
 using System.Text;
-using Mehrak.Domain.Command.Models;
+using Mehrak.Bot.Shared.Models;
 using NetCord;
 using NetCord.Rest;
-using static Mehrak.Domain.Command.Models.CommandResult;
-using static Mehrak.Domain.Command.Models.CommandText;
+using static Mehrak.Bot.Shared.Models.CommandText;
 
 #endregion
 
 namespace Mehrak.Bot.Shared.Extensions;
 
-internal static class CommandResultDataExtensions
+internal static class CommandPresentationExtensions
 {
-    public static InteractionMessageProperties ToMessage(this CommandResultData data)
+    public static InteractionMessageProperties ToMessage(this CommandPresentation data)
     {
         InteractionMessageProperties properties = new();
         properties.WithFlags(MessageFlags.IsComponentsV2);

@@ -69,10 +69,10 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
             if (charResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
             if (charResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterList);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var characterList = charResponse.Data.FirstOrDefault()?.AvatarList ?? [];
@@ -83,10 +83,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
             new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>")
-                    , new CommandAttachment(fileName)
-            ]);
+            return CommandResult.Success(RosterOutcome.Card(Game.HonkaiStarRail, gameUid, StorageReference.Attachment(fileName)));
         }
 
         var avatarTask = characterList.Select(x => m_ImageUpdaterService
@@ -102,7 +99,7 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
                 JsonSerializer.Serialize(characterList));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<IEnumerable<HsrCharacterInformation>>(
@@ -115,12 +112,9 @@ public class HsrCharListApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-            new CommandText($"<@{context.UserId}>")
-                , new CommandAttachment(fileName)
-        ]);
+        return CommandResult.Success(RosterOutcome.Card(Game.HonkaiStarRail, gameUid, StorageReference.Attachment(fileName)));
     }
 }

@@ -30,12 +30,7 @@ public class GrpcApplicationService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error executing command {CommandName}", request.CommandName);
-            return new Proto.CommandResult
-            {
-                IsSuccess = false,
-                ErrorMessage = $"Internal Server Error",
-                FailureReason = Proto.CommandFailureReason.BotError
-            };
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.Unknown).ToProto();
         }
     }
 }

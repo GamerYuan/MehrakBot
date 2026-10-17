@@ -31,7 +31,7 @@ Execution starts from an entry point (Bot or Dashboard). The caller validates in
 - Command Name: `string`
 - Command Parameters: `Dictionary<string, string>`
 
-The Application service enqueues the request, resolves the keyed `IApplicationService`, builds an `IApplicationContext`, executes business logic, and returns a `CommandResult`. For image commands, the application layer generates a card image, stores it, and returns attachment metadata to the caller.
+The Application service enqueues the request in-process, resolves the keyed `IApplicationService`, builds an `IApplicationContext`, executes business logic, and returns a typed `CommandResult`. For image commands, the application layer generates a card image, stores it, and returns a typed business outcome with image storage references (actual stored keys). The wire carries only typed outcomes, allowlisted coded errors, and storage references; Discord presentation (components, formatting, icons, remove button) is owned locally by the Bot. The `ExecuteRequest` fields and execution RPC are unchanged. Endgame outcomes carry explicit `Complete`/`Empty`/`NotUnlocked` state with UTC cycle instants (Tower has no cycle); notes outcomes carry game-specific resource facts observed at one UTC instant. Explicit empty/partial outcomes are first-class results. The Dashboard REST adapter maps the same typed outcomes to card DTOs, returning HTTP 200 typed empty states (null storage key) for no-record/not-unlocked results; services require a coordinated rebuild with no mixed-version wire guarantee.
 
 ## Sample Execution Path: `/genshin character`
 
@@ -79,13 +79,13 @@ sequenceDiagram
 
   A->>AS: StoreAttachment(filename, card)
   AS-->>A: Stored
-  A-->>D: CommandResult (text + attachment refs)
+  A-->>D: CommandResult (typed outcome + storage refs)
   D-->>G: Complete TaskCompletionSource
   G-->>E: Proto CommandResult
 
   E->>IR: Download attachments (if ImageStorage source)
   E->>AS: Download attachments (if Attachment source)
-  E-->>U: Follow-up message + card attachment(s)
+  E-->>U: Bot-rendered message + card attachment(s)
 ```
 
 ### 1. Discord command intake (Bot layer)
@@ -121,7 +121,7 @@ sequenceDiagram
 `CommandDispatcher`:
 
 - Uses a bounded channel (`capacity = 100`, `DropWrite` on overflow)
-- Uses `SemaphoreSlim(MaxConcurrency)` to limit parallel processing
+- Runs `MaxConcurrency` configurable in-process workers (`CommandDispatcherConfig`) that read from the channel
 - For each queued item:
   - Creates a DI scope
   - Builds `ApplicationContextBase` from request data
@@ -173,10 +173,10 @@ This design decouples request ingestion from execution and provides backpressure
 
 ### 7. Response assembly back in Bot
 
-`CommandExecutorService.ExecuteAsync(...)` receives `CommandResult`:
+`CommandExecutorService.ExecuteAsync(...)` receives the typed `CommandResult`:
 
-- Converts components to Discord message payload
-- Resolves attachments from either:
+- Renders the typed outcome/error locally into a Discord message payload (Bot-owned presentation)
+- Resolves storage references from either:
   - image repository (`AttachmentSourceType.ImageStorage`)
   - attachment storage bucket
 - Sends follow-up response:
@@ -187,9 +187,9 @@ This design decouples request ingestion from execution and provides backpressure
 ## Error Handling and Resilience
 
 - Validation/auth failures are returned early with user-friendly messages.
-- API/image failures are logged and transformed into typed failure reasons.
-- Character batch processing is partially tolerant: one character can fail while others succeed.
-- Dispatcher queue provides overload protection (`DropWrite`) and concurrency control (`SemaphoreSlim`).
+- API/image failures are logged and returned as allowlisted coded errors (`CommandErrorCode`/`CommandErrorTarget`) with a safe message; never raw upstream/exception text.
+- Character batch processing is partially tolerant: one character can fail while others succeed; empty and partial outcomes are explicit (`OperationOutcome`), and a failed envelope may retain completed/failed/not-attempted items without changing timeout precedence.
+- Dispatcher queue provides overload protection (`DropWrite`) and concurrency control via configurable in-process workers.
 - Cancellation tokens propagate from gRPC context to queueing/processing.
 
 ## Data Contract Between Bot and Application
@@ -202,10 +202,12 @@ Request envelope (`ExecuteRequest`) carries:
 
 Response envelope (`CommandResult`) carries:
 
-- Success/failure state and reason
-- Text/components
-- Attachment references (filename + source type)
-- Optional ephemeral message to surface partial failures
+- Success/failure state, reason, and allowlisted coded error
+- Typed business outcome (character cards, roster, endgame, Genshin/HSR/ZZZ notes, code redemption, daily check-in)
+- Image storage references (actual stored keys + source type); no display filenames, markup, or visibility flags on the wire
+- Explicit empty/partial states; a failed envelope may retain item outcomes
+
+The Dashboard REST adapter maps the same typed outcomes to card DTOs (see `Mehrak.Dashboard/Shared/Models/CommandResponses.md`); no-record/not-unlocked responses are HTTP 200 typed empty states with a null storage key. The wire requires a coordinated service rebuild.
 
 ## Startup ownership and database migrations
 

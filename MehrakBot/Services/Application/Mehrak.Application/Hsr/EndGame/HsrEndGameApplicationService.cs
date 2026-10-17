@@ -58,6 +58,12 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         var server = Enum.Parse<Server>(context.GetParameter("server")!);
         var mode = Enum.Parse<HsrEndGameMode>(context.GetParameter("mode")!);
         Mode = mode;
+        var endgameMode = mode switch
+        {
+            HsrEndGameMode.PureFiction => EndgameMode.PureFiction,
+            HsrEndGameMode.ApocalypticShadow => EndgameMode.ApocalypticShadow,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode))
+        };
         var region = server.ToRegion();
 
         var cardService = m_ServiceProvider.GetRequiredKeyedService<ICardService<HsrEndInformation>>(mode);
@@ -73,11 +79,11 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
             if (challengeResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(challengeResponse.ErrorMessage ?? "Cancelled");
             if (challengeResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, mode.GetString(), context.UserId, profile.GameUid,
                 challengeResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, $"{mode.GetString()} data"));
+                CommandErrorCode.ApiUnavailable, mode == HsrEndGameMode.PureFiction ? CommandErrorTarget.PureFiction : CommandErrorTarget.ApocalypticShadow);
         }
 
         var challengeData = challengeResponse.Data;
@@ -85,39 +91,29 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                 profile.GameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, mode.GetString()))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, endgameMode));
         }
 
         if (challengeData.AllFloorDetail.All(x => x is { Node1: null, Node2: null, Node3: null }))
         {
             Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                 profile.GameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, mode.GetString()))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, endgameMode));
         }
 
         var tz = server.GetTimeZoneInfo();
         var group = challengeData.Groups[0];
         var startTime = new DateTimeOffset(group.BeginTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
         var endTime = new DateTimeOffset(group.EndTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
 
         var fileName = GetCardFileName("hsr", mode.ToString(), "v1", challengeData, profile,
             new { Server = server, Mode = mode });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s {mode.GetString()} Summary",
-                            CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, endgameMode,
+                StorageReference.Attachment(fileName), startTime, endTime));
         }
 
         var tasks = challengeData.AllFloorDetail
@@ -139,7 +135,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, mode.GetString(), context.UserId,
                 JsonSerializer.Serialize(challengeData));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<HsrEndInformation>(
@@ -153,17 +149,10 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s {mode.GetString()} Summary",
-                        CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true
-        );
+        return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, endgameMode,
+                StorageReference.Attachment(fileName), startTime, endTime));
     }
 }

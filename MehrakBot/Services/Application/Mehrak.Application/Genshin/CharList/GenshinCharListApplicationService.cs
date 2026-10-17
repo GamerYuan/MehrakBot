@@ -88,9 +88,9 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             if (profileResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
             if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.GameProfile);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+            return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
         }
         var profile = profileResult.Data;
 
@@ -110,10 +110,10 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             if (charResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charResponse.ErrorMessage ?? "Cancelled");
             if (charResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterList);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var characterList = charResponse.Data.ToList();
@@ -124,11 +124,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
             new { Server = server });
         if (await AttachmentExistsAsync(filename, cancellationToken))
         {
-            return CommandResult.Success(
-            [
-                new CommandText($"<@{context.UserId}>"),
-                    new CommandAttachment(filename)
-            ]);
+            return CommandResult.Success(RosterOutcome.Card(Game.Genshin, gameUid, StorageReference.Attachment(filename)));
         }
 
         // Start avatar/weapon image updates immediately
@@ -173,7 +169,7 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         {
             Logger.LogError(LogMessage.ImageUpdateError, "CharList", context.UserId,
                 JsonSerializer.Serialize(characterList));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<IEnumerable<GenshinBasicCharacterData>>(context.UserId,
@@ -185,12 +181,10 @@ public class GenshinCharListApplicationService : BaseAttachmentApplicationServic
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-            new CommandText($"<@{context.UserId}>"), new CommandAttachment(filename)
-        ]);
+        return CommandResult.Success(RosterOutcome.Card(Game.Genshin, gameUid, StorageReference.Attachment(filename)));
     }
 
     private async Task ProcessAscendedWeaponsAsync(

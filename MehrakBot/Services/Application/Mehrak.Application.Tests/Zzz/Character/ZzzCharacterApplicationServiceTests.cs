@@ -80,7 +80,7 @@ public class ZzzCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -107,7 +107,7 @@ public class ZzzCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character List"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterList));
         }
     }
 
@@ -158,9 +158,8 @@ public class ZzzCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("NonExistentCharacter"));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.All(x => x.Status == CharacterCardStatus.NotFound), Is.True);
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -208,7 +207,7 @@ public class ZzzCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -250,7 +249,7 @@ public class ZzzCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character Image"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterImage));
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -292,7 +291,7 @@ public class ZzzCharacterApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
@@ -330,8 +329,8 @@ public class ZzzCharacterApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-        Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
 
         metricsMock.Verify(x => x.TrackCharacterSelection(nameof(Game.ZenlessZoneZero), "jane"), Times.Once);
         cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Never);
@@ -376,8 +375,8 @@ public class ZzzCharacterApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -746,7 +745,7 @@ public class ZzzCharacterApplicationServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+            Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
             Assert.That(fileNames, Has.Count.EqualTo(2));
             Assert.That(fileNames[1], Is.EqualTo(expectedCustomName));
             Assert.That(fileNames[1], Is.Not.EqualTo(stockName));
@@ -791,7 +790,7 @@ public class ZzzCharacterApplicationServiceTests
 
         var result = await service.ExecuteAsync(CreateContext(1, 1ul, "test", ("character", "Jane"), ("server", Server.Asia.ToString())));
 
-        Assert.That(result.IsSuccess, Is.EqualTo(customDownloadSucceeds), result.ErrorMessage);
+        Assert.That(result.IsSuccess, Is.EqualTo(customDownloadSucceeds), result.Error?.ToString());
         cardService.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>(), It.IsAny<CancellationToken>()),
             customDownloadSucceeds ? Times.Once() : Times.Never());
     }
@@ -1014,7 +1013,7 @@ public class ZzzCharacterApplicationServiceTests
         // Assert
         Assert.That(result.IsSuccess, Is.False);
         Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-        Assert.That(result.ErrorMessage, Does.Contain("image"));
+        Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzFullAvatarData>>()), Times.Never);
     }
 
@@ -1267,7 +1266,7 @@ public class ZzzCharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).Any(), Is.True);
         }
 
         entryPageApiMock.Verify(x => x.GetAsync(
@@ -1430,16 +1429,16 @@ public class ZzzCharacterApplicationServiceTests
         using (Assert.EnterMultipleScope())
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.Not.Null);
         }
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.Length, Is.GreaterThan(0));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
         Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-        Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+        Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.ZenlessZoneZero, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
@@ -1474,13 +1473,13 @@ public class ZzzCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = ((CharacterCardsOutcome)result.Outcome!).Items.Where(x => x.Image != null).Select(x => x.Image!).FirstOrDefault();
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
             Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
             // Save output
@@ -1868,7 +1867,7 @@ public class ZzzCharacterApplicationServiceTests
         protected override Task<CommandResult> ExecuteCommandAsync(
             IApplicationContext context,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(CommandResult.Success());
+            Task.FromResult(CommandResult.Success(CharacterCardsOutcome.Create(Game.ZenlessZoneZero, null, [])));
     }
 
     private static UserProfileModel SeedUserProfile(UserDbContext userContext, ulong userId, int profileId, ulong ltUid)

@@ -70,9 +70,9 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             if (profileResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(profileResult.ErrorMessage ?? "Cancelled");
             if (profileResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+            return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
         }
         var profile = profileResult.Data;
         var gameUid = profile.GameUid;
@@ -94,10 +94,10 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             if (towerResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(towerResponse.ErrorMessage ?? "Cancelled");
             if (towerResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Simulated Battle Trial", context.UserId, gameUid, towerResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Simulated Battle Trial data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.SimulatedBattleTrial);
         }
 
         var towerData = towerResponse.Data;
@@ -105,9 +105,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         if (towerData.DisplayAvatarRankList.Count == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Simulated Battle Trial", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Simulated Battle Trial"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.SimulatedBattleTrial));
         }
 
         var characterResponse = charTask!.Result;
@@ -117,10 +115,10 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             if (characterResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(characterResponse.ErrorMessage ?? "Cancelled");
             if (characterResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, characterResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character List data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var charMap = characterResponse.Data.ToDictionary(x => x.Id, x => (x.Level, x.Rank));
@@ -131,7 +129,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             {
                 Logger.LogError(LogMessage.ApiError, "Character List", context.UserId, gameUid, characterResponse);
                 return CommandResult.Failure(CommandFailureReason.ApiError,
-                    string.Format(ResponseMessage.ApiError, "Character List data"));
+                    CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
             }
         }
 
@@ -146,12 +144,8 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
             });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s Simulated Battle Trial Summary", CommandText.TextType.Header3),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.SimulatedBattleTrial,
+                StorageReference.Attachment(fileName)));
         }
 
         var avatarImageTask = towerData.DisplayAvatarRankList
@@ -166,7 +160,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Simulated Battle Trial", context.UserId,
                 JsonSerializer.Serialize(towerData));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<ZzzTowerData>(context.UserId, towerData, profile);
@@ -178,14 +172,10 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Simulated Battle Trial Summary", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.SimulatedBattleTrial,
+                StorageReference.Attachment(fileName)));
     }
 }
