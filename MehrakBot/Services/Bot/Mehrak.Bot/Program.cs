@@ -1,4 +1,5 @@
 ﻿using Mehrak.Bot.Shared.Modules;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Protobuf;
 using Mehrak.Infrastructure;
@@ -58,8 +59,11 @@ public class Program
                 options.Address = new Uri(address);
             });
 
-            builder.Services.AddDiscordGateway().AddApplicationCommands(a => a.ResultHandler =
-                new CustomCommandResultHandler<ApplicationCommandContext>())
+            builder.Services.AddDiscordGateway().AddApplicationCommands(a =>
+                {
+                    a.ResultHandler = new CustomCommandResultHandler<ApplicationCommandContext>();
+                    a.LocalizationsProvider = CommandUiMetadataLocalizationsProvider.Default;
+                })
                 .AddComponentInteractions<ModalInteraction, ModalInteractionContext>()
                 .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
 

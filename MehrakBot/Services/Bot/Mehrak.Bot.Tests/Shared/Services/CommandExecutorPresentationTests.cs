@@ -1,8 +1,13 @@
 ﻿using System.Net.Http.Json;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Grpc.Core;
+using Mehrak.Bot.Genshin;
+using Mehrak.Bot.Hi3;
+using Mehrak.Bot.Hsr;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Builders;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Tests.TestUtils;
 using Mehrak.Domain.Command.Extensions;
@@ -13,6 +18,7 @@ using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NetCord;
@@ -20,6 +26,7 @@ using NetCord.Gateway;
 using NetCord.JsonModels;
 using NetCord.Rest;
 using NetCord.Services;
+using NetCord.Services.ApplicationCommands;
 using ApplicationService = Mehrak.Domain.Protobuf.ApplicationService;
 using ExecuteRequest = Mehrak.Domain.Protobuf.ExecuteRequest;
 using Result = Mehrak.Domain.Command.Models.CommandResult;
@@ -108,6 +115,151 @@ public class CommandExecutorPresentationTests
         m_Streams.Add(stream);
         m_Storage.Setup(x => x.DownloadAsync(key, default)).ReturnsAsync(new AttachmentDownloadResult(stream, "image/png"));
         return stream;
+    }
+
+    private void UseLocale(string locale)
+    {
+        var interaction = new SlashCommandInteraction(new JsonInteraction
+        {
+            ApplicationId = 123UL, Type = InteractionType.ApplicationCommand, AppPermissions = Permissions.SendMessages,
+            Token = "synthetic-token", User = new JsonUser { Id = 42 }, Entitlements = [], UserLocale = locale,
+            Channel = new JsonChannel { Id = 321, Type = ChannelType.TextGuildChannel },
+            Data = new JsonInteractionData { Id = 1, Name = "test", Type = ApplicationCommandType.ChatInput, Options = [] }
+        }, null, async (i, callback, _, _, ct) =>
+            await m_Discord.Rest.SendInteractionResponseAsync(i.Id, i.Token, callback, false, null, ct), m_Discord.Rest);
+        var context = new Mock<IInteractionContext>();
+        context.SetupGet(x => x.Interaction).Returns(interaction);
+        m_Executor.Context = context.Object;
+        m_Auth.Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>())).ReturnsAsync(
+            AuthenticationResult.Success(42, 123, "synthetic-ltoken", new UserDto { Id = 42, Profiles = [] }, context.Object));
+    }
+
+    [Test]
+    public async Task LocalisedPartialCard_KeepsPrivateErrorsPublicAttachmentsAndCanonicalRemoveId()
+    {
+        UseLocale("ja");
+        Return(Result.Success(CharacterCardsOutcome.Create(Game.Genshin, "uid",
+        [
+            CharacterCardItem.Generated("Nahida", "Nahida", 1, StorageReference.Attachment("canonical-hash.png")),
+            CharacterCardItem.NotFound("MissingEnglishName")
+        ], OperationOutcome.Partial)));
+
+        await m_Executor.ExecuteAsync(1);
+
+        var messages = m_Messages.Select(DecodedStrings).ToArray();
+        Assert.Multiple(() =>
+        {
+            Assert.That(messages, Has.Length.EqualTo(2));
+            Assert.That(messages[0], Does.Contain("キャラクター MissingEnglishName が見つかりません"));
+            Assert.That(Flags(m_Messages[0]), Is.EqualTo(MessageFlags.Ephemeral));
+            Assert.That(messages[1], Does.Contain("attachment://canonical-hash.png").And.Contain("remove_card")
+                .And.Contain("削除").And.Not.Contain("MissingEnglishName"));
+            Assert.That(Flags(m_Messages[1]), Is.EqualTo(MessageFlags.IsComponentsV2));
+        });
+    }
+
+    [Test]
+    public async Task LocalisedValidation_KeepsCanonicalFloorNameAndNeverAuthenticatesInvalidInput()
+    {
+        UseLocale("ja");
+        m_Executor.Parameters["floor"] = 8;
+        m_Executor.AddValidator<int>("floor", floor => floor >= 9 && floor <= 12,
+            Mehrak.Bot.Shared.Localization.CommandUiKeys.ExecutorValidationFloor);
+
+        await m_Executor.ExecuteAsync(1);
+
+        Assert.That(DecodedStrings(m_Messages.Single()), Does.Contain("階層は 9 から 12 の間で指定してください"));
+        Assert.That(Flags(m_Messages.Single()), Is.EqualTo(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+        m_Auth.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
+    }
+
+    private static IEnumerable<TestCaseData> EmptyCharacterValidationCases()
+    {
+        foreach (var game in new[] { "genshin", "hsr", "hi3" })
+        {
+            yield return new TestCaseData(game, "en-US", "Error when validating input:\ncharacter cannot be empty");
+            yield return new TestCaseData(game, "ja", "入力の検証に失敗しました：\nキャラクターを入力してください");
+            yield return new TestCaseData(game, "zh-CN", "输入验证失败：\n角色不能为空");
+        }
+    }
+
+    [TestCaseSource(nameof(EmptyCharacterValidationCases))]
+    public async Task CharacterModules_EmptyCharacterReturnsActionableLocalisedPrivateValidation(
+        string game, string locale, string expected)
+    {
+        UseLocale(locale);
+        using var services = new ServiceCollection()
+            .AddSingleton(m_Scope.ServiceProvider.GetRequiredService<UserDbContext>())
+            .AddSingleton(m_Auth.Object)
+            .AddSingleton(m_Metrics.Object)
+            .AddSingleton(m_Application.Object)
+            .AddSingleton(m_Storage.Object)
+            .AddSingleton(m_Images.Object)
+            .AddSingleton<ILogger<CommandExecutorService>>(NullLogger<CommandExecutorService>.Instance)
+            .BuildServiceProvider();
+        var builder = new CommandExecutorBuilder(services);
+        ApplicationCommandModule<ApplicationCommandContext> module = game switch
+        {
+            "genshin" => new GenshinCommandModule(builder, NullLogger<GenshinCommandModule>.Instance),
+            "hsr" => new HsrCommandModule(builder, NullLogger<HsrCommandModule>.Instance),
+            _ => new Hi3CommandModule(builder, NullLogger<Hi3CommandModule>.Instance)
+        };
+        var context = new ApplicationCommandContext((SlashCommandInteraction)m_Executor.Context.Interaction, m_Discord);
+        // NetCord normally injects this context through an internal interface.
+        typeof(ApplicationCommandModule<ApplicationCommandContext>).BaseType!
+            .GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(module, context);
+
+        switch (module)
+        {
+            case GenshinCommandModule genshin:
+                await genshin.CharacterCommand("");
+                break;
+            case HsrCommandModule hsr:
+                await hsr.CharacterCommand("");
+                break;
+            case Hi3CommandModule hi3:
+                await hi3.CharacterCommand("");
+                break;
+        }
+
+        using var payload = JsonDocument.Parse(m_Messages.Single());
+        Assert.Multiple(() =>
+        {
+            Assert.That(payload.RootElement.GetProperty("data").GetProperty("components")[0]
+                .GetProperty("content").GetString(), Is.EqualTo(expected));
+            Assert.That(Flags(m_Messages.Single()), Is.EqualTo(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
+        });
+        m_Auth.Verify(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()), Times.Never);
+        m_Application.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
+    }
+
+    [Test]
+    public async Task LocalisedFailureEnvelope_RemainsPrivateAndDoesNotPublishRetainedItems()
+    {
+        UseLocale("ja");
+        Return(Result.Failure(Mehrak.Domain.Command.Models.CommandFailureReason.Timeout, CommandErrorCode.Timeout,
+            outcome: RosterOutcome.Card(Game.Genshin, "uid", StorageReference.Attachment("never-publish.png"))));
+
+        await m_Executor.ExecuteAsync(1);
+
+        Assert.That(DecodedStrings(m_Messages.Single()), Does.Contain("コマンドの実行がタイムアウトしました")
+            .And.Not.Contain("never-publish.png"));
+        Assert.That(Flags(m_Messages.Single()), Is.EqualTo(MessageFlags.Ephemeral));
+        m_Storage.Verify(x => x.DownloadAsync(It.IsAny<string>(), default), Times.Never);
+    }
+
+    private static string DecodedStrings(string body)
+    {
+        using var json = JsonDocument.Parse(body);
+        return Strings(json.RootElement);
+
+        static string Strings(JsonElement value) => value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString()!,
+            JsonValueKind.Object => string.Join("\n", value.EnumerateObject().Select(x => Strings(x.Value))),
+            JsonValueKind.Array => string.Join("\n", value.EnumerateArray().Select(Strings)),
+            _ => ""
+        };
     }
 
     [Test]
@@ -329,7 +481,8 @@ public class CommandExecutorPresentationTests
             body = body[start..(end + 1)];
         }
         using var json = JsonDocument.Parse(body);
-        return (MessageFlags)json.RootElement.GetProperty("flags").GetInt32();
+        var payload = json.RootElement.TryGetProperty("data", out var data) ? data : json.RootElement;
+        return (MessageFlags)payload.GetProperty("flags").GetInt32();
     }
 
     private sealed class TrackingStream() : MemoryStream(Encoding.UTF8.GetBytes("synthetic-image-bytes"))

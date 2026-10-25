@@ -48,6 +48,15 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Command UI localisation resources. Copied to build and publish output so the
+             localiser and the Discord metadata provider resolve them at runtime. -->
+        <Content Include="Resources/CommandUiStrings/*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+    </ItemGroup>
+
     <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('appsettings.Development.json')">
         <None Include="appsettings.Development.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

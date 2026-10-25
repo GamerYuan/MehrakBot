@@ -1,7 +1,9 @@
 ﻿#region
 
-using System.Text;
+using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Attributes;
+using Mehrak.Bot.Shared.Localization;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.User.Models;
 using Mehrak.Infrastructure.User;
@@ -24,16 +26,20 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 {
     private readonly UserDbContext m_UserContext;
     private readonly ILogger<ProfileCommandModule> m_Logger;
+    private readonly ICommandUiLocalizer m_Localizer;
 
-    public ProfileCommandModule(UserDbContext userContext, ILogger<ProfileCommandModule> logger)
+    public ProfileCommandModule(UserDbContext userContext, ILogger<ProfileCommandModule> logger,
+        ICommandUiLocalizer? localizer = null)
     {
         m_UserContext = userContext;
         m_Logger = logger;
+        m_Localizer = localizer ?? CommandUiLocalizer.Default;
     }
 
     [SubSlashCommand("add", "Add a profile")]
     public async Task AddProfileCommand()
     {
+        var culture = BotUiCulture.Resolve(Context);
         m_Logger.LogInformation("User {UserId} is adding HoYoLAB profile", Context.User.Id);
 
         if (await m_UserContext.UserProfiles.Where(x => x.UserId == (long)Context.User.Id).CountAsync() >= 10)
@@ -41,11 +47,13 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             m_Logger.LogInformation("User {UserId} has reached the maximum number of profiles", Context.User.Id);
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("You can only have 10 profiles!"))));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.AuthTooManyProfiles)))));
             return;
         }
 
-        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AddAuthModal));
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(
+            AuthModalModule.AddAuthModalFor(culture, m_Localizer)));
     }
 
     [SubSlashCommand("delete", "Delete a profile")]
@@ -55,6 +63,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         [HelpExample("1", "123456")]
         ulong profileId = 0)
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         await Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2));
 
         var profiles = await m_UserContext.UserProfiles
@@ -66,7 +76,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("No profiles found!")));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.ProfileNoneFound))));
             return;
         }
 
@@ -74,7 +85,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             try
             {
-                var deleted = await m_UserContext.ExecuteUserProfileMutationAsync(
+                await m_UserContext.ExecuteUserProfileMutationAsync(
                     (long)Context.User.Id,
                     async () =>
                     {
@@ -88,14 +99,16 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties($"All profiles deleted!")));
+                        .AddComponents(new TextDisplayProperties(
+                            m_Localizer.Get(culture, CommandUiKeys.ProfileAllDeleted))));
             }
             catch (DbUpdateException e)
             {
                 m_Logger.LogError(e, "Failed to delete all profiles for user {UserId}", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to delete profiles! Please try again later")));
+                        .AddComponents(new TextDisplayProperties(
+                            m_Localizer.Get(culture, CommandUiKeys.ProfileDeleteAllFailed))));
             }
             return;
         }
@@ -105,7 +118,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!")));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.ProfileNotFound, profileId))));
             return;
         }
 
@@ -116,7 +130,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             {
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!")));
+                        .AddComponents(new TextDisplayProperties(
+                            m_Localizer.Get(culture, CommandUiKeys.ProfileNotFound, profileId))));
                 return;
             }
 
@@ -124,21 +139,24 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
             {
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("All profiles deleted!")));
+                        .AddComponents(new TextDisplayProperties(
+                            m_Localizer.Get(culture, CommandUiKeys.ProfileAllDeleted))));
                 return;
             }
 
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                     .AddComponents(
-                        new TextDisplayProperties($"Profile {deletion.ProfileId} (HoYoLAB UID: {deletion.LtUid}) deleted!")));
+                        new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.ProfileDeleted,
+                            deletion.ProfileId, deletion.LtUid))));
         }
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to delete profile {ProfileId} for user {UserId}", profile.ProfileId, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Failed to delete profile! Please try again later")));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.ProfileDeleteFailed))));
         }
     }
 
@@ -154,6 +172,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
     [SubSlashCommand("list", "List your profiles")]
     public async Task ListProfileCommand()
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         var user = await m_UserContext.Users
                 .AsNoTracking()
                 .Include(u => u.Profiles)
@@ -167,7 +187,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("No profile found!"))));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.AuthProfileNotFound)))));
             return;
         }
 
@@ -175,7 +196,7 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
 
         for (var i = 0; i < user.Profiles.Count; i++)
         {
-            container.AddComponents([new TextDisplayProperties(user.Profiles[i].ToDisplayString())]);
+            container.AddComponents([new TextDisplayProperties(ProfileTextRenderer.Render(user.Profiles[i], m_Localizer, culture))]);
             if (i + 1 < user.Profiles.Count) container.AddComponents([new ComponentSeparatorProperties()]);
         }
 
@@ -191,6 +212,8 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         ulong profileId
     )
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         var user = await m_UserContext.Users
             .AsNoTracking()
             .Where(u => u.Id == (long)Context.User.Id)
@@ -219,11 +242,13 @@ public class ProfileCommandModule : ApplicationCommandModule<ApplicationCommandC
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties($"No profile with ID or HoYoLAB UID {profileId} found!"))));
+                    .AddComponents(new TextDisplayProperties(
+                        m_Localizer.Get(culture, CommandUiKeys.ProfileNotFound, profileId)))));
             return;
         }
 
-        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.UpdateAuthModal(profile)));
+        await Context.Interaction.SendResponseAsync(InteractionCallback.Modal(
+            AuthModalModule.UpdateAuthModal(profile, culture, m_Localizer)));
     }
 
     private static UserProfileDto? FindProfile(IEnumerable<UserProfileDto> profiles, ulong lookupValue)

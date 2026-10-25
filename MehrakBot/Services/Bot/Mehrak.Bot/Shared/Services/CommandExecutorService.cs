@@ -2,6 +2,7 @@
 
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Extensions;
+using Mehrak.Bot.Shared.Localization;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Protobuf;
@@ -32,6 +33,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
 {
     private readonly IAttachmentStorageService m_AttachmentService;
     private readonly IImageRepository m_ImageRepository;
+    private readonly ICommandUiLocalizer m_Localizer;
 
     public CommandExecutorService(
         UserDbContext userContext,
@@ -40,15 +42,19 @@ internal class CommandExecutorService : CommandExecutorServiceBase
         ApplicationService.ApplicationServiceClient applicationClient,
         IAttachmentStorageService attachmentService,
         IImageRepository imageRepository,
-        ILogger<CommandExecutorService> logger
+        ILogger<CommandExecutorService> logger,
+        ICommandUiLocalizer? localizer = null
     ) : base(userContext, authenticationMiddleware, metricsService, applicationClient, logger)
     {
         m_AttachmentService = attachmentService;
         m_ImageRepository = imageRepository;
+        m_Localizer = localizer ?? CommandUiLocalizer.Default;
     }
 
     public override async Task ExecuteAsync(int profile)
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         Logger.LogInformation(
             "User {User} used command {Command}",
             Context.Interaction.User.Id, CommandName);
@@ -57,17 +63,20 @@ internal class CommandExecutorService : CommandExecutorServiceBase
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("Profile specified is outside of allowed range (1 - 10)"))));
+                .AddComponents(new TextDisplayProperties(
+                    m_Localizer.Get(culture, CommandUiKeys.ExecutorProfileOutOfRange)))));
             return;
         }
 
-        var invalid = Validators.Where(x => !x.IsValid(this)).Select(x => x.ErrorMessage);
-        if (invalid.Any())
+        var invalid = Validators.Where(x => !x.IsValid(this))
+            .Select(x => m_Localizer.Get(culture, x.ErrorMessage)).ToArray();
+        if (invalid.Length > 0)
         {
             await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(new TextDisplayProperties(
-                    $"Error when validating input:\n{string.Join("\n", invalid)}"))));
+                    m_Localizer.Get(culture, CommandUiKeys.ExecutorValidationFailed,
+                        string.Join("\n", invalid))))));
             return;
         }
 
@@ -90,7 +99,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     {
                         await authResult.Context.Interaction.SendFollowupMessageAsync(
                             new InteractionMessageProperties().WithContent(
-                                    "Server is required for first time use. Please specify the server parameter.")
+                                    m_Localizer.Get(culture, CommandUiKeys.ExecutorServerRequired))
                                 .WithFlags(MessageFlags.Ephemeral));
                         return;
                     }
@@ -110,7 +119,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
 
                 if (commandResult.IsSuccess)
                 {
-                    var presentation = CommandOutcomePresenter.Present(commandResult.Outcome, Context.Interaction.User.Id);
+                    var presentation = CommandOutcomePresenter.Present(commandResult.Outcome, Context.Interaction.User.Id,
+                        m_Localizer, culture);
                     var message = presentation.ToMessage();
 
                     var attachments = presentation.Attachments;
@@ -159,10 +169,11 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     {
                         await authResult.Context!.Interaction.SendFollowupMessageAsync(
                             new InteractionMessageProperties().WithContent(presentation.EphemeralMessage ??
-                                "Command Execution Completed").WithFlags(MessageFlags.Ephemeral));
+                                m_Localizer.Get(culture, CommandUiKeys.ExecutorCompleted)).WithFlags(MessageFlags.Ephemeral));
                         await authResult.Context.Interaction.SendFollowupMessageAsync(message
                             .AddComponents(new ActionRowProperties([
-                                new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
+                                new ButtonProperties("remove_card",
+                                    m_Localizer.Get(culture, CommandUiKeys.ExecutorRemoveButton), ButtonStyle.Danger)
                             ])));
                     }
                 }
@@ -170,7 +181,8 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                 {
                     MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
                     await authResult.Context!.Interaction.SendFollowupMessageAsync(
-                        new InteractionMessageProperties().WithContent(CommandOutcomePresenter.SafeErrorText(commandResult.Error))
+                        new InteractionMessageProperties().WithContent(
+                                CommandOutcomePresenter.ErrorText(commandResult.Error, m_Localizer, culture))
                             .WithFlags(MessageFlags.Ephemeral));
                 }
             }
@@ -181,7 +193,7 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                     Context.Interaction.User.Id);
                 await authResult.Context!.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithContent(
-                            "An unexpected error occurred while executing the command. Please try again later.")
+                            m_Localizer.Get(culture, CommandUiKeys.ExecutorUnexpectedError))
                         .WithFlags(MessageFlags.Ephemeral));
             }
             finally

@@ -1,6 +1,9 @@
 ﻿#region
 
+using System.Globalization;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Localization;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
@@ -55,34 +58,56 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         return true;
     }
 
-    public static ModalProperties AddAuthModal => new ModalProperties("add_auth_modal", "Authenticate")
-        .WithComponents([
-            new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)
-                .WithPlaceholder("Paste your full HoYoLAB cookie string (ltoken_v2 and ltuid_v2) here")),
-            new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
-        ]);
+    public static ModalProperties AddAuthModal => AddAuthModalFor(null);
 
-    public static ModalProperties AuthModal(string guid)
+    public static ModalProperties AddAuthModalFor(CultureInfo? uiCulture, ICommandUiLocalizer? localizer = null)
     {
-        return new ModalProperties($"auth_modal:{guid}", "Authenticate")
+        localizer ??= CommandUiLocalizer.Default;
+        return new ModalProperties("add_auth_modal", localizer.Get(uiCulture, CommandUiKeys.ModalAuthTitle))
+            .WithComponents([
+                new LabelProperties(localizer.Get(uiCulture, CommandUiKeys.ModalCookieLabel),
+                    new TextInputProperties("ltoken", TextInputStyle.Paragraph)
+                        .WithPlaceholder(localizer.Get(uiCulture, CommandUiKeys.ModalCookiePlaceholder))),
+                new LabelProperties(localizer.Get(uiCulture, CommandUiKeys.ModalPassphraseLabel),
+                    new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                        .WithPlaceholder(localizer.Get(uiCulture, CommandUiKeys.ModalNewPassphrasePlaceholder))
+                        .WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
+            ]);
+    }
+
+    public static ModalProperties AuthModal(string guid) => AuthModal(guid, null);
+
+    public static ModalProperties AuthModal(string guid, CultureInfo? uiCulture, ICommandUiLocalizer? localizer = null)
+    {
+        localizer ??= CommandUiLocalizer.Default;
+        return new ModalProperties($"auth_modal:{guid}", localizer.Get(uiCulture, CommandUiKeys.ModalAuthTitle))
             .AddComponents(
-                new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                    .WithPlaceholder("Your Passphrase").WithMaxLength(64))
+                new LabelProperties(localizer.Get(uiCulture, CommandUiKeys.ModalPassphraseLabel),
+                    new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                        .WithPlaceholder(localizer.Get(uiCulture, CommandUiKeys.ModalPassphrasePlaceholder))
+                        .WithMaxLength(64))
             );
     }
 
-    public static ModalProperties UpdateAuthModal(UserProfileDto profile)
-    {
-        return new ModalProperties($"update_auth_modal:{profile.ProfileId}", "Update Authentication")
-            .WithComponents([
-                new TextDisplayProperties($"## Profile {profile.ProfileId}\n### HoYoLAB UID: {profile.LtUid}"),
-                new LabelProperties("HoYoLAB Cookies", new TextInputProperties("ltoken", TextInputStyle.Paragraph)
-                .WithPlaceholder("Paste your full HoYoLAB cookie string (ltoken_v2 and ltuid_v2) here")),
-                new LabelProperties("Passphrase", new TextInputProperties("passphrase", TextInputStyle.Paragraph)
-                    .WithPlaceholder("Do not use the same password as your Discord or HoYoLAB account!").WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
-            ]);
+    public static ModalProperties UpdateAuthModal(UserProfileDto profile) => UpdateAuthModal(profile, null);
 
+    public static ModalProperties UpdateAuthModal(UserProfileDto profile, CultureInfo? uiCulture,
+        ICommandUiLocalizer? localizer = null)
+    {
+        localizer ??= CommandUiLocalizer.Default;
+        return new ModalProperties($"update_auth_modal:{profile.ProfileId}",
+                localizer.Get(uiCulture, CommandUiKeys.ModalAuthUpdateTitle))
+            .WithComponents([
+                new TextDisplayProperties(localizer.Get(uiCulture, CommandUiKeys.ModalProfileHeader,
+                    profile.ProfileId, profile.LtUid)),
+                new LabelProperties(localizer.Get(uiCulture, CommandUiKeys.ModalCookieLabel),
+                    new TextInputProperties("ltoken", TextInputStyle.Paragraph)
+                        .WithPlaceholder(localizer.Get(uiCulture, CommandUiKeys.ModalCookiePlaceholder))),
+                new LabelProperties(localizer.Get(uiCulture, CommandUiKeys.ModalPassphraseLabel),
+                    new TextInputProperties("passphrase", TextInputStyle.Paragraph)
+                        .WithPlaceholder(localizer.Get(uiCulture, CommandUiKeys.ModalNewPassphrasePlaceholder))
+                        .WithMinLength(MinPassphraseLength).WithMaxLength(MaxPassphraseLength))
+            ]);
     }
 
     private readonly ILogger<AuthModalModule> m_Logger;
@@ -91,6 +116,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     private readonly IAuthenticationMiddlewareService m_AuthenticationMiddleware;
     private readonly ICacheService? m_CacheService;
     private readonly GameRoleApiService m_GameRoleApi;
+    private readonly ICommandUiLocalizer m_Localizer;
 
     public AuthModalModule(
         IEncryptionService cookieService,
@@ -98,7 +124,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         IAuthenticationMiddlewareService authenticationMiddleware,
         GameRoleApiService gameRoleApi,
         ILogger<AuthModalModule> logger,
-        ICacheService? cacheService = null)
+        ICacheService? cacheService = null,
+        ICommandUiLocalizer? localizer = null)
     {
         m_Logger = logger;
         m_CookieService = cookieService;
@@ -106,11 +133,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
         m_AuthenticationMiddleware = authenticationMiddleware;
         m_GameRoleApi = gameRoleApi;
         m_CacheService = cacheService;
+        m_Localizer = localizer ?? CommandUiLocalizer.Default;
     }
 
     [ComponentInteraction("add_auth_modal")]
     public async Task AddAuth()
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         try
         {
             m_Logger.LogInformation("Processing add auth modal submission from user {UserId}", Context.User.Id);
@@ -132,7 +162,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("User {UserId} provided an unparsable cookie string", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthInvalidCookies))));
                 return;
             }
 
@@ -143,7 +173,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("User {UserId} provided too-short passphrase for new profile", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthPassphraseLength, MinPassphraseLength, MaxPassphraseLength))));
                 return;
             }
 
@@ -158,14 +188,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid}", Context.User.Id, ltuid);
                     await Context.Interaction.SendFollowupMessageAsync(
                         new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                            .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                            .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthInvalidCookies))));
                     return;
                 }
 
                 m_Logger.LogWarning("Failed to validate profile for user {UserId}: {Error}", Context.User.Id, gameProfilesResult.ErrorMessage);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to validate profile. Please try again later.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthValidateFailed))));
                 return;
             }
 
@@ -174,7 +204,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("No supported game profiles found for user {UserId}, UID {LtUid}", Context.User.Id, ltuid);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("No supported game profiles were found for this HoYoLAB account.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthNoSupportedProfiles))));
                 return;
             }
 
@@ -243,7 +273,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 {
                     await Context.Interaction.SendFollowupMessageAsync(
                         new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                            .AddComponents(new TextDisplayProperties("You can only have 10 profiles!")));
+                            .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthTooManyProfiles))));
                     return;
                 }
 
@@ -252,7 +282,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_Logger.LogWarning("User {UserId} already has a profile with UID {LtUid}", Context.User.Id, ltuid);
                     await Context.Interaction.SendFollowupMessageAsync(
                         new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                            .AddComponents(new TextDisplayProperties("Profile already exists!")));
+                            .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthProfileExists))));
                     return;
                 }
 
@@ -261,15 +291,15 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                         .AddComponents(new TextDisplayProperties(
-                            $"Added profile successfully!"),
-                            new ComponentContainerProperties().AddComponents(new TextDisplayProperties(profile.ToDisplayString()))));
+                            m_Localizer.Get(culture, CommandUiKeys.AuthProfileAdded)),
+                            new ComponentContainerProperties().AddComponents(new TextDisplayProperties(ProfileTextRenderer.Render(profile, m_Localizer, culture)))));
             }
             catch (DbUpdateException e)
             {
                 m_Logger.LogError(e, "Failed to add profile for user {UserId}", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to add profile! Please try again later")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthAddFailed))));
             }
         }
         catch (Exception e)
@@ -278,7 +308,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("An error occurred while processing your request. Please try again later")));
+                    .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthProcessingError))));
         }
     }
 
@@ -286,6 +316,8 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     [ComponentInteraction("update_auth_modal")]
     public async Task UpdateModalCallback(uint profileId)
     {
+        var culture = BotUiCulture.Resolve(Context);
+
         try
         {
             m_Logger.LogInformation("Processing update auth modal submission from user {UserId}", Context.User.Id);
@@ -313,7 +345,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             {
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("No profile found!")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthProfileNotFound))));
                 return;
             }
 
@@ -332,7 +364,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("User {UserId} provided an unparsable or mismatched cookie string during update", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthInvalidCookies))));
                 return;
             }
 
@@ -343,7 +375,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("User {UserId} provided too-short passphrase during update", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties($"Passphrase must be between {MinPassphraseLength} and {MaxPassphraseLength} characters long. Please choose a longer passphrase.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthPassphraseLength, MinPassphraseLength, MaxPassphraseLength))));
                 return;
             }
 
@@ -358,14 +390,14 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     m_Logger.LogWarning("User {UserId} provided invalid cookies for UID {LtUid} during update", Context.User.Id, profile.LtUid);
                     await Context.Interaction.SendFollowupMessageAsync(
                         new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                            .AddComponents(new TextDisplayProperties("Invalid HoYoLAB UID or Cookies. Please check your credentials and try again.")));
+                            .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthInvalidCookies))));
                     return;
                 }
 
                 m_Logger.LogWarning("Failed to validate profile for user {UserId} during update: {Error}", Context.User.Id, gameProfilesResult.ErrorMessage);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to validate profile. Please try again later.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthValidateFailed))));
                 return;
             }
 
@@ -374,7 +406,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogWarning("No supported game profiles found for user {UserId}, UID {LtUid} during update", Context.User.Id, profile.LtUid);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("No supported game profiles were found for this HoYoLAB account.")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthNoSupportedProfiles))));
                 return;
             }
 
@@ -391,7 +423,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 m_Logger.LogError(e, "Failed to update profile for user {UserId}", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
                     new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                        .AddComponents(new TextDisplayProperties("Failed to update profile! Please try again later")));
+                        .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthUpdateFailed))));
                 return;
             }
 
@@ -408,7 +440,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
             }
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("Profile successfully updated!")));
+                    .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthProfileUpdated))));
         }
         catch (Exception e)
         {
@@ -416,7 +448,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             await Context.Interaction.SendFollowupMessageAsync(
                 new InteractionMessageProperties().WithFlags(MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
-                    .AddComponents(new TextDisplayProperties("An error occurred while processing your request. Please try again later")));
+                    .AddComponents(new TextDisplayProperties(m_Localizer.Get(culture, CommandUiKeys.AuthProcessingError))));
         }
     }
 
@@ -424,6 +456,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     [ComponentInteraction("auth_modal")]
     public async Task AuthModalCallback(string guid)
     {
+        var culture = BotUiCulture.Resolve(Context);
         var passphrase = Context.Components
             .OfType<Label>()
             .Select(l => l.Component)
@@ -438,7 +471,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                     MessageFlags.Ephemeral | MessageFlags.IsComponentsV2)
                 .AddComponents(
                     new TextDisplayProperties(
-                        "This authentication request has expired or is invalid. Please try again"))));
+                        m_Localizer.Get(culture, CommandUiKeys.AuthModalExpired)))));
         }
     }
 

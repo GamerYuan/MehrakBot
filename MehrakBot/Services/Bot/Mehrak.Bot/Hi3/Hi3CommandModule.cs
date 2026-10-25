@@ -1,5 +1,6 @@
 ﻿using Mehrak.Bot.Shared.Attributes;
 using Mehrak.Bot.Shared.Builders;
+using Mehrak.Bot.Shared.Localization;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
@@ -51,7 +52,7 @@ public class Hi3CommandModule : ApplicationCommandModule<ApplicationCommandConte
             .WithInteractionContext(Context)
             .WithParameters(parameters)
             .WithCommandName(CommandName.Hi3.Character)
-            .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name))
+            .AddValidator<string>(nameof(character), name => !string.IsNullOrEmpty(name), CommandUiKeys.ExecutorValidationCharacterEmpty)
             .Build();
 
         await executor.ExecuteAsync(profile).ConfigureAwait(false);

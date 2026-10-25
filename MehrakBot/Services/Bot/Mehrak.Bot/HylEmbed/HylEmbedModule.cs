@@ -1,6 +1,8 @@
 ﻿using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Attributes;
+using Mehrak.Bot.Shared.Localization;
 using Mehrak.Bot.Shared.Models;
+using Mehrak.Bot.Shared.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord;
@@ -13,13 +15,16 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
 {
     private readonly IBotService m_PostService;
     private readonly ILogger<HylEmbedModule> m_Logger;
+    private readonly ICommandUiLocalizer m_Localizer;
 
     public HylEmbedModule(
         [FromKeyedServices(nameof(HylEmbedService))] IBotService postService,
-        ILogger<HylEmbedModule> logger)
+        ILogger<HylEmbedModule> logger,
+        ICommandUiLocalizer? localizer = null)
     {
         m_PostService = postService;
         m_Logger = logger;
+        m_Localizer = localizer ?? CommandUiLocalizer.Default;
     }
 
     [SlashCommand("hyl", "Embeds a HoYoLAB post",
@@ -34,6 +39,7 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
     {
         var sanitisedUrl = url.Trim().Trim('"').ReplaceLineEndings("");
         var locale = language.ToDomainLocale();
+        var culture = BotUiCulture.Resolve(Context);
         try
         {
             m_Logger.LogInformation("User {UserId} is embedding HoYoLAB post with URL {Url}", Context.User.Id, sanitisedUrl);
@@ -41,18 +47,16 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
             if (!Uri.TryCreate(sanitisedUrl, UriKind.RelativeOrAbsolute, out var uri))
             {
                 m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                    .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    InvalidUrlMessage(m_Localizer.Get(culture, CommandUiKeys.HylInvalidUrl))));
                 return;
             }
 
             if (!long.TryParse(uri.Segments.LastOrDefault(), out var postId))
             {
                 m_Logger.LogWarning("Failed to parse post ID from URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
-                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(new InteractionMessageProperties()
-                    .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
-                    .AddComponents(new TextDisplayProperties("The provided URL is invalid. Please ensure it is a valid HoYoLAB post URL."))));
+                await Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+                    InvalidUrlMessage(m_Localizer.Get(culture, CommandUiKeys.HylInvalidUrl))));
                 return;
             }
 
@@ -67,7 +71,13 @@ public class HylEmbedModule : ApplicationCommandModule<ApplicationCommandContext
             m_Logger.LogError(e, "An error occurred while attempting to embed HoYoLAB post with URL {Url} for user {UserId}", sanitisedUrl, Context.User.Id);
             await Context.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("An unexpected error occurred while embedding the HoYoLAB post. Please try again later.")));
+                .AddComponents(new TextDisplayProperties(
+                    m_Localizer.Get(culture, CommandUiKeys.HylUnexpectedError))));
         }
     }
+
+    private static InteractionMessageProperties InvalidUrlMessage(string message) =>
+        new InteractionMessageProperties()
+            .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral)
+            .AddComponents(new TextDisplayProperties(message));
 }

@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Localization;
 using Mehrak.Bot.Shared.Modules;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Services;
@@ -36,6 +37,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
     private readonly IServiceScopeFactory m_ServiceScopeFactory;
     private readonly ILogger<AuthenticationMiddlewareService> m_Logger;
     private readonly IPassphraseAttemptRateLimiter m_PassphraseLimiter;
+    private readonly ICommandUiLocalizer m_Localizer;
     private readonly ConcurrentDictionary<string, AuthenticationResponse> m_NotifiedRequests = [];
     private readonly ConcurrentDictionary<string, byte> m_CurrentRequests = [];
 
@@ -46,13 +48,15 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         IEncryptionService encryptionService,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<AuthenticationMiddlewareService> logger,
-        IPassphraseAttemptRateLimiter passphraseLimiter)
+        IPassphraseAttemptRateLimiter passphraseLimiter,
+        ICommandUiLocalizer? localizer = null)
     {
         m_CacheService = cacheService;
         m_EncryptionService = encryptionService;
         m_ServiceScopeFactory = serviceScopeFactory;
         m_Logger = logger;
         m_PassphraseLimiter = passphraseLimiter;
+        m_Localizer = localizer ?? CommandUiLocalizer.Default;
     }
 
     public async Task<AuthenticationResult> GetAuthenticationAsync(AuthenticationRequest request)
@@ -62,6 +66,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         using var scope = m_ServiceScopeFactory.CreateScope();
         var userContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        var culture = BotUiCulture.Resolve(request.Context);
 
         var user = await userContext.Users
             .AsNoTracking()
@@ -81,7 +86,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         if (user == null)
         {
             m_Logger.LogWarning("User account not found for UserId={UserId}", request.Context.Interaction.User.Id);
-            return AuthenticationResult.NotFound(request.Context, "User account not found. Please add a profile first.");
+            return AuthenticationResult.NotFound(request.Context,
+                m_Localizer.Get(culture, CommandUiKeys.AuthUserNotFound));
         }
 
         var profile = user.Profiles?.FirstOrDefault();
@@ -90,7 +96,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         {
             m_Logger.LogWarning("Profile not found for UserId={UserId}, ProfileId={ProfileId}",
                 request.Context.Interaction.User.Id, request.ProfileId);
-            return AuthenticationResult.NotFound(request.Context, "No profiles found. Please add a profile first.");
+            return AuthenticationResult.NotFound(request.Context,
+                m_Localizer.Get(culture, CommandUiKeys.AuthNoProfiles));
         }
 
         var cacheKey = CacheKeys.BotLToken(request.Context.Interaction.User.Id, profile.LtUid);
@@ -126,7 +133,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
 
         var guid = Guid.NewGuid().ToString();
         m_CurrentRequests.TryAdd(guid, 1);
-        await request.Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal(guid)));
+        await request.Context.Interaction.SendResponseAsync(InteractionCallback.Modal(AuthModalModule.AuthModal(guid,
+            culture, m_Localizer)));
         m_Logger.LogDebug("Auth modal sent. Guid={Guid}, UserId={UserId}, LtUid={LtUid}", guid,
             request.Context.Interaction.User.Id, profile.LtUid);
 
@@ -154,7 +162,8 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
         if (reservation is null)
         {
             m_Logger.LogWarning("Rate limit exceeded for passphrase attempts by user {UserId}", request.Context.Interaction.User.Id);
-            return AuthenticationResult.Failure(authResponse.Context, "Too many incorrect attempts. Please try again later.");
+            return AuthenticationResult.Failure(authResponse.Context,
+                m_Localizer.Get(culture, CommandUiKeys.AuthTooManyAttempts));
         }
 
         var keepReservation = false;
@@ -170,14 +179,15 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             keepReservation = true;
             m_Logger.LogWarning(e, "Incorrect passphrase provided. Guid={Guid}, UserId={UserId}", authResponse.Guid,
                 request.Context.Interaction.User.Id);
-            return AuthenticationResult.Failure(authResponse.Context, "Incorrect passphrase. Please try again");
+            return AuthenticationResult.Failure(authResponse.Context,
+                m_Localizer.Get(culture, CommandUiKeys.AuthIncorrectPassphrase));
         }
         catch (CryptographicException e)
         {
             m_Logger.LogWarning(e, "Stored credential data is corrupted. Guid={Guid}, UserId={UserId}",
                 authResponse.Guid, request.Context.Interaction.User.Id);
             return AuthenticationResult.Failure(authResponse.Context,
-                "Stored authentication data is corrupted. Please remove and re-add this profile.");
+                m_Localizer.Get(culture, CommandUiKeys.AuthCorrupted));
         }
         finally
         {
@@ -205,7 +215,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 "Authentication refused: profile {ProfileId} for UserId={UserId} was removed during authentication",
                 profile.Id, request.Context.Interaction.User.Id);
             return AuthenticationResult.NotFound(authResponse.Context,
-                "No profiles found. Please add a profile first.");
+                m_Localizer.Get(culture, CommandUiKeys.AuthNoProfiles));
         }
 
         if (!string.Equals(currentCipher, profile.LToken, StringComparison.Ordinal)
@@ -216,7 +226,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
                 "Authentication refused: credentials for UserId={UserId}, LtUid={LtUid} changed during authentication",
                 request.Context.Interaction.User.Id, profile.LtUid);
             return AuthenticationResult.Failure(authResponse.Context,
-                "Profile credentials changed during authentication. Please try again.");
+                m_Localizer.Get(culture, CommandUiKeys.AuthCredentialsChanged));
         }
 
         // A stale in-flight write can at most recreate an entry bound to

@@ -2,6 +2,8 @@
 using System.Text.RegularExpressions;
 using Mehrak.Bot.HylEmbed.Models;
 using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Localization;
+using Mehrak.Bot.Shared.Services;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hoyolab;
@@ -18,6 +20,7 @@ internal partial class HylEmbedService : IBotService
 
     private readonly IApiService<HylPost, HylPostApiContext> m_ApiService;
     private readonly IBotLocalizationService m_LocalizationService;
+    private readonly ICommandUiLocalizer m_CommandUiLocalizer;
     private readonly ILogger<HylEmbedService> m_Logger;
 
     public IBotContext? Context { get; set; }
@@ -25,16 +28,21 @@ internal partial class HylEmbedService : IBotService
     public HylEmbedService(
         IApiService<HylPost, HylPostApiContext> apiService,
         IBotLocalizationService localizationService,
-        ILogger<HylEmbedService> logger)
+        ILogger<HylEmbedService> logger,
+        ICommandUiLocalizer? commandUiLocalizer = null)
     {
         m_ApiService = apiService;
         m_LocalizationService = localizationService;
         m_Logger = logger;
+        m_CommandUiLocalizer = commandUiLocalizer ?? CommandUiLocalizer.Default;
     }
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (Context == null) throw new InvalidOperationException("Context must be set before executing the service.");
+
+        // Command UI language is independent from the HoYoLAB post content language.
+        var uiCulture = BotUiCulture.Resolve(Context.DiscordContext);
 
         var postId = Context.GetParameter<long>("postId");
         var locale = Context.GetParameter<WikiLocales>("locale");
@@ -50,7 +58,8 @@ internal partial class HylEmbedService : IBotService
             m_Logger.LogWarning("Failed to fetch HoYoLAB post {PostId}. Error: {ErrorMessage}", postId, response.ErrorMessage);
             await Context.DiscordContext.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties($"Failed to retrieve HoYoLAB post: {response.ErrorMessage}")));
+                .AddComponents(new TextDisplayProperties(
+                    m_CommandUiLocalizer.Get(uiCulture, CommandUiKeys.HylFetchFailed))));
             return;
         }
 
@@ -78,7 +87,8 @@ internal partial class HylEmbedService : IBotService
             m_Logger.LogWarning(e, "Failed to parse structured content for post {PostId}", post.Post.PostId);
             await Context.DiscordContext.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("Failed to parse HoYoLAB post content.")));
+                .AddComponents(new TextDisplayProperties(
+                    m_CommandUiLocalizer.Get(uiCulture, CommandUiKeys.HylParseFailed))));
             return;
         }
 
@@ -87,7 +97,8 @@ internal partial class HylEmbedService : IBotService
             m_Logger.LogWarning("Failed to parse structured content for post {PostId}", post.Post.PostId);
             await Context.DiscordContext.Interaction.SendFollowupMessageAsync(new InteractionMessageProperties()
                 .WithFlags(MessageFlags.IsComponentsV2)
-                .AddComponents(new TextDisplayProperties("Failed to parse HoYoLAB post content.")));
+                .AddComponents(new TextDisplayProperties(
+                    m_CommandUiLocalizer.Get(uiCulture, CommandUiKeys.HylParseFailed))));
             return;
         }
 

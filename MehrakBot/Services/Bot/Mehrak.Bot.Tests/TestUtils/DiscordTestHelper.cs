@@ -135,9 +135,11 @@ public sealed partial class DiscordTestHelper : IDisposable
     /// Can create one level of nesting for subcommand
     /// <param name="userId">The user ID to be used</param>
     /// <param name="subcommand">The name of the subcommand to invoke</param>
+    /// <param name="userLocale">Optional Discord locale token for the invoking user</param>
     /// <param name="parameters">The parameters to be passed to the command</param>
     /// </summary>
     public SlashCommandInteraction CreateCommandInteraction(ulong userId, string? subcommand = null,
+        string? userLocale = null,
         params (string Name, object Value, ApplicationCommandOptionType Type)[] parameters)
     {
         SetupRequestCapture();
@@ -181,6 +183,7 @@ public sealed partial class DiscordTestHelper : IDisposable
             Type = InteractionType.ApplicationCommand,
             AppPermissions = Permissions.SendMessages,
             Token = $"sample_token_{userId}",
+            UserLocale = userLocale,
             Data = jsonInteractionData,
             User = new JsonUser
             {

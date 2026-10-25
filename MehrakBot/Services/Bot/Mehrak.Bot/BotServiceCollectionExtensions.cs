@@ -3,6 +3,7 @@
 using Mehrak.Bot.HylEmbed;
 using Mehrak.Bot.Shared.Abstractions;
 using Mehrak.Bot.Shared.Builders;
+using Mehrak.Bot.Shared.Localization;
 using Mehrak.Bot.Shared.Services;
 using Mehrak.Bot.Shared.Services.RateLimit;
 using Mehrak.Domain.Shared.Services;
@@ -31,6 +32,7 @@ internal static class BotServiceCollectionExtensions
 
         services.AddSingleton<ICharacterAutocompleteService, CharacterAutocompleteService>();
         services.AddSingleton<IBotLocalizationService, BotLocalizationService>();
+        services.AddSingleton<ICommandUiLocalizer>(CommandUiLocalizer.Default);
 
         services.AddSingleton<IBotMetrics, BotMetricsService>();
         services.AddOpenTelemetry().WithMetrics(metrics => metrics

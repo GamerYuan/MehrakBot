@@ -307,8 +307,9 @@ public class HylEmbedServiceTests
 
     #region ExecuteAsync - Error Handling Tests
 
-    [Test]
-    public async Task ExecuteAsync_ApiServiceFailure_SendsErrorMessage()
+    [TestCase(null, "Failed to retrieve HoYoLAB post. Please try again later.")]
+    [TestCase("ja", "HoYoLAB 投稿の取得に失敗しました。しばらくしてから再度お試しください。")]
+    public async Task ExecuteAsync_ApiServiceFailure_LocalisesUiWithoutChangingContentLocale(string? uiLocale, string expected)
     {
         // Arrange
         const string errorMessage = "API request failed";
@@ -316,7 +317,7 @@ public class HylEmbedServiceTests
             .Setup(x => x.GetAsync(It.IsAny<HylPostApiContext>()))
             .ReturnsAsync(Result<HylPost>.Failure(StatusCode.ExternalServerError, errorMessage));
 
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
+        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId, userLocale: uiLocale);
         var mockContext = new Mock<IBotContext>();
         var mockDiscordContext = new Mock<IInteractionContext>();
         mockDiscordContext.SetupGet(x => x.Interaction).Returns(interaction);
@@ -326,13 +327,12 @@ public class HylEmbedServiceTests
 
         m_Service.Context = mockContext.Object;
 
-        // Act
         await m_Service.ExecuteAsync();
 
-        // Assert
-        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("Failed to retrieve HoYoLAB post"));
-        Assert.That(response, Does.Contain(errorMessage));
+        using var payload = JsonDocument.Parse(await m_DiscordHelper.ExtractInteractionResponseDataAsync());
+        var text = payload.RootElement.GetProperty("components")[0].GetProperty("content").GetString();
+        Assert.That(text, Is.EqualTo(expected).And.Not.Contain(errorMessage));
+        m_MockApiService.Verify(x => x.GetAsync(It.Is<HylPostApiContext>(c => c.Locale == TestLocale)), Times.Once);
     }
 
     [Test]

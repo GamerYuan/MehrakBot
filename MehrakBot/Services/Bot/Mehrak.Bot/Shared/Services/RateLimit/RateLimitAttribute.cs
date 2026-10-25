@@ -1,4 +1,6 @@
 ﻿using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Localization;
+using Mehrak.Bot.Shared.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services;
 
@@ -9,21 +11,27 @@ internal class RateLimitAttribute<TContext> : PreconditionAttribute<TContext> wh
 {
     public override async ValueTask<PreconditionResult> EnsureCanExecuteAsync(TContext context, IServiceProvider? serviceProvider)
     {
+        var localizer = serviceProvider?.GetService<ICommandUiLocalizer>() ?? CommandUiLocalizer.Default;
+        var culture = context is IInteractionContext interactionContext
+            ? BotUiCulture.Resolve(interactionContext)
+            : BotUiCulture.English;
+
         try
         {
             if (serviceProvider == null)
-                return PreconditionResult.Fail("Rate limiting is temporarily unavailable. Please try again later.");
+                return PreconditionResult.Fail(localizer.Get(culture, CommandUiKeys.RateLimitUnavailable));
 
             var rateLimiter = serviceProvider.GetRequiredService<ICommandRateLimitService>();
 
             var isAllowed = await rateLimiter.IsAllowedAsync(context.User.Id);
 
-            if (!isAllowed) return PreconditionResult.Fail("Used command too frequently! Please try again later");
+            if (!isAllowed)
+                return PreconditionResult.Fail(localizer.Get(culture, CommandUiKeys.RateLimitTooFrequent));
             return PreconditionResult.Success;
         }
         catch (Exception)
         {
-            return PreconditionResult.Fail("Rate limiting is temporarily unavailable. Please try again later.");
+            return PreconditionResult.Fail(localizer.Get(culture, CommandUiKeys.RateLimitUnavailable));
         }
     }
 }

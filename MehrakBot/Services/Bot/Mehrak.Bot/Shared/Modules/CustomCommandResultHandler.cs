@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Mehrak.Bot.Shared.Abstractions;
+using Mehrak.Bot.Shared.Localization;
+using Mehrak.Bot.Shared.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
@@ -17,14 +21,32 @@ internal class CustomCommandResultHandler<TContext>(MessageFlags? messageFlags =
         if (result is not IFailResult failResult)
             return;
 
-        var resultMessage = failResult.Message;
-
         var interaction = context.Interaction;
+        var localizer = services.GetService<ICommandUiLocalizer>() ?? CommandUiLocalizer.Default;
+        var culture = BotUiCulture.Resolve(interaction.UserLocale);
+
+        string resultMessage;
 
         if (failResult is IExceptionResult exceptionResult)
-            logger.LogError(exceptionResult.Exception, "Execution of an application command of name '{Name}' failed with an exception", interaction.Data.Name);
+        {
+            // Framework exception text is never surfaced to users: only a safe translated category.
+            logger.LogError(exceptionResult.Exception,
+                "Execution of an application command of name '{Name}' failed with an exception", interaction.Data.Name);
+            resultMessage = localizer.Get(culture, CommandUiKeys.FrameworkUnexpectedError);
+        }
         else
-            logger.LogDebug("Execution of an application command of name '{Name}' failed with '{Message}'", interaction.Data.Name, resultMessage);
+        {
+            logger.LogDebug("Execution of an application command of name '{Name}' failed with '{Message}'",
+                interaction.Data.Name, failResult.Message);
+
+            // Bot-authored precondition messages (rate limits) are already localised and safe;
+            // raw framework parse/validation text is replaced by a safe translated category.
+            var isSafeRateLimit = failResult is PreconditionFailResult &&
+                                  (failResult.Message == localizer.Get(culture, CommandUiKeys.RateLimitTooFrequent) ||
+                                   failResult.Message == localizer.Get(culture, CommandUiKeys.RateLimitUnavailable));
+            resultMessage = isSafeRateLimit ? failResult.Message :
+                localizer.Get(culture, CommandUiKeys.FrameworkInputInvalid);
+        }
 
         InteractionMessageProperties message = new()
         {
