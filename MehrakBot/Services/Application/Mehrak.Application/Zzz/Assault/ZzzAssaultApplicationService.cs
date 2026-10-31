@@ -72,10 +72,10 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             if (assaultResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(assaultResponse.ErrorMessage ?? "Cancelled");
             if (assaultResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Assault", context.UserId, gameUid, assaultResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Deadly Assault data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.DeadlyAssault);
         }
 
         var assaultData = assaultResponse.Data;
@@ -83,9 +83,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         if (!assaultData.HasData || assaultData.List.Count == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Assault", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Deadly Assault"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.DeadlyAssault));
         }
 
         var tz = server.GetTimeZoneInfo();
@@ -96,14 +94,8 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
             new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTs}:f>\n" +
-                                        $"Cycle end: <t:{endTs}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.DeadlyAssault,
+                StorageReference.Attachment(fileName), DateTimeOffset.FromUnixTimeSeconds(startTs), DateTimeOffset.FromUnixTimeSeconds(endTs)));
         }
 
         var floors = assaultData.List
@@ -137,7 +129,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Assault", context.UserId,
                 JsonSerializer.Serialize(assaultData));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<ZzzAssaultData>(context.UserId, assaultData, profile);
@@ -148,17 +140,11 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
         if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Deadly Assault Summary", CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{startTs}:f>\n" +
-                                    $"Cycle end: <t:{endTs}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.DeadlyAssault,
+                StorageReference.Attachment(fileName), DateTimeOffset.FromUnixTimeSeconds(startTs), DateTimeOffset.FromUnixTimeSeconds(endTs)));
     }
 
     internal static MultiImageProcessorBase GetBossImageProcessor()

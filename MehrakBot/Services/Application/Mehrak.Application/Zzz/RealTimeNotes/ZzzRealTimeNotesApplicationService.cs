@@ -50,60 +50,62 @@ internal class ZzzRealTimeNotesApplicationService : BaseApplicationService
             if (notesResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(notesResult.ErrorMessage ?? "Cancelled");
             if (notesResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Notes", context.UserId, gameUid, notesResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Real-Time Notes"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.RealTimeNotes);
         }
 
         var notesData = notesResult.Data;
 
-        return await BuildRealTimeNotes(notesData, gameUid);
+        return CommandResult.Success(BuildOutcome(notesData, gameUid, DateTimeOffset.UtcNow));
     }
 
-    private async Task<CommandResult> BuildRealTimeNotes(ZzzRealTimeNotesData data, string uid)
+    internal static ZzzNotesOutcome BuildOutcome(ZzzRealTimeNotesData data, string uid, DateTimeOffset observedAt)
     {
-        var currTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        var omnicoins = data.TempleManage.CurrencyNextRefreshTs == 0
-            ? "-"
-            : $"{data.TempleManage.CurrentCurrency}/{data.TempleManage.WeeklyCurrencyMax}" +
-              $"-# Refreshes in <t:{data.TempleManage.CurrencyNextRefreshTs}:F>";
-        var bounty = data.BountyCommission.Total == 0
-            ? "-"
-            : $"{data.BountyCommission.Num}/{data.BountyCommission.Total}\n" +
-              $"-# Refreshes in <t:{currTime + data.BountyCommission.RefreshTime}:F>";
-        var weeklyTask = data.WeeklyTask is null
-            ? "-"
-            : $"{data.WeeklyTask!.CurPoint}/{data.WeeklyTask!.MaxPoint}\n" +
-              $"-# Refreshes in <t:{currTime + data.WeeklyTask.RefreshTime}:F>";
-
-        List<ICommandResultComponent> components =
-        [
-            new CommandText($"Zenless Zone Zero Real-Time Notes (UID: {uid})", CommandText.TextType.Header2),
-            new CommandSection([
-                    new CommandText("Battery Charge", CommandText.TextType.Header3),
-                    new CommandText($"{data.Energy.Progress.Current}/{data.Energy.Progress.Max}"),
-                    new CommandText(data.Energy.Restore == 0
-                        ? "Fully Recovered!"
-                        : $"Recovers <t:{currTime + data.Energy.Restore}:R>", CommandText.TextType.Footer)
-                ],
-                new CommandAttachment("zzz_battery.png", AttachmentSourceType.ImageStorage, "zzz/battery.png")
-            ),
-            new CommandText("Daily Missions", CommandText.TextType.Header3),
-            new CommandText($"Daily Engagement: {data.Vitality.Current}/{data.Vitality.Max}"),
-            new CommandText($"Scratch Card/Divination: {data.CardSign.ToReadableString()}"),
-            new CommandText($"Video Store Management: {data.VhsSale.SaleState.ToReadableString()}"),
-            new CommandText("Season Missions", CommandText.TextType.Header3),
-            new CommandText($"Bounty Commission: {bounty}"),
-            new CommandText($"Ridu Weekly Points: {weeklyTask}"),
-            new CommandText($"Omnicoins: {omnicoins}"),
-            new CommandText("Suibian Temple Management", CommandText.TextType.Header3),
-            new CommandText($"Adventure: {data.TempleManage.ExpeditionState.ToReadableString()}"),
-            new CommandText($"Crafting Workshop: {data.TempleManage.BenchState.ToReadableString()}"),
-            new CommandText($"Sales Stall: {data.TempleManage.ShelveState.ToReadableString()}")
-        ];
-
-        return CommandResult.Success(components, true, true);
+        observedAt = observedAt.ToUniversalTime();
+        return new ZzzNotesOutcome(uid, observedAt,
+            new NotesResource(data.Energy.Progress.Current, data.Energy.Progress.Max,
+                data.Energy.Restore == 0 ? null : observedAt.AddSeconds(data.Energy.Restore)),
+            new NotesCounter(data.Vitality.Current, data.Vitality.Max, null),
+            data.CardSign switch
+            {
+                CardSignState.CardSignNo => ScratchCardOutcome.Incomplete,
+                CardSignState.CardSignDone => ScratchCardOutcome.Completed,
+                _ => ScratchCardOutcome.Unknown
+            },
+            data.VhsSale.SaleState switch
+            {
+                VhsSaleState.SaleStateNo => VideoStoreOutcome.WaitingToOpen,
+                VhsSaleState.SaleStateDoing => VideoStoreOutcome.Open,
+                VhsSaleState.SaleStateDone => VideoStoreOutcome.RevenueAvailable,
+                _ => VideoStoreOutcome.Unknown
+            },
+            data.BountyCommission.Total == 0 ? null : new NotesCounter(data.BountyCommission.Num,
+                data.BountyCommission.Total, observedAt.AddSeconds(data.BountyCommission.RefreshTime)),
+            data.WeeklyTask is null ? null : new NotesCounter(data.WeeklyTask.CurPoint,
+                data.WeeklyTask.MaxPoint, observedAt.AddSeconds(data.WeeklyTask.RefreshTime)),
+            data.TempleManage.CurrencyNextRefreshTs == 0 ? null : new NotesCounter(data.TempleManage.CurrentCurrency,
+                data.TempleManage.WeeklyCurrencyMax, DateTimeOffset.FromUnixTimeSeconds(data.TempleManage.CurrencyNextRefreshTs)),
+            data.TempleManage.ExpeditionState switch
+            {
+                ExpeditionState.ExpeditionStateInCanSend => TempleAdventureOutcome.Dispatchable,
+                ExpeditionState.ExpeditionStateInProgress => TempleAdventureOutcome.Adventuring,
+                ExpeditionState.ExpeditionStateEnd => TempleAdventureOutcome.Completed,
+                _ => TempleAdventureOutcome.Unknown
+            },
+            data.TempleManage.BenchState switch
+            {
+                BenchState.BenchStateProducing => TempleCraftingOutcome.Crafting,
+                BenchState.BenchStateCanProduce => TempleCraftingOutcome.Craftable,
+                _ => TempleCraftingOutcome.Unknown
+            },
+            data.TempleManage.ShelveState switch
+            {
+                ShelveState.ShelveStateCanSell => TempleSalesOutcome.NotSelling,
+                ShelveState.ShelveStateSelling => TempleSalesOutcome.Selling,
+                ShelveState.ShelveStateSoldOut => TempleSalesOutcome.OutOfStock,
+                _ => TempleSalesOutcome.Unknown
+            });
     }
 }

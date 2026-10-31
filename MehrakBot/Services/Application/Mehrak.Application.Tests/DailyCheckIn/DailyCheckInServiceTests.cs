@@ -1,9 +1,11 @@
 ﻿#region
 
+using Google.Protobuf;
 using Mehrak.Application.DailyCheckIn;
 using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Character.Models;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
@@ -56,9 +58,8 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("already checked in today"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.AlreadyCompleted));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items, Is.Empty);
         }
     }
 
@@ -97,8 +98,7 @@ public class DailyCheckInServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Check-in successful"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Outcome, Is.EqualTo(CheckInOutcome.Succeeded));
         });
 
         var profile = await userContext.UserProfiles.SingleAsync();
@@ -138,8 +138,7 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Check-in successful"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Outcome, Is.EqualTo(CheckInOutcome.Succeeded));
         }
     }
 
@@ -162,7 +161,7 @@ public class DailyCheckInServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.AuthenticationRequired));
         }
     }
 
@@ -184,9 +183,8 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("No game records found"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items, Is.Empty);
         }
     }
 
@@ -243,10 +241,10 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("Genshin Impact"));
-            Assert.That(content, Does.Contain("Honkai: Star Rail"));
-            Assert.That(content, Does.Contain("Zenless Zone Zero"));
+            var items = ((DailyCheckInOutcome)result.Outcome!).Items;
+            Assert.That(items.Select(x => x.Game), Does.Contain(Game.Genshin));
+            Assert.That(items.Select(x => x.Game), Does.Contain(Game.HonkaiStarRail));
+            Assert.That(items.Select(x => x.Game), Does.Contain(Game.ZenlessZoneZero));
         }
 
         checkInApiMock.Verify(x => x.GetAsync(It.IsAny<CheckInApiContext>()), Times.Exactly(3));
@@ -286,8 +284,7 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Already checked in today"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Outcome, Is.EqualTo(CheckInOutcome.AlreadyCheckedIn));
         }
     }
 
@@ -324,13 +321,12 @@ public class DailyCheckInServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("No valid account found"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Outcome, Is.EqualTo(CheckInOutcome.NoValidProfile));
         });
     }
 
     [Test]
-    public async Task ExecuteAsync_CheckInApiFails_ShowsErrorMessage()
+    public async Task ExecuteAsync_CheckInApiFails_ReturnsCodedFailure()
     {
         // Arrange
         var (service, _, gameRecordApiMock, checkInApiMock) = SetupMocks();
@@ -362,8 +358,8 @@ public class DailyCheckInServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("API temporarily unavailable"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Error!.Code, Is.EqualTo(CommandErrorCode.ApiUnavailable));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Failed));
         });
     }
 
@@ -412,9 +408,10 @@ public class DailyCheckInServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
-            var content = result.Data!.Components.OfType<CommandText>().First().Content;
-            Assert.That(content, Does.Contain("Check-in successful"));
-            Assert.That(content, Does.Contain("API Error"));
+            var items = ((DailyCheckInOutcome)result.Outcome!).Items;
+            Assert.That(items[0].Outcome, Is.EqualTo(CheckInOutcome.Succeeded));
+            Assert.That(items[1].Error!.Code, Is.EqualTo(CommandErrorCode.ApiUnavailable));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).State, Is.EqualTo(OperationOutcome.Partial));
         });
 
         Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.HasValue, Is.False);
@@ -463,13 +460,168 @@ public class DailyCheckInServiceTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandText>().First().Content,
-                Does.Contain("Check-in successful"));
+            Assert.That(((DailyCheckInOutcome)result.Outcome!).Items.Single().Outcome, Is.EqualTo(CheckInOutcome.Succeeded));
 
         }
 
         Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.HasValue, Is.True);
         Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn.Value, Is.GreaterThan(yesterdayUtc));
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task ExecuteAsync_TimeoutPriorityDependsOnSuccess_AndRetainsGameOrder(bool firstSucceeds)
+    {
+        var (service, userContext, recordsApi, api) = SetupMocks();
+        SeedTestUser(userContext, hasCheckedInToday: false);
+        recordsApi.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(
+                [new GameRecordDto { Game = Game.Genshin }, new GameRecordDto { Game = Game.HonkaiStarRail }]));
+        var first = new TaskCompletionSource<Result<CheckInStatus>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = new TaskCompletionSource<Result<CheckInStatus>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.Genshin)))
+            .Returns(first.Task);
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.HonkaiStarRail)))
+            .Returns(second.Task);
+        var execution = service.ExecuteAsync(CreateContext(1, 12345ul, "test"));
+        second.SetResult(Result<CheckInStatus>.Failure(StatusCode.Timeout, "untrusted timeout"));
+        first.SetResult(firstSucceeds ? Result<CheckInStatus>.Success(CheckInStatus.Success)
+            : Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile));
+        var result = await execution;
+        var outcome = (DailyCheckInOutcome)result.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.EqualTo(firstSucceeds));
+            Assert.That(outcome.State, Is.EqualTo(firstSucceeds ? OperationOutcome.Partial : OperationOutcome.Failed));
+            Assert.That(outcome.Items.Select(x => x.Game), Is.EqualTo(new[] { Game.Genshin, Game.HonkaiStarRail }));
+            Assert.That(outcome.Items[1].Error!.Code, Is.EqualTo(CommandErrorCode.Timeout));
+            if (!firstSucceeds)
+                Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.Timeout));
+        });
+        Assert.That((await userContext.UserProfiles.SingleAsync()).LastCheckIn, Is.Null);
+    }
+
+    [TestCase(CheckInStatus.Error)]
+    [TestCase((CheckInStatus)999)]
+    public async Task ExecuteAsync_UnknownStatuses_RoundTripPreservesSuccessEnvelopeAndGameOrder(CheckInStatus status)
+    {
+        var (service, userContext, recordsApi, api) = SetupMocks();
+        SeedTestUser(userContext, hasCheckedInToday: false);
+        recordsApi.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(
+                [new GameRecordDto { Game = Game.Genshin }, new GameRecordDto { Game = Game.HonkaiStarRail }]));
+        var first = new TaskCompletionSource<Result<CheckInStatus>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = new TaskCompletionSource<Result<CheckInStatus>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.Genshin)))
+            .Returns(first.Task);
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.HonkaiStarRail)))
+            .Returns(second.Task);
+
+        var execution = service.ExecuteAsync(CreateContext(1, 12345ul, "test"));
+        second.SetResult(Result<CheckInStatus>.Success(status));
+        first.SetResult(Result<CheckInStatus>.Success(status));
+        var result = await execution;
+        var roundTrip = Mehrak.Domain.Protobuf.CommandResult.Parser.ParseFrom(result.ToProto().ToByteArray()).ToDomain();
+
+        foreach (var actual in new[] { result, roundTrip })
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(actual.IsSuccess, Is.True);
+                Assert.That(actual.FailureReason, Is.EqualTo(CommandFailureReason.Unknown));
+                Assert.That(actual.Error, Is.Null);
+                var outcome = (DailyCheckInOutcome)actual.Outcome!;
+                Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Failed));
+                Assert.That(outcome.Items.Select(x => x.Game), Is.EqualTo(new[] { Game.Genshin, Game.HonkaiStarRail }));
+                Assert.That(outcome.Items.Select(x => x.Outcome), Is.All.EqualTo(CheckInOutcome.Unknown));
+                Assert.That(outcome.Items.Select(x => x.Error), Is.All.Null);
+            }
+        }
+        Assert.That((await userContext.UserProfiles.AsNoTracking().SingleAsync()).LastCheckIn, Is.Null);
+    }
+
+    [TestCase(CheckInStatus.Success, CheckInOutcome.Succeeded)]
+    [TestCase(CheckInStatus.AlreadyCheckedIn, CheckInOutcome.AlreadyCheckedIn)]
+    public async Task ExecuteAsync_UnknownAndSuccessfulStatus_RoundTripPreservesPartialWithoutPersistence(
+        CheckInStatus status, CheckInOutcome expected)
+    {
+        var (service, userContext, recordsApi, api) = SetupMocks();
+        SeedTestUser(userContext, hasCheckedInToday: false);
+        recordsApi.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(
+                [new GameRecordDto { Game = Game.Genshin }, new GameRecordDto { Game = Game.HonkaiStarRail }]));
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.Genshin)))
+            .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Error));
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.HonkaiStarRail)))
+            .ReturnsAsync(Result<CheckInStatus>.Success(status));
+
+        var result = await service.ExecuteAsync(CreateContext(1, 12345ul, "test"));
+        var roundTrip = Mehrak.Domain.Protobuf.CommandResult.Parser.ParseFrom(result.ToProto().ToByteArray()).ToDomain();
+
+        foreach (var actual in new[] { result, roundTrip })
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(actual.IsSuccess, Is.True);
+                Assert.That(actual.FailureReason, Is.EqualTo(CommandFailureReason.Unknown));
+                Assert.That(actual.Error, Is.Null);
+                var outcome = (DailyCheckInOutcome)actual.Outcome!;
+                Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Partial));
+                Assert.That(outcome.Items, Is.EqualTo(new[]
+                {
+                    CheckInItem.Completed(Game.Genshin, CheckInOutcome.Unknown),
+                    CheckInItem.Completed(Game.HonkaiStarRail, expected)
+                }));
+            }
+        }
+        Assert.That((await userContext.UserProfiles.AsNoTracking().SingleAsync()).LastCheckIn, Is.Null);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExecuteAsync_UnknownAndTimeout_RoundTripPreservesTimeoutPrecedenceAndItems(bool hasSuccess)
+    {
+        var (service, userContext, recordsApi, api) = SetupMocks();
+        SeedTestUser(userContext, hasCheckedInToday: false);
+        var records = new List<GameRecordDto>
+        {
+            new() { Game = Game.Genshin }, new() { Game = Game.HonkaiStarRail }
+        };
+        var expectedItems = new List<CheckInItem>
+        {
+            CheckInItem.Completed(Game.Genshin, CheckInOutcome.Unknown),
+            CheckInItem.Failed(Game.HonkaiStarRail, new(CommandErrorCode.Timeout, CommandErrorTarget.DailyCheckIn))
+        };
+        if (hasSuccess)
+        {
+            records.Add(new() { Game = Game.ZenlessZoneZero });
+            expectedItems.Add(CheckInItem.Completed(Game.ZenlessZoneZero, CheckInOutcome.Succeeded));
+        }
+        recordsApi.Setup(x => x.GetAsync(It.IsAny<GameRecordApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<GameRecordDto>>.Success(records));
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.Genshin)))
+            .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Error));
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.HonkaiStarRail)))
+            .ReturnsAsync(Result<CheckInStatus>.Failure(StatusCode.Timeout, "untrusted timeout"));
+        api.Setup(x => x.GetAsync(It.Is<CheckInApiContext>(x => x.Game == Game.ZenlessZoneZero)))
+            .ReturnsAsync(Result<CheckInStatus>.Success(CheckInStatus.Success));
+
+        var result = await service.ExecuteAsync(CreateContext(1, 12345ul, "test"));
+        var roundTrip = Mehrak.Domain.Protobuf.CommandResult.Parser.ParseFrom(result.ToProto().ToByteArray()).ToDomain();
+
+        foreach (var actual in new[] { result, roundTrip })
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(actual.IsSuccess, Is.EqualTo(hasSuccess));
+                Assert.That(actual.FailureReason, Is.EqualTo(hasSuccess ? CommandFailureReason.Unknown : CommandFailureReason.Timeout));
+                Assert.That(actual.Error, Is.EqualTo(hasSuccess ? null : new CommandError(CommandErrorCode.Timeout, CommandErrorTarget.DailyCheckIn)));
+                var outcome = (DailyCheckInOutcome)actual.Outcome!;
+                Assert.That(outcome.State, Is.EqualTo(hasSuccess ? OperationOutcome.Partial : OperationOutcome.Failed));
+                Assert.That(outcome.Items, Is.EqualTo(expectedItems));
+            }
+        }
+        Assert.That((await userContext.UserProfiles.AsNoTracking().SingleAsync()).LastCheckIn, Is.Null);
     }
 
     #endregion

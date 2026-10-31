@@ -63,10 +63,10 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
             if (memoryResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(memoryResult.ErrorMessage ?? "Cancelled");
             if (memoryResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "Memory of Chaos", context.UserId, gameUid, memoryResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Memory of Chaos data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.MemoryOfChaos);
         }
 
         var memoryData = memoryResult.Data;
@@ -74,28 +74,20 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         if (!memoryData.HasData || memoryData.BattleNum == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Memory of Chaos", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Memory of Chaos"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, EndgameMode.MemoryOfChaos));
         }
 
         var tz = server.GetTimeZoneInfo();
         var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
         var endTime = new DateTimeOffset(memoryData.EndTime.ToDateTime(), tz.BaseUtcOffset)
-            .ToUnixTimeSeconds();
+            .ToUniversalTime();
 
         var fileName = GetCardFileName("hsr", "memory", "v1", memoryData, profile, new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
-            return CommandResult.Success(
-                [
-                    new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
-                        new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                        new CommandAttachment(fileName),
-                        new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-                ],
-                true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, EndgameMode.MemoryOfChaos,
+                StorageReference.Attachment(fileName), startTime, endTime));
         }
 
         var tasks = memoryData.AllFloorDetail!
@@ -109,7 +101,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Memory of Chaos", context.UserId,
                 JsonSerializer.Serialize(memoryData));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<HsrMemoryInformation>(context.UserId, memoryData, profile);
@@ -120,16 +112,10 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
         if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
         {
             Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-            return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+            return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success(
-            [
-                new CommandText($"<@{context.UserId}>'s Memory of Chaos Summary", CommandText.TextType.Header3),
-                    new CommandText($"Cycle start: <t:{startTime}:f>\nCycle end: <t:{endTime}:f>"),
-                    new CommandAttachment(fileName),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.HonkaiStarRail, profile.GameUid, EndgameMode.MemoryOfChaos,
+                StorageReference.Attachment(fileName), startTime, endTime));
     }
 }

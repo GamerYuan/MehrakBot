@@ -1,6 +1,7 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Net.Http.Json;
+using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -82,30 +83,30 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                     m_Logger.LogInformation("Successfully redeemed code {Code} for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",
-                        CodeStatus.Valid), requestUri: requestUri);
+                        CodeStatus.Valid, RedemptionOutcome.Redeemed), requestUri: requestUri);
 
                 case -2001:
                     m_Logger.LogInformation("Code {Code} is expired for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Expired",
-                        CodeStatus.Invalid), requestUri: requestUri);
+                        CodeStatus.Invalid, RedemptionOutcome.Expired), requestUri: requestUri);
 
                 case -2003:
                     m_Logger.LogInformation("Invalid code {Code} for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
-                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid), requestUri: requestUri);
+                    return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid, RedemptionOutcome.Invalid), requestUri: requestUri);
 
                 case -2016:
                     m_Logger.LogInformation("Redemption in cooldown code {Code} User {UserId} gameUid {GameUid}",
                         context.Code, context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption in Cooldown",
-                        CodeStatus.Valid), requestUri: requestUri);
+                        CodeStatus.Valid, RedemptionOutcome.Cooldown), requestUri: requestUri);
 
                 case -2017:
                     m_Logger.LogInformation("Code {Code} already used for User {UserId} gameUid {GameUid}", context.Code,
                         context.UserId, context.GameUid);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Already Used",
-                        CodeStatus.Valid), requestUri: requestUri);
+                        CodeStatus.Valid, RedemptionOutcome.AlreadyUsed), requestUri: requestUri);
 
                 case -100:
                     m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
@@ -156,15 +157,18 @@ public class CodeRedeemApiContext : BaseHoYoApiContext
     }
 }
 
-public struct CodeRedeemResult
+public readonly record struct CodeRedeemResult
 {
     public string Message { get; init; }
     public CodeStatus Status { get; init; }
 
-    public CodeRedeemResult(string message, CodeStatus status)
+    public RedemptionOutcome Outcome { get; init; }
+
+    public CodeRedeemResult(string message, CodeStatus status, RedemptionOutcome outcome = RedemptionOutcome.Unknown)
     {
         Message = message;
         Status = status;
+        Outcome = outcome;
     }
 }
 

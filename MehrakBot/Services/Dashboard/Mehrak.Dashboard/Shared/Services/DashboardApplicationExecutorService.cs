@@ -264,13 +264,7 @@ public sealed class DashboardApplicationExecutionResult
     {
         return Status switch
         {
-            DashboardExecutionStatus.Success when CommandResult is not null =>
-                TryExtractAttachment(CommandResult) is { } attachment
-                    ? new ObjectResult(attachment)
-                    {
-                        StatusCode = StatusCodes.Status200OK
-                    }
-                    : HandleMissingAttachment(CommandResult),
+            DashboardExecutionStatus.Success when CommandResult is not null => MapCommandResult(CommandResult),
             DashboardExecutionStatus.ValidationFailed
                 => new ObjectResult(new { error = ErrorMessage ?? "Validation failed.", validationErrors = ValidationErrors })
                 {
@@ -304,32 +298,61 @@ public sealed class DashboardApplicationExecutionResult
         };
     }
 
-    private static DashboardCommandAttachmentDto? TryExtractAttachment(CommandResult commandResult)
+    private static ObjectResult MapCommandResult(CommandResult commandResult)
     {
-        if (commandResult.Data is null)
-            return null;
+        try
+        {
+            // Also validate callers supplying a domain result directly, not just gRPC responses.
+            var validated = commandResult.ToProto().ToDomain();
+            if (!validated.IsSuccess)
+                return CommandFailure(validated.Error ?? new CommandError(CommandErrorCode.InvalidResponse, CommandErrorTarget.None));
 
-        var fileName = (commandResult.Data.Components.FirstOrDefault(x => x is CommandAttachment) as CommandAttachment)?.FileName;
-
-        return fileName == null ? null : new(fileName);
+            DashboardCommandAttachmentDto response = validated.Outcome switch
+            {
+                CharacterCardsOutcome cards => MapCharacters(cards),
+                RosterOutcome roster when roster.State is OperationOutcome.Complete or OperationOutcome.Empty =>
+                    new DashboardRosterDto(AttachmentKey(roster.Image), roster.Game, roster.GameUid, roster.State),
+                EndgameOutcome endgame when endgame.State is OperationOutcome.Complete or OperationOutcome.Empty or OperationOutcome.NotUnlocked =>
+                    new DashboardEndgameDto(AttachmentKey(endgame.Image), endgame.Game, endgame.GameUid, endgame.State,
+                        endgame.Mode, endgame.Floor, endgame.CycleStart, endgame.CycleEnd),
+                // No notes, redemption or check-in HTTP routes: do not coerce these into cards.
+                _ => throw new ArgumentException("Unsupported dashboard outcome.")
+            };
+            return new ObjectResult(response) { StatusCode = StatusCodes.Status200OK };
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or OverflowException)
+        {
+            return CommandFailure(new CommandError(CommandErrorCode.InvalidResponse, CommandErrorTarget.None));
+        }
     }
 
-    private static ObjectResult HandleMissingAttachment(CommandResult commandResult)
+    private static DashboardCharacterCardsDto MapCharacters(CharacterCardsOutcome cards)
     {
-        string errorMessage;
-        if (commandResult.IsSuccess)
-        {
-            errorMessage = (commandResult.Data.Components.FirstOrDefault(x => x is CommandText) as CommandText)
-                ?.Content ?? "Command executed successfully but no attachment was found.";
-        }
-        else
-        {
-            errorMessage = commandResult.ErrorMessage ?? "Command execution failed without a specific error message.";
-        }
+        if (cards.State is not (OperationOutcome.Complete or OperationOutcome.Empty or OperationOutcome.Partial or
+            OperationOutcome.RequestLimitExceeded or OperationOutcome.Failed))
+            throw new ArgumentException("Unsupported character state.");
 
-        return new ObjectResult(new { error = errorMessage })
+        var items = cards.Items.Select(item => new DashboardCharacterCardItemDto(
+            item.RequestedName, item.CharacterName, item.CharacterId, item.Status, AttachmentKey(item.Image),
+            item.Error is { } error ? new DashboardCommandErrorDto(error.Message, error.Code) : null)).ToArray();
+        return new DashboardCharacterCardsDto(items.FirstOrDefault(item => item.StorageFileName is not null)?.StorageFileName,
+            cards.Game, cards.GameUid, cards.State,
+            cards.State == OperationOutcome.RequestLimitExceeded ? CommandErrorCode.RequestLimitExceeded : null,
+            items, cards.RequestLimit);
+    }
+
+    private static string? AttachmentKey(StorageReference? image)
+    {
+        if (image is null) return null;
+        // The existing download endpoint reads attachment storage, not static image storage.
+        if (image.SourceType != AttachmentSourceType.AttachmentStorage || string.IsNullOrWhiteSpace(image.StorageFileName))
+            throw new ArgumentException("Invalid dashboard card reference.");
+        return image.StorageFileName;
+    }
+
+    private static ObjectResult CommandFailure(CommandError error) =>
+        new(new DashboardCommandErrorDto(error.Message, error.Code))
         {
             StatusCode = StatusCodes.Status500InternalServerError
         };
-    }
 }

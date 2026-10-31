@@ -78,10 +78,10 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             if (charResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charResult.ErrorMessage ?? "Cancelled");
             if (charResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.CharacterData);
             Logger.LogError(LogMessage.ApiError, "Character", context.UserId, profile.GameUid, charResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Character data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterData);
         }
 
         var characterList = charResult.Data.ToList();
@@ -100,10 +100,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
                     x.Avatar.Name.Equals(alias, StringComparison.OrdinalIgnoreCase))) == null)
             {
                 Logger.LogWarning(LogMessage.CharNotFoundInfo, characterName, context.UserId, profile.GameUid);
-                return CommandResult.Success([
-                    new CommandText(
-                            string.Format(ResponseMessage.CharacterNotFound, characterName))
-                ], isEphemeral: true);
+                return CommandResult.Success(CharacterCardsOutcome.Create(Game.HonkaiImpact3, profile.GameUid,
+                    [CharacterCardItem.NotFound(characterName)], OperationOutcome.Empty));
             }
         }
 
@@ -129,9 +127,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         {
             m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                 characterInfo.Avatar.Name.ToLowerInvariant());
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
-            ]);
+            return CommandResult.Success(CharacterCardsOutcome.Create(Game.HonkaiImpact3, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, characterInfo.Avatar.Name, characterInfo.Avatar.Id, StorageReference.Attachment(fileName))]));
         }
 
         List<Task<bool>> tasks = [];
@@ -152,7 +149,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Character", context.UserId,
                 JsonSerializer.Serialize(characterInfo));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<Hi3CharacterDetail>(context.UserId, characterInfo, profile);
@@ -172,10 +169,8 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             {
                 m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
                     characterInfo.Avatar.Name.ToLowerInvariant());
-                return CommandResult.Success([
-                    new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3),
-                    new CommandAttachment(fileName)
-                ]);
+                return CommandResult.Success(CharacterCardsOutcome.Create(Game.HonkaiImpact3, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, characterInfo.Avatar.Name, characterInfo.Avatar.Id, StorageReference.Attachment(fileName))]));
             }
         }
         cardContext.PortraitImageStream = resolution.ImageStream;
@@ -187,7 +182,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
             if (!await StoreAttachmentAsync(context.UserId, fileName, card, cancellationToken))
             {
                 Logger.LogError(LogMessage.AttachmentStoreError, fileName, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.BotError, ResponseMessage.AttachmentStoreError);
+                return CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
             }
         }
         finally
@@ -199,8 +194,7 @@ internal class Hi3CharacterApplicationService : BaseAttachmentApplicationService
         m_MetricsService.TrackCharacterSelection(nameof(Game.HonkaiImpact3),
             characterInfo.Avatar.Name.ToLowerInvariant());
 
-        return CommandResult.Success([
-            new CommandText($"<@{context.UserId}>", CommandText.TextType.Header3), new CommandAttachment(fileName)
-        ]);
+        return CommandResult.Success(CharacterCardsOutcome.Create(Game.HonkaiImpact3, profile.GameUid,
+                [CharacterCardItem.Generated(characterName, characterInfo.Avatar.Name, characterInfo.Avatar.Id, StorageReference.Attachment(fileName))]));
     }
 }

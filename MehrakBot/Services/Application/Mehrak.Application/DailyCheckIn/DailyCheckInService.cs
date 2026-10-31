@@ -53,9 +53,7 @@ public class DailyCheckInService : IApplicationService
                 {
                     m_Logger.LogInformation("User {UserId} has already checked in today for profile {ProfileId}",
                         context.UserId, profile.ProfileId);
-                    return CommandResult.Success(
-                        [new CommandText("You have already checked in today")],
-                        isEphemeral: true);
+                    return CommandResult.Success(DailyCheckInOutcome.AlreadyCompleted());
                 }
             }
 
@@ -68,19 +66,19 @@ public class DailyCheckInService : IApplicationService
                 if (gameRecordResult.StatusCode == StatusCode.Cancelled)
                     throw new OperationCanceledException(gameRecordResult.ErrorMessage ?? "Cancelled");
                 if (gameRecordResult.StatusCode == StatusCode.Timeout)
-                    return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                    return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.GameProfile);
                 m_Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
-                return CommandResult.Failure(CommandFailureReason.AuthError, ResponseMessage.AuthError);
+                return CommandResult.Failure(CommandFailureReason.AuthError, CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile);
             }
 
             var gameRecords = gameRecordResult.Data.ToList();
             if (gameRecords.Count == 0)
             {
                 m_Logger.LogWarning("No game records found for user {Uid}", context.UserId);
-                return CommandResult.Success([new CommandText("No game records found.")], isEphemeral: true);
+                return CommandResult.Success(DailyCheckInOutcome.Empty());
             }
 
-            var checkInResults = new List<(bool, string)>();
+            var checkInResults = new List<CheckInItem>();
 
             var checkInTasks = gameRecords.Select(x =>
             {
@@ -104,19 +102,19 @@ public class DailyCheckInService : IApplicationService
                     switch (checkInResponse.Data)
                     {
                         case CheckInStatus.Success:
-                            checkInResults.Add((true, $"{game.ToFriendlyString()}: Check-in successful!"));
+                            checkInResults.Add(CheckInItem.Completed(game, CheckInOutcome.Succeeded));
                             break;
 
                         case CheckInStatus.AlreadyCheckedIn:
-                            checkInResults.Add((true, $"{game.ToFriendlyString()}: Already checked in today."));
+                            checkInResults.Add(CheckInItem.Completed(game, CheckInOutcome.AlreadyCheckedIn));
                             break;
 
                         case CheckInStatus.NoValidProfile:
-                            checkInResults.Add((false, $"{game.ToFriendlyString()}: No valid account found."));
+                            checkInResults.Add(CheckInItem.Completed(game, CheckInOutcome.NoValidProfile));
                             break;
 
                         default:
-                            checkInResults.Add((false, $"{game.ToFriendlyString()}: Unknown status."));
+                            checkInResults.Add(CheckInItem.Completed(game, CheckInOutcome.Unknown));
                             break;
                     }
                 }
@@ -127,17 +125,21 @@ public class DailyCheckInService : IApplicationService
                     if (checkInResponse.StatusCode == StatusCode.Timeout)
                     {
                         hasTimeout = true;
-                        checkInResults.Add((false, $"{game.ToFriendlyString()}: Check-in timed out."));
+                        checkInResults.Add(CheckInItem.Failed(game, new(CommandErrorCode.Timeout, CommandErrorTarget.DailyCheckIn)));
                         continue;
                     }
                     m_Logger.LogError(LogMessage.ApiError, $"Check In {game}", context.UserId, "N/A", checkInResponse);
-                    checkInResults.Add((false, $"{game.ToFriendlyString()}: {checkInResponse.ErrorMessage}"));
+                    checkInResults.Add(CheckInItem.Failed(game, new(
+                        checkInResponse.StatusCode == StatusCode.Unauthorized ? CommandErrorCode.AuthenticationRequired : CommandErrorCode.ApiUnavailable,
+                        CommandErrorTarget.DailyCheckIn)));
                 }
             }
 
-            var resultContent = string.Join("\n", checkInResults.Select(x => x.Item2));
+            var successes = checkInResults.Count(x => x.Outcome is CheckInOutcome.Succeeded or CheckInOutcome.AlreadyCheckedIn);
+            var outcome = DailyCheckInOutcome.Create(checkInResults,
+                successes == checkInResults.Count ? OperationOutcome.Complete : successes > 0 ? OperationOutcome.Partial : OperationOutcome.Failed);
 
-            if (checkInResults.All(x => x.Item1) && profile != null)
+            if (successes == checkInResults.Count && profile != null)
             {
                 profile.LastCheckIn = DateTime.UtcNow;
 
@@ -153,23 +155,23 @@ public class DailyCheckInService : IApplicationService
 
             m_Logger.LogInformation("Daily check-in completed for user {Uid}", context.UserId);
 
-            if (hasTimeout && checkInResults.All(x => !x.Item1))
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+            if (hasTimeout && successes == 0)
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.DailyCheckIn, outcome);
 
-            return CommandResult.Success([new CommandText(resultContent)]);
+            return CommandResult.Success(outcome);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return CommandResult.Failure(CommandFailureReason.Cancelled, "Command execution cancelled");
+            return CommandResult.Failure(CommandFailureReason.Cancelled, CommandErrorCode.Cancelled, CommandErrorTarget.None);
         }
         catch (OperationCanceledException)
         {
-            return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+            return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout, CommandErrorTarget.None);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessage.UnknownError, "Check In", context.UserId, e.Message);
-            return CommandResult.Failure(CommandFailureReason.Unknown, ResponseMessage.UnknownError);
+            return CommandResult.Failure(CommandFailureReason.Unknown, CommandErrorCode.Unknown, CommandErrorTarget.None);
         }
     }
 }

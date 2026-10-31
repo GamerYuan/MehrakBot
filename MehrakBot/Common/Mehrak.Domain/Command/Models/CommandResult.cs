@@ -1,137 +1,38 @@
-﻿#region
-
-using System.Diagnostics.CodeAnalysis;
-
-#endregion
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace Mehrak.Domain.Command.Models;
 
-public interface ICommandResultComponent;
-
-public enum AttachmentSourceType
+/// <summary>A business result. A failed command may retain completed and unattempted item outcomes.</summary>
+public sealed record CommandResult
 {
-    ImageStorage,
-    AttachmentStorage
-}
+    [MemberNotNullWhen(true, nameof(Outcome))]
+    [MemberNotNullWhen(false, nameof(Error))]
+    public bool IsSuccess { get; }
+    public CommandFailureReason FailureReason { get; }
+    public CommandError? Error { get; }
+    public CommandOutcome? Outcome { get; }
 
-public interface ICommandResultAttachment
-{
-    string FileName { get; init; }
-    AttachmentSourceType SourceType { get; }
-    string? StorageFileName { get; }
-}
-
-public enum CommandFailureReason
-{
-    Unknown,
-    AuthError,
-    ApiError,
-    BotError,
-    Cancelled,
-    Timeout
-}
-
-public class CommandResult
-{
-    [MemberNotNullWhen(true, nameof(Data))]
-    [MemberNotNullWhen(false, nameof(ErrorMessage))]
-    [MemberNotNullWhen(false, nameof(FailureReason))]
-    public bool IsSuccess { get; init; }
-
-    public string? ErrorMessage { get; init; }
-
-    public CommandFailureReason FailureReason { get; init; }
-
-    public CommandResultData? Data { get; init; }
-
-    public static CommandResult Success(IEnumerable<ICommandResultComponent>? components = null,
-        bool isContainer = false, bool isEphemeral = false, string? ephemeralMessage = null)
+    private CommandResult(bool isSuccess, CommandFailureReason failureReason, CommandError? error, CommandOutcome? outcome)
     {
-        return new CommandResult
-        {
-            IsSuccess = true,
-            Data = new CommandResultData(components, isContainer, isEphemeral, ephemeralMessage)
-        };
+        IsSuccess = isSuccess;
+        FailureReason = failureReason;
+        Error = error;
+        Outcome = outcome;
     }
 
-    public static CommandResult Failure(CommandFailureReason failureReason, string errorMessage)
+    public static CommandResult Success(CommandOutcome outcome)
     {
-        return new CommandResult
-        {
-            IsSuccess = false,
-            ErrorMessage = errorMessage,
-            FailureReason = failureReason
-        };
+        ArgumentNullException.ThrowIfNull(outcome);
+        return new(true, CommandFailureReason.Unknown, null, outcome);
     }
 
-    public class CommandResultData
+    public static CommandResult Failure(CommandFailureReason failureReason, CommandError error, CommandOutcome? outcome = null)
     {
-        public string? EphemeralMessage { get; }
-        public IEnumerable<ICommandResultComponent> Components { get; }
-        public bool IsContainer { get; }
-        public bool IsEphemeral { get; }
-
-        public CommandResultData(IEnumerable<ICommandResultComponent>? components, bool isContainer, bool isEphemeral,
-            string? ephemeralMessage = null)
-        {
-            Components = components ?? [];
-            IsContainer = isContainer;
-            IsEphemeral = isEphemeral;
-            EphemeralMessage = ephemeralMessage;
-        }
-    }
-}
-
-public class CommandSection : ICommandResultComponent
-{
-    public IEnumerable<CommandText> Components { get; }
-    public ICommandResultAttachment Attachment { get; }
-
-    public CommandSection(IEnumerable<CommandText> components, ICommandResultAttachment attachment)
-    {
-        Components = components;
-        Attachment = attachment;
-    }
-}
-
-public class CommandAttachment : ICommandResultComponent, ICommandResultAttachment
-{
-
-    public CommandAttachment(string fileName,
-        AttachmentSourceType sourceType = AttachmentSourceType.AttachmentStorage,
-        string? storageFileName = null)
-    {
-        FileName = fileName;
-        SourceType = sourceType;
-        StorageFileName = storageFileName;
+        ArgumentNullException.ThrowIfNull(error);
+        return new(false, failureReason, error, outcome);
     }
 
-    public string FileName { get; init; }
-    public AttachmentSourceType SourceType { get; init; }
-    public string? StorageFileName { get; init; }
-}
-
-
-public class CommandText : ICommandResultComponent
-{
-    public string Content { get; }
-    public TextType Type { get; }
-
-    public CommandText(string content, TextType type = TextType.Plain)
-    {
-        Content = content;
-        Type = type;
-    }
-
-    [Flags]
-    public enum TextType
-    {
-        Plain = 1 << 0,
-        Header1 = 1 << 1,
-        Header2 = 1 << 2,
-        Header3 = 1 << 3,
-        Bold = 1 << 4,
-        Italic = 1 << 5,
-        Footer = 1 << 6
-    }
+    public static CommandResult Failure(CommandFailureReason failureReason, CommandErrorCode code,
+        CommandErrorTarget target = CommandErrorTarget.None, CommandOutcome? outcome = null) =>
+        Failure(failureReason, new CommandError(code, target), outcome);
 }

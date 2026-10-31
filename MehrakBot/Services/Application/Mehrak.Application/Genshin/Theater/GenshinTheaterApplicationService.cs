@@ -75,17 +75,17 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             if (theaterResult.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(theaterResult.ErrorMessage ?? "Cancelled");
             if (theaterResult.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             if (theaterResult.StatusCode == StatusCode.Unauthorized)
             {
                 Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
                     gameUid);
-                return CommandResult.Success([new CommandText("Imaginarium Theater is not unlocked")]);
+                return CommandResult.Success(EndgameOutcome.Locked(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater));
             }
 
             Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterResult);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "Imaginarium Theater data"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.ImaginariumTheater);
         }
 
         var theaterData = theaterResult.Data;
@@ -93,9 +93,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         if (!theaterData.HasDetailData)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Theater", context.UserId, gameUid);
-            return CommandResult.Success(
-                [new CommandText(string.Format(ResponseMessage.NoClearRecords, "Imaginarium Theater"))],
-                isEphemeral: true);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater));
         }
 
         var updateImageTask = theaterData.Detail.RoundsData.SelectMany(x => x.Avatars).DistinctBy(x => x.AvatarId)
@@ -124,10 +122,10 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             if (charListResponse.StatusCode == StatusCode.Cancelled)
                 throw new OperationCanceledException(charListResponse.ErrorMessage ?? "Cancelled");
             if (charListResponse.StatusCode == StatusCode.Timeout)
-                return CommandResult.Failure(CommandFailureReason.Timeout, ResponseMessage.TimeoutError);
+                return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             Logger.LogError(LogMessage.ApiError, "CharList", context.UserId, gameUid, charListResponse);
             return CommandResult.Failure(CommandFailureReason.ApiError,
-                string.Format(ResponseMessage.ApiError, "character list"));
+                CommandErrorCode.ApiUnavailable, CommandErrorTarget.CharacterList);
         }
 
         var charList = charListResponse.Data.ToList();
@@ -138,13 +136,8 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
             new { Server = server, ConstMap = new SortedDictionary<int, int>(constMap) });
         if (await AttachmentExistsAsync(filename, cancellationToken))
         {
-            return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
-                    new CommandText(
-                        $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ], true);
+            return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater,
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.EndTime!))));
         }
 
         var completed = await Task.WhenAll(updateImageTask.Concat(sideAvatarTask).Concat(buffTask));
@@ -153,7 +146,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.ImageUpdateError, "Theater", context.UserId,
                 JsonSerializer.Serialize(theaterData));
-            return CommandResult.Failure(CommandFailureReason.ApiError, ResponseMessage.ImageUpdateError);
+            return CommandResult.Failure(CommandFailureReason.ApiError, CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image);
         }
 
         var cardContext = new BaseCardGenerationContext<GenshinTheaterInformation>(
@@ -166,16 +159,10 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
         {
             Logger.LogError(LogMessage.AttachmentStoreError, filename, context.UserId);
             return CommandResult.Failure(CommandFailureReason.BotError,
-                ResponseMessage.AttachmentStoreError);
+                CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment);
         }
 
-        return CommandResult.Success([
-                new CommandText($"<@{context.UserId}>'s Imaginarium Theater Summary", CommandText.TextType.Header3),
-                    new CommandText(
-                        $"Cycle start: <t:{theaterData.Schedule.StartTime}:f>\nCycle end: <t:{theaterData.Schedule.EndTime}:f>"),
-                    new CommandAttachment(filename),
-                    new CommandText(ResponseMessage.ApiLimitationFooter, CommandText.TextType.Footer)
-            ],
-            true);
+        return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater,
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(theaterData.Schedule.EndTime!))));
     }
 }

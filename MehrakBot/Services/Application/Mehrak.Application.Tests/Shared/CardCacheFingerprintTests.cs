@@ -3,9 +3,11 @@ using Mehrak.Application.Shared.Services;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Command.Models;
+using Mehrak.Domain.Shared.Common;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.Domain.User.Models;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Mehrak.Application.Tests.Shared;
@@ -97,6 +99,48 @@ public sealed class CardCacheFingerprintTests
         await recovered.ImageStream!.DisposeAsync();
     }
 
+    [TestCase("unknown", CommandErrorCode.Unknown, CommandFailureReason.Unknown, 1)]
+    [TestCase("command", CommandErrorCode.Unknown, CommandFailureReason.BotError, 1)]
+    [TestCase("image", CommandErrorCode.ImageUpdateFailed, CommandFailureReason.BotError, 3)]
+    [TestCase("auth", CommandErrorCode.AuthenticationRequired, CommandFailureReason.AuthError, 1)]
+    [TestCase("timeout", CommandErrorCode.Timeout, CommandFailureReason.Timeout, 1)]
+    [TestCase("cancelled", CommandErrorCode.Cancelled, CommandFailureReason.Cancelled, 1)]
+    public async Task AttachmentErrors_AreSafeAndPreserveRetries(string kind, CommandErrorCode code,
+        CommandFailureReason reason, int attempts)
+    {
+        using var cancellation = new CancellationTokenSource();
+        var service = new ThrowingAttachmentService(kind, cancellation);
+        var result = await service.ExecuteAsync(Mock.Of<IApplicationContext>(), cancellation.Token);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error!.Code, Is.EqualTo(code));
+            Assert.That(result.FailureReason, Is.EqualTo(reason));
+            Assert.That(result.Error.Message, Does.Not.Contain("untrusted exception text"));
+            Assert.That(service.Attempts, Is.EqualTo(attempts));
+        });
+    }
+
+    private sealed class ThrowingAttachmentService(string kind, CancellationTokenSource cancellation)
+        : BaseAttachmentApplicationService(null!, null!, null!, NullLogger<BaseAttachmentApplicationService>.Instance)
+    {
+        public int Attempts { get; private set; }
+        protected override Task<CommandResult> ExecuteCommandAsync(IApplicationContext context,
+            CancellationToken cancellationToken = default)
+        {
+            Attempts++;
+            if (kind == "cancelled") cancellation.Cancel();
+            throw kind switch
+            {
+                "command" => new CommandException("untrusted exception text"),
+                "image" => new ImageNotFoundException("untrusted exception text"),
+                "auth" => new UnauthorizedAccessException("untrusted exception text"),
+                "timeout" or "cancelled" => new OperationCanceledException("untrusted exception text"),
+                _ => new InvalidOperationException("untrusted exception text")
+            };
+        }
+    }
+
     private sealed class TestAttachmentService : BaseAttachmentApplicationService
     {
         private TestAttachmentService() : base(null!, null!, null!, null!)
@@ -114,6 +158,6 @@ public sealed class CardCacheFingerprintTests
         protected override Task<CommandResult> ExecuteCommandAsync(
             IApplicationContext context,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(CommandResult.Success());
+            Task.FromResult(CommandResult.Success(DailyCheckInOutcome.Empty()));
     }
 }

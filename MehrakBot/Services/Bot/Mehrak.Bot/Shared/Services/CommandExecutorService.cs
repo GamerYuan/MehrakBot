@@ -110,14 +110,10 @@ internal class CommandExecutorService : CommandExecutorServiceBase
 
                 if (commandResult.IsSuccess)
                 {
-                    var message = commandResult.Data.ToMessage();
+                    var presentation = CommandOutcomePresenter.Present(commandResult.Outcome, Context.Interaction.User.Id);
+                    var message = presentation.ToMessage();
 
-                    var attachments = commandResult.Data.Components
-                        .OfType<ICommandResultAttachment>()
-                        .Concat(commandResult.Data.Components
-                            .OfType<Domain.Command.Models.CommandSection>()
-                            .Select(s => s.Attachment)
-                            .Where(a => a != null));
+                    var attachments = presentation.Attachments;
 
                     foreach (var attachment in attachments)
                     {
@@ -136,14 +132,14 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                         }
                         else
                         {
-                            var downloadResult = await m_AttachmentService.DownloadAsync(attachment.FileName);
+                            var downloadResult = await m_AttachmentService.DownloadAsync(attachment.StorageFileName ?? attachment.FileName);
                             stream = downloadResult?.Content;
                         }
 
                         if (stream != null)
                         {
-                            message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
                             disposable.Add(stream);
+                            message.AddAttachments(new AttachmentProperties(attachment.FileName, stream));
                         }
                         else
                         {
@@ -154,15 +150,16 @@ internal class CommandExecutorService : CommandExecutorServiceBase
 
                     MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, true);
 
-                    if (IsResponseEphemeral || commandResult.Data.IsEphemeral)
+                    if (IsResponseEphemeral || presentation.IsEphemeral)
                     {
                         await authResult.Context!.Interaction.SendFollowupMessageAsync(message
                             .WithFlags(MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral));
                     }
                     else
                     {
-                        await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.Data.EphemeralMessage ??
-                            "Command Execution Completed");
+                        await authResult.Context!.Interaction.SendFollowupMessageAsync(
+                            new InteractionMessageProperties().WithContent(presentation.EphemeralMessage ??
+                                "Command Execution Completed").WithFlags(MessageFlags.Ephemeral));
                         await authResult.Context.Interaction.SendFollowupMessageAsync(message
                             .AddComponents(new ActionRowProperties([
                                 new ButtonProperties("remove_card", "Remove", ButtonStyle.Danger)
@@ -172,7 +169,9 @@ internal class CommandExecutorService : CommandExecutorServiceBase
                 else
                 {
                     MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-                    await authResult.Context!.Interaction.SendFollowupMessageAsync(commandResult.ErrorMessage);
+                    await authResult.Context!.Interaction.SendFollowupMessageAsync(
+                        new InteractionMessageProperties().WithContent(CommandOutcomePresenter.SafeErrorText(commandResult.Error))
+                            .WithFlags(MessageFlags.Ephemeral));
                 }
             }
             catch (Exception e)

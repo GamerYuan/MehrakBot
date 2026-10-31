@@ -6,12 +6,14 @@ using Mehrak.Application.Shared.Abstractions;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Card;
+using Mehrak.Domain.Command.Extensions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Image.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Abstractions;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
@@ -69,12 +71,14 @@ public class GenshinStygianApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.AuthError));
-            Assert.That(result.ErrorMessage, Does.Contain("invalid hoyolab uid or cookies").IgnoreCase);
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AuthenticationRequired, CommandErrorTarget.GameProfile)));
         }
     }
 
-    [Test]
-    public async Task ExecuteAsync_StygianApiError_ReturnsApiError()
+    [TestCase(StatusCode.ExternalServerError)]
+    [TestCase(StatusCode.Timeout)]
+    [TestCase(StatusCode.Cancelled)]
+    public async Task ExecuteAsync_StygianApiError_ReturnsApiError(StatusCode status)
     {
         // Arrange
         var (service, stygianApiMock, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -83,7 +87,7 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "API Error"));
+            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -94,13 +98,15 @@ public class GenshinStygianApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Stygian Onslaught data"));
+            Assert.That(result.FailureReason, Is.EqualTo(status == StatusCode.ExternalServerError ? CommandFailureReason.ApiError : CommandFailureReason.Timeout));
+            Assert.That(result.Error, Is.EqualTo(status == StatusCode.ExternalServerError ? new CommandError(CommandErrorCode.ApiUnavailable, CommandErrorTarget.StygianOnslaught) : new CommandError(CommandErrorCode.Timeout, CommandErrorTarget.None)));
+            Assert.That(result.Error!.Message, Does.Not.Contain("unsafe upstream text"));
+            Assert.That(result.Outcome, Is.Null);
         }
     }
 
     [Test]
-    public async Task ExecuteAsync_StygianNotUnlocked_ReturnsEphemeralMessage()
+    public async Task ExecuteAsync_StygianNotUnlocked_ReturnsLockedOutcome()
     {
         // Arrange
         var (service, stygianApiMock, gameRoleApiMock, _, _, _) = SetupMocks();
@@ -126,9 +132,7 @@ public class GenshinStygianApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("not unlocked").IgnoreCase);
+            AssertEmptyOutcome(result, OperationOutcome.NotUnlocked);
         }
     }
 
@@ -176,9 +180,7 @@ public class GenshinStygianApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.IsEphemeral, Is.True);
-            Assert.That(result.Data.Components.OfType<CommandText>().First().Content,
-                Does.Contain("no clear records").IgnoreCase);
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
         }
     }
 
@@ -208,12 +210,14 @@ public class GenshinStygianApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("image"));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.ImageUpdateFailed, CommandErrorTarget.Image)));
         }
     }
 
-    [Test]
-    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard()
+    [TestCase(Server.Asia)]
+    [TestCase(Server.Europe)]
+    [TestCase(Server.America)]
+    public async Task ExecuteAsync_ValidRequest_ReturnsSuccessWithCard(Server server)
     {
         // Arrange
         var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, _) = SetupMocks();
@@ -228,7 +232,7 @@ public class GenshinStygianApplicationServiceTests
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
 
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
+        var context = CreateContext(1, 1ul, "test", ("server", server.ToString()));
 
         // Act
         var result = await service.ExecuteAsync(context);
@@ -237,13 +241,56 @@ public class GenshinStygianApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
-            Assert.That(result.Data.Components.OfType<CommandAttachment>().Any(), Is.True);
-            Assert.That(
-                result.Data.Components.OfType<CommandText>().Any(x => x.Content.Contains("Stygian Onslaught Summary")),
-                Is.True);
+            Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
+            Assert.That(GetOutcome(result).Image, Is.Not.Null);
+            Assert.That(GetOutcome(result).Mode, Is.EqualTo(EndgameMode.StygianOnslaught));
         }
 
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(GetOutcome(result).CycleStart, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianData.Data![0].Schedule!.StartTime!))));
+        Assert.That(GetOutcome(result).CycleEnd, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianData.Data[0].Schedule!.EndTime!))));
+
+        // A cache hit must return the exact same business facts and actual storage key.
+        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var imageCalls = imageUpdaterMock.Invocations.Count;
+        var cached = await service.ExecuteAsync(context);
+        Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
+        Assert.That(cached.IsSuccess, Is.True);
+        Assert.That(cached.Outcome, Is.EqualTo(result.Outcome));
+        Assert.That(GetOutcome(cached).Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+        Assert.That(GetOutcome(cached).Image!.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        var finalKey = GetOutcome(result).Image!.StorageFileName;
+        attachmentStorageMock.Verify(x => x.StoreAsync(finalKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestCase(Server.Asia)]
+    public async Task ExecuteAsync_AttachmentStorageFailure_ReturnsSafeCodedError(Server server)
+    {
+        // Arrange
+        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        var stygianData = await LoadTestDataAsync("Stygian_TestData_1.json");
+        stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("server", server.ToString()));
+
+        // Act
+        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        var result = await service.ExecuteAsync(context);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
+            Assert.That(result.Error, Is.EqualTo(new CommandError(CommandErrorCode.AttachmentStoreFailed, CommandErrorTarget.Attachment)));
+            Assert.That(result.Outcome, Is.Null);
+        }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -402,21 +449,21 @@ public class GenshinStygianApplicationServiceTests
         Assert.Multiple(() =>
         {
             // Assert
-            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.ErrorMessage}");
-            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.IsSuccess, Is.True, $"Expected success but got: {result.Error?.Message}");
+            Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
         });
-        Assert.That(result.Data!.Components.Count(), Is.GreaterThan(0));
+        Assert.That(GetOutcome(result).State, Is.EqualTo(OperationOutcome.Complete));
 
-        var attachment = result.Data.Components.OfType<CommandAttachment>().FirstOrDefault();
+        var attachment = GetOutcome(result).Image;
         using (Assert.EnterMultipleScope())
         {
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(!string.IsNullOrWhiteSpace(attachment!.FileName));
+            Assert.That(!string.IsNullOrWhiteSpace(attachment!.StorageFileName));
         }
 
-        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.FileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment!.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        if (storedAttachments.TryGetValue(attachment.FileName, out var stored))
+        if (storedAttachments.TryGetValue(attachment!.StorageFileName, out var stored))
         {
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "Integration");
             Directory.CreateDirectory(outputDirectory);
@@ -454,13 +501,13 @@ public class GenshinStygianApplicationServiceTests
         var result = await service.ExecuteAsync(context);
 
         // Assert
-        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.ErrorMessage}");
+        Assert.That(result.IsSuccess, Is.True, $"API call failed: {result.Error?.Message}");
 
         if (result.IsSuccess)
         {
-            var attachment = result.Data!.Components.OfType<CommandAttachment>().FirstOrDefault();
+            var attachment = GetOutcome(result).Image;
             Assert.That(attachment, Is.Not.Null, "Expected an attachment component");
-            Assert.That(storedAttachments.TryGetValue(attachment!.FileName, out var storedStream), Is.True);
+            Assert.That(storedAttachments.TryGetValue(attachment!.StorageFileName, out var storedStream), Is.True);
             Assert.That(storedStream!.Length, Is.GreaterThan(0));
 
             var outputDirectory = Path.Combine(AppContext.BaseDirectory, "Output", "RealApi");
@@ -697,4 +744,75 @@ public class GenshinStygianApplicationServiceTests
     }
 
     #endregion
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExecuteAsync_UsesFirstSingleRecordRatherThanMultiOrLaterRecords(bool firstHasData)
+    {
+        var (service, api, profile, updater, storage, _) = SetupMocks();
+        profile.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>())).ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        StygianData Record(bool hasData, string start, string end) => new()
+        {
+            Schedule = new StygianSchedule { ScheduleId = "1", StartTime = start, EndTime = end, Name = "" },
+            Single = new StygianChallengeData { HasData = hasData },
+            Multi = new StygianChallengeData { HasData = true }
+        };
+        var data = new GenshinStygianInformation
+        {
+            IsUnlock = true,
+            Data = [Record(firstHasData, "1763300000", "1764300000"), Record(true, "1765300000", "1766300000")]
+        };
+        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>())).ReturnsAsync(Result<GenshinStygianInformation>.Success(data));
+        storage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var result = await service.ExecuteAsync(CreateContext(1, 1, "test", ("server", Server.Asia)));
+        Assert.That(result.IsSuccess, Is.True);
+        if (firstHasData)
+        {
+            Assert.That(GetOutcome(result).CycleStart, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(1763300000)));
+            Assert.That(GetOutcome(result).CycleEnd, Is.EqualTo(DateTimeOffset.FromUnixTimeSeconds(1764300000)));
+        }
+        else
+        {
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
+            storage.Verify(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+        updater.Verify(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()), Times.Never);
+    }
+    private static EndgameOutcome GetOutcome(CommandResult result)
+    {
+        Assert.That(result.Outcome, Is.TypeOf<EndgameOutcome>());
+        var outcome = (EndgameOutcome)result.Outcome!;
+        Assert.That(outcome.Game, Is.EqualTo(Game.Genshin));
+        Assert.That(outcome.Mode, Is.EqualTo(EndgameMode.StygianOnslaught));
+        Assert.That(outcome.GameUid, Is.Not.Empty);
+        Assert.That(result.ToProto().ToDomain().Outcome, Is.EqualTo(outcome));
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.CycleStart, Is.Not.Null);
+            Assert.That(outcome.CycleEnd, Is.Not.Null);
+            Assert.That(outcome.CycleStart!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(outcome.CycleEnd!.Value.Offset, Is.EqualTo(TimeSpan.Zero));
+        }
+        if (outcome.State == OperationOutcome.Complete)
+        {
+            Assert.That(outcome.Image, Is.Not.Null);
+            Assert.That(outcome.Image!.SourceType, Is.EqualTo(AttachmentSourceType.AttachmentStorage));
+            Assert.That(outcome.Image.StorageFileName, Does.Match("^[a-f0-9]{64}\\.jpg$"));
+        }
+        Assert.That(outcome.Floor, Is.Null);
+
+        return outcome;
+    }
+
+    private static void AssertEmptyOutcome(CommandResult result, OperationOutcome state)
+    {
+        var outcome = GetOutcome(result);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(outcome.State, Is.EqualTo(state));
+            Assert.That(outcome.GameUid, Is.EqualTo(CreateTestProfile().GameUid));
+            Assert.That(outcome.Image, Is.Null);
+            Assert.That(outcome.CycleStart, Is.Null);
+            Assert.That(outcome.CycleEnd, Is.Null);
+        }
+    }
 }

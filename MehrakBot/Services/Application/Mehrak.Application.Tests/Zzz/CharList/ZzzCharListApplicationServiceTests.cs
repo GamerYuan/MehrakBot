@@ -85,7 +85,7 @@ public class ZzzCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Character List"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.CharacterList));
         }
     }
 
@@ -143,7 +143,7 @@ public class ZzzCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
-            Assert.That(result.ErrorMessage, Does.Contain("Bangboo List"));
+            Assert.That(result.Error!.Target, Is.EqualTo(CommandErrorTarget.BangbooList));
         }
     }
 
@@ -174,7 +174,7 @@ public class ZzzCharListApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((RosterOutcome)result.Outcome!).Image, Is.Not.Null);
         }
 
         // Should NOT generate card
@@ -212,7 +212,7 @@ public class ZzzCharListApplicationServiceTests
             // Assert
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
-            Assert.That(result.ErrorMessage, Does.Contain("An error occurred while retrieving images"));
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
         }
     }
 
@@ -252,7 +252,7 @@ public class ZzzCharListApplicationServiceTests
         {
             // Assert
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.Components.OfType<CommandAttachment>().Any(), Is.True);
+            Assert.That(((RosterOutcome)result.Outcome!).Image, Is.Not.Null);
         }
 
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
