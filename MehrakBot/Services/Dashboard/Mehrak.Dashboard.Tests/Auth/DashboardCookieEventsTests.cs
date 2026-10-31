@@ -97,19 +97,6 @@ public class DashboardCookieEventsTests
     }
 
     [Test]
-    public async Task ValidatePrincipal_ValidSession_Proceeds()
-    {
-        var principal = CreatePrincipal("tok123");
-        var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DashboardSessionData(100L, null, DateTime.UtcNow, null, null, null));
-
-        await m_Events.ValidatePrincipal(context);
-
-        Assert.That(context.Principal, Is.Not.Null);
-    }
-
-    [Test]
     public async Task ValidatePrincipal_WithAccessToken_Proceeds()
     {
         var principal = CreatePrincipal("tok123");

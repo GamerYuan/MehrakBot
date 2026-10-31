@@ -1039,23 +1039,6 @@ public class HylEmbedServiceTests
 
     #endregion
 
-    #region Property Tests
-
-    [Test]
-    public void Context_CanBeSetAndRetrieved()
-    {
-        // Arrange
-        var mockContext = new Mock<IBotContext>();
-
-        // Act
-        m_Service.Context = mockContext.Object;
-
-        // Assert
-        Assert.That(m_Service.Context, Is.EqualTo(mockContext.Object));
-    }
-
-    #endregion
-
     #region Helper Methods
 
     private HylPost LoadTestPost(string filename)

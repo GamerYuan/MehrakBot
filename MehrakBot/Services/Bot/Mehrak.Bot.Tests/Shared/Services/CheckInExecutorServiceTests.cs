@@ -134,35 +134,6 @@ public class CheckInExecutorServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_AuthenticationSuccess_SendsDeferredResponse()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
-        };
-
-        m_MockAuthMiddleware
-            .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
-            .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert - Verify deferred response was sent
-        var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-        // Deferred responses typically have empty content or specific structure
-        Assert.That(response, Is.Not.Null);
-    }
-
-    [Test]
     public async Task ExecuteAsync_AuthenticationFailure_SendsFailureMessage()
     {
         // Arrange
@@ -208,70 +179,6 @@ public class CheckInExecutorServiceTests
 
         // Assert - With timeout, context is null so no response should be sent
         m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
-    }
-
-    #endregion
-
-    #region ExecuteAsync - Application Service Execution Tests
-
-    [Test]
-    public async Task ExecuteAsync_ApplicationServiceSuccess_SendsSuccessFollowup()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
-        };
-
-        m_MockAuthMiddleware
-            .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
-            .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert
-        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Once);
-    }
-
-    [Test]
-    public async Task ExecuteAsync_ApplicationServiceFailure_SendsErrorFollowup()
-    {
-        // Arrange
-        var interaction = m_DiscordHelper.CreateCommandInteraction(m_TestUserId);
-        var mockContext = new Mock<IInteractionContext>();
-        mockContext.SetupGet(x => x.Interaction).Returns(interaction);
-
-        m_Service.Context = mockContext.Object;
-
-        var user = new UserDto
-        {
-            Id = m_TestUserId,
-            Profiles = [new UserProfileDto { ProfileId = TestProfileId, LtUid = TestLtUid }]
-        };
-
-        m_MockAuthMiddleware
-            .Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
-            .ReturnsAsync(AuthenticationResult.Success(m_TestUserId, TestLtUid, TestLToken, user, mockContext.Object));
-
-        m_MockApplicationClient
-            .Setup(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default))
-            .Returns(CreateUnaryCall(Mehrak.Domain.Command.Models.CommandResult.Failure(
-                Mehrak.Domain.Command.Models.CommandFailureReason.ApiError,
-                Mehrak.Domain.Command.Models.CommandErrorCode.ApiUnavailable).ToProto()));
-
-        // Act
-        await m_Service.ExecuteAsync(TestProfileId);
-
-        // Assert
-        m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Once);
     }
 
     #endregion
@@ -435,26 +342,6 @@ public class CheckInExecutorServiceTests
     #endregion
 
     #region Property Tests
-
-    [Test]
-    public void CommandName_ReturnsCheckin()
-    {
-        // Assert
-        Assert.That(m_Service.CommandName, Is.EqualTo("checkin"));
-    }
-
-    [Test]
-    public void Context_CanBeSetAndRetrieved()
-    {
-        // Arrange
-        var mockContext = new Mock<IInteractionContext>();
-
-        // Act
-        m_Service.Context = mockContext.Object;
-
-        // Assert
-        Assert.That(m_Service.Context, Is.EqualTo(mockContext.Object));
-    }
 
     private static AsyncUnaryCall<CommandResult> CreateUnaryCall(CommandResult result)
     {

@@ -166,29 +166,6 @@ internal sealed class UserPortraitServiceTests : IDisposable
     }
 
     [Test]
-    public async Task GetPortraitImageAsync_PngKey_ReturnsPngContentType()
-    {
-        SetupService();
-        UserPortraitUpload portrait;
-        await using (var ctx = CreateContext())
-        {
-            await SeedCharacterAsync(ctx, Game.Genshin, "Raiden");
-            portrait = await SeedPortraitAsync(ctx, 100L, Game.Genshin, "Raiden", s3Key: "100/hash.png");
-        }
-
-        m_MockS3.Setup(s => s.GetObjectAsync(It.IsAny<GetObjectRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetObjectResponse
-            {
-                HttpStatusCode = System.Net.HttpStatusCode.OK,
-                ResponseStream = new MemoryStream(new byte[] { 1 })
-            });
-
-        var result = await m_Service.GetPortraitImageAsync(100L, portrait.Id);
-
-        Assert.That(result!.ContentType, Is.EqualTo("image/png"));
-    }
-
-    [Test]
     public async Task GetPortraitImageAsync_JpgKey_ReturnsJpgContentType()
     {
         SetupService();

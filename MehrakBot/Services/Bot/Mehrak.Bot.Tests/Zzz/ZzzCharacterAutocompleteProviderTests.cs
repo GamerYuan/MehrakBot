@@ -222,27 +222,6 @@ public class ZzzCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Grace");
-
-        var expectedCharacters = new List<string> { "Grace" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Grace"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        var choice = result!.First();
-        Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
-        Assert.That(choice.Name, Is.EqualTo("Grace"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
@@ -314,26 +293,6 @@ public class ZzzCharacterAutocompleteProviderTests
     #endregion
 
     #region Choice Properties Tests
-
-    [Test]
-    public async Task GetChoicesAsync_ChoicesHaveCorrectType()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Ben");
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Ben"))
-            .Returns(["Ben Bigger"]);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        var choice = result!.First();
-        Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
-    }
 
     [Test]
     public async Task GetChoicesAsync_PreservesCharacterOrder()

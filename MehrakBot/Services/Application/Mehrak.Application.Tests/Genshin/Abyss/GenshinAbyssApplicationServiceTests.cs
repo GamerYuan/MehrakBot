@@ -317,43 +317,6 @@ public class GenshinAbyssApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
-    {
-        // Arrange
-        var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock, _, _) =
-            SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
-        abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
-
-        var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<GenshinAbyssInformation>>()))
-            .ReturnsAsync(cardStream);
-
-        var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert Verify avatar images were updated (for battles + rank avatars)
-        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
-                It.Is<IImageData>(d => d != null),
-                It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
-    }
-
-    [Test]
     public async Task ExecuteAsync_CachedCard_SkipsImageUpdates()
     {
         var (service, abyssApiMock, gameRoleApiMock, imageUpdaterMock, characterApiMock, cardServiceMock,

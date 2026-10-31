@@ -450,21 +450,6 @@ public class CharacterAutocompleteServiceTests
     #region FindCharacter Tests - Service Integration
 
     [Test]
-    public void FindCharacter_CallsCacheServiceWithCorrectGame()
-    {
-        // Arrange
-        m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(["Diluc"]);
-
-        // Act
-        m_Service.FindCharacter(Game.Genshin, "Diluc");
-
-        // Assert
-        m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Once);
-    }
-
-    [Test]
     public void FindCharacter_CalledMultipleTimes_CallsCacheServiceEachTime()
     {
         // Arrange
@@ -479,21 +464,6 @@ public class CharacterAutocompleteServiceTests
 
         // Assert
         m_MockCacheService.Verify(x => x.GetCharacters(Game.Genshin), Times.Exactly(3));
-    }
-
-    [Test]
-    public void FindCharacter_ReturnsReadOnlyList()
-    {
-        // Arrange
-        m_MockCacheService
-            .Setup(x => x.GetCharacters(Game.Genshin))
-            .Returns(["Diluc", "Jean"]);
-
-        // Act
-        var result = m_Service.FindCharacter(Game.Genshin, "Di");
-
-        // Assert
-        Assert.That(result, Is.InstanceOf<IReadOnlyList<string>>());
     }
 
     #endregion

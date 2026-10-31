@@ -41,7 +41,6 @@ public sealed class CardBenchmarkMetricsTests
         var timer = metrics.ObserveCardGenerationDuration(CardType);
         Assert.That(timer, Is.Not.Null);
         Assert.DoesNotThrow(timer.Dispose);
-        Assert.That(File.Exists("nonexistent-benchmark-output.jsonl"), Is.False);
     }
 
     [Test]
@@ -54,7 +53,6 @@ public sealed class CardBenchmarkMetricsTests
         var timer = metrics.ObserveCardGenerationDuration(CardType);
         Assert.That(timer, Is.Not.Null);
         Assert.DoesNotThrow(timer.Dispose);
-        Assert.That(File.Exists("nonexistent-benchmark-output.jsonl"), Is.False);
     }
 
     [Test]

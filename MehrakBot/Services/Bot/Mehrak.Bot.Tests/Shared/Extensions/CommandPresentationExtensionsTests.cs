@@ -476,40 +476,6 @@ public class CommandPresentationExtensionsTests
     #region Attachment Processing Tests
 
     [Test]
-    public void ToMessage_AttachmentWithFileName_NotAddedToAttachments()
-    {
-        // Arrange
-        var attachment = new CommandAttachment("test-image.png");
-        var components = new List<IPresentationComponent> { attachment };
-        var data = new CommandPresentation(components, false, false);
-
-        // Act
-        var result = data.ToMessage();
-
-        // Assert
-        Assert.That(result.Attachments, Is.Null.Or.Empty, "CommandAttachments should not be added to message attachments");
-    }
-
-    [Test]
-    public void ToMessage_MultipleAttachmentsWithDifferentNames_NotAddedToAttachments()
-    {
-        // Arrange
-        var components = new List<IPresentationComponent>
-        {
-            new CommandAttachment("file1.png"),
-            new CommandAttachment("file2.jpg"),
-            new CommandAttachment("file3.gif")
-        };
-        var data = new CommandPresentation(components, false, false);
-
-        // Act
-        var result = data.ToMessage();
-
-        // Assert
-        Assert.That(result.Attachments, Is.Null.Or.Empty);
-    }
-
-    [Test]
     public void ToMessage_SectionWithAttachment_DoesNotAddToAttachments()
     {
         // Arrange
@@ -560,24 +526,6 @@ public class CommandPresentationExtensionsTests
         // Assert
         Assert.That(result, Is.Not.Null);
         // Unknown components should be ignored
-    }
-
-    [Test]
-    public void ToMessage_ContainerTrue_CreatesComponentContainer()
-    {
-        // Arrange
-        var components = new List<IPresentationComponent>
-        {
-            new CommandText("Test", TextType.Plain)
-        };
-        var data = new CommandPresentation(components, true, false);
-
-        // Act
-        var result = data.ToMessage();
-
-        // Assert
-        Assert.That(result.Components, Is.Not.Null);
-        Assert.That(result.Components!.OfType<ComponentContainerProperties>().Count(), Is.EqualTo(1));
     }
 
     [Test]

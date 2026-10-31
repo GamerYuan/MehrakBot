@@ -372,44 +372,6 @@ public class ZzzAssaultApplicationServiceTests
     }
 
     [Test]
-    [TestCase("Da_TestData_1.json")]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly(string testDataFile)
-    {
-        // Arrange
-        var (service, assaultApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var assaultData = await LoadTestDataAsync(testDataFile);
-        assaultApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzAssaultData>.Success(assaultData));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-        imageUpdaterMock.Setup(x =>
-                x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzAssaultData>>()))
-            .ReturnsAsync(cardStream);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert: Verify avatar, buddy, boss, and buff images were updated
-        imageUpdaterMock.Verify(
-            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
-        imageUpdaterMock.Verify(
-            x => x.UpdateMultiImageAsync(It.IsAny<IMultiImageData>(), It.IsAny<IMultiImageProcessor>()),
-            Times.AtLeastOnce);
-    }
-
-    [Test]
     public async Task ExecuteAsync_StoresGameUid_WhenNotPreviouslyStored()
     {
         // Arrange

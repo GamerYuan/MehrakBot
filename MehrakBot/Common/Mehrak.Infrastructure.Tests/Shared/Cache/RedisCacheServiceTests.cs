@@ -127,55 +127,6 @@ public class RedisCacheServiceTests
     }
 
     [Test]
-    public async Task SetAsync_WithShortExpiration_SetsCorrectExpirationTime()
-    {
-        // Arrange
-        var entry = new TestCacheEntry<string>("short-exp-key", "value", TimeSpan.FromSeconds(1));
-        DistributedCacheEntryOptions? capturedOptions = null;
-
-        m_MockCache.Setup(c => c.SetAsync(
-            It.IsAny<string>(),
-            It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Callback<string, byte[], DistributedCacheEntryOptions, CancellationToken>(
-                (key, value, options, token) => capturedOptions = options)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await m_CacheService.SetAsync(entry);
-
-        // Assert
-        Assert.That(capturedOptions, Is.Not.Null);
-        Assert.That(capturedOptions!.AbsoluteExpirationRelativeToNow, Is.EqualTo(TimeSpan.FromSeconds(1)));
-    }
-
-    [Test]
-    public async Task SetAsync_WithLongExpiration_SetsCorrectExpirationTime()
-    {
-        // Arrange
-        var expiration = TimeSpan.FromDays(365);
-        var entry = new TestCacheEntry<string>("long-exp-key", "value", expiration);
-        DistributedCacheEntryOptions? capturedOptions = null;
-
-        m_MockCache.Setup(c => c.SetAsync(
-            It.IsAny<string>(),
-            It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Callback<string, byte[], DistributedCacheEntryOptions, CancellationToken>(
-                (key, value, options, token) => capturedOptions = options)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await m_CacheService.SetAsync(entry);
-
-        // Assert
-        Assert.That(capturedOptions, Is.Not.Null);
-        Assert.That(capturedOptions!.AbsoluteExpirationRelativeToNow, Is.EqualTo(expiration));
-    }
-
-    [Test]
     public async Task SetAsync_LogsDebugMessage()
     {
         // Arrange

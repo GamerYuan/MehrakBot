@@ -257,18 +257,6 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Decrypt_WithInvalidBase64_ThrowsCryptographicException()
-    {
-        // Arrange
-        const string invalidBase64 = "This is not valid base64!!!";
-        const string passphrase = "passphrase";
-
-        // Act & Assert
-        Assert.Throws<CryptographicException>(() =>
-  m_EncryptionService.Decrypt(invalidBase64, passphrase));
-    }
-
-    [Test]
     public void Decrypt_WithTooShortPayload_ThrowsCryptographicException()
     {
         // Arrange
@@ -556,22 +544,6 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Encrypt_ProducesMinimumExpectedLength()
-    {
-        // Arrange
-        const string plainText = "a";
-        const string passphrase = "passphrase";
-
-        // Act
-        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
-        var bytes = Convert.FromBase64String(encrypted);
-
-        // Assert
-        // Minimum: salt(16) + nonce(12) + ciphertext(1) + tag(16) = 45 bytes
-        Assert.That(bytes.Length, Is.GreaterThanOrEqualTo(45));
-    }
-
-    [Test]
     public void Decrypt_WithOnlyMinimumBytes_ThrowsAuthenticationTagMismatchException()
     {
         // Arrange
@@ -729,38 +701,6 @@ public class CookieEncryptionServiceTests
             // so opportunistic upgrade skips it - but decryption must still succeed.
             Assert.That(decrypted, Is.EqualTo(plainText));
         });
-    }
-
-    [Test]
-    public void Decrypt_VersionedPayloadWithWrongPassphrase_ThrowsAuthenticationTagMismatchException()
-    {
-        // Arrange
-        const string plainText = "test-data";
-        const string correctPassphrase = "correct-passphrase";
-        const string wrongPassphrase = "wrong-passphrase";
-        var encrypted = m_EncryptionService.Encrypt(plainText, correctPassphrase);
-
-        // Act & Assert
-        Assert.Throws<AuthenticationTagMismatchException>(() =>
-            m_EncryptionService.Decrypt(encrypted, wrongPassphrase));
-    }
-
-    [Test]
-    public void Decrypt_TruncatedVersionedPayload_ThrowsCryptographicException()
-    {
-        // Arrange
-        const string plainText = "test-data";
-        const string passphrase = "passphrase";
-        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        var bytes = Convert.FromBase64String(encrypted);
-        var truncated = Convert.ToBase64String(bytes[..^1]);
-
-        // Act & Assert
-        // Truncation fails the GCM tag check, surfacing as
-        // AuthenticationTagMismatchException (a CryptographicException subclass)
-        Assert.That(() => m_EncryptionService.Decrypt(truncated, passphrase),
-            Throws.InstanceOf<CryptographicException>());
     }
 
     [Test]

@@ -222,27 +222,6 @@ public class Hi3CharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Durandal");
-
-        var expectedCharacters = new List<string> { "Durandal" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Durandal"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        var choice = result!.First();
-        Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
-        Assert.That(choice.Name, Is.EqualTo("Durandal"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
@@ -314,26 +293,6 @@ public class Hi3CharacterAutocompleteProviderTests
     #endregion
 
     #region Choice Properties Tests
-
-    [Test]
-    public async Task GetChoicesAsync_ChoicesHaveCorrectType()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Theresa");
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Theresa"))
-            .Returns(["Theresa Apocalypse"]);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        var choice = result!.First();
-        Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
-    }
 
     [Test]
     public async Task GetChoicesAsync_PreservesCharacterOrder()

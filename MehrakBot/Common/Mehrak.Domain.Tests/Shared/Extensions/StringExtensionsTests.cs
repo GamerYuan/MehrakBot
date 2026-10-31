@@ -9,7 +9,7 @@ public class StringExtensionsTests
     [TestCase("", ExpectedResult = "")]
     public string? ToTitleCase_NullOrEmpty_ReturnsAsIs(string? input)
     {
-        return input?.ToTitleCase();
+        return input.ToTitleCase();
     }
 
     [TestCase("hello world", ExpectedResult = "Hello World")]

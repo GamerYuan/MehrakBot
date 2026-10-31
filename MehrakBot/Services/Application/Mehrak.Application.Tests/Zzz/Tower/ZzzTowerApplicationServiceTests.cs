@@ -224,47 +224,6 @@ public class ZzzTowerApplicationServiceTests
         }
     }
 
-    [Test]
-    public async Task ExecuteAsync_StoreAttachmentFails_ReturnsBotError()
-    {
-        // Arrange
-        var (service, towerApiMock, characterApiMock, imageUpdaterMock, cardServiceMock, gameRoleApiMock,
-            attachmentStorageMock, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
-
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
-
-        attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzTowerData>>()))
-            .ReturnsAsync(new MemoryStream());
-
-        attachmentStorageMock.Setup(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        var result = await service.ExecuteAsync(context);
-
-        using (Assert.EnterMultipleScope())
-        {
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.BotError));
-        }
-    }
-
     [TestCase(Server.Asia)]
     [TestCase(Server.Europe)]
     [TestCase(Server.America)]

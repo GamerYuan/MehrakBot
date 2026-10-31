@@ -576,14 +576,6 @@ public class Hi3CharacterApplicationServiceTests
         attachmentStorageMock.Verify(x => x.StoreAsync(It.Is<string>(n => n == attachment.StorageFileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Test]
-    [Explicit("Calls real API - run manually")]
-    public async Task IntegrationTest_WithRealApi_FullFlow()
-    {
-        // NOTE: Placeholder for future real API integration if implemented.
-        Assert.Pass("Real API integration not implemented for HI3 character list.");
-    }
-
     #endregion
 
     #region Helper Methods

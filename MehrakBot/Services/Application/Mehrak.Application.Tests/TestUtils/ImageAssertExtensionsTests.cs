@@ -19,11 +19,10 @@ public sealed class ImageAssertExtensionsTests
     private static readonly Rgba32 Material = new(245, 184, 62, 230);
 
     [Test]
-    public void IdenticalTo_SameImageBytes_PassesDeterministically()
+    public void IdenticalTo_SameImageBytes_Passes()
     {
         var expected = CreateCard();
 
-        Assert.That(expected, IsImage.IdenticalTo(expected));
         Assert.That(expected, IsImage.IdenticalTo(expected));
     }
 

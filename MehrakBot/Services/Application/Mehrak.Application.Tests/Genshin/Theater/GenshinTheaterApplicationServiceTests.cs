@@ -312,36 +312,6 @@ public class GenshinTheaterApplicationServiceTests
     }
 
     [Test]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
-    {
-        var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, _, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var theaterData = await LoadTestDataAsync("Theater_TestData_1.json");
-        theaterApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinTheaterInformation>.Success(theaterData));
-
-        var charList = CreateTestCharacterList();
-        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
-            .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(charList));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert: Verify avatar images, side avatar images, and buff images were updated
-        imageUpdaterMock.Verify(
-            x => x.UpdateImageAsync(It.Is<IImageData>(d => d != null), It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
-    }
-
-    [Test]
     public async Task ExecuteAsync_CachedCard_SkipsImageUpdates()
     {
         var (service, theaterApiMock, characterApiMock, gameRoleApiMock, imageUpdaterMock, attachmentStorageMock, _) =

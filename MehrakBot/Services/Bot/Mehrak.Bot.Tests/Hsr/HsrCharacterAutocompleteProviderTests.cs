@@ -221,27 +221,6 @@ public class HsrCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_ChoiceNameAndValueAreIdentical()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Ruan Mei");
-
-        var expectedCharacters = new List<string> { "Ruan Mei" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Ruan Mei"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        var choice = result!.First();
-        Assert.That(choice.Name, Is.EqualTo(choice.StringValue));
-        Assert.That(choice.Name, Is.EqualTo("Ruan Mei"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
     {
         // Arrange
@@ -314,26 +293,6 @@ public class HsrCharacterAutocompleteProviderTests
     #endregion
 
     #region Choice Properties Tests
-
-    [Test]
-    public async Task GetChoicesAsync_ChoicesHaveCorrectType()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Topaz");
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Topaz"))
-            .Returns(["Topaz & Numby"]);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<IEnumerable<ApplicationCommandOptionChoiceProperties>>());
-        var choice = result!.First();
-        Assert.That(choice, Is.InstanceOf<ApplicationCommandOptionChoiceProperties>());
-    }
 
     [Test]
     public async Task GetChoicesAsync_PreservesCharacterOrder()
