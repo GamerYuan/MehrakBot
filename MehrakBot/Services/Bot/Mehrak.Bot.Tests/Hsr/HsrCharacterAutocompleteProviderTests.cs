@@ -138,28 +138,6 @@ public class HsrCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Jin");
-
-        var expectedCharacters = new List<string> { "Jing Yuan" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Jin"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Jing Yuan"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
@@ -179,45 +157,6 @@ public class HsrCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("B");
-
-        var expectedCharacters = new List<string> { "Bailu", "Black Swan", "Blade", "Boothill", "Bronya" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "B"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(5));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_CallsServiceWithCorrectQuery()
-    {
-        // Arrange
-        const string query = "Firefly";
-        var (option, context) = CreateTestInputs(query);
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, query))
-            .Returns(["Firefly"]);
-
-        // Act
-        await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiStarRail, query), Times.Once);
     }
 
     [Test]

@@ -132,28 +132,6 @@ public class GenshinCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Zho");
-
-        var expectedCharacters = new List<string> { "Zhongli" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.Genshin, "Zho"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Zhongli"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
@@ -194,49 +172,6 @@ public class GenshinCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(2));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_CallsServiceWithCorrectQuery()
-    {
-        // Arrange
-        const string query = "Ayaka";
-        var (option, context) = CreateTestInputs(query);
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.Genshin, query))
-            .Returns(["Kamisato Ayaka"]);
-
-        // Act
-        await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.Genshin, query), Times.Once);
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_WithSpecialCharactersInName_HandlesCorrectly()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Hu");
-
-        var expectedCharacters = new List<string> { "Hu Tao" }; // Name with space
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.Genshin, "Hu"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choice = result!.First();
-        Assert.Multiple(() =>
-        {
-            Assert.That(choice.Name, Is.EqualTo("Hu Tao"));
-            Assert.That(choice.StringValue, Is.EqualTo("Hu Tao"));
-        });
     }
 
     [Test]

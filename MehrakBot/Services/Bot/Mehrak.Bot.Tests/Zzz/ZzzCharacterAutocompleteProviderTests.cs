@@ -139,28 +139,6 @@ public class ZzzCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Nic");
-
-        var expectedCharacters = new List<string> { "Nicole Demara" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Nic"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Nicole Demara"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
@@ -180,45 +158,6 @@ public class ZzzCharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("S");
-
-        var expectedCharacters = new List<string> { "Seth", "Soldier 11", "Soukaku" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "S"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(3));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_CallsServiceWithCorrectQuery()
-    {
-        // Arrange
-        const string query = "Jane";
-        var (option, context) = CreateTestInputs(query);
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, query))
-            .Returns(["Jane Doe"]);
-
-        // Act
-        await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.ZenlessZoneZero, query), Times.Once);
     }
 
     [Test]

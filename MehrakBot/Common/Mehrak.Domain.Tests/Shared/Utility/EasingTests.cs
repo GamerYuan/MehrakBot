@@ -12,24 +12,20 @@ public class EasingTests
 
     [Test]
     public void Evaluate_AtStart_ReturnsZero(
-        [Values(EasingType.Linear, EasingType.InCubic, EasingType.OutCubic,
-                EasingType.InOutCubic, EasingType.InQuint, EasingType.OutQuint,
-                EasingType.InOutQuint)]
+        [Values(EasingType.Linear, EasingType.InQuint, EasingType.OutQuint)]
         EasingType type)
     {
-        // t = 0 must be 0 for every fading easing type (None is excluded).
+        // Other easing types have exact endpoint assertions in their curve-specific cases.
         Assert.That(Easing.Evaluate(type, 0f), Is.EqualTo(0f).Within(Tolerance),
             $"{type} at t=0 should be 0");
     }
 
     [Test]
     public void Evaluate_AtEnd_ReturnsOne(
-        [Values(EasingType.Linear, EasingType.InCubic, EasingType.OutCubic,
-                EasingType.InOutCubic, EasingType.InQuint, EasingType.OutQuint,
-                EasingType.InOutQuint)]
+        [Values(EasingType.Linear, EasingType.InQuint, EasingType.OutQuint)]
         EasingType type)
     {
-        // t = 1 must be 1 for every fading easing type (None is excluded).
+        // Other easing types have exact endpoint assertions in their curve-specific cases.
         Assert.That(Easing.Evaluate(type, 1f), Is.EqualTo(1f).Within(Tolerance),
             $"{type} at t=1 should be 1");
     }

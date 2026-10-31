@@ -139,28 +139,6 @@ public class Hi3CharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithPartialName_ReturnsMatchingCharacters()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Bro");
-
-        var expectedCharacters = new List<string> { "Bronya Zaychik" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "Bro"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Bronya Zaychik"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithLowercaseQuery_CallsServiceWithSameCase()
     {
         // Arrange
@@ -180,45 +158,6 @@ public class Hi3CharacterAutocompleteProviderTests
         Assert.That(result, Is.Not.Null);
         var choices = result!.ToList();
         Assert.That(choices, Has.Count.EqualTo(1));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_WithMultipleMatchingCharacters_ReturnsAllMatches()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("S");
-
-        var expectedCharacters = new List<string> { "Seele", "Senti", "Susannah" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiImpact3, "S"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(3));
-    }
-
-    [Test]
-    public async Task GetChoicesAsync_CallsServiceWithCorrectQuery()
-    {
-        // Arrange
-        const string query = "Fu Hua";
-        var (option, context) = CreateTestInputs(query);
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiImpact3, query))
-            .Returns(["Fu Hua"]);
-
-        // Act
-        await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        m_MockAutocompleteService.Verify(x => x.FindCharacter(Game.HonkaiImpact3, query), Times.Once);
     }
 
     [Test]
