@@ -155,7 +155,7 @@ public class ZzzDefenseApplicationServiceTests
         var defenseData = new ZzzDefenseDataV2
         {
             PassFifthFloor = false,
-            Brief = new HadalBrief { Rating = "", ChallengeTime = new ScheduleTime() },
+            Brief = new HadalBrief { Rating = "" },
             FifthLayerDetail = detailState == 0 ? null : new HadalFifthFloorDetail { LayerChallengeInfoList = detailState == 1 ? null! : [] },
             HadalBeginTime = new ScheduleTime(),
             HadalEndTime = new ScheduleTime(),
