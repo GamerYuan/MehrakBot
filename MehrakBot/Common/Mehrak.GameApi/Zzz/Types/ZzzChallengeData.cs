@@ -82,7 +82,6 @@ public class HadalBrief
     [JsonPropertyName("score")] public int Score { get; init; }
     [JsonPropertyName("rank_percent")] public int RankPercent { get; init; }
     [JsonPropertyName("rating")] public required string Rating { get; init; }
-    [JsonPropertyName("challenge_time")] public required ScheduleTime ChallengeTime { get; init; }
     [JsonPropertyName("max_score")] public int MaxScore { get; init; }
 }
 
