@@ -42,7 +42,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
     {
         ltUid = 0;
 
-        if (!ulong.TryParse(value, out var parsed) || parsed == 0 || parsed > (ulong)long.MaxValue)
+        if (!ulong.TryParse(value?.Trim(), out var parsed) || parsed == 0 || parsed > (ulong)long.MaxValue)
             return false;
 
         ltUid = parsed;
@@ -128,8 +128,9 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
+            var ltoken = inputs["ltoken"].Trim();
             m_Logger.LogDebug("Encrypting cookie for user {UserId}", Context.User.Id);
-            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            if (!LTokenValidator.IsValidLToken(ltoken))
             {
                 // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
                 // construction, where illegal characters would throw a credential-embedding FormatException into
@@ -154,7 +155,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             // Validate cookie and fetch all game profiles before saving
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, ltuid, inputs["ltoken"], bypassCache: true);
+                Context.User.Id, ltuid, ltoken, bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {
@@ -188,7 +189,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 UserId = (long)Context.User.Id,
                 LtUid = (long)ltuid,
                 LToken = await Task.Run(() =>
-                    m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]))
+                    m_CookieService.Encrypt(ltoken, inputs["passphrase"]))
             };
 
             // Save all game UIDs from validation
@@ -328,10 +329,11 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 .OfType<TextInput>()
                 .ToDictionary(x => x.CustomId, x => x.Value);
 
+            var ltoken = inputs["ltoken"].Trim();
             // Reject malformed credential characters/lengths before the token reaches the GameApi Cookie-header
             // construction, where illegal characters would throw a credential-embedding FormatException into retained
             // logs. Never log the value itself.
-            if (!LTokenValidator.IsValidLToken(inputs["ltoken"]))
+            if (!LTokenValidator.IsValidLToken(ltoken))
             {
                 m_Logger.LogWarning("User {UserId} provided malformed cookie format during update", Context.User.Id);
                 await Context.Interaction.SendFollowupMessageAsync(
@@ -353,7 +355,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
 
             // Validate the new cookie against HoYoLAB before saving (bypass cache to always hit upstream)
             var gameProfilesResult = await m_GameRoleApi.GetAllGameProfilesAsync(
-                Context.User.Id, profile.LtUid, inputs["ltoken"], bypassCache: true);
+                Context.User.Id, profile.LtUid, ltoken, bypassCache: true);
 
             if (!gameProfilesResult.IsSuccess)
             {
@@ -382,7 +384,7 @@ public class AuthModalModule : ComponentInteractionModule<ModalInteractionContex
                 return;
             }
 
-            var newLToken = await Task.Run(() => m_CookieService.Encrypt(inputs["ltoken"], inputs["passphrase"]));
+            var newLToken = await Task.Run(() => m_CookieService.Encrypt(ltoken, inputs["passphrase"]));
 
             try
             {

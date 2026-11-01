@@ -8,7 +8,8 @@ Profiles are authenticated with the two HoYoLAB browser-cookie values supplied
 
 Full browser cookie strings (`ltoken_v2=...; ltuid_v2=...; ...`) are not
 accepted. Copy only the values of those two cookies from the browser's cookie
-storage and enter them in their own fields.
+storage and enter them in their own fields. Surrounding whitespace is trimmed
+from credential values before validation; passphrases are left unchanged.
 
 ## Validation rules
 

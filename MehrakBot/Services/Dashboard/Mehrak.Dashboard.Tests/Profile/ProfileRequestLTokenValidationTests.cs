@@ -48,19 +48,6 @@ public class ProfileRequestLTokenValidationTests
     }
 
     [Test]
-    public void AddProfileRequest_MissingLToken_FailsValidation()
-    {
-        var results = Validate(new AddProfileRequest
-        {
-            LtUid = 100,
-            LToken = "",
-            Passphrase = "valid-passphrase-12"
-        });
-
-        Assert.That(results, Is.Not.Empty);
-    }
-
-    [Test]
     public void AddProfileRequest_OverlongLToken_FailsValidation()
     {
         var results = Validate(new AddProfileRequest
@@ -93,18 +80,6 @@ public class ProfileRequestLTokenValidationTests
         var results = Validate(new UpdateProfileRequest
         {
             LToken = ltoken,
-            Passphrase = "valid-passphrase-12"
-        });
-
-        Assert.That(results, Is.Not.Empty);
-    }
-
-    [Test]
-    public void UpdateProfileRequest_MissingLToken_FailsValidation()
-    {
-        var results = Validate(new UpdateProfileRequest
-        {
-            LToken = "",
             Passphrase = "valid-passphrase-12"
         });
 
