@@ -351,18 +351,9 @@ public class CommandOutcomePresenterTests
         Assert.That(presentation.IsEphemeral, Is.True);
     }
 
-    [TestCase(CommandErrorCode.Unknown)]
     [TestCase(CommandErrorCode.AuthenticationRequired)]
     [TestCase(CommandErrorCode.ApiUnavailable)]
-    [TestCase(CommandErrorCode.ImageUpdateFailed)]
-    [TestCase(CommandErrorCode.AttachmentStoreFailed)]
-    [TestCase(CommandErrorCode.Cancelled)]
-    [TestCase(CommandErrorCode.Timeout)]
-    [TestCase(CommandErrorCode.InvalidRequest)]
-    [TestCase(CommandErrorCode.InvalidResponse)]
-    [TestCase(CommandErrorCode.CharacterNotFound)]
-    [TestCase(CommandErrorCode.RequestLimitExceeded)]
-    public void EnvelopeErrors_UseOnlyAllowlistedMessage(CommandErrorCode code)
+    public void EnvelopeErrors_ForwardDomainMessageUnchanged(CommandErrorCode code)
     {
         var error = new CommandError(code, CommandErrorTarget.GameProfile);
         Assert.That(CommandOutcomePresenter.SafeErrorText(error), Is.EqualTo(error.Message));

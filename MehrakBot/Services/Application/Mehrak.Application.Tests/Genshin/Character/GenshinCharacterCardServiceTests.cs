@@ -156,9 +156,9 @@ public class GenshinCharacterCardServiceTests
         cardContext.PortraitImageStream = portraitStream;
 
         // Act
-        var image = await cardService.GetCardAsync(cardContext);
+        await using var image = await cardService.GetCardAsync(cardContext);
 
-        // Assert - the card should render successfully using the provided portrait stream.
+        // The custom stream must change the portrait, not merely produce a nonempty card.
         Assert.That(image, Is.Not.Null);
         Assert.That(image.Length, Is.GreaterThan(0));
 
@@ -170,6 +170,18 @@ public class GenshinCharacterCardServiceTests
         await File.WriteAllBytesAsync(
             Path.Combine(outputDirectory, "GenshinCharacter_UserPortrait_Generated.jpg"),
             generatedImage.ToArray());
+
+        cardContext.PortraitImageStream = null;
+        await using var stockImage = await cardService.GetCardAsync(cardContext);
+        using MemoryStream stockBuffer = new();
+        await stockImage.CopyToAsync(stockBuffer);
+        var comparison = PerceptualImageComparator.Compare(stockBuffer.ToArray(), generatedImage.ToArray(),
+            PerceptualImageComparator.DefaultDctSimilarityPercent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(comparison.DimensionsMatch, Is.True);
+            Assert.That(comparison.IsEquivalent, Is.False, "The supplied red portrait must differ from stock artwork.");
+        });
     }
 
     [Test]

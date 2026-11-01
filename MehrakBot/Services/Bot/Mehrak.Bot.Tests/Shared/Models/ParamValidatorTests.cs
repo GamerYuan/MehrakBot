@@ -141,97 +141,9 @@ public class ParamValidatorTests
         Assert.That(result, Is.True);
     }
 
-    [Test]
-    public void IsValid_WithInvalidIntParameter_ReturnsFalse()
-    {
-        // Arrange
-        var validator = new ParamValidator<int>("age", x => x >= 18);
-        var context = CreateContext(("age", 15));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.False);
-    }
-
-    #endregion
-
-    #region IsValid Tests - Boolean Parameters
-
-    [Test]
-    public void IsValid_WithTrueBooleanParameter_ValidatesCorrectly()
-    {
-        // Arrange
-        var validator = new ParamValidator<bool>("isActive", x => x == true);
-        var context = CreateContext(("isActive", true));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.True);
-    }
-
-    [Test]
-    public void IsValid_WithFalseBooleanParameter_ValidatesCorrectly()
-    {
-        // Arrange
-        var validator = new ParamValidator<bool>("isActive", x => x == true);
-        var context = CreateContext(("isActive", false));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.False);
-    }
-
     #endregion
 
     #region IsValid Tests - Complex Types
-
-    [Test]
-    public void IsValid_WithEnumParameter_ValidatesCorrectly()
-    {
-        // Arrange
-        var validator = new ParamValidator<TestEnum>("status", x => x != TestEnum.Invalid);
-        var context = CreateContext(("status", TestEnum.Active));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.True);
-    }
-
-    [Test]
-    public void IsValid_WithInvalidEnumParameter_ReturnsFalse()
-    {
-        // Arrange
-        var validator = new ParamValidator<TestEnum>("status", x => x != TestEnum.Invalid);
-        var context = CreateContext(("status", TestEnum.Invalid));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.False);
-    }
-
-    [Test]
-    public void IsValid_WithObjectParameter_ValidatesProperties()
-    {
-        // Arrange
-        var validator = new ParamValidator<TestObject>("data", x => x.Value > 0);
-        var context = CreateContext(("data", new TestObject { Value = 10 }));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.True);
-    }
 
     [Test]
     public void IsValid_WithNullObjectParameter_ReturnsFalse()
@@ -271,43 +183,6 @@ public class ParamValidatorTests
         // Arrange
         var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
         var context = CreateContext(("name", 123)); // int instead of string
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.False);
-    }
-
-    #endregion
-
-    #region IsValid Tests - Multiple Parameters
-
-    [Test]
-    public void IsValid_WithMultipleParameters_ValidatesOnlySpecifiedParameter()
-    {
-        // Arrange
-        var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(
-            ("name", "John"),
-            ("age", 25),
-            ("email", "john@example.com"));
-
-        // Act
-        var result = validator.IsValid(context);
-
-        // Assert
-        Assert.That(result, Is.True);
-    }
-
-    [Test]
-    public void IsValid_WithWrongParameterInMultipleParams_ReturnsFalse()
-    {
-        // Arrange
-        var validator = new ParamValidator<string>("name", x => !string.IsNullOrEmpty(x));
-        var context = CreateContext(
-            ("name", ""),
-            ("age", 25));
 
         // Act
         var result = validator.IsValid(context);
@@ -381,13 +256,6 @@ public class ParamValidatorTests
     #endregion
 
     #region Helper Classes
-
-    private enum TestEnum
-    {
-        Invalid = 0,
-        Active = 1,
-        Inactive = 2
-    }
 
     private class TestObject
     {

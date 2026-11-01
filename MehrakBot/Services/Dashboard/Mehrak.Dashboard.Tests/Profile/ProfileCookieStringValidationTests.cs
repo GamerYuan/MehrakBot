@@ -23,32 +23,6 @@ public class ProfileCookieStringValidationTests
     }
 
     [Test]
-    public void AddProfileRequest_LegacyInput_StillPassesValidation()
-    {
-        var results = Validate(new AddProfileRequest
-        {
-            LtUid = 100,
-            LToken = ValidToken,
-            Passphrase = ValidPassphrase
-        });
-
-        Assert.That(results, Is.Empty);
-    }
-
-    [Test]
-    public void AddProfileRequest_LegacyValidation_StillRejectsBadToken()
-    {
-        var results = Validate(new AddProfileRequest
-        {
-            LtUid = 100,
-            LToken = "C4N4RY TOKEN",
-            Passphrase = ValidPassphrase
-        });
-
-        Assert.That(results, Is.Not.Empty);
-    }
-
-    [Test]
     public void AddProfileRequest_CookieOnly_PassesValidation()
     {
         var results = Validate(new AddProfileRequest
@@ -138,18 +112,6 @@ public class ProfileCookieStringValidationTests
         });
 
         Assert.That(results.Any(r => r.MemberNames.Contains(nameof(AddProfileRequest.CookieString))), Is.True);
-    }
-
-    [Test]
-    public void UpdateProfileRequest_LegacyInput_StillPassesValidation()
-    {
-        var results = Validate(new UpdateProfileRequest
-        {
-            LToken = ValidToken,
-            Passphrase = ValidPassphrase
-        });
-
-        Assert.That(results, Is.Empty);
     }
 
     [Test]

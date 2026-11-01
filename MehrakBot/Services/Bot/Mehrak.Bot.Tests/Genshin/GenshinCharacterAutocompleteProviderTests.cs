@@ -67,29 +67,6 @@ public class GenshinCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Diluc");
-
-        var expectedCharacters = new List<string> { "Diluc" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.Genshin, "Diluc"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.That(choices[0].Name, Is.EqualTo("Diluc"));
-        Assert.That(choices[0].StringValue, Is.EqualTo("Diluc"));
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange

@@ -1053,8 +1053,16 @@ public class HsrCharacterApplicationServiceTests
         // Act
         var result = await service.ExecuteAsync(context);
 
-        // Assert — should NOT return the "exceeded max" ephemeral; it proceeds past the check
-        Assert.That((result.Outcome as CharacterCardsOutcome)?.State, Is.Not.EqualTo(OperationOutcome.RequestLimitExceeded));
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Outcome, Is.TypeOf<CharacterCardsOutcome>());
+        var outcome = (CharacterCardsOutcome)result.Outcome!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.State, Is.EqualTo(OperationOutcome.Empty));
+            Assert.That(outcome.Items.Select(x => x.RequestedName),
+                Is.EqualTo(new[] { "Char1", "Char2", "Char3", "Char4" }));
+            Assert.That(outcome.Items.Select(x => x.Status), Is.All.EqualTo(CharacterCardStatus.NotFound));
+        });
     }
 
     [Test]

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Text.Json;
 using Mehrak.Dashboard.Character;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
@@ -160,33 +161,51 @@ public class UserPortraitsControllerTests
 
     #region GetPortraits — isActive in response
 
-    [Test]
-    public async Task GetPortraits_ReturnsIsActiveField()
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task GetPortraits_ReturnsIsActiveField(bool isActive)
     {
-        var portrait = CreatePortraitDto(isActive: true);
+        var portrait = CreatePortraitDto(isActive: isActive);
         m_MockPortraitService.Setup(s => s.GetUserPortraitsAsync(100L, Game.Genshin, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<UserPortraitUploadDto> { portrait });
 
         var result = await m_Controller.GetPortraits("genshin", null);
 
         Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(((OkObjectResult)result).Value));
+        var item = json.RootElement.EnumerateArray().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(item.GetProperty("id").GetGuid(), Is.EqualTo(portrait.Id));
+            Assert.That(item.GetProperty("sha256Hash").GetString(), Is.EqualTo(portrait.SHA256Hash));
+            Assert.That(item.GetProperty("isActive").GetBoolean(), Is.EqualTo(isActive));
+        });
     }
 
     #endregion
 
     #region GetPortrait — isActive in response
 
-    [Test]
-    public async Task GetPortrait_ReturnsIsActiveField()
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task GetPortrait_ReturnsIsActiveField(bool isActive)
     {
         var portraitId = Guid.NewGuid();
-        var portrait = CreatePortraitDto(id: portraitId, isActive: false);
+        var portrait = CreatePortraitDto(id: portraitId, isActive: isActive);
         m_MockPortraitService.Setup(s => s.GetPortraitAsync(100L, portraitId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(portrait);
 
         var result = await m_Controller.GetPortrait(portraitId);
 
         Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(((OkObjectResult)result).Value));
+        var item = json.RootElement;
+        Assert.Multiple(() =>
+        {
+            Assert.That(item.GetProperty("id").GetGuid(), Is.EqualTo(portraitId));
+            Assert.That(item.GetProperty("sha256Hash").GetString(), Is.EqualTo(portrait.SHA256Hash));
+            Assert.That(item.GetProperty("isActive").GetBoolean(), Is.EqualTo(isActive));
+        });
     }
 
     [Test]
@@ -424,20 +443,31 @@ public class UserPortraitsControllerTests
     }
 
     [Test]
-    public async Task UploadPortrait_ValidUpload_ReturnsOk()
+    public async Task UploadPortrait_ValidUpload_ReturnsProjectedPortrait()
     {
         var file = CreateFormFile();
-        var portrait = CreatePortraitDto();
+        var uploadId = Guid.CreateVersion7();
+        var portrait = CreatePortraitDto(id: uploadId, isActive: true);
         m_MockClassificationService.Setup(s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImageClassificationResult(false, 0.1f, 0.9f));
         m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         m_MockPortraitService.Setup(s => s.UploadPortraitAsync(100L, Game.Genshin, "Raiden", It.IsAny<Stream>(), It.IsAny<string>(), "png", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new UploadPortraitResult { Succeeded = true, UploadId = Guid.CreateVersion7(), Portrait = portrait });
+            .ReturnsAsync(new UploadPortraitResult { Succeeded = true, UploadId = uploadId, Portrait = portrait });
 
         var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
 
         Assert.That(result, Is.InstanceOf<OkObjectResult>());
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(((OkObjectResult)result).Value));
+        var root = json.RootElement;
+        var projected = root.GetProperty("portrait");
+        Assert.Multiple(() =>
+        {
+            Assert.That(root.GetProperty("id").GetGuid(), Is.EqualTo(uploadId));
+            Assert.That(projected.GetProperty("id").GetGuid(), Is.EqualTo(portrait.Id));
+            Assert.That(projected.GetProperty("sha256Hash").GetString(), Is.EqualTo(portrait.SHA256Hash));
+            Assert.That(projected.GetProperty("isActive").GetBoolean(), Is.True);
+        });
     }
 
     [Test]
@@ -591,19 +621,27 @@ public class UserPortraitsControllerTests
             Times.Never);
     }
 
-    [Test]
-    public async Task UploadPortrait_OversizedPixelCount_Returns400()
+    [TestCase(4097, 1)]
+    [TestCase(1, 4097)]
+    public async Task UploadPortrait_DimensionBeyondBound_Returns400BeforeClassificationAndUpload(int width, int height)
     {
-        // 5000x5000 exceeds the 4096 dimension cap via IHDR metadata only.
-        var file = CreateFormFile(content: BuildPng(5000, 5000));
+        // The IHDR declares one dimension above the 4096 bound with a tiny payload:
+        // geometry validation must reject it before classification or storage.
+        var file = CreateFormFile(content: BuildPng(width, height));
         m_MockRateLimitService.Setup(s => s.IsAllowedAsync(100L, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await m_Controller.UploadPortrait("genshin", "Raiden", file);
 
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        using var error = JsonDocument.Parse(JsonSerializer.Serialize(((BadRequestObjectResult)result).Value));
+        Assert.That(error.RootElement.GetProperty("error").GetString(), Does.Contain("dimensions exceed"));
         m_MockClassificationService.Verify(
             s => s.ClassifyAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        m_MockPortraitService.Verify(
+            s => s.UploadPortraitAsync(It.IsAny<long>(), It.IsAny<Game>(), It.IsAny<string>(),
+                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Test]

@@ -80,7 +80,11 @@ public class CharacterBatchProcessorTests
             maxDegreeOfParallelism: 2,
             CancellationToken.None);
 
-        Assert.That(timedOut, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(timedOut, Is.True);
+            Assert.That(processed.Count, Is.LessThan(items.Count), "Timeout must leave queued work unprocessed.");
+        });
     }
 
     [Test]

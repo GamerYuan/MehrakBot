@@ -71,32 +71,6 @@ public class ZzzCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Zhu Yuan");
-
-        var expectedCharacters = new List<string> { "Zhu Yuan" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.ZenlessZoneZero, "Zhu Yuan"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.Multiple(() =>
-        {
-            Assert.That(choices[0].Name, Is.EqualTo("Zhu Yuan"));
-            Assert.That(choices[0].StringValue, Is.EqualTo("Zhu Yuan"));
-        });
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange

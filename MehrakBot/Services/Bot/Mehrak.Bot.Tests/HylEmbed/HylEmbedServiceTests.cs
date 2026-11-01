@@ -810,15 +810,39 @@ public class HylEmbedServiceTests
     #region ExecuteAsync - Component Limit Tests
 
     [Test]
-    public async Task ExecuteAsync_ExceedsComponentLimit_StopsAtLimit()
+    public async Task ExecuteAsync_ExceedsComponentLimit_StopsAtSupportedContentCap()
     {
-        // Arrange
-        var inserts = Enumerable.Range(0, 15)
-            .Select(i => new HylPostStructuredInsert
+        // Arrange - alternate text and vote sections so paragraphs cannot merge into one text display.
+        var inserts = new List<HylPostStructuredInsert>();
+        for (var i = 0; i < 6; i++)
+        {
+            inserts.Add(new HylPostStructuredInsert
             {
-                Insert = new HylPostInsertContent { Text = $"Paragraph {i}\n" }
-            })
-            .ToList();
+                Insert = new HylPostInsertContent { Text = $"Paragraph {i}" }
+            });
+            inserts.Add(new HylPostStructuredInsert
+            {
+                Insert = new HylPostInsertContent
+                {
+                    Vote = new HylPostVote
+                    {
+                        Vote = new HylPostVoteDetails
+                        {
+                            Id = i.ToString(),
+                            Uid = "100",
+                            Url = "https://example.com/vote",
+                            Title = $"Vote {i}",
+                            VoteOptions = ["Option 1", "Option 2"],
+                            VoteLimit = 1,
+                            EndTime = "2025-12-31",
+                            EndTimeType = "fixed",
+                            SyncEndTimeType = false,
+                            Status = "active"
+                        }
+                    }
+                }
+            });
+        }
 
         var postData = LoadTestPost("hyl_post_1.json");
         postData.Post.StructuredContent = JsonSerializer.Serialize(inserts);
@@ -840,16 +864,22 @@ public class HylEmbedServiceTests
         // Act
         await m_Service.ExecuteAsync();
 
-        // Assert
+        // Assert - BuildComponents caps content components at 10; header and footer surround them.
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Is.Not.Null);
-
-        // Parse JSON and verify the component count does not exceed the limit of 10
         using var json = JsonDocument.Parse(response);
-        var components = json.RootElement.GetProperty("components");
-        var innerComponents = components[0].GetProperty("components");
-
-        Assert.That(innerComponents.GetArrayLength(), Is.LessThanOrEqualTo(10));
+        var containerComponents = json.RootElement.GetProperty("components")[0].GetProperty("components");
+        var contents = ComponentContents(containerComponents);
+        Assert.Multiple(() =>
+        {
+            Assert.That(containerComponents.GetArrayLength(), Is.EqualTo(12));
+            Assert.That(contents, Has.Count.EqualTo(12));
+            Assert.That(contents[0], Is.EqualTo("## [Sample Post](https://www.hoyolab.com/article/44470660)"));
+            Assert.That(contents[1], Is.EqualTo("Paragraph 0"));
+            Assert.That(contents[10], Is.EqualTo("Vote 4"));
+            Assert.That(contents[^1], Is.EqualTo("-# HoYoLAB · <t:1712131630:F>"));
+            Assert.That(contents, Does.Not.Contain("Paragraph 5"));
+            Assert.That(contents, Does.Not.Contain("Vote 5"));
+        });
     }
 
     #endregion
@@ -998,7 +1028,12 @@ public class HylEmbedServiceTests
 
         // Assert
         var response = await m_DiscordHelper.ExtractInteractionResponseDataAsync();
-        Assert.That(response, Does.Contain("https://example.com"));
+        using var json = JsonDocument.Parse(response);
+        var innerComponents = json.RootElement.GetProperty("components")[0].GetProperty("components");
+        var rendered = ComponentContents(innerComponents)
+            .Single(x => x.Contains("https://example.com", StringComparison.Ordinal));
+        Assert.That(rendered, Is.EqualTo("https://example.com"));
+        Assert.That(rendered, Does.Not.Contain("]("));
     }
 
     [Test]
@@ -1040,6 +1075,21 @@ public class HylEmbedServiceTests
     #endregion
 
     #region Helper Methods
+
+    private static List<string> ComponentContents(JsonElement components)
+    {
+        var contents = new List<string>();
+        foreach (var component in components.EnumerateArray())
+        {
+            if (component.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
+                contents.Add(content.GetString()!);
+
+            if (component.TryGetProperty("components", out var children) && children.ValueKind == JsonValueKind.Array)
+                contents.AddRange(ComponentContents(children));
+        }
+
+        return contents;
+    }
 
     private HylPost LoadTestPost(string filename)
     {

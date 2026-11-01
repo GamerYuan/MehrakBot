@@ -64,8 +64,7 @@ public sealed class CardCacheFingerprintTests
                 active.Key,
                 uploadId,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => null)
-            .Callback(() => { });
+            .ReturnsAsync(() => null);
 
         var fallback = await PortraitResolutionHelper.ResolveActivePortraitAsync(
             portraitService.Object, 1, active, () => Task.FromResult<CharacterPortraitConfig?>(stockConfig));

@@ -123,9 +123,9 @@ public class HsrCharacterCardServiceTests
         cardContext.PortraitImageStream = portraitStream;
 
         // Act
-        var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
+        await using var generatedImageStream = await characterCardService.GetCardAsync(cardContext);
 
-        // Assert - the card should render successfully using the provided portrait stream.
+        // The custom stream must change the portrait, not merely produce a nonempty card.
         Assert.That(generatedImageStream, Is.Not.Null);
         Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
 
@@ -138,6 +138,17 @@ public class HsrCharacterCardServiceTests
         await File.WriteAllBytesAsync(
             Path.Combine(outputDirectory, "HsrCharacter_UserPortrait_Generated.jpg"),
             generatedImage.ToArray());
+
+        // Rendering disposes this fixture's single scoped DbContext; use the existing stock reference.
+        var stockImage = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "Hsr",
+            "TestAssets", "Character_Stelle_GoldenImage.jpg"));
+        var comparison = PerceptualImageComparator.Compare(stockImage, generatedImage.ToArray(),
+            PerceptualImageComparator.DefaultDctSimilarityPercent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(comparison.DimensionsMatch, Is.True);
+            Assert.That(comparison.IsEquivalent, Is.False, "The supplied red portrait must differ from stock artwork.");
+        });
     }
 
     [Test]

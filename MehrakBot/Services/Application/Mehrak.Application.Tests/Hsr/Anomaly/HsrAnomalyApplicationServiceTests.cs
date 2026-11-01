@@ -266,6 +266,9 @@ public class HsrAnomalyApplicationServiceTests
 
         // A cache hit must return the exact same business facts and actual storage key.
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        imageUpdaterMock.Verify(
+            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
+            Times.AtLeastOnce);
         var imageCalls = imageUpdaterMock.Invocations.Count;
         var cached = await service.ExecuteAsync(context);
         Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
@@ -311,38 +314,6 @@ public class HsrAnomalyApplicationServiceTests
             Assert.That(result.Outcome, Is.Null);
         }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Test]
-    [TestCase("Anomaly_TestData_1.json")]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly(string testDataFile)
-    {
-        // Arrange
-        var (service, apiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var anomalyData = await LoadTestDataAsync(testDataFile);
-        apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrAnomalyInformation>>()))
-            .ReturnsAsync(cardStream);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert: Verify avatar images were updated
-        imageUpdaterMock.Verify(
-            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
     }
 
     [Test]

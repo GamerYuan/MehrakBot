@@ -27,22 +27,6 @@ public class CookieEncryptionServiceTests
     #region Encrypt Tests
 
     [Test]
-    public void Encrypt_WithValidInput_ReturnsBase64String()
-    {
-        // Arrange
-        const string plainText = "test-cookie-data";
-        const string passphrase = "strong-passphrase-123";
-
-        // Act
-        var result = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-        Assert.That(() => Convert.FromBase64String(result), Throws.Nothing);
-    }
-
-    [Test]
     public void Encrypt_WithSameInputTwice_ReturnsDifferentResults()
     {
         // Arrange
@@ -58,68 +42,7 @@ public class CookieEncryptionServiceTests
     }
 
     [Test]
-    public void Encrypt_WithEmptyPlainText_ReturnsValidEncryptedString()
-    {
-        // Arrange
-        const string plainText = "";
-        const string passphrase = "passphrase";
-
-        // Act
-        var result = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-    }
-
-    [Test]
-    public void Encrypt_WithLongPlainText_ReturnsValidEncryptedString()
-    {
-        // Arrange
-        var plainText = new string('a', 10000);
-        const string passphrase = "passphrase";
-
-        // Act
-        var result = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-        Assert.That(() => Convert.FromBase64String(result), Throws.Nothing);
-    }
-
-    [Test]
-    public void Encrypt_WithSpecialCharacters_ReturnsValidEncryptedString()
-    {
-        // Arrange
-        const string plainText = "Test™©®€£¥§¶†‡•…‰′″‹›™";
-        const string passphrase = "passphrase";
-
-        // Act
-        var result = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-    }
-
-    [Test]
-    public void Encrypt_WithUnicodeCharacters_ReturnsValidEncryptedString()
-    {
-        // Arrange
-        const string plainText = "Hello 世界 مرحبا мир";
-        const string passphrase = "passphrase";
-
-        // Act
-        var result = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
-    }
-
-    [Test]
-    public void Encrypt_WithEmptyPassphrase_ReturnsValidEncryptedString()
+    public void Encrypt_WithEmptyPassphrase_ReturnsDecryptableVersionedPayload()
     {
         // Arrange
         const string plainText = "test-data";
@@ -129,8 +52,13 @@ public class CookieEncryptionServiceTests
         var result = m_EncryptionService.Encrypt(plainText, passphrase);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Not.Empty);
+        var payload = Convert.FromBase64String(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(payload, Has.Length.GreaterThanOrEqualTo(45));
+            Assert.That(payload[0], Is.EqualTo(0x01));
+            Assert.That(m_EncryptionService.Decrypt(result, passphrase), Is.EqualTo(plainText));
+        });
     }
 
     [Test]
@@ -166,36 +94,6 @@ public class CookieEncryptionServiceTests
     #endregion
 
     #region Decrypt Tests
-
-    [Test]
-    public void Decrypt_WithValidEncryptedData_ReturnsOriginalPlainText()
-    {
-        // Arrange
-        const string plainText = "test-cookie-data";
-        const string passphrase = "strong-passphrase-123";
-        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Act
-        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(plainText));
-    }
-
-    [Test]
-    public void Decrypt_WithEmptyPlainText_ReturnsEmptyString()
-    {
-        // Arrange
-        const string plainText = "";
-        const string passphrase = "passphrase";
-        var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
-
-        // Act
-        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(plainText));
-    }
 
     [Test]
     public void Decrypt_WithLongPlainText_ReturnsOriginalText()
@@ -442,6 +340,8 @@ public class CookieEncryptionServiceTests
             "Text with numbers 123456",
             "Special chars: !@#$%^&*()_+-=[]{}|;:',.<>?/~`",
             "{\"key\":\"value\",\"number\":42}",
+            "session_id=abc123; user_id=12345; auth_token=xyz789",
+            "VGhpcyBpcyBhIHRlc3QgbWVzc2FnZQ==",
             "Line1\nLine2\nLine3",
             "Tab\tseparated\tvalues",
             new string('x', 1000)
@@ -456,25 +356,6 @@ public class CookieEncryptionServiceTests
             // Assert
             Assert.That(decrypted, Is.EqualTo(plainText),
                  $"Round-trip failed for plaintext of length {plainText.Length}");
-        }
-    }
-
-    [Test]
-    public void RoundTrip_MultipleEncryptionsWithSameData_AllDecryptCorrectly()
-    {
-        // Arrange
-        const string plainText = "test-data";
-        const string passphrase = "passphrase";
-        const int iterations = 10;
-
-        // Act & Assert
-        for (var i = 0; i < iterations; i++)
-        {
-            var encrypted = m_EncryptionService.Encrypt(plainText, passphrase);
-            var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-            Assert.That(decrypted, Is.EqualTo(plainText),
-                $"Round-trip failed on iteration {i + 1}");
         }
     }
 
@@ -725,55 +606,6 @@ public class CookieEncryptionServiceTests
             Assert.That(m_EncryptionService.IsLegacyFormat(upgraded), Is.False);
             Assert.That(m_EncryptionService.Decrypt(upgraded, passphrase), Is.EqualTo(plainText));
         });
-    }
-
-    #endregion
-
-    #region Real-World Scenarios
-
-    [Test]
-    public void RoundTrip_WithCookieData_WorksCorrectly()
-    {
-        // Arrange
-        const string cookieData = "session_id=abc123; user_id=12345; auth_token=xyz789";
-        const string passphrase = "cookie-encryption-key";
-
-        // Act
-        var encrypted = m_EncryptionService.Encrypt(cookieData, passphrase);
-        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(cookieData));
-    }
-
-    [Test]
-    public void RoundTrip_WithJsonData_WorksCorrectly()
-    {
-        // Arrange
-        const string jsonData = "{\"userId\":\"12345\",\"sessionId\":\"abc-def-ghi\",\"expiresAt\":\"2024-12-31T23:59:59Z\"}";
-        const string passphrase = "json-encryption-key";
-
-        // Act
-        var encrypted = m_EncryptionService.Encrypt(jsonData, passphrase);
-        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(jsonData));
-    }
-
-    [Test]
-    public void RoundTrip_WithBase64Data_WorksCorrectly()
-    {
-        // Arrange
-        const string base64Data = "VGhpcyBpcyBhIHRlc3QgbWVzc2FnZQ==";
-        const string passphrase = "passphrase";
-
-        // Act
-        var encrypted = m_EncryptionService.Encrypt(base64Data, passphrase);
-        var decrypted = m_EncryptionService.Decrypt(encrypted, passphrase);
-
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(base64Data));
     }
 
     #endregion

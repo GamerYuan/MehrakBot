@@ -274,6 +274,9 @@ public class ZzzTowerApplicationServiceTests
 
         // A cache hit must return the exact same business facts and actual storage key.
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        imageUpdaterMock.Verify(
+            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
+            Times.AtLeastOnce);
         var imageCalls = imageUpdaterMock.Invocations.Count;
         var cached = await service.ExecuteAsync(context);
         Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));

@@ -177,7 +177,8 @@ public class CheckInExecutorServiceTests
         // Act
         await m_Service.ExecuteAsync(TestProfileId);
 
-        // Assert - With timeout, context is null so no response should be sent
+        // Assert - Timeout occurs before any Discord response or gRPC dispatch
+        Assert.That(m_DiscordHelper.CapturedRequests, Is.Empty);
         m_MockApplicationClient.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
     }
 

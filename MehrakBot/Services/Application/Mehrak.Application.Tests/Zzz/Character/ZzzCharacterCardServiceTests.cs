@@ -104,9 +104,9 @@ public class ZzzCharacterCardServiceTests
         cardContext.PortraitImageStream = portraitStream;
 
         // Act
-        var image = await cardService.GetCardAsync(cardContext);
+        await using var image = await cardService.GetCardAsync(cardContext);
 
-        // Assert - the card should render successfully using the provided portrait stream.
+        // The custom stream must change the portrait, not merely produce a nonempty card.
         Assert.That(image, Is.Not.Null);
         Assert.That(image.Length, Is.GreaterThan(0));
 
@@ -118,6 +118,18 @@ public class ZzzCharacterCardServiceTests
         await File.WriteAllBytesAsync(
             Path.Combine(outputDirectory, "ZzzCharacter_UserPortrait_Generated.jpg"),
             generatedImage.ToArray());
+
+        cardContext.PortraitImageStream = null;
+        await using var stockImage = await cardService.GetCardAsync(cardContext);
+        using MemoryStream stockBuffer = new();
+        await stockImage.CopyToAsync(stockBuffer);
+        var comparison = PerceptualImageComparator.Compare(stockBuffer.ToArray(), generatedImage.ToArray(),
+            PerceptualImageComparator.DefaultDctSimilarityPercent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(comparison.DimensionsMatch, Is.True);
+            Assert.That(comparison.IsEquivalent, Is.False, "The supplied red portrait must differ from stock artwork.");
+        });
     }
 
     [Test]
@@ -196,9 +208,15 @@ public class ZzzCharacterCardServiceTests
         // caught and the base portrait is loaded instead).
         var image = await cardService.GetCardAsync(cardContext);
 
-        // Assert
         Assert.That(image, Is.Not.Null);
         Assert.That(image.Length, Is.GreaterThan(0));
+        using MemoryStream generatedImage = new();
+        await image.CopyToAsync(generatedImage);
+        generatedImage.Position = 0;
+        await using var goldenStream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Assets", "Zzz",
+            "TestAssets", "Character_Jane_GoldenImage.jpg"));
+        Assert.That(generatedImage, IsImage.IdenticalTo(goldenStream),
+            "A missing outfit portrait must render the base portrait, not a blank or unrelated image.");
     }
 
     private static GameProfileDto GetTestUserGameData()

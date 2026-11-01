@@ -90,6 +90,9 @@ public class AuthControllerTests
         var result = await m_Controller.Logout();
 
         Assert.That(result, Is.InstanceOf<OkResult>());
+        authServiceMock.Verify(
+            a => a.SignOutAsync(m_Controller.ControllerContext.HttpContext, null, null),
+            Times.Once);
     }
 
     #endregion

@@ -146,9 +146,9 @@ internal class Hi3CharacterCardServiceTests
         cardContext.PortraitImageStream = portraitStream;
 
         // Act
-        var generatedImageStream = await cardService.GetCardAsync(cardContext);
+        await using var generatedImageStream = await cardService.GetCardAsync(cardContext);
 
-        // Assert - the card should render successfully using the provided portrait stream.
+        // The custom stream must change the portrait, not merely produce a nonempty card.
         Assert.That(generatedImageStream, Is.Not.Null);
         Assert.That(generatedImageStream.Length, Is.GreaterThan(0));
 
@@ -161,6 +161,18 @@ internal class Hi3CharacterCardServiceTests
         await File.WriteAllBytesAsync(
             Path.Combine(outputDirectory, "Hi3Character_UserPortrait_Generated.jpg"),
             generatedImage.ToArray());
+
+        cardContext.PortraitImageStream = null;
+        await using var stockImage = await cardService.GetCardAsync(cardContext);
+        using MemoryStream stockBuffer = new();
+        await stockImage.CopyToAsync(stockBuffer);
+        var comparison = PerceptualImageComparator.Compare(stockBuffer.ToArray(), generatedImage.ToArray(),
+            PerceptualImageComparator.DefaultDctSimilarityPercent);
+        Assert.Multiple(() =>
+        {
+            Assert.That(comparison.DimensionsMatch, Is.True);
+            Assert.That(comparison.IsEquivalent, Is.False, "The supplied red portrait must differ from stock artwork.");
+        });
     }
 
     [Test]

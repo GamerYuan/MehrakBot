@@ -252,6 +252,9 @@ public class ZzzDefenseApplicationServiceTests
 
         // A cache hit must return the exact same business facts and actual storage key.
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        imageUpdaterMock.Verify(
+            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
+            Times.AtLeastOnce);
         var imageCalls = imageUpdaterMock.Invocations.Count;
         var cached = await service.ExecuteAsync(context);
         Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
@@ -297,38 +300,6 @@ public class ZzzDefenseApplicationServiceTests
             Assert.That(result.Outcome, Is.Null);
         }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Test]
-    [TestCase("Shiyu_TestData_1.json")]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly(string testDataFile)
-    {
-        // Arrange
-        var (service, defenseApiMock, imageUpdaterMock, gameRoleApiMock, cardServiceMock, _, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var defenseData = await LoadTestDataAsync(testDataFile);
-        defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var cardStream = new MemoryStream();
-        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<ZzzDefenseDataV2>>()))
-            .ReturnsAsync(cardStream);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert: Verify avatar and buddy images were updated
-        imageUpdaterMock.Verify(
-            x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
     }
 
     [Test]

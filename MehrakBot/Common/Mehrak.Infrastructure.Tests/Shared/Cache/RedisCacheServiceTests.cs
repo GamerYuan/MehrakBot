@@ -376,68 +376,6 @@ public class RedisCacheServiceTests
 
     #endregion
 
-    #region Integration Scenarios
-
-    [Test]
-    public async Task SetThenGet_WithSameKey_ReturnsCorrectValue()
-    {
-        // Arrange
-        const string key = "integration-key";
-        const string value = "integration-value";
-        var entry = new TestCacheEntry<string>(key, value, TimeSpan.FromMinutes(5));
-        var json = JsonSerializer.Serialize(value);
-        var bytes = Encoding.UTF8.GetBytes(json);
-
-        m_MockCache.Setup(c => c.SetAsync(
-            key,
-            It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        m_MockCache.Setup(c => c.GetAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(bytes);
-
-        // Act
-        await m_CacheService.SetAsync(entry);
-        var result = await m_CacheService.GetAsync<string>(key);
-
-        // Assert
-        Assert.That(result, Is.EqualTo(value));
-    }
-
-    [Test]
-    public async Task SetThenRemoveThenGet_ReturnsDefault()
-    {
-        // Arrange
-        const string key = "temp-key";
-        const string value = "temp-value";
-        var entry = new TestCacheEntry<string>(key, value, TimeSpan.FromMinutes(1));
-
-        m_MockCache.Setup(c => c.SetAsync(
-            key,
-            It.IsAny<byte[]>(),
-            It.IsAny<DistributedCacheEntryOptions>(),
-            It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        m_MockCache.Setup(c => c.RemoveAsync(key, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        m_MockCache.Setup(c => c.GetAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((byte[]?)null);
-
-        // Act
-        await m_CacheService.SetAsync(entry);
-        await m_CacheService.RemoveAsync(key);
-        var result = await m_CacheService.GetAsync<string>(key);
-
-        // Assert
-        Assert.That(result, Is.Null);
-    }
-
-    #endregion
-
     #region Edge Cases
 
     [Test]

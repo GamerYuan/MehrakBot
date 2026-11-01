@@ -70,32 +70,6 @@ public class HsrCharacterAutocompleteProviderTests
     }
 
     [Test]
-    public async Task GetChoicesAsync_WithSingleMatch_ReturnsSingleChoice()
-    {
-        // Arrange
-        var (option, context) = CreateTestInputs("Acheron");
-
-        var expectedCharacters = new List<string> { "Acheron" };
-
-        m_MockAutocompleteService
-            .Setup(x => x.FindCharacter(Game.HonkaiStarRail, "Acheron"))
-            .Returns(expectedCharacters);
-
-        // Act
-        var result = await m_Provider.GetChoicesAsync(option, context);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        var choices = result!.ToList();
-        Assert.That(choices, Has.Count.EqualTo(1));
-        Assert.Multiple(() =>
-        {
-            Assert.That(choices[0].Name, Is.EqualTo("Acheron"));
-            Assert.That(choices[0].StringValue, Is.EqualTo("Acheron"));
-        });
-    }
-
-    [Test]
     public async Task GetChoicesAsync_WithNoMatches_ReturnsEmptyChoices()
     {
         // Arrange

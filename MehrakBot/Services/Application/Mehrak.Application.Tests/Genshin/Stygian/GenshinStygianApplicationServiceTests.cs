@@ -252,6 +252,10 @@ public class GenshinStygianApplicationServiceTests
 
         // A cache hit must return the exact same business facts and actual storage key.
         attachmentStorageMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+                It.Is<IImageData>(d => d != null),
+                It.IsAny<IImageProcessor>()),
+            Times.AtLeastOnce);
         var imageCalls = imageUpdaterMock.Invocations.Count;
         var cached = await service.ExecuteAsync(context);
         Assert.That(imageUpdaterMock.Invocations.Count, Is.EqualTo(imageCalls));
@@ -292,34 +296,6 @@ public class GenshinStygianApplicationServiceTests
             Assert.That(result.Outcome, Is.Null);
         }
         attachmentStorageMock.Verify(x => x.StoreAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Test]
-    public async Task ExecuteAsync_VerifyImageUpdatesCalledCorrectly()
-    {
-        // Arrange
-        var (service, stygianApiMock, gameRoleApiMock, imageUpdaterMock, _, _) = SetupMocks();
-
-        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
-            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
-
-        var stygianData = await LoadTestDataAsync("Stygian_TestData_1.json");
-        stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
-
-        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
-            .ReturnsAsync(true);
-
-        var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
-
-        // Act
-        await service.ExecuteAsync(context);
-
-        // Assert: Verify avatar images, side avatar images, and monster images were updated
-        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
-                It.Is<IImageData>(d => d != null),
-                It.IsAny<IImageProcessor>()),
-            Times.AtLeastOnce);
     }
 
     [Test]

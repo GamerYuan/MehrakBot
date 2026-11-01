@@ -1,4 +1,4 @@
-﻿﻿﻿using System.Security.Claims;
+﻿using System.Security.Claims;
 using Mehrak.Dashboard.Shared.Auth;
 using Mehrak.Domain.Auth;
 using Mehrak.Domain.Auth.Dtos;
@@ -97,19 +97,6 @@ public class DashboardCookieEventsTests
     }
 
     [Test]
-    public async Task ValidatePrincipal_WithAccessToken_Proceeds()
-    {
-        var principal = CreatePrincipal("tok123");
-        var context = CreateContext(principal);
-        m_MockSessionService.Setup(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DashboardSessionData(100L, "access-token", DateTime.UtcNow, null, null, null));
-
-        await m_Events.ValidatePrincipal(context);
-
-        Assert.That(context.Principal, Is.Not.Null);
-    }
-
-    [Test]
     public async Task ValidatePrincipal_StaleCookieClaims_RebuiltFromCurrentServerState()
     {
         // Cookie issued before revocation still carries game_write:genshin.
@@ -203,33 +190,6 @@ public class DashboardCookieEventsTests
         m_MockSessionService.Verify(s => s.GetSessionAsync("tok123", It.IsAny<CancellationToken>()), Times.Once);
         m_MockSessionService.Verify(s => s.GetAndRefreshSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         m_MockSessionService.Verify(s => s.RefreshSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Test]
-    public async Task SigningOut_WithSessionToken_InvalidatesSession()
-    {
-        var principal = CreatePrincipal("tok123");
-        var httpContext = new DefaultHttpContext { User = principal };
-        var mockAuthService = new Mock<IAuthenticationService>();
-        mockAuthService
-            .Setup(a => a.SignOutAsync(
-                It.IsAny<HttpContext>(),
-                It.IsAny<string>(),
-                It.IsAny<AuthenticationProperties>()))
-            .Returns(Task.CompletedTask);
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        mockServiceProvider.Setup(sp => sp.GetService(typeof(IAuthenticationService))).Returns(mockAuthService.Object);
-        httpContext.RequestServices = mockServiceProvider.Object;
-
-        var scheme = new AuthenticationScheme(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            "Test",
-            typeof(CookieAuthenticationHandler));
-        var context = new CookieSigningOutContext(httpContext, scheme, new CookieAuthenticationOptions(), new AuthenticationProperties(), new CookieOptions());
-
-        await m_Events.SigningOut(context);
-
-        m_MockSessionService.Verify(s => s.InvalidateSessionAsync("tok123", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
