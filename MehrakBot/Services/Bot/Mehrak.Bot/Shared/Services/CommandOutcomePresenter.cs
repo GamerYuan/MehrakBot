@@ -70,6 +70,7 @@ internal static partial class CommandOutcomePresenter
             EndgameMode.ShiyuDefense => "Shiyu Defense",
             EndgameMode.DeadlyAssault => "Deadly Assault",
             EndgameMode.SimulatedBattleTrial => "Simulated Battle Trial",
+            EndgameMode.Arcana => "Lunar Arcana",
             _ => "Unknown"
         };
         var floor = outcome.Mode == EndgameMode.SpiralAbyss ? $" (Floor {outcome.Floor})" : "";
@@ -78,7 +79,9 @@ internal static partial class CommandOutcomePresenter
             return new([new CommandText($"{mode} is not unlocked")], false,
                 outcome.Mode != EndgameMode.ImaginariumTheater);
         if (outcome.State == OperationOutcome.Empty)
-            return PrivateText($"No clear records found for {mode}{floor}");
+            return PrivateText(outcome.Mode == EndgameMode.Arcana
+                ? "No Lunar Arcana collection data found"
+                : $"No clear records found for {mode}{floor}");
         if (outcome.Image == null)
             return PrivateText(SafeErrorText(null));
 

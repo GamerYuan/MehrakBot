@@ -1,0 +1,28 @@
+{
+  "total_num": 22,
+  "curr_num": 12,
+  "list": [
+    { "icon": "", "name": "The Magician", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The High Priestess", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Empress", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Emperor", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Hierophant", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Lovers", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Chariot", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "Strength", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Hermit", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Wheel of Fortune", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "Justice", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Hanged Man", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "Death", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "Temperance", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Devil", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Tower", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The Star", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Moon", "is_unlock": true, "unlock_num": 3 },
+    { "icon": "", "name": "The Sun", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "Judgment", "is_unlock": true, "unlock_num": 1 },
+    { "icon": "", "name": "The World", "is_unlock": false, "unlock_num": 0 },
+    { "icon": "", "name": "The Fool", "is_unlock": true, "unlock_num": 1 }
+  ]
+}

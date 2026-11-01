@@ -164,6 +164,29 @@ public class GenshinCommandModule : ApplicationCommandModule<ApplicationCommandC
         await executor.ExecuteAsync(profile).ConfigureAwait(false);
     }
 
+    [SubSlashCommand("arcana", "Get Lunar Arcana collection card")]
+    public async Task ArcanaCommand(
+        [SlashCommandParameter(Name = "server", Description = "Server")]
+        Server? server = null,
+        [SlashCommandParameter(Name = "profile", Description = "Profile Id")]
+        int profile = 1)
+    {
+        m_Logger.LogInformation(
+            "User {User} used the arcana command with server {Server}, profile {ProfileId}",
+            Context.User.Id, server, profile);
+
+        List<(string, object)> parameters = [("game", Game.Genshin)];
+        if (server is not null) parameters.Add((nameof(server), server.Value.ToString()));
+
+        var executor = m_Builder
+            .WithInteractionContext(Context)
+            .WithParameters(parameters)
+            .WithCommandName(CommandName.Genshin.Arcana)
+            .Build();
+
+        await executor.ExecuteAsync(profile).ConfigureAwait(false);
+    }
+
     [SubSlashCommand("stygian", "Get Stygian Onslaught summary card")]
     public async Task StygianCommand(
         [SlashCommandParameter(Name = "server", Description = "Server")]

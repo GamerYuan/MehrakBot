@@ -10,6 +10,7 @@ public static class CommandName
     public static class Genshin
     {
         public const string Abyss = "genshin abyss";
+        public const string Arcana = "genshin arcana";
         public const string Character = "genshin character";
         public const string CharList = "genshin charlist";
         public const string Codes = "genshin codes";

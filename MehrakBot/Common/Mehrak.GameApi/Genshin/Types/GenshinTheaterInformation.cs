@@ -12,6 +12,29 @@ public class GenshinTheaterResponseData
 {
     [JsonPropertyName("data")] public required List<GenshinTheaterInformation> Data { get; init; }
     [JsonPropertyName("is_unlock")] public bool IsUnlock { get; init; }
+
+    [JsonPropertyName("tarot_card_state")]
+    public GenshinTarotCardState? TarotCardState { get; init; }
+}
+
+public class GenshinTarotCardState
+{
+    [JsonPropertyName("total_num")] public int TotalNum { get; init; }
+
+    [JsonPropertyName("curr_num")] public int CurrNum { get; init; }
+
+    [JsonPropertyName("list")] public List<GenshinTarotCard> List { get; init; } = [];
+}
+
+public class GenshinTarotCard
+{
+    [JsonPropertyName("icon")] public string? Icon { get; init; }
+
+    [JsonPropertyName("name")] public string? Name { get; init; }
+
+    [JsonPropertyName("is_unlock")] public bool IsUnlock { get; init; }
+
+    [JsonPropertyName("unlock_num")] public int UnlockNum { get; init; }
 }
 
 public class ItAvatar
