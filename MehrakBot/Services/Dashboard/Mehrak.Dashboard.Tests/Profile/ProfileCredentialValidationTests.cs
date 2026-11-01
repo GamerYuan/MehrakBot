@@ -19,13 +19,13 @@ using Moq;
 namespace Mehrak.Dashboard.Tests.Profile;
 
 /// <summary>
-/// CookieString requests must extract the credential pair before any upstream
-/// call, encryption, or persistence: only the extracted ltoken/UID reach the
-/// GameRole API and the encryptor, an update whose cookie UID differs from the
-/// stored UID is rejected before upstream/persistence, and failures stay
-/// generic without echoing the cookie, token, or passphrase. </summary>
+/// Add/Update take LtUid and LToken as separate inputs. Malformed credentials are rejected before any HTTP request,
+/// encryption, or persistence: a zero or long-overflowing UID is refused by the controller before the (long) cast,
+/// and a malformed token is refused by GameRoleApiService before Cookie-header construction. Only the entered token
+/// reaches the encryptor, and error payloads never echo it.
+/// </summary>
 [TestFixture]
-public class ProfileCookieControllerTests
+public class ProfileCredentialValidationTests
 {
     private sealed class FakeCacheService : ICacheService
     {
@@ -68,6 +68,7 @@ public class ProfileCookieControllerTests
     private ProfileController m_Controller = null!;
 
     private const ulong UserId = 100UL;
+    private const string ValidToken = "v2_abcDEF123-_.=~";
     private const string Passphrase = "valid-passphrase-12";
 
     [SetUp]
@@ -106,7 +107,7 @@ public class ProfileCookieControllerTests
         m_Handler.Dispose();
     }
 
-    private void SeedProfile(int profileId, ulong ltUid, string ltoken = "enc:old")
+    private void SeedProfile(int profileId, ulong ltUid)
     {
         m_Db.Users.Add(new UserModel
         {
@@ -119,7 +120,7 @@ public class ProfileCookieControllerTests
                     UserId = (long)UserId,
                     ProfileId = profileId,
                     LtUid = (long)ltUid,
-                    LToken = ltoken
+                    LToken = "enc:old"
                 }
             ]
         });
@@ -128,37 +129,41 @@ public class ProfileCookieControllerTests
     }
 
     [Test]
-    public async Task AddProfile_CookieString_SendsAndEncryptsOnlyExtractedValues()
+    public async Task AddProfile_SeparateValues_SendsAndEncryptsOnlyEnteredToken()
     {
+        const ulong ltUid = 777UL;
         m_Encryption.Setup(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns("enc:rotated");
+            .Returns("enc:new");
 
         var result = await m_Controller.AddProfile(new AddProfileRequest
         {
-            CookieString = "other=xyz; ltoken_v2=extractedtok123; ltuid_v2=777",
+            LtUid = ltUid,
+            LToken = ValidToken,
             Passphrase = Passphrase
         });
 
         Assert.That(result, Is.InstanceOf<CreatedAtActionResult>());
-        // Only the extracted pair reaches HoYoLAB, never the raw cookie string.
         Assert.That(m_Handler.CookieHeaders, Has.Count.EqualTo(1));
-        Assert.That(m_Handler.CookieHeaders[0], Is.EqualTo("ltoken_v2=extractedtok123; ltuid_v2=777"));
-        // Only the extracted token is encrypted, with the supplied passphrase.
-        m_Encryption.Verify(e => e.Encrypt("extractedtok123", Passphrase), Times.Once);
+        Assert.That(m_Handler.CookieHeaders[0], Is.EqualTo($"ltoken_v2={ValidToken}; ltuid_v2={ltUid}"));
+        m_Encryption.Verify(e => e.Encrypt(ValidToken, Passphrase), Times.Once);
         var row = await m_Db.UserProfiles.SingleAsync(p => p.UserId == (long)UserId);
         Assert.Multiple(() =>
         {
-            Assert.That((ulong)row.LtUid, Is.EqualTo(777UL));
-            Assert.That(row.LToken, Is.EqualTo("enc:rotated"));
+            Assert.That((ulong)row.LtUid, Is.EqualTo(ltUid));
+            Assert.That(row.LToken, Is.EqualTo("enc:new"));
         });
     }
 
     [Test]
-    public async Task AddProfile_UnparsableCookieString_FailsBeforeUpstreamOrPersistence()
+    [TestCase(0UL, Description = "Zero would persist an unusable credential UID")]
+    [TestCase(9223372036854775808UL, Description = "One above long.MaxValue overflows the persisted cast")]
+    [TestCase(ulong.MaxValue, Description = "Max ulong overflows the persisted cast")]
+    public async Task AddProfile_InvalidLtUid_RejectedBeforeUpstreamEncryptionOrPersistence(ulong ltUid)
     {
         var result = await m_Controller.AddProfile(new AddProfileRequest
         {
-            CookieString = "ltoken_v2=C4N4RY BAD; ltuid_v2=777",
+            LtUid = ltUid,
+            LToken = ValidToken,
             Passphrase = Passphrase
         });
 
@@ -166,70 +171,50 @@ public class ProfileCookieControllerTests
         Assert.That(m_Handler.CookieHeaders, Is.Empty);
         m_Encryption.Verify(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         Assert.That(await m_Db.UserProfiles.CountAsync(), Is.EqualTo(0));
-        Assert.That(JsonSerializer.Serialize(((BadRequestObjectResult)result).Value),
-            Does.Not.Contain("C4N4RY"));
+        Assert.That(JsonSerializer.Serialize(((BadRequestObjectResult)result).Value), Does.Not.Contain(ValidToken));
     }
 
     [Test]
-    public async Task UpdateProfile_MatchingCookieUid_RotatesExtractedTokenOnly()
+    public async Task AddProfile_MalformedLToken_RejectedBeforeHttpEncryptionOrPersistence()
+    {
+        const string malformedToken = "C4N4RY TOKEN";
+
+        var result = await m_Controller.AddProfile(new AddProfileRequest
+        {
+            LtUid = 777UL,
+            LToken = malformedToken,
+            Passphrase = Passphrase
+        });
+
+        var objectResult = result as ObjectResult;
+        Assert.That(objectResult, Is.Not.Null);
+        Assert.That(objectResult!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
+        // GameRoleApiService rejects the malformed token before building the Cookie header.
+        Assert.That(m_Handler.CookieHeaders, Is.Empty);
+        m_Encryption.Verify(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        Assert.That(await m_Db.UserProfiles.CountAsync(), Is.EqualTo(0));
+        Assert.That(JsonSerializer.Serialize(objectResult.Value), Does.Not.Contain("C4N4RY"));
+    }
+
+    [Test]
+    public async Task UpdateProfile_MalformedLToken_RejectedBeforeHttpEncryptionOrPersistence()
     {
         const ulong ltUid = 111UL;
         SeedProfile(1, ltUid);
-        m_Encryption.Setup(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns("enc:rotated");
 
         var result = await m_Controller.UpdateProfile(1, new UpdateProfileRequest
         {
-            CookieString = $"session=zzz; ltuid_v2={ltUid}; ltoken_v2=newtoken456",
+            LToken = "C4N4RY TOKEN",
             Passphrase = Passphrase
         });
 
-        Assert.That(result, Is.InstanceOf<OkObjectResult>());
-        Assert.That(m_Handler.CookieHeaders, Has.Count.EqualTo(1));
-        Assert.That(m_Handler.CookieHeaders[0], Is.EqualTo($"ltoken_v2=newtoken456; ltuid_v2={ltUid}"));
-        m_Encryption.Verify(e => e.Encrypt("newtoken456", Passphrase), Times.Once);
-        var row = await m_Db.UserProfiles.SingleAsync(p => p.UserId == (long)UserId);
-        Assert.That(row.LToken, Is.EqualTo("enc:rotated"));
-    }
-
-    [Test]
-    public async Task UpdateProfile_MismatchedCookieUid_RejectedBeforeUpstreamOrPersistence()
-    {
-        const ulong storedUid = 111UL;
-        SeedProfile(1, storedUid);
-
-        var result = await m_Controller.UpdateProfile(1, new UpdateProfileRequest
-        {
-            CookieString = "ltoken_v2=othertoken789; ltuid_v2=222",
-            Passphrase = Passphrase
-        });
-
-        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
-        // Rejected before any upstream validation call...
-        Assert.That(m_Handler.CookieHeaders, Is.Empty);
-        // ...and before encryption or persistence.
-        m_Encryption.Verify(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        var row = await m_Db.UserProfiles.SingleAsync(p => p.UserId == (long)UserId);
-        Assert.That(row.LToken, Is.EqualTo("enc:old"));
-        Assert.That(JsonSerializer.Serialize(((BadRequestObjectResult)result).Value),
-            Does.Not.Contain("othertoken789"));
-    }
-
-    [Test]
-    public async Task UpdateProfile_UnparsableCookieString_FailsWithoutSideEffects()
-    {
-        SeedProfile(1, 111UL);
-
-        var result = await m_Controller.UpdateProfile(1, new UpdateProfileRequest
-        {
-            CookieString = "not-a-cookie",
-            Passphrase = Passphrase
-        });
-
-        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+        var objectResult = result as ObjectResult;
+        Assert.That(objectResult, Is.Not.Null);
+        Assert.That(objectResult!.StatusCode, Is.EqualTo(StatusCodes.Status403Forbidden));
         Assert.That(m_Handler.CookieHeaders, Is.Empty);
         m_Encryption.Verify(e => e.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         var row = await m_Db.UserProfiles.SingleAsync(p => p.UserId == (long)UserId);
         Assert.That(row.LToken, Is.EqualTo("enc:old"));
+        Assert.That(JsonSerializer.Serialize(objectResult.Value), Does.Not.Contain("C4N4RY"));
     }
 }
