@@ -14,14 +14,15 @@ namespace Mehrak.Application.Tests.Genshin.Arcana;
 
 internal static class ArcanaSyntheticImageFactory
 {
-    internal const int ArtWidth = 396;
-    internal const int ArtHeight = 1024;
-    internal const int BackgroundWidth = 3840;
-    internal const int BackgroundHeight = 2160;
+    internal const int ArtWidth = 320;
+    internal const int ArtHeight = 440;
+    internal const int BackgroundWidth = 2400;
+    internal const int BackgroundHeight = 2400;
     internal const int TransparentCornerSize = 200;
 
     private static readonly Lazy<byte[]> BackgroundPng = new(CreateBackgroundPng);
-    private static readonly Lazy<byte[][]> ArtPngs = new(CreateArtPngs);
+    private static readonly Lazy<byte[][]> ArtPngs = new(() => CreateArtPngs(true));
+    private static readonly Lazy<byte[][]> LockedArtPngs = new(() => CreateArtPngs(false));
 
     internal static Rgba32 ArtColor(int index)
     {
@@ -41,7 +42,8 @@ internal static class ArcanaSyntheticImageFactory
 
     internal static byte[] GetBackgroundPng() => BackgroundPng.Value;
 
-    internal static byte[] GetArtPng(int position) => ArtPngs.Value[position - 1];
+    internal static byte[] GetArtPng(int position, bool isUnlock = true) =>
+        (isUnlock ? ArtPngs : LockedArtPngs).Value[position - 1];
 
     internal static Mock<IImageRepository> CreateRepository(bool includeArt = true,
         Func<string, bool>? isMissing = null)
@@ -54,11 +56,11 @@ internal static class ArcanaSyntheticImageFactory
                     return new MemoryStream(GetBackgroundPng(), false);
 
                 var definition = GenshinArcanaCardCatalog.Cards
-                    .SingleOrDefault(x => x.AssetKey == fileName);
+                    .SingleOrDefault(x => x.AssetKey == fileName || x.LockedAssetKey == fileName);
                 if (definition is null || !includeArt || isMissing?.Invoke(fileName) == true)
                     throw new ImageNotFoundException(fileName);
 
-                return new MemoryStream(GetArtPng(definition.Position), false);
+                return new MemoryStream(GetArtPng(definition.Position, fileName == definition.AssetKey), false);
             });
         return repository;
     }
@@ -68,34 +70,34 @@ internal static class ArcanaSyntheticImageFactory
     internal static (int X, int Y, int Width, int Height) GetCellBounds(int index)
     {
         // Mirrors the production layout constants for assertions without making them public.
-        const int canvasWidth = 3840;
-        const int cardWidth = 226;
-        const int cardHeight = 584;
+        const int canvasWidth = 2400;
+        const int cardWidth = 320;
+        const int cardHeight = 440;
         const int columnGap = 24;
-        const int rowGap = 10;
-        const int labelHeight = 50;
+        const int rowGap = 20;
+        const int labelHeight = 90;
         const int gridTop = 180;
 
-        int[] rowCounts = [8, 8, 6];
-        var row = index / 8;
-        var column = index % 8;
+        int[] rowCounts = [6, 6, 6, 4];
+        var row = index / 6;
+        var column = index % 6;
         var rowWidth = rowCounts[row] * cardWidth + (rowCounts[row] - 1) * columnGap;
         var startX = (canvasWidth - rowWidth) / 2;
         return (startX + column * (cardWidth + columnGap),
             gridTop + row * (cardHeight + labelHeight + rowGap), cardWidth, cardHeight);
     }
 
-    private static byte[][] CreateArtPngs()
+    private static byte[][] CreateArtPngs(bool isUnlock)
     {
         var result = new byte[GenshinArcanaCardCatalog.Cards.Count][];
         for (var index = 0; index < result.Length; index++)
-            result[index] = CreateArtPng(index);
+            result[index] = CreateArtPng(index, isUnlock);
         return result;
     }
 
-    private static byte[] CreateArtPng(int index)
+    private static byte[] CreateArtPng(int index, bool isUnlock)
     {
-        using var image = new Image<Rgba32>(ArtWidth, ArtHeight, ArtColor(index));
+        using var image = new Image<Rgba32>(ArtWidth, ArtHeight, ExpectedRenderedColor(index, isUnlock));
         using var stream = new MemoryStream();
         image.SaveAsPng(stream);
         return stream.ToArray();

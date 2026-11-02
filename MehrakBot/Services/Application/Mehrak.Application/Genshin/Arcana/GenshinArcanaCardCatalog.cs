@@ -7,7 +7,7 @@ using Mehrak.GameApi.Genshin.Types;
 
 namespace Mehrak.Application.Genshin.Arcana;
 
-internal sealed record GenshinArcanaCardDefinition(int Position, string Name, string AssetKey);
+internal sealed record GenshinArcanaCardDefinition(int Position, string Name, string AssetKey, string LockedAssetKey);
 
 internal sealed record GenshinArcanaResolvedCard(
     int Position,
@@ -74,12 +74,12 @@ internal static class GenshinArcanaCardCatalog
             resolved[index] = new GenshinArcanaResolvedCard(
                 definition.Position,
                 definition.Name,
-                definition.AssetKey,
+                source?.IsUnlock == true ? definition.AssetKey : definition.LockedAssetKey,
                 source?.IsUnlock ?? false,
                 source?.UnlockNum ?? 0);
         }
 
-        return resolved;
+        return resolved.OrderByDescending(x => x.UnlockNum).ThenBy(x => x.Position).ToArray();
     }
 
     private static bool TryGet(string? name, out GenshinArcanaCardDefinition definition)
@@ -98,6 +98,7 @@ internal static class GenshinArcanaCardCatalog
     private static GenshinArcanaCardDefinition Create(int position, string name, string slug)
     {
         return new GenshinArcanaCardDefinition(position, name,
-            string.Format(FileNameFormat.Genshin.ArcanaCardName, slug));
+            string.Format(FileNameFormat.Genshin.ArcanaCardName, slug),
+            string.Format(FileNameFormat.Genshin.ArcanaLockedCardName, slug));
     }
 }

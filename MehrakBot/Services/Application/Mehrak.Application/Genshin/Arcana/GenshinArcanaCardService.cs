@@ -21,18 +21,19 @@ namespace Mehrak.Application.Genshin.Arcana;
 
 public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, IDisposable
 {
-    private const int CanvasWidth = 3840;
-    private const int CanvasHeight = 2160;
-    private const int CardsPerRow = 8;
-    private const int CardWidth = 226;
-    private const int CardHeight = 584;
+    private const int CanvasWidth = 2400;
+    private const int CanvasHeight = 2400;
+    private const int CardsPerRow = 6;
+    private const int CardWidth = 320;
+    private const int CardHeight = 440;
     private const int ColumnGap = 24;
-    private const int RowGap = 10;
-    private const int LabelHeight = 50;
+    private const int RowGap = 20;
+    private const int LabelHeight = 90;
     private const int GridTop = 180;
+    private const int HeaderBottom = 148;
 
     private static readonly Rgba32 ArcanaBaseColor = new(0x0d, 0x0c, 0x23);
-    private static readonly int[] RowCounts = [8, 8, 6];
+    private static readonly int[] RowCounts = [6, 6, 6, 4];
 
     private readonly object m_ResourceLock = new();
     private readonly SemaphoreSlim m_InitializationLock = new(1, 1);
@@ -49,7 +50,7 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
             logger,
             metrics,
             LoadFonts("Assets/Fonts/genshin.ttf", titleSize: 74, normalSize: 40, mediumSize: 34,
-                smallSize: 30, tinySize: 24))
+                smallSize: 26, tinySize: 24))
     {
     }
 
@@ -71,11 +72,7 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
             try
             {
                 if (backgroundOverlay.Width != CanvasWidth || backgroundOverlay.Height != CanvasHeight)
-                {
-                    throw new InvalidOperationException(
-                        $"Lunar Arcana background must be {CanvasWidth}x{CanvasHeight}, but was " +
-                        $"{backgroundOverlay.Width}x{backgroundOverlay.Height}.");
-                }
+                    throw new InvalidOperationException("Lunar Arcana background must be prepared at 2400x2400.");
 
                 composedBackground = new Image<Rgba32>(CanvasWidth, CanvasHeight, ArcanaBaseColor);
                 composedBackground.Mutate(drawingContext =>
@@ -125,8 +122,8 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
         {
             var artwork = await LoadImageFromRepositoryAsync<Rgba32>(card.AssetKey, disposables, cancellationToken)
                 .ConfigureAwait(false);
-            if (!card.IsUnlock)
-                artwork.Mutate(drawingContext => drawingContext.Brightness(0.5f));
+            if (artwork.Width != CardWidth || artwork.Height != CardHeight)
+                throw new InvalidOperationException($"Lunar Arcana artwork must be prepared at {CardWidth}x{CardHeight}: {card.AssetKey}");
             return (index, artwork);
         }).ToArray();
 
@@ -137,17 +134,23 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
 
         background.Mutate(drawingContext =>
         {
+            for (var index = 0; index < cards.Count; index++)
+            {
+                var cell = GetCellBounds(index);
+                drawingContext.DrawImage(artworks[index], new Point((int)cell.X, (int)cell.Y), 1f);
+            }
+
             drawingContext.Paint(canvas =>
             {
                 canvas.DrawText(new RichTextOptions(Fonts.Title)
                 {
-                    Origin = new Vector2(60, 98),
+                    Origin = new Vector2(60, HeaderBottom),
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, "Lunar Arcana", Brushes.Solid(Color.White), null);
 
                 canvas.DrawText(new RichTextOptions(Fonts.Normal)
                 {
-                    Origin = new Vector2(3780, 98),
+                    Origin = new Vector2(CanvasWidth - 60, HeaderBottom - 50),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, $"Collected {context.Data.CurrNum.ToString(CultureInfo.InvariantCulture)} / " +
@@ -156,7 +159,7 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
 
                 canvas.DrawText(new RichTextOptions(Fonts.Medium)
                 {
-                    Origin = new Vector2(3780, 148),
+                    Origin = new Vector2(CanvasWidth - 60, HeaderBottom),
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Bottom
                 }, $"{context.GameProfile.Nickname}·AR {context.GameProfile.Level} · {context.GameProfile.GameUid}",
@@ -165,21 +168,18 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
                 for (var index = 0; index < cards.Count; index++)
                 {
                     var card = cards[index];
-                    var source = artworks[index];
                     var cell = GetCellBounds(index);
 
-                    var scale = MathF.Min((float)CardWidth / source.Width, (float)CardHeight / source.Height);
-                    var drawWidth = source.Width * scale;
-                    var drawHeight = source.Height * scale;
-                    var drawX = cell.X + (CardWidth - drawWidth) / 2f;
-                    var drawY = cell.Y + (CardHeight - drawHeight) / 2f;
-
-                    canvas.DrawImage(source, source.Bounds,
-                        new RectangleF(drawX, drawY, drawWidth, drawHeight), KnownResamplers.Bicubic);
+                    canvas.DrawText(new RichTextOptions(Fonts.Small)
+                    {
+                        Origin = new Vector2(cell.X + CardWidth / 2f, cell.Y + CardHeight + 10),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Top
+                    }, card.Name, Brushes.Solid(Color.White), null);
 
                     canvas.DrawText(new RichTextOptions(Fonts.Medium)
                     {
-                        Origin = new Vector2(cell.X + CardWidth / 2f, cell.Y + CardHeight + 4),
+                        Origin = new Vector2(cell.X + CardWidth / 2f, cell.Y + CardHeight + 56),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Top
                     }, card.UnlockNum.ToString(CultureInfo.InvariantCulture), Brushes.Solid(Color.White), null);
