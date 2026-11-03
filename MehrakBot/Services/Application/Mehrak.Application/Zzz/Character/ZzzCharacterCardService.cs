@@ -525,14 +525,21 @@ internal class ZzzCharacterCardService : CharacterCardServiceBase<ZzzFullAvatarD
         region.Restore();
     }
 
-    private static void DrawRotatedIconImage(DrawingCanvas canvas, Point location, Image icon, Color accentColor)
+    internal static void DrawRotatedIconImage(DrawingCanvas canvas, Point location, Image icon, Color accentColor)
     {
-        using var region = canvas.CreateRegion(new Rectangle(location, new Size(90, 120)));
-        _ = region.Save(RotateOptions);
-        region.DrawRoundedRectangleOverlay(90, 120, PointF.Empty,
+        // CreateRegion clips in canvas space: allow room for rotation, the centered stroke,
+        // and antialiasing. Rotate about the inset origin to preserve the card-space placement.
+        const int padding = 16;
+        using var region = canvas.CreateRegion(new Rectangle(location.X - padding, location.Y - padding,
+            90 + 2 * padding, 120 + 2 * padding));
+        _ = region.Save(new DrawingOptions
+        {
+            Transform = new(Matrix3x2.CreateRotation(MathF.Atan(MaskGradient), new Vector2(padding)))
+        });
+        region.DrawRoundedRectangleOverlay(90, 120, new PointF(padding, padding),
             new RoundedRectangleOverlayStyle(LocalOverlayColor, accentColor, 4f, 10));
         region.DrawImage(icon, icon.Bounds,
-            new RectangleF(45 - icon.Width / 2, 60 - icon.Height / 2, icon.Width, icon.Height),
+            new RectangleF(padding + 45 - icon.Width / 2, padding + 60 - icon.Height / 2, icon.Width, icon.Height),
             KnownResamplers.Bicubic);
         region.Restore();
     }
