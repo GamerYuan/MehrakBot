@@ -29,7 +29,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
     private readonly ICardService<GenshinTheaterInformation>
         m_CardService;
 
-    private readonly IApiService<GenshinTheaterInformation, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> m_ApiService;
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApiService;
@@ -41,7 +41,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
     protected override string CardName => "Imaginarium Theater";
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
-        IApiService<GenshinTheaterInformation, BaseHoYoApiContext> apiService,
+        IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> apiService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
             characterApiService,
         IImageUpdaterService imageUpdaterService,
@@ -88,9 +88,11 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.ImaginariumTheater);
         }
 
-        var theaterData = theaterResult.Data;
+        // The API envelope can carry tarot card state without any Imaginarium Theater clear record. The Theater
+        // command still has nothing to render in that case, so treat it the same as a record without detail data.
+        var theaterData = theaterResult.Data.Data?.FirstOrDefault();
 
-        if (!theaterData.HasDetailData)
+        if (theaterData is null || !theaterData.HasDetailData)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Theater", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater));

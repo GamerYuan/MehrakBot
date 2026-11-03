@@ -149,6 +149,26 @@ public class CommandResultMappingTests
     }
 
     [Test]
+    public void ArcanaEnumAdditions_AppendWireNumbersAndRoundtrip()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(System.Enum.GetValues<EndgameMode>().Select(x => (int)x), Is.EqualTo(Enumerable.Range(0, 12)));
+            Assert.That(System.Enum.GetValues<CommandErrorTarget>().Select(x => (int)x), Is.EqualTo(Enumerable.Range(0, 23)));
+            Assert.That((int)EndgameMode.Arcana, Is.EqualTo((int)Proto.EndgameMode.Arcana));
+            Assert.That((int)CommandErrorTarget.Arcana, Is.EqualTo((int)Proto.CommandErrorTarget.Arcana));
+        });
+        var card = (EndgameOutcome)Roundtrip(CommandResult.Success(
+            EndgameOutcome.Card(Game.Genshin, "123", EndgameMode.Arcana, Attachment))).Outcome!;
+        Assert.That(card.Mode, Is.EqualTo(EndgameMode.Arcana));
+        Assert.That(card.CycleStart, Is.Null);
+        Assert.That(card.CycleEnd, Is.Null);
+        var failure = Roundtrip(CommandResult.Failure(CommandFailureReason.ApiError,
+            CommandErrorCode.ApiUnavailable, CommandErrorTarget.Arcana));
+        Assert.That(failure.Error, Is.EqualTo(new CommandError(CommandErrorCode.ApiUnavailable, CommandErrorTarget.Arcana)));
+    }
+
+    [Test]
     public void EveryEndgameMode_RoundtripsCycleAndOptionalFloor()
     {
         foreach (var mode in System.Enum.GetValues<EndgameMode>().Where(x => x != EndgameMode.Unknown))

@@ -49,7 +49,7 @@ public static class GameApiServiceCollectionExtension
         services
             .AddSingleton<IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>, GenshinRealTimeNotesApiService>();
         services.AddSingleton<IApiService<GenshinStygianInformation, BaseHoYoApiContext>, GenshinStygianApiService>();
-        services.AddSingleton<IApiService<GenshinTheaterInformation, BaseHoYoApiContext>, GenshinTheaterApiService>();
+        services.AddSingleton<IApiService<GenshinTheaterResponseData, BaseHoYoApiContext>, GenshinTheaterApiService>();
 
         // Honkai: Star Rail services
         services

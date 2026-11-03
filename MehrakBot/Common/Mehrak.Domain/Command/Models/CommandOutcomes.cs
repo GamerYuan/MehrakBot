@@ -71,6 +71,7 @@ public enum CommandErrorTarget
     DailyCheckIn = 19,
     Image = 20,
     Attachment = 21,
+    Arcana = 22,
 }
 
 public enum CharacterCardStatus
@@ -95,6 +96,7 @@ public enum EndgameMode
     ShiyuDefense = 8,
     DeadlyAssault = 9,
     SimulatedBattleTrial = 10,
+    Arcana = 11,
 }
 
 public enum RedemptionOutcome

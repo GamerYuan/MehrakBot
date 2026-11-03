@@ -26,6 +26,9 @@ public static class FileNameFormat
         public const string TheaterBackgroundName = "genshin/theater_bg.png";
         public const string StygianMedalName = "genshin/stygian_medal_{0}.png";
         public const string StygianBackgroundName = "genshin/stygian_bg.png";
+        public const string ArcanaBackgroundName = "genshin/arcana/v1/background.png";
+        public const string ArcanaCardName = "genshin/arcana/v1/{0}.png";
+        public const string ArcanaLockedCardName = "genshin/arcana/v1/{0}_locked.png";
         public const string StygianBossName = "genshin/stygian_boss_{0}.png";
         public const string BackgroundName = "genshin/bg.png";
         public const string RelicTemplateName = "genshin/relic_template_{0}.png";

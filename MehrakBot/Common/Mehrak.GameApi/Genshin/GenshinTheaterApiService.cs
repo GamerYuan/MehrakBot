@@ -1,4 +1,4 @@
-﻿﻿﻿#region
+﻿#region
 
 using System.Text.Json;
 using Mehrak.Domain.Shared.Models;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Genshin;
 
-internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation, BaseHoYoApiContext>
+internal class GenshinTheaterApiService : IApiService<GenshinTheaterResponseData, BaseHoYoApiContext>
 {
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinTheaterApiService> m_Logger;
@@ -25,12 +25,12 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinTheaterInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
+    public async Task<Result<GenshinTheaterResponseData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<GenshinTheaterInformation>.Failure(StatusCode.BadParameter,
+            return Result<GenshinTheaterResponseData>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
@@ -52,7 +52,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
                 // would throw a FormatException embedding the credential value, which the catch below would write to
                 // retained file/OTLP logs. This sanitized warning never includes the credential itself.
                 m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
@@ -62,7 +62,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             if (!response.IsSuccessStatusCode)
             {
                 m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }
 
@@ -72,7 +72,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             if (json?.Data == null)
             {
                 m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }
 
@@ -81,43 +81,44 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterInformation,
             if (json.Retcode == 10001)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
             if (json.Retcode != 0)
             {
                 m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while retrieving Imaginarium Theater data", requestUri);
             }
 
             if (!json.Data.IsUnlock)
             {
                 m_Logger.LogInformation(LogMessages.FeatureNotUnlocked, "Imaginarium Theater", context.UserId);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.Unauthorized,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.Unauthorized,
                     "Imaginarium Theater is not unlocked yet", requestUri);
             }
 
-            var theaterInfo = json.Data.Data;
-            if (theaterInfo == null || theaterInfo.Count == 0)
+            var responseData = json.Data;
+            if (responseData.Data is null ||
+                (responseData.Data.Count == 0 && responseData.TarotCardState is null))
             {
                 m_Logger.LogError(LogMessages.DataNotFoundForFeature, "Imaginarium Theater", context.UserId);
-                return Result<GenshinTheaterInformation>.Failure(StatusCode.ExternalServerError,
+                return Result<GenshinTheaterResponseData>.Failure(StatusCode.ExternalServerError,
                     "No Imaginarium Theater data found", requestUri);
             }
 
-            return Result<GenshinTheaterInformation>.Success(json.Data.Data[0], requestUri: requestUri);
+            return Result<GenshinTheaterResponseData>.Success(responseData, requestUri: requestUri);
         }
         catch (OperationCanceledException)
         {
-            return Result<GenshinTheaterInformation>.FromCancellation(cancellationToken);
+            return Result<GenshinTheaterResponseData>.FromCancellation(cancellationToken);
         }
         catch (Exception e)
         {
             m_Logger.LogError(e, LogMessages.ExceptionOccurred,
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
-            return Result<GenshinTheaterInformation>.Failure(StatusCode.BotError,
+            return Result<GenshinTheaterResponseData>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving Imaginarium Theater data");
         }
     }

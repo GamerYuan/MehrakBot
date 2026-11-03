@@ -115,15 +115,17 @@ public class CommandOutcomePresenterTests
     [TestCase(EndgameMode.ShiyuDefense, "Shiyu Defense")]
     [TestCase(EndgameMode.DeadlyAssault, "Deadly Assault")]
     [TestCase(EndgameMode.SimulatedBattleTrial, "Simulated Battle Trial")]
+    [TestCase(EndgameMode.Arcana, "Lunar Arcana")]
     public void Endgame_ModeSpecificTitleCycleFloorFooterAndEmptyState(EndgameMode mode, string name)
     {
         var floor = mode == EndgameMode.SpiralAbyss ? 12 : (int?)null;
         var suffix = floor.HasValue ? " (Floor 12)" : "";
+        var hasCycle = mode is not (EndgameMode.SimulatedBattleTrial or EndgameMode.Arcana);
         var presentation = Present(EndgameOutcome.Card(Game.Genshin, "uid", mode, StorageReference.Attachment("hash.png"),
-            mode == EndgameMode.SimulatedBattleTrial ? null : ObservedAt.ToOffset(TimeSpan.FromHours(8)),
-            mode == EndgameMode.SimulatedBattleTrial ? null : ResetAt.AddMilliseconds(999), floor));
+            hasCycle ? ObservedAt.ToOffset(TimeSpan.FromHours(8)) : null,
+            hasCycle ? ResetAt.AddMilliseconds(999) : null, floor));
         var expected = new List<string> { $"### <@42>'s {name} Summary{suffix}" };
-        if (mode != EndgameMode.SimulatedBattleTrial) expected.Add($"Cycle start: <t:{ObservedAt.ToUnixTimeSeconds()}:f>\nCycle end: <t:{ResetAt.ToUnixTimeSeconds()}:f>");
+        if (hasCycle) expected.Add($"Cycle start: <t:{ObservedAt.ToUnixTimeSeconds()}:f>\nCycle end: <t:{ResetAt.ToUnixTimeSeconds()}:f>");
         expected.Add("-# " + CommandOutcomePresenter.ApiLimitationFooter);
         Assert.Multiple(() =>
         {
@@ -132,7 +134,12 @@ public class CommandOutcomePresenterTests
             Assert.That(presentation.IsEphemeral, Is.False);
             Assert.That(presentation.Attachments.Single().StorageFileName, Is.EqualTo("hash.png"));
             var empty = Present(EndgameOutcome.Empty(Game.Genshin, "uid", mode, floor));
-            Assert.That(Text(empty), Is.EqualTo(new[] { $"No clear records found for {name}{suffix}" }));
+            Assert.That(Text(empty), Is.EqualTo(new[]
+            {
+                mode == EndgameMode.Arcana
+                    ? "No Lunar Arcana collection data found"
+                    : $"No clear records found for {name}{suffix}"
+            }));
             Assert.That(empty.IsEphemeral, Is.True);
             Assert.That(empty.Attachments, Is.Empty);
         });
@@ -140,6 +147,7 @@ public class CommandOutcomePresenterTests
 
     [TestCase(EndgameMode.ImaginariumTheater, false, "Imaginarium Theater")]
     [TestCase(EndgameMode.StygianOnslaught, true, "Stygian Onslaught")]
+    [TestCase(EndgameMode.Arcana, true, "Lunar Arcana")]
     public void LockedModes_PreserveTheaterPublicAndStygianPrivate(EndgameMode mode, bool isPrivate, string name)
     {
         var presentation = Present(EndgameOutcome.Locked(Game.Genshin, "uid", mode));

@@ -129,6 +129,7 @@ public class DashboardApplicationExecutionResultTests
         (Game.Genshin, EndgameMode.SpiralAbyss),
         (Game.Genshin, EndgameMode.ImaginariumTheater),
         (Game.Genshin, EndgameMode.StygianOnslaught),
+        (Game.Genshin, EndgameMode.Arcana),
         (Game.HonkaiStarRail, EndgameMode.MemoryOfChaos),
         (Game.HonkaiStarRail, EndgameMode.PureFiction),
         (Game.HonkaiStarRail, EndgameMode.ApocalypticShadow),

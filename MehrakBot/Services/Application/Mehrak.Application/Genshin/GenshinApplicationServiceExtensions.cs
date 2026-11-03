@@ -1,6 +1,7 @@
 ﻿#region
 
 using Mehrak.Application.Genshin.Abyss;
+using Mehrak.Application.Genshin.Arcana;
 using Mehrak.Application.Genshin.Character;
 using Mehrak.Application.Genshin.CharList;
 using Mehrak.Application.Genshin.RealTimeNotes;
@@ -41,6 +42,12 @@ internal static class GenshinApplicationServiceExtensions
         services.AddSingleton<ICardService<StygianData>, GenshinStygianCardService>();
         services.RegisterAsyncInitializableFor<ICardService<StygianData>, GenshinStygianCardService>();
         services.AddKeyedTransient<IApplicationService, GenshinStygianApplicationService>(CommandName.Genshin.Stygian);
+
+        services.AddSingleton<ICardService<GenshinTarotCardState>, GenshinArcanaCardService>();
+        // A scoped alias would dispose this IDisposable singleton when startup's initialization scope ends.
+        services.AddSingleton<IAsyncInitializable>(sp =>
+            (GenshinArcanaCardService)sp.GetRequiredService<ICardService<GenshinTarotCardState>>());
+        services.AddKeyedTransient<IApplicationService, GenshinArcanaApplicationService>(CommandName.Genshin.Arcana);
 
         services.AddSingleton<ICardService<GenshinTheaterInformation>,
                 GenshinTheaterCardService>();
