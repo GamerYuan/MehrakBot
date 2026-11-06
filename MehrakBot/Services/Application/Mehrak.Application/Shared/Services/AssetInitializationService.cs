@@ -22,16 +22,21 @@ public class AssetInitializationService : IHostedService
         var tasks = Directory.EnumerateFiles(assetsRoot, "*.png", SearchOption.AllDirectories)
             .Select(async image =>
                 {
-                    if (Path.GetDirectoryName(image)?.Contains("Test") ?? false) return;
+                    var relativePath = Path.GetRelativePath(assetsRoot, image);
+                    if (Path.GetDirectoryName(relativePath)?.Contains("Test") ?? false) return;
 
                     await semaphore.WaitAsync(cancellationToken);
                     try
                     {
                         var key = GetAssetKey(assetsRoot, image);
-                        if (await imageRepo.FileExistsAsync(key, cancellationToken)) return;
+                        // Arcana PNGs are processed in place, so replace earlier full-size stored assets.
+                        var refreshArcana = key.StartsWith("genshin/arcana_", StringComparison.Ordinal);
+                        if (!refreshArcana && await imageRepo.FileExistsAsync(key, cancellationToken)) return;
 
                         await using var stream = File.OpenRead(image);
-                        await imageRepo.UploadFileAsync(key, stream, FileNameFormat.PngContentType, cancellationToken);
+                        var uploaded = await imageRepo.UploadFileAsync(key, stream, FileNameFormat.PngContentType, cancellationToken);
+                        if (refreshArcana && !uploaded)
+                            throw new InvalidOperationException($"Failed to refresh Arcana asset {key}.");
                     }
                     finally
                     {

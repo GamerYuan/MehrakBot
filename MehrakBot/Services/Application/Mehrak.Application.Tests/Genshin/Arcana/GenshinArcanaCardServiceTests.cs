@@ -7,6 +7,7 @@ using Mehrak.Application.Shared.Services.Types;
 using Mehrak.Application.Tests.Genshin.Arcana;
 using Mehrak.Application.Tests.TestUtils;
 using Mehrak.Domain.Image;
+using Mehrak.Domain.Image.Models;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.Genshin.Types;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,6 +23,22 @@ namespace Mehrak.Application.Rendering.Tests.Genshin.Arcana;
 
 public class GenshinArcanaCardServiceTests
 {
+    [Test]
+    public void AssetKeys_UseExistingGenshinAssetPaths()
+    {
+        Assert.That(FileNameFormat.Genshin.ArcanaBackgroundName, Is.EqualTo("genshin/arcana_bg.png"));
+        foreach (var definition in GenshinArcanaCardCatalog.Cards)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(definition.AssetKey, Does.StartWith("genshin/arcana_"));
+                Assert.That(definition.LockedAssetKey, Does.StartWith("genshin/arcana_"));
+                Assert.That(definition.AssetKey.Count(x => x == '/'), Is.EqualTo(1));
+                Assert.That(definition.LockedAssetKey.Count(x => x == '/'), Is.EqualTo(1));
+            });
+        }
+    }
+
     [Test]
     public async Task Resolve_OrdersByCountDescendingThenArcanaNumber()
     {
@@ -85,7 +102,7 @@ public class GenshinArcanaCardServiceTests
     [Test]
     public async Task GetCardAsync_WikiaAssetsAndUserSample_SavesSquarePreview()
     {
-        var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin", "Arcana", "v1");
+        var assetsRoot = Path.Combine(AppContext.BaseDirectory, "Assets", "Genshin");
         foreach (var definition in GenshinArcanaCardCatalog.Cards)
         {
             var path = Path.Combine(assetsRoot, Path.GetFileName(definition.AssetKey));
