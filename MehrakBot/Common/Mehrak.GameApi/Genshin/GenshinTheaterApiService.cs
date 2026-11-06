@@ -56,6 +56,7 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterResponseData
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
             request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
+            request.Headers.Add("X-Rpc-Language", "en-us");
 
             var response = await client.SendAsync(request, timeoutCts.Token);
 
