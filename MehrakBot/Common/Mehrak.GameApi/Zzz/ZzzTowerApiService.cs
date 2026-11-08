@@ -1,5 +1,4 @@
-﻿﻿﻿using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Shared;
@@ -31,79 +30,88 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?region={context.Region}&uid={context.GameUid}";
+            var result = await HoYoLabApi.SendJsonAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0};",
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again",
+                        Parse = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                        NonSuccessStatus = "An unknown error occurred when accessing HoYoLAB API. Please try again later"
+                    }
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token);
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+            if (!result.IsSuccess)
+                return Result<ZzzTowerData>.Failure(result.StatusCode, result.ErrorMessage, result.RequestUri);
 
-            var client = m_HttpClientFactory.CreateClient("Default");
-            using HttpRequestMessage request = new(HttpMethod.Get, requestUri);
-            if (!LTokenValidator.IsValidLToken(context.LToken))
+            var json = result.Data;
+
+            if (!HoYoLabApi.TryReadRetcode(json, out var retcode))
             {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<ZzzTowerData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
-
-            using var response = await client.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
                 return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
-
-            if (json?["data"] == null)
+            if (retcode == HoYoLabRetcodes.GameRecordAuth)
             {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri,
-                json["retcode"]!.GetValue<int>(), context.UserId);
-
-            if (json["retcode"]!.GetValue<int>() == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
+                m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
                 return Result<ZzzTowerData>.Failure(StatusCode.Unauthorized,
                     "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
             }
 
-            if (json["retcode"]!.GetValue<int>() != 0)
+            if (retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json["retcode"]!.GetValue<int>(), context.UserId, requestUri, json);
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, GameApiLog.ContextId(context.UserId),
+                    GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
+                    GameApiLog.RenderBody(json));
                 return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
                     "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
             }
 
-            var towerData = json["data"]!["climbing_tower_s3"].Deserialize<ZzzTowerData>();
+            if (json["data"] is not JsonObject dataNode)
+            {
+                m_Logger.LogError(LogMessages.EmptyResponseData, GameApiLog.Endpoint(requestUri), GameApiLog.ContextId(context.UserId),
+                    GameApiLog.SafeQueryParameters(requestUri), GameApiLog.RenderBody(json));
+                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
 
-            return Result<ZzzTowerData>.Success(towerData ?? GetEmptyData(), requestUri: requestUri);
+            var towerNode = dataNode["climbing_tower_s3"];
+            if (towerNode is null)
+                return Result<ZzzTowerData>.Success(GetEmptyData(), requestUri: requestUri);
+
+            if (!HoYoLabApi.TryDeserializeNode<ZzzTowerData>(towerNode, out var towerData))
+            {
+                m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
+                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
+                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+            }
+
+            return Result<ZzzTowerData>.Success(towerData, requestUri: requestUri);
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzTowerData>.FromCancellation(cancellationToken);
+            return Result<ZzzTowerData>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<ZzzTowerData>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving tower data");
+                "An error occurred while retrieving tower data", requestUri);
         }
     }
 
@@ -112,5 +120,3 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
         return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
     }
 }
-
-

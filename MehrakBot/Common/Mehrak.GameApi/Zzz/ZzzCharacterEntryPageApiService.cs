@@ -1,8 +1,5 @@
 ﻿#region
 
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Models;
@@ -34,10 +31,12 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
     private const string Endpoint = $"{HoYoLabDomains.WikiActApi}/zzz/wapi/get_entry_page_list";
     private const int PageSize = 50;
 
+    /// <summary>Controlled failure copy; upstream text is never shown to users.</summary>
+    private const string FailureMessage = "An error occurred while retrieving ZZZ entry page list";
+
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzCharacterEntryPageApiService> m_Logger;
     private readonly ICacheService m_Cache;
-    private static readonly JsonSerializerOptions JsonOptions = new() { NumberHandling = JsonNumberHandling.AllowReadingFromString };
 
     public ZzzCharacterEntryPageApiService(IHttpClientFactory httpClientFactory, ILogger<ZzzCharacterEntryPageApiService> logger,
         ICacheService cache)
@@ -49,50 +48,52 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
 
     public async Task<Result<ZzzCharacterEntryPageList>> GetAsync(ZzzCharacterEntryPageApiContext context, CancellationToken cancellationToken = default)
     {
-        var cached = await m_Cache.GetAsync<ZzzCharacterEntryPageList>(CacheKey, cancellationToken);
-        if (cached != null)
-            return Result<ZzzCharacterEntryPageList>.Success(cached);
+        const string requestUri = Endpoint;
 
         try
         {
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var firstPageResult = await FetchPageAsync(httpClient, 1, cancellationToken);
-            if (firstPageResult != null && !firstPageResult.IsSuccess)
+            var cached = await m_Cache.GetAsync<ZzzCharacterEntryPageList>(CacheKey, scope.Token);
+            if (cached != null)
+                return Result<ZzzCharacterEntryPageList>.Success(cached);
+
+            var firstPageResult = await FetchPageAsync(1, scope.Token);
+            if (!firstPageResult.IsSuccess)
                 return firstPageResult;
 
-            var allItems = firstPageResult?.Data?.List ?? [];
+            var firstPage = firstPageResult.Data;
+            var allItems = firstPage.List;
 
-            var totalPages = (int)Math.Ceiling((double)(firstPageResult?.Data?.Total ?? 0) / PageSize);
+            var totalPages = (int)Math.Ceiling((double)firstPage.Total / PageSize);
             for (var page = 2; page <= totalPages; page++)
             {
-                var pageResult = await FetchPageAsync(httpClient, page, cancellationToken);
-                if (pageResult == null || !pageResult.IsSuccess)
-                    return pageResult ?? Result<ZzzCharacterEntryPageList>.Failure(StatusCode.BotError, "Unexpected null result");
+                var pageResult = await FetchPageAsync(page, scope.Token);
+                if (!pageResult.IsSuccess)
+                    return pageResult;
 
-                allItems.AddRange(pageResult.Data!.List);
+                allItems.AddRange(pageResult.Data.List);
             }
 
-            var result = new ZzzCharacterEntryPageList { List = allItems, Total = firstPageResult?.Data?.Total ?? allItems.Count };
+            var result = new ZzzCharacterEntryPageList { List = allItems, Total = firstPage.Total };
 
             var cacheEntry = new CacheEntryBase<ZzzCharacterEntryPageList>(CacheKey, result, CacheExpiration);
-            await m_Cache.SetAsync(cacheEntry, cancellationToken);
+            await m_Cache.SetAsync(cacheEntry, scope.Token);
 
-            return Result<ZzzCharacterEntryPageList>.Success(result);
+            return Result<ZzzCharacterEntryPageList>.Success(result, requestUri: requestUri);
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzCharacterEntryPageList>.FromCancellation(cancellationToken);
+            return Result<ZzzCharacterEntryPageList>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, LogMessages.ExceptionOccurred, Endpoint, context.UserId);
-            return Result<ZzzCharacterEntryPageList>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving ZZZ entry page list");
+            GameApiLog.LogException(m_Logger, Endpoint, context.UserId, ex);
+            return Result<ZzzCharacterEntryPageList>.Failure(StatusCode.BotError, FailureMessage, requestUri);
         }
     }
 
-    private async Task<Result<ZzzCharacterEntryPageList>?> FetchPageAsync(HttpClient httpClient, int pageNum, CancellationToken cancellationToken)
+    private Task<Result<ZzzCharacterEntryPageList>> FetchPageAsync(int pageNum, CancellationToken cancellationToken)
     {
         var payload = new
         {
@@ -103,28 +104,32 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
             use_es = true
         };
 
-        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
-        {
-            Content = content
-        };
-        request.Headers.Add("X-Rpc-Wiki_app", "zzz");
-        request.Headers.Add("X-Rpc-Language", "en-us");
-        request.Headers.Add("Referer", "https://wiki.hoyolab.com/");
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        var apiResponse = JsonSerializer.Deserialize<ApiResponse<ZzzCharacterEntryPageList>>(responseBody, JsonOptions);
-
-        if (apiResponse?.Retcode != 0 || apiResponse.Data == null)
-        {
-            m_Logger.LogWarning("Failed to get ZZZ entry page list: retcode={Retcode}, message={Message}",
-                apiResponse?.Retcode, apiResponse?.Message);
-            return Result<ZzzCharacterEntryPageList>.Failure(StatusCode.ExternalServerError, apiResponse?.Message ?? "Unknown error");
-        }
-
-        return Result<ZzzCharacterEntryPageList>.Success(apiResponse.Data);
+        return HoYoLabApi.ExecuteAsync(
+            new HoYoLabRequest
+            {
+                RequestUri = Endpoint,
+                Method = HttpMethod.Post,
+                Body = payload,
+                RequiresCredentials = false,
+                Headers =
+                [
+                    new KeyValuePair<string, string>("X-Rpc-Wiki_app", "zzz"),
+                    new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
+                    new KeyValuePair<string, string>("Referer", "https://wiki.hoyolab.com/")
+                ],
+                Failures = new HoYoLabFailureMessages
+                {
+                    Parse = FailureMessage,
+                    NonSuccessStatus = FailureMessage
+                }
+            },
+            new HoYoLabEnvelopePolicy<ZzzCharacterEntryPageList>
+            {
+                AuthRetcode = null,
+                HasData = data => data.List is not null,
+                UnknownRetcode = FailureMessage
+            },
+            new HoYoLabCredentials(0, 0, string.Empty),
+            m_HttpClientFactory, m_Logger, cancellationToken);
     }
 }

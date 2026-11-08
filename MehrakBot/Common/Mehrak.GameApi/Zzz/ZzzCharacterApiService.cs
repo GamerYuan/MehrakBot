@@ -1,7 +1,5 @@
 ﻿#region
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Models;
@@ -26,11 +24,6 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
     private const int CharacterDetailCacheMinutes = 2;
     private const int WikiCacheMinutes = 30;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
-    };
-
     public ZzzCharacterApiService(ICacheService cache,
         IHttpClientFactory httpClientFactory,
         ILogger<ZzzCharacterApiService> logger)
@@ -49,104 +42,60 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{BasePath}/basic?server={context.Region}&role_id={context.GameUid}";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var cacheKey = $"zzz_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey, timeoutCts.Token);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBasicAvatarData>>(cacheKey, scope.Token);
 
             if (cachedEntry != null)
             {
                 return Result<IEnumerable<ZzzBasicAvatarData>>.Success(cachedEntry)!;
             }
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{BasePath}/basic?server={context.Region}&role_id={context.GameUid}";
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
+                        Parse = "Failed to retrieve character list data",
+                        NonSuccessStatus = "Failed to retrieve character list data"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<ZzzBasicAvatarResponse>
+                {
+                    HasData = data => data.AvatarList is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character list data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
+                        data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
+                    await m_Cache.SetAsync(cacheEntry, scope.Token);
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
-
-            HttpRequestMessage request = new()
-            {
-                RequestUri = new Uri(requestUri)
-            };
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBasicAvatarResponse>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Data == null || json.Data.AvatarList.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            var cacheEntry = new CharacterListCacheEntry<ZzzBasicAvatarData>(cacheKey,
-                json.Data.AvatarList, TimeSpan.FromMinutes(CacheExpirationMinutes));
-
-            await m_Cache.SetAsync(cacheEntry, cancellationToken);
-
-            return Result<IEnumerable<ZzzBasicAvatarData>>.Success(json.Data.AvatarList, requestUri: requestUri);
+                    return Result<IEnumerable<ZzzBasicAvatarData>>.Success(data.AvatarList, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<ZzzBasicAvatarData>>.FromCancellation(cancellationToken);
+            return Result<IEnumerable<ZzzBasicAvatarData>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/basic", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{BasePath}/basic", context.UserId, e);
             return Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character data");
+                "An error occurred while retrieving character data", requestUri);
         }
     }
 
@@ -159,30 +108,31 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
                 "Game UID or region is null or empty");
         }
 
+        string? requestUri = null;
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             // Try to load avatar data from cache
             var avatarCacheKey = $"zzz_char:{context.GameUid}:{context.CharacterId}";
-            var cachedAvatar = await m_Cache.GetAsync<ZzzAvatarData>(avatarCacheKey, timeoutCts.Token);
+            var cachedAvatar = await m_Cache.GetAsync<ZzzAvatarData>(avatarCacheKey, scope.Token);
 
             if (cachedAvatar != null)
             {
                 // Avatar hit — load wiki entries in parallel using IDs from the cached avatar
                 var avatarWikiTask = m_Cache.GetAsync<string>(
-                    $"zzz_avatar_wiki:{context.CharacterId}", timeoutCts.Token);
+                    $"zzz_avatar_wiki:{context.CharacterId}", scope.Token);
 
                 var strategyWikiTask = m_Cache.GetAsync<string>(
-                    $"zzz_strategy_wiki:{context.CharacterId}", timeoutCts.Token);
+                    $"zzz_strategy_wiki:{context.CharacterId}", scope.Token);
 
                 var equipWikiTasks = cachedAvatar.Equip
-                    .Select(e => m_Cache.GetAsync<string>($"zzz_equip_wiki:{e.Id}", timeoutCts.Token))
+                    .Select(e => m_Cache.GetAsync<string>($"zzz_equip_wiki:{e.Id}", scope.Token))
                     .ToList();
 
                 var weaponWikiTask = cachedAvatar.Weapon != null
-                    ? m_Cache.GetAsync<string>($"zzz_weapon_wiki:{cachedAvatar.Weapon.Id}", timeoutCts.Token)
+                    ? m_Cache.GetAsync<string>($"zzz_weapon_wiki:{cachedAvatar.Weapon.Id}", scope.Token)
                     : Task.FromResult<string?>(null);
 
                 await Task.WhenAll([avatarWikiTask, strategyWikiTask, weaponWikiTask, .. equipWikiTasks]);
@@ -223,149 +173,102 @@ internal class ZzzCharacterApiService : ICharacterApiService<ZzzBasicAvatarData,
             }
 
             // Cache miss — fetch from API
-            var requestUri =
+            requestUri =
                 $"{HoYoLabDomains.PublicApi}{BasePath}/info?id_list[]={context.CharacterId}&server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
-
-            HttpRequestMessage request = new()
-            {
-                RequestUri = new Uri(requestUri)
-            };
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character data");
-            }
-
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<ZzzFullAvatarData>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character data");
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
-            }
-
-            if (json.Data == null || json.Data.AvatarList.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzFullAvatarData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character data");
-            }
-
-            var data = json.Data;
-
-            // Cache each entry individually
-            var cacheTasks = new List<Task>();
-
-            foreach (var avatar in data.AvatarList)
-            {
-                cacheTasks.Add(m_Cache.SetAsync(
-                    new CacheEntryBase<ZzzAvatarData>(
-                        $"zzz_char:{context.GameUid}:{avatar.Id}",
-                        avatar,
-                        TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    timeoutCts.Token));
-            }
-
-            if (data.AvatarWiki != null)
-            {
-                foreach (var (id, val) in data.AvatarWiki)
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
                 {
-                    cacheTasks.Add(m_Cache.SetAsync(
-                        new CacheEntryBase<string>($"zzz_avatar_wiki:{id}", val,
-                            TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        timeoutCts.Token));
-                }
-            }
-
-            if (data.EquipWiki != null)
-            {
-                foreach (var (id, val) in data.EquipWiki)
+                    RequestUri = requestUri,
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
+                        Parse = "Failed to retrieve character data",
+                        NonSuccessStatus = "Failed to retrieve character data"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<ZzzFullAvatarData>
                 {
-                    cacheTasks.Add(m_Cache.SetAsync(
-                        new CacheEntryBase<string>($"zzz_equip_wiki:{id}", val,
-                            TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        timeoutCts.Token));
-                }
-            }
-
-            if (data.WeaponWiki != null)
-            {
-                foreach (var (id, val) in data.WeaponWiki)
+                    HasData = data => data.AvatarList is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
                 {
-                    cacheTasks.Add(m_Cache.SetAsync(
-                        new CacheEntryBase<string>($"zzz_weapon_wiki:{id}", val,
-                            TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        timeoutCts.Token));
-                }
-            }
+                    // Cache each entry individually
+                    var cacheTasks = new List<Task>();
 
-            if (data.StrategyWiki != null)
-            {
-                foreach (var (id, val) in data.StrategyWiki)
-                {
-                    cacheTasks.Add(m_Cache.SetAsync(
-                        new CacheEntryBase<string>($"zzz_strategy_wiki:{id}", val,
-                            TimeSpan.FromMinutes(WikiCacheMinutes)),
-                        timeoutCts.Token));
-                }
-            }
+                    foreach (var avatar in data.AvatarList)
+                    {
+                        cacheTasks.Add(m_Cache.SetAsync(
+                            new CacheEntryBase<ZzzAvatarData>(
+                                $"zzz_char:{context.GameUid}:{avatar.Id}",
+                                avatar,
+                                TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
+                            scope.Token));
+                    }
 
-            await Task.WhenAll(cacheTasks);
+                    if (data.AvatarWiki != null)
+                    {
+                        foreach (var (id, val) in data.AvatarWiki)
+                        {
+                            cacheTasks.Add(m_Cache.SetAsync(
+                                new CacheEntryBase<string>($"zzz_avatar_wiki:{id}", val,
+                                    TimeSpan.FromMinutes(WikiCacheMinutes)),
+                                scope.Token));
+                        }
+                    }
 
-            return Result<ZzzFullAvatarData>.Success(data);
+                    if (data.EquipWiki != null)
+                    {
+                        foreach (var (id, val) in data.EquipWiki)
+                        {
+                            cacheTasks.Add(m_Cache.SetAsync(
+                                new CacheEntryBase<string>($"zzz_equip_wiki:{id}", val,
+                                    TimeSpan.FromMinutes(WikiCacheMinutes)),
+                                scope.Token));
+                        }
+                    }
+
+                    if (data.WeaponWiki != null)
+                    {
+                        foreach (var (id, val) in data.WeaponWiki)
+                        {
+                            cacheTasks.Add(m_Cache.SetAsync(
+                                new CacheEntryBase<string>($"zzz_weapon_wiki:{id}", val,
+                                    TimeSpan.FromMinutes(WikiCacheMinutes)),
+                                scope.Token));
+                        }
+                    }
+
+                    if (data.StrategyWiki != null)
+                    {
+                        foreach (var (id, val) in data.StrategyWiki)
+                        {
+                            cacheTasks.Add(m_Cache.SetAsync(
+                                new CacheEntryBase<string>($"zzz_strategy_wiki:{id}", val,
+                                    TimeSpan.FromMinutes(WikiCacheMinutes)),
+                                scope.Token));
+                        }
+                    }
+
+                    await Task.WhenAll(cacheTasks);
+
+                    return Result<ZzzFullAvatarData>.Success(data, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzFullAvatarData>.FromCancellation(cancellationToken);
+            return Result<ZzzFullAvatarData>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/info", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{BasePath}/info", context.UserId, e);
             return Result<ZzzFullAvatarData>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character data");
+                "An error occurred while retrieving character data", requestUri);
         }
     }
 }
-
-

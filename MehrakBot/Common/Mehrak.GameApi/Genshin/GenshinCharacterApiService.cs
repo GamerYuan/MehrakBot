@@ -1,8 +1,5 @@
 ﻿#region
 
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
@@ -47,22 +44,19 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 "Game UID or region is null or empty");
         }
 
+        var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/list";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var cacheKey = $"genshin_characters_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, timeoutCts.Token);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<GenshinBasicCharacterData>>(cacheKey, scope.Token);
 
             if (cachedEntry != null)
             {
                 return Result<IEnumerable<GenshinBasicCharacterData>>.Success(cachedEntry);
             }
-
-            var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/list";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
 
             var payload = new CharacterListPayload
             {
@@ -70,85 +64,47 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 Server = context.Region,
                 SortType = 1
             };
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Method = HttpMethod.Post,
+                    Body = payload,
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
+                        Parse = "Failed to retrieve character list data",
+                        NonSuccessStatus = "Failed to retrieve character list data"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<CharacterListData>
+                {
+                    HasData = data => data.List is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character list data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    await m_Cache.SetAsync(
+                        new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, data.List,
+                            TimeSpan.FromMinutes(CacheExpirationMinutes)), scope.Token);
 
-            HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri(requestUri),
-                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<CharacterListData>>(timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Data == null || json.Data.List.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            await m_Cache.SetAsync(
-                new CharacterListCacheEntry<GenshinBasicCharacterData>(cacheKey, json.Data.List,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
-
-            return Result<IEnumerable<GenshinBasicCharacterData>>.Success(json.Data.List, requestUri: requestUri);
+                    return Result<IEnumerable<GenshinBasicCharacterData>>.Success(data.List, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<GenshinBasicCharacterData>>.FromCancellation(cancellationToken);
+            return Result<IEnumerable<GenshinBasicCharacterData>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/character/list", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{BasePath}/character/list", context.UserId, e);
             return Result<IEnumerable<GenshinBasicCharacterData>>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character list data");
+                "An error occurred while retrieving character list data", requestUri);
         }
     }
 
@@ -161,10 +117,11 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 "Game UID or region is null or empty");
         }
 
+        string? requestUri = null;
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             // Atomic per-entry cache lookups
             var requestedIds = context.CharacterIds.Distinct().ToList();
@@ -173,7 +130,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 id => $"genshin_char:{context.GameUid}:{id}");
 
             var cacheTasks = requestedIds
-                .Select(id => m_Cache.GetAsync<GenshinCharacterInformation>(cacheKeys[id], timeoutCts.Token))
+                .Select(id => m_Cache.GetAsync<GenshinCharacterInformation>(cacheKeys[id], scope.Token))
                 .ToList();
 
             await Task.WhenAll(cacheTasks);
@@ -193,11 +150,11 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             {
                 // All characters cached — load wiki entries from cache
                 var avatarWiki = await LoadCachedWiki(cachedEntries.Select(c => c.Base.Id).ToList(),
-                    "genshin_avatar_wiki", timeoutCts.Token);
+                    "genshin_avatar_wiki", scope.Token);
 
                 var weaponIds = cachedEntries.Select(c => c.Weapon.Id)
                     .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
-                var weaponWiki = await LoadCachedWiki(weaponIds, "genshin_weapon_wiki", timeoutCts.Token);
+                var weaponWiki = await LoadCachedWiki(weaponIds, "genshin_weapon_wiki", scope.Token);
 
                 return Result<GenshinCharacterDetail>.Success(new GenshinCharacterDetail
                 {
@@ -208,9 +165,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
             }
 
             // Fetch only uncached IDs from API
-            var requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+            requestUri = $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail";
 
             var payload = new CharacterDetailPayload
             {
@@ -218,146 +173,107 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                 Server = context.Region,
                 CharacterIds = [.. uncachedIds]
             };
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
 
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Method = HttpMethod.Post,
+                    Body = payload,
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
+                        Parse = "An error occurred while retrieving character data",
+                        NonSuccessStatus = "An error occurred while retrieving character data"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<GenshinCharacterDetail>
+                {
+                    HasData = data => data.List is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "An error occurred while retrieving character data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    // Cache each new entry individually
+                    var cacheWriteTasks = new List<Task>();
 
-            HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri(requestUri),
-                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-            };
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
+                    foreach (var charInfo in data.List)
+                    {
+                        cacheWriteTasks.Add(m_Cache.SetAsync(
+                            new CacheEntryBase<GenshinCharacterInformation>(
+                                $"genshin_char:{context.GameUid}:{charInfo.Base.Id}",
+                                charInfo,
+                                TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
+                            scope.Token));
+                    }
 
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
+                    foreach (var kvp in data.AvatarWiki)
+                    {
+                        cacheWriteTasks.Add(m_Cache.SetAsync(
+                            new CacheEntryBase<string>(
+                                $"genshin_avatar_wiki:{kvp.Key}",
+                                kvp.Value,
+                                TimeSpan.FromMinutes(WikiCacheMinutes)),
+                            scope.Token));
+                    }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving character data", requestUri);
-            }
+                    foreach (var kvp in data.WeaponWiki)
+                    {
+                        cacheWriteTasks.Add(m_Cache.SetAsync(
+                            new CacheEntryBase<string>(
+                                $"genshin_weapon_wiki:{kvp.Key}",
+                                kvp.Value,
+                                TimeSpan.FromMinutes(WikiCacheMinutes)),
+                            scope.Token));
+                    }
 
-            var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<GenshinCharacterDetail>>(timeoutCts.Token);
+                    await Task.WhenAll(cacheWriteTasks);
 
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving character data", requestUri);
-            }
+                    // Load cached wiki entries for already-cached characters
+                    var cachedAvatarWiki = await LoadCachedWiki(cachedEntries.Select(c => c.Base.Id).ToList(),
+                        "genshin_avatar_wiki", scope.Token);
 
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
+                    var cachedWeaponIds = cachedEntries.Select(c => c.Weapon.Id)
+                        .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+                    var cachedWeaponWiki = await LoadCachedWiki(cachedWeaponIds, "genshin_weapon_wiki", scope.Token);
 
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
+                    // Merge cached entries with API response
+                    var mergedById = cachedEntries.Concat(data.List)
+                        .ToDictionary(c => c.Base.Id);
+                    var mergedList = requestedIds
+                        .Where(mergedById.ContainsKey)
+                        .Select(id => mergedById[id])
+                        .ToList();
 
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later");
-            }
+                    var mergedAvatarWiki = new Dictionary<string, string>(cachedAvatarWiki);
+                    foreach (var kvp in data.AvatarWiki)
+                        mergedAvatarWiki[kvp.Key] = kvp.Value;
 
-            if (json.Data == null || json.Data.List.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<GenshinCharacterDetail>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while retrieving character data", requestUri);
-            }
+                    var mergedWeaponWiki = new Dictionary<string, string>(cachedWeaponWiki);
+                    foreach (var kvp in data.WeaponWiki)
+                        mergedWeaponWiki[kvp.Key] = kvp.Value;
 
-            // Cache each new entry individually
-            var cacheWriteTasks = new List<Task>();
-
-            foreach (var charInfo in json.Data.List)
-            {
-                cacheWriteTasks.Add(m_Cache.SetAsync(
-                    new CacheEntryBase<GenshinCharacterInformation>(
-                        $"genshin_char:{context.GameUid}:{charInfo.Base.Id}",
-                        charInfo,
-                        TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    timeoutCts.Token));
-            }
-
-            foreach (var kvp in json.Data.AvatarWiki)
-            {
-                cacheWriteTasks.Add(m_Cache.SetAsync(
-                    new CacheEntryBase<string>(
-                        $"genshin_avatar_wiki:{kvp.Key}",
-                        kvp.Value,
-                        TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    timeoutCts.Token));
-            }
-
-            foreach (var kvp in json.Data.WeaponWiki)
-            {
-                cacheWriteTasks.Add(m_Cache.SetAsync(
-                    new CacheEntryBase<string>(
-                        $"genshin_weapon_wiki:{kvp.Key}",
-                        kvp.Value,
-                        TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    timeoutCts.Token));
-            }
-
-            await Task.WhenAll(cacheWriteTasks);
-
-            // Load cached wiki entries for already-cached characters
-            var cachedAvatarWiki = await LoadCachedWiki(cachedEntries.Select(c => c.Base.Id).ToList(),
-                "genshin_avatar_wiki", timeoutCts.Token);
-
-            var cachedWeaponIds = cachedEntries.Select(c => c.Weapon.Id)
-                .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
-            var cachedWeaponWiki = await LoadCachedWiki(cachedWeaponIds, "genshin_weapon_wiki", timeoutCts.Token);
-
-            // Merge cached entries with API response
-            var mergedById = cachedEntries.Concat(json.Data.List)
-                .ToDictionary(c => c.Base.Id);
-            var mergedList = requestedIds
-                .Where(mergedById.ContainsKey)
-                .Select(id => mergedById[id])
-                .ToList();
-
-            var mergedAvatarWiki = new Dictionary<string, string>(cachedAvatarWiki);
-            foreach (var kvp in json.Data.AvatarWiki)
-                mergedAvatarWiki[kvp.Key] = kvp.Value;
-
-            var mergedWeaponWiki = new Dictionary<string, string>(cachedWeaponWiki);
-            foreach (var kvp in json.Data.WeaponWiki)
-                mergedWeaponWiki[kvp.Key] = kvp.Value;
-
-            return Result<GenshinCharacterDetail>.Success(new GenshinCharacterDetail
-            {
-                List = mergedList,
-                AvatarWiki = mergedAvatarWiki,
-                WeaponWiki = mergedWeaponWiki
-            }, requestUri: requestUri);
+                    return Result<GenshinCharacterDetail>.Success(new GenshinCharacterDetail
+                    {
+                        List = mergedList,
+                        AvatarWiki = mergedAvatarWiki,
+                        WeaponWiki = mergedWeaponWiki
+                    }, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<GenshinCharacterDetail>.FromCancellation(cancellationToken);
+            return Result<GenshinCharacterDetail>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{BasePath}/character/detail", context.UserId, e);
             return Result<GenshinCharacterDetail>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character data");
+                "An error occurred while retrieving character data", requestUri);
         }
     }
 
@@ -393,5 +309,3 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
         [JsonPropertyName("character_ids")] public List<int> CharacterIds { get; set; } = [];
     }
 }
-
-

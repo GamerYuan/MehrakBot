@@ -1,6 +1,5 @@
-﻿﻿﻿#region
+﻿#region
 
-using System.Net.Http.Json;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Shared;
@@ -34,79 +33,43 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.Unauthorized,
-                    "Invalid cookies. Please re-authenticate.", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
-
-            var response = await client.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data", requestUri);
-            }
-
-            var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>(timeoutCts.Token);
-
-            if (json?.Data == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.Unauthorized,
-                    "Invalid cookies. Please re-authenticate.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0};",
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid cookies. Please re-authenticate.",
+                        Parse = "An error occurred while fetching Shiyu Defense data",
+                        NonSuccessStatus = "An error occurred while fetching Shiyu Defense data"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<ZzzDefenseDataWrapper>
+                {
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "An error occurred while fetching Shiyu Defense data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                data => Task.FromResult(Result<ZzzDefenseDataV2>.Success(data.HadalInfoV2, requestUri: requestUri)));
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzDefenseDataV2>.FromCancellation(cancellationToken);
+            return Result<ZzzDefenseDataV2>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<ZzzDefenseDataV2>.Failure(StatusCode.BotError,
-                "An error occurred while fetching Shiyu Defense data");
+                "An error occurred while fetching Shiyu Defense data", requestUri);
         }
     }
 }
-
-

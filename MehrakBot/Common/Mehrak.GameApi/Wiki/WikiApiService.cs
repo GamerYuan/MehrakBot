@@ -25,54 +25,57 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 
     public async Task<Result<JsonNode>> GetAsync(WikiApiContext context, CancellationToken cancellationToken = default)
     {
+        string? requestUri = null;
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var endpoint = GetEndpoint(context.Game);
-            var requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
+            requestUri = $"{HoYoLabDomains.WikiApi}{endpoint}?entry_page_id={context.EntryPage}";
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
+            var headers = new List<KeyValuePair<string, string>>
             {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri)
+                new("X-Rpc-Language", context.Locale.ToLocaleString())
             };
-            request.Headers.Add("X-Rpc-Language", context.Locale.ToLocaleString());
 
             if (context.Game == Game.ZenlessZoneZero)
-                request.Headers.Add("X-Rpc-Wiki_app", "zzz");
-            else if (context.Game == Game.HonkaiStarRail) request.Headers.Add("X-Rpc-Wiki_app", "hsr");
+                headers.Add(new KeyValuePair<string, string>("X-Rpc-Wiki_app", "zzz"));
+            else if (context.Game == Game.HonkaiStarRail)
+                headers.Add(new KeyValuePair<string, string>("X-Rpc-Wiki_app", "hsr"));
 
-            var response = await client.SendAsync(request, timeoutCts.Token);
+            var result = await HoYoLabApi.SendJsonAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    RequiresCredentials = false,
+                    Headers = headers,
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Parse = "An error occurred while accessing HoYoWiki API",
+                        NonSuccessStatus = "An error occurred while accessing HoYoWiki API"
+                    }
+                },
+                new HoYoLabCredentials(context.UserId, 0, string.Empty),
+                m_HttpClientFactory, m_Logger, scope.Token);
 
-            if (!response.IsSuccessStatusCode)
+            if (!result.IsSuccess)
+                return Result<JsonNode>.Failure(result.StatusCode, result.ErrorMessage, result.RequestUri);
+
+            var json = result.Data;
+            if (!HoYoLabApi.TryReadRetcode(json, out var retcode))
             {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
+                m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
-
-            var json = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync(timeoutCts.Token), cancellationToken: timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while accessing HoYoWiki API", requestUri);
-            }
-
-            var retcode = json["retcode"]?.GetValue<int>() ?? -1;
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, retcode, context.UserId);
 
             if (retcode != 0)
             {
-                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, context.UserId, requestUri, json);
+                m_Logger.LogError(LogMessages.UnknownRetcode, retcode, GameApiLog.ContextId(context.UserId),
+                    GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
+                    GameApiLog.RenderBody(json));
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }
@@ -81,13 +84,13 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
         }
         catch (OperationCanceledException)
         {
-            return Result<JsonNode>.FromCancellation(cancellationToken);
+            return Result<JsonNode>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.WikiApi}{GetEndpoint(context.Game)}", context.UserId);
-            return Result<JsonNode>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.");
+            GameApiLog.LogException(m_Logger, requestUri ?? HoYoLabDomains.WikiApi, context.UserId, e);
+            return Result<JsonNode>.Failure(StatusCode.BotError, "An error occurred while fetching wiki data.",
+                requestUri);
         }
     }
 
@@ -118,4 +121,3 @@ public class WikiApiContext : IApiContext
         Locale = locale;
     }
 }
-

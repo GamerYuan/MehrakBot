@@ -1,6 +1,5 @@
-﻿﻿﻿#region
+﻿#region
 
-using System.Text.Json;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hsr.Types;
@@ -34,83 +33,48 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
-                    "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Client_type", "5");
-            request.Headers.Add("X-Rpc-App_version", "1.5.0");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-            request.Headers.Add("DS", DSGenerator.GenerateDS());
-
-            var response = await client.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    $"Failed to fetch real-time notes: {response.ReasonPhrase}", requestUri);
-            }
-
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrRealTimeNotesData>>(
-                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
-
-            if (json?.Data == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to parse JSON response from real-time notes API", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.Unauthorized,
-                    "Invalid ltuid or ltoken provided for real-time notes API", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<HsrRealTimeNotesData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            return Result<HsrRealTimeNotesData>.Success(json.Data, requestUri: requestUri);
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Headers =
+                    [
+                        new KeyValuePair<string, string>("X-Rpc-Client_type", "5"),
+                        new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
+                        new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
+                        new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
+                    ],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid ltuid or ltoken provided for real-time notes API",
+                        Parse = "Failed to parse JSON response from real-time notes API",
+                        NonSuccessStatus = "Failed to fetch real-time notes"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<HsrRealTimeNotesData>
+                {
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to parse JSON response from real-time notes API"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token);
         }
         catch (OperationCanceledException)
         {
-            return Result<HsrRealTimeNotesData>.FromCancellation(cancellationToken);
+            return Result<HsrRealTimeNotesData>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<HsrRealTimeNotesData>.Failure(StatusCode.BotError,
-                "An error occurred while fetching real-time notes");
+                "An error occurred while fetching real-time notes", requestUri);
         }
     }
 }
-
-

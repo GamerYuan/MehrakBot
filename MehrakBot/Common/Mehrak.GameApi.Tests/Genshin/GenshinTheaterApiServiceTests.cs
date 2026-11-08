@@ -179,6 +179,23 @@ public class GenshinTheaterApiServiceTests
     }
 
     [Test]
+    public async Task GetAsync_AuthRetcodeWithoutData_ReturnsUnauthorized()
+    {
+        m_Handler.EnqueueJson("""{"retcode":10001,"message":"upstream text"}""");
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Does.Contain("Invalid HoYoLAB UID or Cookies"));
+            Assert.That(result.ErrorMessage, Does.Not.Contain("upstream text"));
+            Assert.That(result.RequestUri, Is.Not.Null);
+        }
+    }
+
+    [Test]
     public async Task GetAsync_NonSuccessStatusCode_ReturnsExternalServerError()
     {
         m_Handler.EnqueueJson("{}", HttpStatusCode.InternalServerError);
@@ -240,7 +257,25 @@ public class GenshinTheaterApiServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Cancelled));
+            Assert.That(result.RequestUri, Is.Not.Null);
             Assert.That(m_Handler.RequestCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_PreCancelledCaller_ReturnsCancelledWithoutSendingRequest()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        var result = await m_Service.GetAsync(CreateContext(), cancellation.Token);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Cancelled));
+            Assert.That(result.RequestUri, Is.Not.Null);
+            Assert.That(m_Handler.RequestCount, Is.Zero);
         }
     }
 
@@ -255,6 +290,7 @@ public class GenshinTheaterApiServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Timeout));
+            Assert.That(result.RequestUri, Is.Not.Null);
         }
     }
 

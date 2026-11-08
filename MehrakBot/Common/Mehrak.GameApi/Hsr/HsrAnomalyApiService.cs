@@ -1,10 +1,13 @@
-﻿﻿﻿using System.Text.Json;
+﻿#region
+
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Shared;
 using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.GameApi.Hsr;
 
@@ -30,83 +33,47 @@ internal class HsrAnomalyApiService : IApiService<HsrAnomalyInformation, BaseHoY
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?role_id={context.GameUid}&server={context.Region}&schedule_type=1";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<HsrAnomalyInformation>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("DS", DSGenerator.GenerateDS());
-            request.Headers.Add("X-Rpc-App_version", "1.5.0");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-            request.Headers.Add("X-Rpc-Client_type", "5");
-
-            var response = await client.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HsrAnomalyInformation>>(
-                await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
-
-            if (json?.Data == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<HsrAnomalyInformation>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            return Result<HsrAnomalyInformation>.Success(json.Data, requestUri: requestUri);
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Headers =
+                    [
+                        new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS()),
+                        new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
+                        new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
+                        new KeyValuePair<string, string>("X-Rpc-Client_type", "5")
+                    ],
+                    Failures = new HoYoLabFailureMessages
+                    {
+                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
+                        Parse = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                        NonSuccessStatus = "An unknown error occurred when accessing HoYoLAB API. Please try again later"
+                    }
+                },
+                new HoYoLabEnvelopePolicy<HsrAnomalyInformation>
+                {
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token);
         }
         catch (OperationCanceledException)
         {
-            return Result<HsrAnomalyInformation>.FromCancellation(cancellationToken);
+            return Result<HsrAnomalyInformation>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<HsrAnomalyInformation>.Failure(StatusCode.BotError,
-                "An error occurred while fetching Anomaly Arbitration information");
+                "An error occurred while fetching Anomaly Arbitration information", requestUri);
         }
     }
 }
-
-

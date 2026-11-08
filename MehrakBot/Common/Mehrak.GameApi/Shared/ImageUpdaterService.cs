@@ -33,7 +33,7 @@ public class ImageUpdaterService : IImageUpdaterService
 
         if (string.IsNullOrEmpty(data.Url))
         {
-            m_Logger.LogWarning("{Name} has an empty URL, skipping download", data.Name);
+            m_Logger.LogWarning("{Name} has an empty URL, skipping download", GameApiLog.Text(data.Name));
             return false;
         }
 
@@ -44,12 +44,15 @@ public class ImageUpdaterService : IImageUpdaterService
 
             var client = m_HttpClientFactory.CreateClient();
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, data.Url);
+            m_Logger.LogInformation(LogMessages.PreparingRequest, GameApiLog.Endpoint(data.Url),
+                GameApiLog.NoSafeQueryParameters);
             using var response = await client.GetAsync(data.Url, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, data.Url);
+                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode,
+                    GameApiLog.Endpoint(data.Url), GameApiLog.NoSafeQueryParameters, null, null,
+                    GameApiLog.NotReadMarker);
                 return false;
             }
 
@@ -61,7 +64,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
                 if (processedStream == Stream.Null || processedStream.Length == 0)
                 {
-                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty",
+                        GameApiLog.Text(data.Name));
                     return false;
                 }
 
@@ -82,7 +86,7 @@ public class ImageUpdaterService : IImageUpdaterService
         }
         catch (OperationCanceledException)
         {
-            m_Logger.LogWarning("Image download timed out for {Url}", data.Url);
+            m_Logger.LogWarning("Image download timed out for {Endpoint}", GameApiLog.Endpoint(data.Url));
             return false;
         }
     }
@@ -103,7 +107,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
             var allUrls = data.AdditionalUrls.Prepend(data.Url).Where(x => !string.IsNullOrEmpty(x)).ToList();
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, string.Join(", ", allUrls));
+            m_Logger.LogInformation(LogMessages.PreparingRequest,
+                string.Join(", ", allUrls.Select(GameApiLog.Endpoint)), GameApiLog.NoSafeQueryParameters);
 
             var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
             {
@@ -119,8 +124,8 @@ public class ImageUpdaterService : IImageUpdaterService
                 if (responses.Any(x => !x.IsSuccessStatusCode))
                 {
                     var failed = responses.Where(x => !x.IsSuccessStatusCode);
-                    m_Logger.LogError("Failed to download {Name}, [\n{UrlError}\n]", data.Name, string.Join('\n',
-                        failed.Select(x => $"{x.RequestMessage?.RequestUri}: {x.StatusCode}")));
+                    m_Logger.LogError("Failed to download {Name}: {UrlError}", GameApiLog.Text(data.Name), string.Join(", ",
+                        failed.Select(x => $"{GameApiLog.Endpoint(x.RequestMessage?.RequestUri?.ToString())}: {x.StatusCode}")));
                     return false;
                 }
 
@@ -131,7 +136,8 @@ public class ImageUpdaterService : IImageUpdaterService
 
                 if (processedStream.Equals(Stream.Null) || processedStream.Length == 0)
                 {
-                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty", data.Name);
+                    m_Logger.LogWarning("Error processing {Name}, processed stream is null or empty",
+                        GameApiLog.Text(data.Name));
 
                     return false;
                 }
@@ -153,7 +159,7 @@ public class ImageUpdaterService : IImageUpdaterService
         }
         catch (OperationCanceledException)
         {
-            m_Logger.LogWarning("Multi-image download timed out for {Name}", data.Name);
+            m_Logger.LogWarning("Multi-image download timed out for {Name}", GameApiLog.Text(data.Name));
             return false;
         }
     }
