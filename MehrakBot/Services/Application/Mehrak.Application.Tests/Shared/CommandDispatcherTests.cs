@@ -101,15 +101,29 @@ public sealed class CommandDispatcherTests
     [Test]
     public async Task MissingCommand_ReturnsSafeInvalidRequestError()
     {
+        using var capture = new CommandActivityCapture("untrusted-request-text");
         using var fixture = new DispatcherFixture(maxConcurrency: 1);
         await fixture.Dispatcher.StartAsync(CancellationToken.None);
         var completion = NewCompletionSource();
         await fixture.Dispatcher.DispatchAsync(new QueuedCommand(
             new Proto.ExecuteRequest { CommandName = "untrusted-request-text" }, completion, CancellationToken.None));
         var result = await completion.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.That(result.IsSuccess, Is.False);
-        Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.InvalidRequest));
-        Assert.That(result.Error.Message, Does.Not.Contain("untrusted-request-text"));
+        var span = await capture.Stopped.WaitAsync(TimeSpan.FromSeconds(5));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error!.Code, Is.EqualTo(CommandErrorCode.InvalidRequest));
+            Assert.That(result.Error.Message, Does.Not.Contain("untrusted-request-text"));
+            Assert.That(span.Status, Is.EqualTo(ActivityStatusCode.Error));
+            Assert.That(span.Tags[ApplicationTelemetry.CommandOutcomeTag],
+                Is.EqualTo(ApplicationTelemetry.FailureOutcome));
+            Assert.That(span.Tags[ApplicationTelemetry.CommandFailureReasonTag],
+                Is.EqualTo(nameof(CommandFailureReason.BotError)));
+            Assert.That(span.Tags[ApplicationTelemetry.CommandErrorCodeTag],
+                Is.EqualTo(nameof(CommandErrorCode.InvalidRequest)));
+        }
+
         await fixture.Dispatcher.StopAsync(CancellationToken.None);
     }
 
@@ -210,16 +224,16 @@ public sealed class CommandDispatcherTests
     }
 
     [Test]
-    public async Task TerminalInvalidRequest_IsExpectedAndDoesNotSetError()
+    public async Task TerminalInvalidRequest_SetsErrorAndFailureOutcome()
     {
         var span = await ExecuteAndCaptureAsync(state =>
             state.Result = CommandResult.Failure(CommandFailureReason.BotError, CommandErrorCode.InvalidRequest));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(span.Status, Is.EqualTo(ActivityStatusCode.Unset));
+            Assert.That(span.Status, Is.EqualTo(ActivityStatusCode.Error));
             Assert.That(span.Tags[ApplicationTelemetry.CommandOutcomeTag],
-                Is.EqualTo(ApplicationTelemetry.ExpectedFailureOutcome));
+                Is.EqualTo(ApplicationTelemetry.FailureOutcome));
             Assert.That(span.Tags[ApplicationTelemetry.CommandErrorCodeTag],
                 Is.EqualTo(nameof(CommandErrorCode.InvalidRequest)));
         }
@@ -375,7 +389,7 @@ public sealed class CommandDispatcherTests
         private readonly TaskCompletionSource<CommandSpan> m_Stopped =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public CommandActivityCapture()
+        public CommandActivityCapture(string expectedOperationName = "test")
         {
             m_Listener = new ActivityListener
             {
@@ -384,7 +398,7 @@ public sealed class CommandDispatcherTests
                     ActivitySamplingResult.AllDataAndRecorded,
                 ActivityStopped = activity =>
                 {
-                    if (activity.OperationName != "test") return;
+                    if (activity.OperationName != expectedOperationName) return;
                     var tags = activity.TagObjects.ToDictionary(pair => pair.Key, pair => pair.Value);
                     m_Stopped.TrySetResult(new CommandSpan(activity.Status, tags));
                 }

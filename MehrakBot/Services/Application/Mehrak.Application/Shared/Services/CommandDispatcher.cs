@@ -209,7 +209,6 @@ public class CommandDispatcher : BackgroundService
 
         return result.Error?.Code is CommandErrorCode.AuthenticationRequired
             or CommandErrorCode.Cancelled
-            or CommandErrorCode.InvalidRequest
             or CommandErrorCode.CharacterNotFound
             or CommandErrorCode.RequestLimitExceeded;
     }

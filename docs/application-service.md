@@ -261,7 +261,7 @@ Recommended structure:
 | Terminal result | Activity status | `mehrak.command.outcome` |
 | --- | --- | --- |
 | Success, including partial success | `OK` | `success` |
-| `AuthError`/`Cancelled`, or a `BotError` carrying an expected user code (`AuthenticationRequired`, `Cancelled`, `InvalidRequest`, `CharacterNotFound`, `RequestLimitExceeded`) | `UNSET` | `expected_failure` |
+| `AuthError`/`Cancelled`, or a `BotError` carrying an expected user code (`AuthenticationRequired`, `Cancelled`, `CharacterNotFound`, `RequestLimitExceeded`) | `UNSET` | `expected_failure` |
 | `ApiError`, `Timeout`, `Unknown`, or any other `BotError` | `ERROR` | `failure` |
 | Escaping exception | `ERROR` | `failure` |
 | Request cancellation | `UNSET` | `cancelled` |
@@ -274,8 +274,11 @@ status-derived `error.type`, and gains `mehrak.dependency.outcome=expected_miss`
 `mehrak.dependency.kind=wiki_content`. A wiki HTTP `200` with `retcode` `404` is different: its transport span is
 already a non-error `200` and only carries the wiki kind tag (no `expected_miss` outcome); `WikiApiService` later
 logs `Warning` and preserves its wiki-specific failure copy. HTTP 401/403/429/5xx and transport faults remain
-errors. A bucket-level `NoSuchBucket` 404 is still logged as an error because a `HEAD` response cannot otherwise
-distinguish it from a missing key.
+errors. A marked S3 existence-probe `HEAD` 404 is normalized this way, including one caused by a missing bucket: a `HEAD` response has no
+body, so the request span cannot distinguish a missing key from a missing bucket. The `NoSuchBucket` branch only
+logs when the SDK/backend actually supplies that error code; the AWS `HeadObject` documentation notes that `HEAD`
+errors are generic and that it is not possible to retrieve the exact exception. There is no reliable bucket health
+check on this path, so that log is best-effort rather than a guarantee for every missing bucket.
 
 ## Performance and Reliability Notes
 

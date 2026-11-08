@@ -11,7 +11,10 @@ public enum ExpectedDependencyKind
     /// <summary>An object-existence probe where a 404 is the negative answer.</summary>
     ExistenceProbe = 1,
 
-    /// <summary>A HoYoWiki content lookup where an HTTP 404 or retcode 404 is a content miss.</summary>
+    /// <summary>
+    /// A HoYoWiki content lookup where a content miss is a normal answer. An HTTP 404 normalizes the request span;
+    /// a retcode 404 returned with HTTP 200 does not create an error span and only produces a warning log.
+    /// </summary>
     WikiContentLookup = 2
 }
 
