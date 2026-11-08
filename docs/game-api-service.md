@@ -243,7 +243,9 @@ The shared pipeline and the endpoint-local failure branches log a bounded, sanit
   fallback diagnostic renderer runs, using the endpoint's configured `AuthRetcode` (no blanket suppression for
   anonymous endpoints whose policy is `null`). Successful responses never log a body.
 * A diagnostic read/parse failure must not change the result: a known HTTP failure stays `ExternalServerError` and a
-  known failure never becomes `BotError` because diagnostics failed.
+  known failure never becomes `BotError` because diagnostics failed. Cancellation is control flow, not a diagnostic
+  failure: when the supplied token is cancelled during a failed-response body read, the read stops and the result is
+  still reported as `Cancelled` or `Timeout` from the caller's token.
 
 ### Exception metadata
 

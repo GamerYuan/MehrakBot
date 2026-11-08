@@ -25,8 +25,9 @@ internal readonly record struct GameApiLogBodyCapture(string? Body, string? Unav
 }
 
 /// <summary>
-/// Reads a failed response body for diagnostics with a hard size cap and charset-aware decoding. The read never
-/// throws: cancellation and read failures are reported as stable markers.
+/// Reads a failed response body for diagnostics with a hard size cap and charset-aware decoding. Ordinary read
+/// failures are reported as stable markers. Cancellation requested on the supplied token is control flow, not a
+/// diagnostic failure, so it is rethrown for the request pipeline to report as <c>Cancelled</c> or <c>Timeout</c>.
 /// </summary>
 internal static class GameApiLogBodyReader
 {
@@ -50,6 +51,10 @@ internal static class GameApiLogBodyReader
 
             var body = Decode(bytes, content.Headers.ContentType?.CharSet);
             return new GameApiLogBodyCapture(body, null, contentType, contentLength);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {

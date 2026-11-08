@@ -155,8 +155,9 @@ internal static class GameApiLog
     }
 
     /// <summary>
-    /// Erases a user/account context identifier with the same compliance redactor used for response members. The
-    /// stable marker keeps correlation shape visible without retaining the identifier value.
+    /// Erases a user/account context identifier with the same compliance redactor used for response members. Every
+    /// identifier becomes the same constant marker: the field stays visible, but the value is gone and events from
+    /// different users cannot be correlated through it.
     /// </summary>
     public static string ContextId(ulong value)
     {

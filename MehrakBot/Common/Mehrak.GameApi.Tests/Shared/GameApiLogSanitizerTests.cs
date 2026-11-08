@@ -453,6 +453,94 @@ public class GameApiLogSanitizerTests
     }
 
     [Test]
+    public async Task ExecuteAsync_NonSuccessBodyReadCancelledByCaller_ReportsCancelledWithRequestUri()
+    {
+        using var caller = new CancellationTokenSource();
+        var content = new ReadTrackingContent("""{"retcode":0,"data":null}""", cancelOnRead: caller);
+        var handler = new FakeHttpMessageHandler();
+        handler.Enqueue(() => new HttpResponseMessage(HttpStatusCode.BadGateway)
+        {
+            Content = content
+        });
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(123456789, Game.Genshin, "123"), caller.Token);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(caller.IsCancellationRequested, Is.True,
+                "The stream cancels the caller token while the failed-response body is read");
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Cancelled),
+                "Requested cancellation is control flow and must not be reported as a diagnostic failure");
+            Assert.That(result.RequestUri, Is.Not.Null);
+            Assert.That(result.RequestUri, Is.EqualTo(handler.LastRequest?.RequestUri?.OriginalString));
+            Assert.That(handler.RequestCount, Is.EqualTo(1));
+            Assert.That(content.ReadCalls, Is.GreaterThan(0));
+            Assert.That(content.Disposed, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_LinkedCancellationDuringNonSuccessBodyRead_EscapesWithCallerTokenLive()
+    {
+        using var caller = new CancellationTokenSource();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(caller.Token);
+        var content = new ReadTrackingContent("""{"retcode":0,"data":null}""", cancelOnRead: linked);
+        var handler = new FakeHttpMessageHandler();
+        handler.Enqueue(() => new HttpResponseMessage(HttpStatusCode.BadGateway)
+        {
+            Content = content
+        });
+
+        var logger = new CapturingLogger<object>();
+        Assert.CatchAsync<OperationCanceledException>(async () => await HoYoLabApi.ExecuteAsync(
+            CreateRequest("https://example.invalid/budget-cancelled-read"), CreatePolicy<DiagnosticPayload>(),
+            new HoYoLabCredentials(123456789, 100, "synthetic-token"), handler.ToHttpClientFactory(), logger,
+            linked.Token));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(linked.IsCancellationRequested, Is.True,
+                "The linked budget token is cancelled while the failed-response body is read");
+            Assert.That(caller.IsCancellationRequested, Is.False,
+                "The caller token stays live so the service maps the escaping cancellation to Timeout");
+            Assert.That(content.ReadCalls, Is.GreaterThan(0));
+            Assert.That(content.Disposed, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_UnsolicitedCancellationDuringNonSuccessBodyRead_PreservesExternalServerError()
+    {
+        var content = new ReadTrackingContent("""{"retcode":0,"data":null}""", throwOperationCanceled: true,
+            exceptionMessage: $"cancelled {SensitiveCanary}");
+        var handler = new FakeHttpMessageHandler();
+        handler.Enqueue(() => new HttpResponseMessage(HttpStatusCode.BadGateway)
+        {
+            Content = content
+        });
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(123456789, Game.Genshin, "123"));
+
+        var state = logger.States.SelectMany(entry => entry).ToList();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError),
+                "A cancellation that does not come from the supplied token is an ordinary diagnostic failure");
+            Assert.That(result.RequestUri, Is.EqualTo(handler.LastRequest?.RequestUri?.OriginalString));
+            Assert.That(state.Any(pair => pair.Key == "SanitizedResponseBody" &&
+                                          Equals(pair.Value, GameApiLog.Unavailable(GameApiLogBodyReader.CancelledReason))),
+                Is.True);
+            Assert.That(logger.Entries.Any(entry => entry.Contains(SensitiveCanary, StringComparison.Ordinal)), Is.False);
+            Assert.That(content.ReadCalls, Is.GreaterThan(0));
+            Assert.That(content.Disposed, Is.True);
+        }
+    }
+
+    [Test]
     public async Task ExecuteAsync_Utf16NonSuccessBody_IsDecodedForDiagnostics()
     {
         var handler = new FakeHttpMessageHandler();
@@ -1083,13 +1171,18 @@ public class GameApiLogSanitizerTests
     {
         private readonly byte[] m_Buffer;
         private readonly bool m_ThrowOnRead;
+        private readonly bool m_ThrowOperationCanceled;
         private readonly string m_ExceptionMessage;
+        private readonly CancellationTokenSource? m_CancelOnRead;
 
-        public ReadTrackingContent(string body, bool throwOnRead = false, string? exceptionMessage = null)
+        public ReadTrackingContent(string body, bool throwOnRead = false, string? exceptionMessage = null,
+            CancellationTokenSource? cancelOnRead = null, bool throwOperationCanceled = false)
         {
             m_Buffer = Encoding.UTF8.GetBytes(body);
             m_ThrowOnRead = throwOnRead;
+            m_ThrowOperationCanceled = throwOperationCanceled;
             m_ExceptionMessage = exceptionMessage ?? "stream read failure";
+            m_CancelOnRead = cancelOnRead;
             Headers.ContentType = new MediaTypeHeaderValue("application/json")
             {
                 CharSet = "utf-8"
@@ -1179,9 +1272,21 @@ public class GameApiLogSanitizerTests
 
             public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
             {
-                return cancellationToken.IsCancellationRequested
-                    ? ValueTask.FromCanceled<int>(cancellationToken)
-                    : ValueTask.FromResult(Read(buffer.Span));
+                m_Owner.m_CancelOnRead?.Cancel();
+
+                if (m_Owner.m_ThrowOperationCanceled)
+                {
+                    m_Owner.ReadCalls++;
+                    throw new OperationCanceledException(m_Owner.m_ExceptionMessage);
+                }
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    m_Owner.ReadCalls++;
+                    return ValueTask.FromCanceled<int>(cancellationToken);
+                }
+
+                return ValueTask.FromResult(Read(buffer.Span));
             }
 
             public override long Seek(long offset, SeekOrigin origin)
