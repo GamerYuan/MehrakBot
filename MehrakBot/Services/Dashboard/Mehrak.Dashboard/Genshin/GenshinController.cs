@@ -127,6 +127,31 @@ public class GenshinController : ControllerBase
         return result.MapToActionResult();
     }
 
+    [HttpPost("arcana")]
+    public async Task<IActionResult> ExecuteArcana([FromBody] GenshinSimpleCommandRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        if (!TryGetDiscordUserId(out var discordUserId, out var errorResult))
+            return errorResult!;
+        if (!TryParseServer(request.Server, out var server, out errorResult))
+            return errorResult!;
+
+        m_Logger.LogInformation("Executing Genshin arcana command for user {UserId}", discordUserId);
+
+        var parameters = BuildParameters(Game.Genshin, server);
+
+        var executor = m_ExecutorBuilder
+            .WithDiscordUserId(discordUserId)
+            .WithCommandName(CommandName.Genshin.Arcana)
+            .WithParameters(parameters)
+            .Build();
+
+        var result = await executor.ExecuteAsync(request.ProfileId, HttpContext.RequestAborted);
+        return result.MapToActionResult();
+    }
+
     [HttpPost("charlist")]
     public async Task<IActionResult> ExecuteCharList([FromBody] GenshinSimpleCommandRequest request)
     {

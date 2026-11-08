@@ -1,6 +1,6 @@
 ﻿# Dashboard command response contract
 
-The existing POST routes are unchanged: Genshin character/charlist/abyss/theater/stygian;
+The existing POST routes are unchanged: Genshin character/charlist/abyss/theater/stygian/arcana;
 HSR character/charlist/moc/pf/as/aa; ZZZ character/charlist/shiyu/da/tower; HI3 battlesuit.
 No notes, redemption or check-in route is added.
 
@@ -32,11 +32,12 @@ Endgame (`DashboardEndgameDto`):
 
 Endgame state is `Complete`, `Empty` (no record), or `NotUnlocked`. Empty/locked
 responses have null storage keys. Floor and both cycle instants are independently
-nullable; Tower (`SimulatedBattleTrial`) has no cycle. Modes are `SpiralAbyss`,
-`ImaginariumTheater`, `StygianOnslaught`, `MemoryOfChaos`, `PureFiction`,
-`ApocalypticShadow`, `AnomalyArbitration`, `ShiyuDefense`, `DeadlyAssault`,
-`SimulatedBattleTrial`. Game values for these routes are `Genshin`, `HonkaiStarRail`,
-`ZenlessZoneZero` and (character only) `HonkaiImpact3`.
+nullable; Tower (`SimulatedBattleTrial`) and Arcana have no cycle, and Arcana also
+has no floor. Modes are `SpiralAbyss`, `ImaginariumTheater`, `StygianOnslaught`,
+`MemoryOfChaos`, `PureFiction`, `ApocalypticShadow`, `AnomalyArbitration`,
+`ShiyuDefense`, `DeadlyAssault`, `SimulatedBattleTrial`, `Arcana`. Game values for
+these routes are `Genshin`, `HonkaiStarRail`, `ZenlessZoneZero` and (character only)
+`HonkaiImpact3`.
 
 Character batch (`DashboardCharacterCardsDto`):
 

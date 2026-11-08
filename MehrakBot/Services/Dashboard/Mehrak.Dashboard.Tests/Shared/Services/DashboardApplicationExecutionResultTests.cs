@@ -313,7 +313,7 @@ public class DashboardApplicationExecutionResultTests
     {
         (Type Controller, string Prefix, string[] Routes)[] controllers =
         [
-            (typeof(Mehrak.Dashboard.Genshin.GenshinController), "genshin", ["character", "abyss", "theater", "stygian", "charlist"]),
+            (typeof(Mehrak.Dashboard.Genshin.GenshinController), "genshin", ["character", "abyss", "theater", "stygian", "arcana", "charlist"]),
             (typeof(Mehrak.Dashboard.Hsr.HsrController), "hsr", ["character", "moc", "pf", "as", "charlist", "aa"]),
             (typeof(Mehrak.Dashboard.Zzz.ZzzController), "zzz", ["character", "shiyu", "da", "tower", "charlist"]),
             (typeof(Mehrak.Dashboard.Hi3.Hi3Controller), "hi3", ["battlesuit"])
