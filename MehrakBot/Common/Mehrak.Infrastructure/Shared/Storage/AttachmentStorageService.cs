@@ -1,11 +1,13 @@
-﻿using Amazon.S3;
+﻿using System.IO;
+using System.Net;
+using System.Net.Http;
+using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Telemetry;
 using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.IO;
-using System.Net.Http;
 
 namespace Mehrak.Infrastructure.Shared.Storage;
 
@@ -132,10 +134,17 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
         };
         try
         {
+            using var probe = ExpectedDependency.Begin(ExpectedDependencyKind.ExistenceProbe);
             var response = await m_S3.GetObjectMetadataAsync(metadataReq, cancellationToken).ConfigureAwait(false);
             return (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound && IsMissingBucket(ex))
+        {
+            m_Logger.LogError(ex, "Attachment storage bucket {Bucket} was not found while probing {FileName}; check the AttachmentStorage configuration",
+                m_Bucket, storageFileName);
+            return false;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             return false;
         }
@@ -175,5 +184,10 @@ public sealed class AttachmentStorageService : IAttachmentStorageService
             ".svg" => "image/svg+xml",
             _ => "application/octet-stream"
         };
+    }
+
+    private static bool IsMissingBucket(AmazonS3Exception exception)
+    {
+        return string.Equals(exception.ErrorCode, "NoSuchBucket", StringComparison.OrdinalIgnoreCase);
     }
 }

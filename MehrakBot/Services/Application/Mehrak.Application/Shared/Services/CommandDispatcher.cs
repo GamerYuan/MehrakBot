@@ -142,16 +142,21 @@ public class CommandDispatcher : BackgroundService
                 m_Logger.LogWarning("No service registered for command {CommandName}", command.Request.CommandName);
                 var failure = CommandResult.Failure(CommandFailureReason.BotError,
                     CommandErrorCode.InvalidRequest);
+                ApplyCommandOutcome(activity, failure);
                 command.CompletionSource.TrySetResult(failure);
                 return;
             }
 
             using var time = m_Metrics.ObserveCommandDuration(command.Request.CommandName);
             var result = await service.ExecuteAsync(appContext, cancellationToken);
+            ApplyCommandOutcome(activity, result);
             command.CompletionSource.TrySetResult(result);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            activity?.SetTag(ApplicationTelemetry.CommandOutcomeTag, ApplicationTelemetry.CancelledOutcome);
+            activity?.SetTag(ApplicationTelemetry.CommandFailureReasonTag,
+                nameof(CommandFailureReason.Cancelled));
             var token = command.CancellationToken.IsCancellationRequested
                 ? command.CancellationToken
                 : cancellationToken;
@@ -160,10 +165,53 @@ public class CommandDispatcher : BackgroundService
         catch (Exception e)
         {
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+            activity?.SetTag(ApplicationTelemetry.CommandOutcomeTag, ApplicationTelemetry.FailureOutcome);
             m_Logger.LogError(e, "An error occurred while dispatching command {CommandName} for user {UserId}",
                 command.Request.CommandName, command.Request.DiscordUserId);
             command.CompletionSource.TrySetException(e);
         }
+    }
+
+    private static void ApplyCommandOutcome(Activity? activity, CommandResult result)
+    {
+        if (activity is null) return;
+
+        if (result.IsSuccess)
+        {
+            activity.SetStatus(ActivityStatusCode.Ok);
+            activity.SetTag(ApplicationTelemetry.CommandOutcomeTag, ApplicationTelemetry.SuccessOutcome);
+            return;
+        }
+
+        activity.SetTag(ApplicationTelemetry.CommandFailureReasonTag, result.FailureReason.ToString());
+        if (result.Error is { } error)
+            activity.SetTag(ApplicationTelemetry.CommandErrorCodeTag, error.Code.ToString());
+
+        if (IsExpectedFailure(result))
+        {
+            activity.SetStatus(ActivityStatusCode.Unset);
+            activity.SetTag(ApplicationTelemetry.CommandOutcomeTag, ApplicationTelemetry.ExpectedFailureOutcome);
+            return;
+        }
+
+        activity.SetStatus(ActivityStatusCode.Error);
+        activity.SetTag(ApplicationTelemetry.CommandOutcomeTag, ApplicationTelemetry.FailureOutcome);
+    }
+
+    private static bool IsExpectedFailure(CommandResult result)
+    {
+        if (result.FailureReason is CommandFailureReason.AuthError or CommandFailureReason.Cancelled)
+            return true;
+
+        if (result.FailureReason is CommandFailureReason.ApiError or CommandFailureReason.Timeout
+            or CommandFailureReason.Unknown)
+            return false;
+
+        return result.Error?.Code is CommandErrorCode.AuthenticationRequired
+            or CommandErrorCode.Cancelled
+            or CommandErrorCode.InvalidRequest
+            or CommandErrorCode.CharacterNotFound
+            or CommandErrorCode.RequestLimitExceeded;
     }
 }
 

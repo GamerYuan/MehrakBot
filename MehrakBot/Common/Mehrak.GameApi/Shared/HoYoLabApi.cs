@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Telemetry;
 using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
@@ -77,6 +78,13 @@ internal sealed record HoYoLabRequest
 
     /// <summary>Failure copy; defaults to <see cref="HoYoLabFailureMessages.Default"/>.</summary>
     public HoYoLabFailureMessages Failures { get; init; } = HoYoLabFailureMessages.Default;
+
+    /// <summary>
+    /// Optional expected-miss policy for this endpoint. Only wiki content lookups currently opt in: an HTTP 404 is
+    /// logged as a warning and the matching HTTP span is normalized by the Application trace processor. The result
+    /// mapping is unchanged, so callers still receive <see cref="StatusCode.ExternalServerError"/>.
+    /// </summary>
+    public ExpectedDependencyKind ExpectedDependency { get; init; } = ExpectedDependencyKind.None;
 }
 
 /// <summary>
@@ -298,6 +306,10 @@ internal static class HoYoLabApi
         Func<string, T?> parse, Func<T, int> retcodeSelector, bool envelopeDiagnostics, int? authRetcode,
         CancellationToken cancellationToken) where T : class
     {
+        using var expectedDependency = request.ExpectedDependency == ExpectedDependencyKind.None
+            ? null
+            : ExpectedDependency.Begin(request.ExpectedDependency);
+
         if (request.RequiresCredentials && !LTokenValidator.IsValidLToken(credentials.LToken))
         {
             // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
@@ -329,9 +341,23 @@ internal static class HoYoLabApi
                 ? GameApiLogBodyCapture.NotRead(contentType, response.Content.Headers.ContentLength)
                 : await GameApiLogBodyReader.ReadAsync(response.Content, cancellationToken);
 
-            logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, endpoint, safeQueryParameters,
-                capture.ContentType, capture.ContentLength,
-                RenderDiagnosticBody(capture, envelopeDiagnostics, parse, retcodeSelector, authRetcode));
+            var diagnosticBody = RenderDiagnosticBody(capture, envelopeDiagnostics, parse, retcodeSelector,
+                authRetcode);
+            var expectedContentMiss =
+                request.ExpectedDependency == ExpectedDependencyKind.WikiContentLookup &&
+                response.StatusCode == HttpStatusCode.NotFound;
+
+            if (expectedContentMiss)
+            {
+                logger.LogWarning(LogMessages.NonSuccessStatusCode, response.StatusCode, endpoint,
+                    safeQueryParameters, capture.ContentType, capture.ContentLength, diagnosticBody);
+            }
+            else
+            {
+                logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, endpoint,
+                    safeQueryParameters, capture.ContentType, capture.ContentLength, diagnosticBody);
+            }
+
             return Result<T>.Failure(StatusCode.ExternalServerError, request.Failures.NonSuccessStatus,
                 request.RequestUri);
         }

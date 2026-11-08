@@ -158,6 +158,38 @@ Never interpolate `ApiResponse.Message`, `HttpResponseMessage.ReasonPhrase`, exc
 value into these strings. A numerical retcode and sanitized ordinary response fields may be logged for diagnosis, but
 they are never echoed as user copy.
 
+## Expected content misses (wiki)
+
+`WikiApiService` opts in to `HoYoLabRequest.ExpectedDependency = ExpectedDependencyKind.WikiContentLookup`. Two
+responses are normal content misses for the wiki locale fallback callers:
+
+* HTTP `404 Not Found`.
+* HTTP `200` with `retcode` `404` (HoYoWiki reports a missing entry page this way; `WikiRetcodes.ContentNotFound`).
+
+They produce different telemetry:
+
+* **HTTP `404 Not Found`**: the shared pipeline logs `Warning` instead of `Error` and still returns
+  `ExternalServerError` with `HoYoLabFailureMessages.NonSuccessStatus`; WikiApiService does not override the failure
+  copy, so this is the shared default
+  `An unknown error occurred when accessing HoYoLAB API. Please try again later`. In Application traces the HTTP
+  span keeps its duration and `http.response.status_code=404`, loses the status-derived `error.type`, is reset to
+  `UNSET`, and gains `mehrak.dependency.outcome=expected_miss` and
+  `mehrak.dependency.kind=wiki_content`.
+* **HTTP `200` with `retcode` `404`** (`WikiRetcodes.ContentNotFound`): the HTTP span is already a non-error `200`
+  response and only carries `mehrak.dependency.kind=wiki_content`; no `expected_miss` outcome is added because no
+  HTTP status is normalized. `WikiApiService` logs `Warning` after parsing and returns `ExternalServerError` with
+  its existing wiki-specific copy `An error occurred while accessing HoYoWiki API`.
+
+Only Application registers the expected-miss processor; the other hosts keep the default HTTP instrumentation
+classification. Do not broaden this policy to all HoYoLAB endpoints or to every 404.
+
+Every other response remains a genuine failure. HTTP 401/403/429/5xx are still logged at `Error` and keep the
+HTTP span `ERROR` with `error.type`; transport faults remain `Error` and no 404 rule applies. A malformed retcode
+or payload, and any other nonzero retcode (including the authentication codes `10001` and `-100`), is logged at
+`Error` and returns `ExternalServerError`; because these arrive on HTTP `200`, the HTTP transport span itself
+remains a non-error `200`, and the failure is visible through the log and terminal command classification rather
+than an HTTP span `ERROR`.
+
 ## JSON parsing and serializer options
 
 There is exactly one parsing path for typed envelopes and `JsonNode` endpoints. The body is read with the declared
