@@ -184,6 +184,14 @@ public class GenshinArcanaCardService : CardServiceBase<GenshinTarotCardState>, 
                         VerticalAlignment = VerticalAlignment.Top
                     }, card.UnlockNum.ToString(CultureInfo.InvariantCulture), Brushes.Solid(Color.White), null);
                 }
+
+                canvas.DrawAttribution(new RichTextOptions(Fonts.Tiny)
+                {
+                    Origin = new PointF(background.Width - 20, background.Height - 20),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    TextAlignment = TextAlignment.End
+                });
             });
         });
     }

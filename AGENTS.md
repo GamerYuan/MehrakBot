@@ -88,7 +88,7 @@ Discord User -> Bot Module -> CommandExecutorService -> gRPC -> GrpcApplicationS
 5. If card command: register `ICardService<TData>` (singleton) and optionally `RegisterAsyncInitializableFor`
 6. Update help text in `HelpCommandModule`
 
-**Card rendering.** `ICardService<TData>` implementations must track all `Image` objects in a list and dispose them in `finally`. Use deterministic SHA256 filenames via `GetFileName()`. Check `AttachmentExistsAsync` before regenerating.
+**Card rendering.** Card renderers derive from `CardServiceBase<TData>` and implement `LoadStaticResourcesAsync` / `RenderCardAsync`; the base owns the request lifecycle, creates the request-local background, encodes JPEG, logs, times, and disposes request-scoped assets added to `DisposableBag`. Long-lived resources (preloaded images, `StaticBackground`) are owned by the singleton service, not request bags; dispose them from the service when it implements `IDisposable`. Application services build deterministic SHA256 cache filenames via `GetCardFileName(...)` with a renderer fingerprint/version; bump the version when rendered output changes and check `AttachmentExistsAsync` before regenerating. Draw the shared attribution with `AttributionRenderer.DrawAttribution` instead of duplicating the text.
 
 **Seven EF DbContexts** in `Mehrak.Infrastructure`: `CharacterDbContext`, `RelicDbContext`, `UserDbContext`, `CodeRedeemDbContext`, `DashboardAuthDbContext`, `DocumentationDbContext`, `ReleaseNoteDbContext`. Migration commands must specify `--context <Name>`. Do not hand-edit generated migration files; `MigrationService` applies all seven at AppHost startup.
 

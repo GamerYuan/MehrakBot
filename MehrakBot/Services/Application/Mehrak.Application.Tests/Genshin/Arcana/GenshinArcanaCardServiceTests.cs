@@ -96,6 +96,8 @@ public class GenshinArcanaCardServiceTests
             var first = ArcanaSyntheticImageFactory.GetCellBounds(18);
             var last = ArcanaSyntheticImageFactory.GetCellBounds(21);
             Assert.That(first.X, Is.EqualTo(canvas.Width - last.X - last.Width), "Last row is centered");
+            Assert.That(HasWhiteText(canvas, canvas.Width - 340, canvas.Height - 90, 320, 80), Is.True,
+                "Shared attribution is drawn in the bottom-right corner");
         });
     }
 

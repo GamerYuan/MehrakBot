@@ -27,7 +27,7 @@ internal sealed record GenshinArcanaRenderState(
 
 public class GenshinArcanaApplicationService : BaseAttachmentApplicationService
 {
-    internal const string RendererVersion = "v8";
+    internal const string RendererVersion = "v9";
 
     private readonly ICardService<GenshinTarotCardState> m_CardService;
     private readonly IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> m_ApiService;
