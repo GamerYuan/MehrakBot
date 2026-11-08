@@ -137,7 +137,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         {
             m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
             return Result<GameProfileDto>.Failure(StatusCode.Unauthorized,
-                "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+                HoYoLabFailureMessages.Default.Unauthorized, requestUri);
         }
 
         if (json.Retcode != 0)
@@ -276,7 +276,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         {
             m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(userId));
             return Result<List<GameRoleInfo>>.Failure(StatusCode.Unauthorized,
-                "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+                HoYoLabFailureMessages.Default.Unauthorized, requestUri);
         }
 
         if (json.Retcode != 0)
@@ -321,13 +321,7 @@ public class GameRoleApiService : IApiService<GameProfileDto, GameRoleApiContext
         return new HoYoLabRequest
         {
             RequestUri = requestUri,
-            CookieFormat = "ltoken_v2={1}; ltuid_v2={0}",
-            Failures = new HoYoLabFailureMessages
-            {
-                Unauthorized = "Invalid HoYoLAB UID or Cookies. Please re-authenticate",
-                Parse = "An error occurred while retrieving profile information",
-                NonSuccessStatus = "API returned error status code"
-            }
+            CookieFormat = "ltoken_v2={1}; ltuid_v2={0}"
         };
     }
 

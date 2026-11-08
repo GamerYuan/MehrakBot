@@ -35,17 +35,24 @@ internal static class HoYoLabRetcodes
 
 /// <summary>
 /// Failure copy for one endpoint. All values are controlled strings owned by the bot; upstream response text is
-/// never interpolated into a user-visible message.
+/// never interpolated into a user-visible message. Endpoints without a justified exception use
+/// <see cref="Default"/> by leaving <see cref="HoYoLabRequest.Failures"/> unset.
 /// </summary>
 internal sealed record HoYoLabFailureMessages
 {
+    private const string GenericFailure =
+        "An unknown error occurred when accessing HoYoLAB API. Please try again later";
+
+    /// <summary>Shared failure copy for endpoints that do not need endpoint-specific messages.</summary>
+    public static HoYoLabFailureMessages Default { get; } = new();
+
     public string Unauthorized { get; init; } = "Invalid HoYoLAB UID or Cookies. Please authenticate again.";
 
     /// <summary>Returned when a successful HTTP response contains no parseable JSON envelope.</summary>
-    public required string Parse { get; init; }
+    public string Parse { get; init; } = GenericFailure;
 
     /// <summary>Returned for every non-success HTTP status code.</summary>
-    public required string NonSuccessStatus { get; init; }
+    public string NonSuccessStatus { get; init; } = GenericFailure;
 }
 
 /// <summary>
@@ -68,7 +75,8 @@ internal sealed record HoYoLabRequest
     /// <summary>Cookie header template; {0} is the ltuid and {1} is the ltoken.</summary>
     public string CookieFormat { get; init; } = "ltuid_v2={0}; ltoken_v2={1}";
 
-    public required HoYoLabFailureMessages Failures { get; init; }
+    /// <summary>Failure copy; defaults to <see cref="HoYoLabFailureMessages.Default"/>.</summary>
+    public HoYoLabFailureMessages Failures { get; init; } = HoYoLabFailureMessages.Default;
 }
 
 /// <summary>
@@ -193,6 +201,19 @@ internal static class HoYoLabApi
             return Result<TResult>.Failure(mapped.StatusCode, mapped.ErrorMessage, mapped.RequestUri);
 
         return await map(mapped.Data);
+    }
+
+    /// <summary>
+    /// Builds a controlled failure for a parsed envelope whose required endpoint structure is malformed. The log is
+    /// bounded and redacted exactly like a parse failure, and the message is owned by the calling service.
+    /// </summary>
+    internal static Result<GameApiResponse<T>> InvalidEndpointData<T>(string? requestUri, ILogger logger,
+        ulong userId, string errorMessage) where T : class
+    {
+        logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
+            GameApiLog.ContextId(userId), GameApiLog.SafeQueryParameters(requestUri), null, null,
+            GameApiLog.OmittedMarker);
+        return Result<GameApiResponse<T>>.Failure(StatusCode.ExternalServerError, errorMessage, requestUri);
     }
 
     /// <summary>

@@ -29,7 +29,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
     private readonly ICardService<GenshinTheaterInformation>
         m_CardService;
 
-    private readonly IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext> m_ApiService;
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApiService;
@@ -41,7 +41,7 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
     protected override string CardName => "Imaginarium Theater";
     public GenshinTheaterApplicationService(
         ICardService<GenshinTheaterInformation> cardService,
-        IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext> apiService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
             characterApiService,
         IImageUpdaterService imageUpdaterService,
@@ -78,9 +78,9 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             if (theaterResult.StatusCode == StatusCode.Unauthorized)
             {
-                Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
-                    gameUid);
-                return CommandResult.Success(EndgameOutcome.Locked(Game.Genshin, profile.GameUid, EndgameMode.ImaginariumTheater));
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError,
+                    CommandErrorCode.AuthenticationRequired, CommandErrorTarget.ImaginariumTheater);
             }
 
             Logger.LogError(LogMessage.ApiError, "Theater", context.UserId, gameUid, theaterResult);
@@ -88,9 +88,25 @@ public class GenshinTheaterApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.ImaginariumTheater);
         }
 
+        var outcome = theaterResult.Data;
+        if (!outcome.IsAvailable)
+        {
+            if (outcome.Availability == GameApiAvailability.Locked)
+            {
+                Logger.LogInformation("Theater is not unlocked for User {UserId} UID {GameUid}", context.UserId,
+                    gameUid);
+                return CommandResult.Success(EndgameOutcome.Locked(Game.Genshin, profile.GameUid,
+                    EndgameMode.ImaginariumTheater));
+            }
+
+            Logger.LogInformation(LogMessage.NoClearRecords, "Theater", context.UserId, gameUid);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid,
+                EndgameMode.ImaginariumTheater));
+        }
+
         // The API envelope can carry tarot card state without any Imaginarium Theater clear record. The Theater
         // command still has nothing to render in that case, so treat it the same as a record without detail data.
-        var theaterData = theaterResult.Data.Data?.FirstOrDefault();
+        var theaterData = outcome.Payload.Data?.FirstOrDefault();
 
         if (theaterData is null || !theaterData.HasDetailData)
         {

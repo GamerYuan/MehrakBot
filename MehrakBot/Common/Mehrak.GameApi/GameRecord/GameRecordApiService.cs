@@ -40,13 +40,7 @@ public class GameRecordApiService : IApiService<IEnumerable<GameRecordDto>, Game
                 {
                     RequestUri = requestUri,
                     Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0}",
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please re-authenticate",
-                        Parse = "An error occurred",
-                        NonSuccessStatus = "An error occurred"
-                    }
+                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0}"
                 },
                 new HoYoLabEnvelopePolicy<UserData>
                 {

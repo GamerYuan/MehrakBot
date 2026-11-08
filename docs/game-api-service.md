@@ -41,13 +41,7 @@ internal sealed class ExampleApiService : IApiService<ExampleData, BaseHoYoApiCo
                 new HoYoLabRequest
                 {
                     RequestUri = requestUri,
-                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                        Parse = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
-                        NonSuccessStatus = "An unknown error occurred when accessing HoYoLAB API. Please try again later"
-                    }
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
                 },
                 new HoYoLabEnvelopePolicy<ExampleData>
                 {
@@ -92,11 +86,11 @@ Every service evaluates the same sequence, in the same order:
 7. Known domain retcodes and outcomes (cdkey, check-in).
 8. Any other non-zero retcode.
 9. Data validation.
-10. Endpoint/domain mapping (DTO projection, caching, pagination, unlock gates).
+10. Endpoint/domain mapping (DTO projection, caching, pagination, typed availability classification).
 
 Do not add endpoint-specific `data`-before-retcode branches. An authentication retcode without data is always
-`Unauthorized`; a non-zero retcode without data is always `ExternalServerError`. Domain gates such as the
-Imaginarium Theater unlock/empty-data checks run only after the retcode and envelope data have been accepted.
+`Unauthorized`; a non-zero retcode without data is always `ExternalServerError`. Endpoint-wide availability and
+required-structure checks run only after the retcode and envelope data have been accepted.
 
 ## Where endpoint behavior goes
 
@@ -107,8 +101,39 @@ Imaginarium Theater unlock/empty-data checks run only after the retcode and enve
 | Anonymous endpoint | `HoYoLabRequest.RequiresCredentials = false` |
 | Authentication retcode (`10001` game-record, `-100` account/cdkey/check-in) | `HoYoLabEnvelopePolicy<T>.AuthRetcode` (`HoYoLabRetcodes`); `null` for anonymous endpoints with no auth scheme |
 | Non-null/empty data definition | `HoYoLabEnvelopePolicy<T>.HasData` |
-| Error copy | `HoYoLabFailureMessages` and `HoYoLabEnvelopePolicy<T>` |
-| Caching, pagination, DTO mapping, domain gates | The service, outside the executor |
+| Error copy | Shared `HoYoLabFailureMessages.Default`; override `HoYoLabRequest.Failures` only for a justified exception, plus `HoYoLabEnvelopePolicy<T>` |
+| Caching, pagination, DTO projection | The service, outside the executor |
+| Typed availability (`Available` / `Empty` / `Locked`) and required-structure validation | The service, using `GameApiResponse<T>` |
+| Command-specific selection (Abyss floor, Anomaly best record, Theater record, Arcana tarot list, aliases) | Application services |
+
+## Typed game-record outcomes
+
+The nine endgame endpoints (Genshin Abyss/Stygian/Theater, HSR Memory/EndGame/Anomaly and ZZZ
+Assault/Defense/Tower) return `Result<GameApiResponse<T>>` instead of `Result<T>`. `GameApiResponse<T>` is a closed
+typed outcome:
+
+| Value | Meaning | Payload |
+| --- | --- | --- |
+| `Available` | The endpoint returned a usable payload | Non-null; `GameApiResponse<T>.Available` rejects a null payload |
+| `Empty` | The endpoint returned a structurally valid response with no clear records | None |
+| `Locked` | The endpoint reported the feature is not unlocked | None |
+
+`Empty` and `Locked` are **successful domain outcomes**, not failures. They must never be expressed as
+`Unauthorized` or `ExternalServerError`. `Result.Success` always carries a non-null `GameApiResponse<T>` wrapper,
+and `Empty`/`Locked` do not invent a payload.
+
+Endpoint services own the endpoint-wide classification: feature-unlock flags, `has_data` flags, empty top-level
+collections and required nested structure that every command would otherwise dereference. A parsed envelope whose
+required structure is malformed is a controlled `ExternalServerError` with the endpoint's own message; it must not
+be allowed to surface as a `NullReferenceException` or `IndexOutOfRangeException` in a caller. Malformed credentials
+and authentication retcodes remain `Unauthorized`; they are never reclassified as `Locked`.
+
+Command-specific decisions stay in Application after the typed outcome is inspected: the selected Abyss floor, the
+HSR Anomaly best record and rank icon, the Theater `has_detail_data` record, the Arcana tarot list/catalog
+resolution, character aliases and every renderability gate. The shared Genshin Theater/Arcana endpoint uses one
+envelope and one `is_unlock` gate: when it is locked both commands receive `Locked`; when it is available the Theater
+command still selects its first detail record and Arcana still selects its tarot list. Hashing and card generation
+always consume the inner wire DTO, never the `GameApiResponse<T>` wrapper.
 
 `HoYoLabRetcodes.GameRecordAuth` (`10001`) is the default policy value because most game-record endpoints use it.
 Change it to `HoYoLabRetcodes.AccountAuth` (`-100`) for the account/cdkey/check-in endpoints, and to `null` for
@@ -116,12 +141,18 @@ endpoints that are anonymous or have no authentication branch. Never map `10001`
 
 ## Error copy
 
-All user-visible failure copy is a controlled string owned by the bot:
+All user-visible failure copy is a controlled string owned by the bot. Most endpoints use the three shared defaults in
+`HoYoLabFailureMessages.Default` by leaving `HoYoLabRequest.Failures` unset:
 
-* `Unauthorized`: the credential message returned by the auth retcode and by malformed-credential rejection.
-* `Parse`: returned when the response body is missing, malformed or cannot be projected into the DTO.
-* `NonSuccessStatus`: returned for every non-success HTTP status, including 401, 403 and 5xx.
-* `UnknownRetcode` / `EmptyData`: returned for non-zero retcodes and missing data.
+| Field | Trigger | Default |
+| --- | --- | --- |
+| `Unauthorized` | The authentication retcode selected by `AuthRetcode`, malformed-credential rejection, and manual authentication branches | `Invalid HoYoLAB UID or Cookies. Please authenticate again.` |
+| `Parse` | A successful HTTP response whose body is missing, malformed or cannot be projected into the DTO | `An unknown error occurred when accessing HoYoLAB API. Please try again later` |
+| `NonSuccessStatus` | Every non-success HTTP status, including 401, 403 and 5xx | `An unknown error occurred when accessing HoYoLAB API. Please try again later` |
+
+Override `Failures` only when an endpoint has a justified, documented exception. Domain policies are separate from
+these defaults: `UnknownRetcode` and `EmptyData` keep the endpoint's own copy for non-zero retcodes and missing data,
+and feature/data gates keep their explicit messages.
 
 Never interpolate `ApiResponse.Message`, `HttpResponseMessage.ReasonPhrase`, exception text or any other upstream
 value into these strings. A numerical retcode and sanitized ordinary response fields may be logged for diagnosis, but

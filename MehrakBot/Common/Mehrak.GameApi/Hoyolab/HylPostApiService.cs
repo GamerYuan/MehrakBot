@@ -39,12 +39,7 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
                         new KeyValuePair<string, string>("X-Rpc-Client_type", "4"),
                         new KeyValuePair<string, string>("X-Rpc-App_version", "4.9.0"),
                         new KeyValuePair<string, string>("X-Rpc-Lsrag", "")
-                    ],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Parse = "Failed to parse response from HoYoLAB API",
-                        NonSuccessStatus = "An error occurred while accessing HoYoLAB API"
-                    }
+                    ]
                 },
                 new HoYoLabEnvelopePolicy<HylPostWrapper>
                 {

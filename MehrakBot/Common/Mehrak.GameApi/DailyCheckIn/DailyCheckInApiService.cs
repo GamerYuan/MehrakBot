@@ -67,13 +67,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                     RequestUri = requestUri,
                     Method = HttpMethod.Post,
                     Body = requestBody,
-                    Headers = headers,
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please re-authenticate",
-                        Parse = "An unknown error occurred during check-in",
-                        NonSuccessStatus = "An unknown error occurred during check-in"
-                    }
+                    Headers = headers
                 },
                 new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
                 m_HttpClientFactory, m_Logger, scope.Token, HoYoLabRetcodes.AccountAuth);
@@ -88,7 +82,7 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
                 case HoYoLabRetcodes.AccountAuth:
                     m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
                     return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
-                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+                        HoYoLabFailureMessages.Default.Unauthorized, requestUri);
 
                 case -5003:
                     m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, GameApiLog.ContextId(context.UserId), context.Game.ToString());

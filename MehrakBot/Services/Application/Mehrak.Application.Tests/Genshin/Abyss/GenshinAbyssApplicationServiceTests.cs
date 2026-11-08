@@ -88,7 +88,7 @@ public class GenshinAbyssApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
 
@@ -117,6 +117,8 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = new GenshinAbyssInformation
         {
+            StartTime = "1786000000",
+            EndTime = "1789000000",
             Floors =
             [
                 new()
@@ -126,16 +128,42 @@ public class GenshinAbyssApplicationServiceTests
                 }
             ],
             RevealRank = [],
-            DefeatRank = [],
-            DamageRank = [],
-            TakeDamageRank = [],
-            NormalSkillRank = [],
-            EnergySkillRank = []
+            DefeatRank = [new AbyssRankAvatar { AvatarId = 1, AvatarIcon = "", Value = 1, Rarity = 5 }],
+            DamageRank = [new AbyssRankAvatar { AvatarId = 1, AvatarIcon = "", Value = 1, Rarity = 5 }],
+            TakeDamageRank = [new AbyssRankAvatar { AvatarId = 1, AvatarIcon = "", Value = 1, Rarity = 5 }],
+            NormalSkillRank = [new AbyssRankAvatar { AvatarId = 1, AvatarIcon = "", Value = 1, Rarity = 5 }],
+            EnergySkillRank = [new AbyssRankAvatar { AvatarId = 1, AvatarIcon = "", Value = 1, Rarity = 5 }]
         };
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
+
+        var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
+
+        // Act
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            AssertEmptyOutcome(result, OperationOutcome.Empty);
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ApiEmptyOutcome_ReturnsNoClearRecords()
+    {
+        // Arrange
+        var (service, abyssApiMock, gameRoleApiMock, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock
+            .Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+
+        abyssApiMock
+            .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
 
@@ -162,7 +190,7 @@ public class GenshinAbyssApplicationServiceTests
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         characterApiMock
             .Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -195,7 +223,7 @@ public class GenshinAbyssApplicationServiceTests
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         var charList = CreateTestCharacterList();
         characterApiMock
@@ -232,7 +260,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -288,7 +316,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -327,7 +355,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>("Abyss_TestData_1.json");
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<GenshinBasicCharacterData>>.Success(CreateTestCharacterList()));
@@ -375,7 +403,7 @@ public class GenshinAbyssApplicationServiceTests
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
 
@@ -413,7 +441,7 @@ public class GenshinAbyssApplicationServiceTests
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
 
@@ -441,7 +469,7 @@ public class GenshinAbyssApplicationServiceTests
 
         abyssApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("floor", 12u), ("server", Server.Asia.ToString()));
 
@@ -473,7 +501,7 @@ public class GenshinAbyssApplicationServiceTests
 
         var abyssData = await LoadTestDataAsync<GenshinAbyssInformation>(testDataFile);
         abyssApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinAbyssInformation>.Success(abyssData));
+            .ReturnsAsync(Available(abyssData));
 
         var charList = CreateTestCharacterList();
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<GenshinCharacterApiContext>()))
@@ -570,7 +598,7 @@ public class GenshinAbyssApplicationServiceTests
 
     private (
         GenshinAbyssApplicationService Service,
-        Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
+        Mock<IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
@@ -583,7 +611,7 @@ public class GenshinAbyssApplicationServiceTests
     {
         var cardServiceMock =
             new Mock<ICardService<GenshinAbyssInformation>>();
-        var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
+        var abyssApiMock = new Mock<IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
@@ -614,7 +642,7 @@ public class GenshinAbyssApplicationServiceTests
 
     private (
         GenshinAbyssApplicationService Service,
-        Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>> AbyssApiMock,
+        Mock<IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext>> AbyssApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>
@@ -630,7 +658,7 @@ public class GenshinAbyssApplicationServiceTests
             Mock.Of<ILogger<GenshinAbyssCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var abyssApiMock = new Mock<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>>();
+        var abyssApiMock = new Mock<IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext>>();
         var characterApiMock =
             new Mock<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>>();
 
@@ -936,5 +964,20 @@ public class GenshinAbyssApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<GenshinAbyssInformation>> Available(GenshinAbyssInformation data)
+    {
+        return Result<GameApiResponse<GenshinAbyssInformation>>.Success(GameApiResponse<GenshinAbyssInformation>.Available(data));
+    }
+
+    private static Result<GameApiResponse<GenshinAbyssInformation>> Empty()
+    {
+        return Result<GameApiResponse<GenshinAbyssInformation>>.Success(GameApiResponse<GenshinAbyssInformation>.Empty());
+    }
+
+    private static Result<GameApiResponse<GenshinAbyssInformation>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<GenshinAbyssInformation>>.Failure(status, message);
     }
 }

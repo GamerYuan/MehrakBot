@@ -26,7 +26,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
 {
     private readonly IImageUpdaterService m_ImageUpdaterService;
     private readonly ICardService<StygianData> m_CardService;
-    private readonly IApiService<GenshinStygianInformation, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext> m_ApiService;
 
 
     protected override string CommandName => "Stygian";
@@ -34,7 +34,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
     public GenshinStygianApplicationService(
         IImageUpdaterService imageUpdaterService,
         ICardService<StygianData> cardService,
-        IApiService<GenshinStygianInformation, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -69,27 +69,31 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.StygianOnslaught);
         }
 
-        if (!stygianInfo.Data.IsUnlock)
+        var outcome = stygianInfo.Data;
+        if (!outcome.IsAvailable)
         {
-            Logger.LogInformation("Stygian Onslaught is not unlocked for User {UserId} UID {GameUid}",
-                context.UserId, gameUid);
-            return CommandResult.Success(EndgameOutcome.Locked(Game.Genshin, profile.GameUid, EndgameMode.StygianOnslaught));
-        }
+            if (outcome.Availability == GameApiAvailability.Locked)
+            {
+                Logger.LogInformation("Stygian Onslaught is not unlocked for User {UserId} UID {GameUid}",
+                    context.UserId, gameUid);
+                return CommandResult.Success(EndgameOutcome.Locked(Game.Genshin, profile.GameUid,
+                    EndgameMode.StygianOnslaught));
+            }
 
-        if (!stygianInfo.Data.Data![0].Single.HasData)
-        {
             Logger.LogInformation(LogMessage.NoClearRecords, "Stygian", context.UserId, gameUid);
-            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid, EndgameMode.StygianOnslaught));
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid,
+                EndgameMode.StygianOnslaught));
         }
 
-        var stygianData = stygianInfo.Data.Data[0].Single;
+        var stygianRecord = outcome.Payload.Data![0];
+        var stygianData = stygianRecord.Single;
 
         var filename = GetCardFileName("genshin", "stygian", "v1", stygianData, profile,
             new { Server = server });
         if (await AttachmentExistsAsync(filename, cancellationToken))
         {
             return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.StygianOnslaught,
-                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Data.Data[0].Schedule!.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Data.Data[0].Schedule!.EndTime!))));
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianRecord.Schedule!.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianRecord.Schedule!.EndTime!))));
         }
 
         var avatarTasks = stygianData.Challenge!.SelectMany(x => x.Teams).Select(x =>
@@ -111,7 +115,7 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         }
 
         var cardContext = new BaseCardGenerationContext<StygianData>(context.UserId,
-            stygianInfo.Data.Data[0], profile);
+            stygianRecord, profile);
         cardContext.SetParameter("server", server);
 
         using var card = await m_CardService.GetCardAsync(cardContext, cancellationToken);
@@ -123,6 +127,6 @@ public class GenshinStygianApplicationService : BaseAttachmentApplicationService
         }
 
         return CommandResult.Success(EndgameOutcome.Card(Game.Genshin, profile.GameUid, EndgameMode.StygianOnslaught,
-                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Data.Data[0].Schedule!.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianInfo.Data.Data[0].Schedule!.EndTime!))));
+                StorageReference.Attachment(filename), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianRecord.Schedule!.StartTime!)), DateTimeOffset.FromUnixTimeSeconds(long.Parse(stygianRecord.Schedule!.EndTime!))));
     }
 }

@@ -21,6 +21,7 @@ using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr;
 using Mehrak.GameApi.Hsr.Types;
 using Mehrak.GameApi.Shared;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.Infrastructure.User;
 using Mehrak.Infrastructure.User.Models;
 using Microsoft.EntityFrameworkCore;
@@ -92,7 +93,7 @@ public class HsrEndGameApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", Server.Asia.ToString()));
 
@@ -137,7 +138,7 @@ public class HsrEndGameApplicationServiceTests
         };
 
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("mode", mode), ("server", Server.Asia.ToString()));
 
@@ -167,7 +168,7 @@ public class HsrEndGameApplicationServiceTests
         var testDataFile = mode == HsrEndGameMode.PureFiction ? "Pf_TestData_1.json" : "As_TestData_1.json";
         var endGameData = await LoadTestDataAsync(testDataFile);
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+            .ReturnsAsync(Available(endGameData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
@@ -203,7 +204,7 @@ public class HsrEndGameApplicationServiceTests
 
         var endGameData = await LoadTestDataAsync(testDataFile);
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+            .ReturnsAsync(Available(endGameData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -260,7 +261,7 @@ public class HsrEndGameApplicationServiceTests
 
         var endGameData = await LoadTestDataAsync(testDataFile);
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+            .ReturnsAsync(Available(endGameData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -298,7 +299,7 @@ public class HsrEndGameApplicationServiceTests
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("mode", HsrEndGameMode.PureFiction), ("server", Server.Asia.ToString()));
 
@@ -337,7 +338,7 @@ public class HsrEndGameApplicationServiceTests
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("mode", HsrEndGameMode.PureFiction), ("server", Server.Asia.ToString()));
 
@@ -361,7 +362,7 @@ public class HsrEndGameApplicationServiceTests
 
         endGameApiMock
             .Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("mode", HsrEndGameMode.PureFiction), ("server", Server.Asia.ToString()));
 
@@ -395,7 +396,7 @@ public class HsrEndGameApplicationServiceTests
 
         var endGameData = await LoadTestDataAsync(testDataFile);
         endGameApiMock.Setup(x => x.GetAsync(It.IsAny<HsrEndGameApiContext>()))
-            .ReturnsAsync(Result<HsrEndInformation>.Success(endGameData));
+            .ReturnsAsync(Available(endGameData));
 
         var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("mode", mode), ("server", Server.Asia.ToString()));
 
@@ -469,7 +470,7 @@ public class HsrEndGameApplicationServiceTests
 
     private (
         HsrEndGameApplicationService Service,
-        Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
+        Mock<IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<HsrEndInformation>> CardServiceMock,
@@ -481,7 +482,7 @@ public class HsrEndGameApplicationServiceTests
         var testServiceProvider = new TestServiceProvider();
         testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.PureFiction, cardServiceMock.Object);
         testServiceProvider.RegisterKeyedService(typeof(ICardService<HsrEndInformation>), HsrEndGameMode.ApocalypticShadow, cardServiceMock.Object);
-        var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
+        var endGameApiMock = new Mock<IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -508,7 +509,7 @@ public class HsrEndGameApplicationServiceTests
 
     private (
         HsrEndGameApplicationService Service,
-        Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>> EndGameApiMock,
+        Mock<IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext>> EndGameApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -524,7 +525,7 @@ public class HsrEndGameApplicationServiceTests
             Mock.Of<ILogger<HsrApocalypticShadowCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var endGameApiMock = new Mock<IApiService<HsrEndInformation, HsrEndGameApiContext>>();
+        var endGameApiMock = new Mock<IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext>>();
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
@@ -772,5 +773,20 @@ public class HsrEndGameApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<HsrEndInformation>> Available(HsrEndInformation data)
+    {
+        return Result<GameApiResponse<HsrEndInformation>>.Success(GameApiResponse<HsrEndInformation>.Available(data));
+    }
+
+    private static Result<GameApiResponse<HsrEndInformation>> Empty()
+    {
+        return Result<GameApiResponse<HsrEndInformation>>.Success(GameApiResponse<HsrEndInformation>.Empty());
+    }
+
+    private static Result<GameApiResponse<HsrEndInformation>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<HsrEndInformation>>.Failure(status, message);
     }
 }

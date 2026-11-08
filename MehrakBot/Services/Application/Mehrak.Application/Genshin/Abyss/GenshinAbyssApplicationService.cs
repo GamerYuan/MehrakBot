@@ -27,7 +27,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<GenshinAbyssInformation> m_CardService;
 
-    private readonly IApiService<GenshinAbyssInformation, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext> m_ApiService;
 
     private readonly ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>
         m_CharacterApi;
@@ -39,7 +39,7 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
 
     public GenshinAbyssApplicationService(
         ICardService<GenshinAbyssInformation> cardService,
-        IApiService<GenshinAbyssInformation, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext> apiService,
         ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
@@ -78,7 +78,15 @@ public class GenshinAbyssApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.SpiralAbyss);
         }
 
-        var abyssData = abyssResult.Data;
+        var outcome = abyssResult.Data;
+        if (!outcome.IsAvailable)
+        {
+            Logger.LogInformation(LogMessage.NoClearRecords, "Abyss", context.UserId, profile.GameUid);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid,
+                EndgameMode.SpiralAbyss, floor: floor));
+        }
+
+        var abyssData = outcome.Payload;
         var floorData = abyssData.Floors!.FirstOrDefault(x => x.Index == floor);
 
         if (floorData == null)

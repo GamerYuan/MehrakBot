@@ -37,6 +37,10 @@ public class HoYoLabApiTests
 {
     private const string SuccessJson = """{"retcode":0,"message":"OK","data":{"value":7}}""";
     private const string UpstreamCanary = "UPSTREAM-CANARY-TEXT";
+    private const string DefaultUnauthorized =
+        "Invalid HoYoLAB UID or Cookies. Please authenticate again.";
+    private const string DefaultRequestFailure =
+        "An unknown error occurred when accessing HoYoLAB API. Please try again later";
 
     private static HoYoLabRequest CreateRequest(string requestUri,
         IReadOnlyList<KeyValuePair<string, string>>? headers = null, bool requiresCredentials = true,
@@ -55,6 +59,11 @@ public class HoYoLabApiTests
                 NonSuccessStatus = "sanitized status"
             }
         };
+    }
+
+    private static HoYoLabRequest CreateDefaultFailureRequest(string requestUri)
+    {
+        return new HoYoLabRequest { RequestUri = requestUri };
     }
 
     private static HoYoLabEnvelopePolicy<TestPayload> CreatePolicy(
@@ -332,6 +341,80 @@ public class HoYoLabApiTests
     }
 
     [Test]
+    public async Task ExecuteAsync_OmittedFailures_AuthRetcodeUsesSharedUnauthorizedDefault()
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson("""{"retcode":10001,"message":"auth error"}""");
+
+        var result = await HoYoLabApi.ExecuteAsync(
+            CreateDefaultFailureRequest("https://example.invalid/default-auth"), CreatePolicy(),
+            new HoYoLabCredentials(1, 100, "synthetic-token"), handler.ToHttpClientFactory(),
+            new Mock<ILogger>().Object, CancellationToken.None);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultUnauthorized));
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_OmittedFailures_MalformedCredentialUsesSharedUnauthorizedDefault()
+    {
+        var handler = new FakeHttpMessageHandler();
+
+        var result = await HoYoLabApi.ExecuteAsync(
+            CreateDefaultFailureRequest("https://example.invalid/default-credential"), CreatePolicy(),
+            new HoYoLabCredentials(1, 100, "bad token"), handler.ToHttpClientFactory(),
+            new Mock<ILogger>().Object, CancellationToken.None);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultUnauthorized));
+            Assert.That(handler.RequestCount, Is.Zero);
+        }
+    }
+
+    [TestCase("null")]
+    [TestCase("{this is not json")]
+    public async Task ExecuteAsync_OmittedFailures_ParseFailureUsesSharedDefault(string body)
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson(body);
+
+        var result = await HoYoLabApi.ExecuteAsync(
+            CreateDefaultFailureRequest("https://example.invalid/default-parse"), CreatePolicy(),
+            new HoYoLabCredentials(1, 100, "synthetic-token"), handler.ToHttpClientFactory(),
+            new Mock<ILogger>().Object, CancellationToken.None);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
+        }
+    }
+
+    [TestCase(HttpStatusCode.Unauthorized)]
+    [TestCase(HttpStatusCode.InternalServerError)]
+    public async Task ExecuteAsync_OmittedFailures_NonSuccessStatusUsesSharedDefault(HttpStatusCode status)
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.Enqueue(() => new HttpResponseMessage(status));
+
+        var result = await HoYoLabApi.ExecuteAsync(
+            CreateDefaultFailureRequest("https://example.invalid/default-status"), CreatePolicy(),
+            new HoYoLabCredentials(1, 100, "synthetic-token"), handler.ToHttpClientFactory(),
+            new Mock<ILogger>().Object, CancellationToken.None);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
+        }
+    }
+
+    [Test]
     public async Task ExecuteAsync_InvalidPayloadShape_ReturnsControlledParseFailure()
     {
         var handler = new FakeHttpMessageHandler();
@@ -503,7 +586,7 @@ public class HoYoLabApiTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
-            Assert.That(result.ErrorMessage, Is.EqualTo("Invalid HoYoLAB UID or Cookies. Please re-authenticate"));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultUnauthorized));
         }
     }
 
@@ -547,7 +630,7 @@ public class HoYoLabApiTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(result.ErrorMessage, Is.EqualTo("An error occurred while accessing HoYoWiki API"));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
             Assert.That(result.ErrorMessage, Does.Not.Contain(UpstreamCanary));
             Assert.That(result.RequestUri, Is.Not.Null);
         }
@@ -780,7 +863,7 @@ public class HoYoLabApiTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(result.ErrorMessage, Is.EqualTo("Failed to retrieve character data"));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
             Assert.That(result.RequestUri, Is.EqualTo(requestUri),
                 "HTTP failures now report the endpoint that was attempted");
             Assert.That(handler.RequestCount, Is.EqualTo(1));
@@ -835,7 +918,7 @@ public class HoYoLabApiTests
             Assert.That(authResult.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
             Assert.That(authResult.RequestUri, Is.Not.Null);
             Assert.That(parseResult.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(parseResult.ErrorMessage, Is.EqualTo("Failed to retrieve character data"));
+            Assert.That(parseResult.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
             Assert.That(parseResult.RequestUri, Is.Not.Null);
         }
     }
@@ -867,7 +950,7 @@ public class HoYoLabApiTests
             {"retcode":"0","message":"OK","data":{"climbing_tower_s3":{
               "layer_info":{"climbing_tower_layer":"7","total_score":"123","medal_icon":"m.png"},
               "mvp_info":{"floor_mvp_num":"1","rank_percent":"2"},
-              "display_avatar_rank_list":[]}}}
+              "display_avatar_rank_list":[{"avatar_id":"1","icon":"i.png","name":"N","rarity":"S"}]}}}
             """);
 
         var service = new ZzzTowerApiService(handler.ToHttpClientFactory(),
@@ -878,8 +961,10 @@ public class HoYoLabApiTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data!.LayerInfo.ClimbingTowerLayer, Is.EqualTo(7));
-            Assert.That(result.Data.LayerInfo.TotalScore, Is.EqualTo(123));
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.IsAvailable, Is.True);
+            Assert.That(result.Data.Payload!.LayerInfo.ClimbingTowerLayer, Is.EqualTo(7));
+            Assert.That(result.Data.Payload.LayerInfo.TotalScore, Is.EqualTo(123));
             Assert.That(result.RequestUri, Is.Not.Null);
         }
     }
@@ -1159,7 +1244,7 @@ public class HoYoLabApiTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(result.ErrorMessage, Is.EqualTo("An error occurred while retrieving ZZZ entry page list"));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
             Assert.That(result.ErrorMessage, Does.Not.Contain(UpstreamCanary));
             Assert.That(result.RequestUri, Is.Not.Null);
             Assert.That(handler.RequestCount, Is.EqualTo(1));
@@ -1179,7 +1264,7 @@ public class HoYoLabApiTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(result.ErrorMessage, Is.EqualTo("An error occurred while retrieving ZZZ entry page list"));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
         }
     }
 

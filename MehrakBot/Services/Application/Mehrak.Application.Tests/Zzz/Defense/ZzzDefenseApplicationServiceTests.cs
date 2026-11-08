@@ -87,7 +87,7 @@ public class ZzzDefenseApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -126,7 +126,7 @@ public class ZzzDefenseApplicationServiceTests
         };
 
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -164,7 +164,7 @@ public class ZzzDefenseApplicationServiceTests
         };
 
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -190,7 +190,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var defenseData = await LoadTestDataAsync("Shiyu_TestData_1.json");
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Available(defenseData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
@@ -223,7 +223,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var defenseData = await LoadTestDataAsync(testDataFile);
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Available(defenseData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -278,7 +278,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var defenseData = await LoadTestDataAsync(testDataFile);
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Available(defenseData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -316,7 +316,7 @@ public class ZzzDefenseApplicationServiceTests
 
         defenseApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -355,7 +355,7 @@ public class ZzzDefenseApplicationServiceTests
 
         defenseApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -378,7 +378,7 @@ public class ZzzDefenseApplicationServiceTests
 
         defenseApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -410,7 +410,7 @@ public class ZzzDefenseApplicationServiceTests
 
         var defenseData = await LoadTestDataAsync(testDataFile);
         defenseApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzDefenseDataV2>.Success(defenseData));
+            .ReturnsAsync(Available(defenseData));
 
         var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -486,7 +486,7 @@ public class ZzzDefenseApplicationServiceTests
 
     private (
         ZzzDefenseApplicationService Service,
-        Mock<IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>> DefenseApiMock,
+        Mock<IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>> DefenseApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<ZzzDefenseDataV2>> CardServiceMock,
@@ -495,7 +495,7 @@ public class ZzzDefenseApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<ZzzDefenseDataV2>>();
-        var defenseApiMock = new Mock<IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>>();
+        var defenseApiMock = new Mock<IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -522,7 +522,7 @@ public class ZzzDefenseApplicationServiceTests
 
     private (
         ZzzDefenseApplicationService Service,
-        Mock<IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>> DefenseApiMock,
+        Mock<IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>> DefenseApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -534,7 +534,7 @@ public class ZzzDefenseApplicationServiceTests
             Mock.Of<ILogger<ZzzDefenseCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var defenseApiMock = new Mock<IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>>();
+        var defenseApiMock = new Mock<IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>>();
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
@@ -725,5 +725,20 @@ public class ZzzDefenseApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<ZzzDefenseDataV2>> Available(ZzzDefenseDataV2 data)
+    {
+        return Result<GameApiResponse<ZzzDefenseDataV2>>.Success(GameApiResponse<ZzzDefenseDataV2>.Available(data));
+    }
+
+    private static Result<GameApiResponse<ZzzDefenseDataV2>> Empty()
+    {
+        return Result<GameApiResponse<ZzzDefenseDataV2>>.Success(GameApiResponse<ZzzDefenseDataV2>.Empty());
+    }
+
+    private static Result<GameApiResponse<ZzzDefenseDataV2>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<ZzzDefenseDataV2>>.Failure(status, message);
     }
 }

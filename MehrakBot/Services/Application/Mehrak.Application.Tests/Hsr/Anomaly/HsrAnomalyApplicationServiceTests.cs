@@ -80,7 +80,7 @@ public class HsrAnomalyApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -117,7 +117,7 @@ public class HsrAnomalyApplicationServiceTests
         };
 
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -153,8 +153,8 @@ public class HsrAnomalyApplicationServiceTests
                     Group = new AnomalyGroup
                     {
                         GameVersion = "1.0",
-                        BeginTime = new ScheduleTime(),
-                        EndTime = new ScheduleTime(),
+                        BeginTime = new ScheduleTime { Year = 2026, Month = 1, Day = 1, Hour = 0, Minute = 0 },
+                        EndTime = new ScheduleTime { Year = 2026, Month = 2, Day = 1, Hour = 0, Minute = 0 },
                         Name = "",
                         ThemePicPath = ""
                     },
@@ -174,7 +174,7 @@ public class HsrAnomalyApplicationServiceTests
         };
 
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Available(anomalyData));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -200,7 +200,7 @@ public class HsrAnomalyApplicationServiceTests
 
         var anomalyData = await LoadTestDataAsync("Anomaly_TestData_1.json");
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Available(anomalyData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
@@ -233,7 +233,7 @@ public class HsrAnomalyApplicationServiceTests
 
         var anomalyData = await LoadTestDataAsync(testDataFile);
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Available(anomalyData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -292,7 +292,7 @@ public class HsrAnomalyApplicationServiceTests
 
         var anomalyData = await LoadTestDataAsync(testDataFile);
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Available(anomalyData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -330,7 +330,7 @@ public class HsrAnomalyApplicationServiceTests
 
         apiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -365,7 +365,7 @@ public class HsrAnomalyApplicationServiceTests
 
         var anomalyData = await LoadTestDataAsync(testDataFile);
         apiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrAnomalyInformation>.Success(anomalyData));
+            .ReturnsAsync(Available(anomalyData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -409,7 +409,7 @@ public class HsrAnomalyApplicationServiceTests
 
     private (
           HsrAnomalyApplicationService Service,
-          Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>> ApiMock,
+          Mock<IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext>> ApiMock,
           Mock<IImageUpdaterService> ImageUpdaterMock,
           Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
           Mock<ICardService<HsrAnomalyInformation>> CardServiceMock,
@@ -418,7 +418,7 @@ public class HsrAnomalyApplicationServiceTests
           ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrAnomalyInformation>>();
-        var apiMock = new Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>>();
+        var apiMock = new Mock<IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -445,7 +445,7 @@ public class HsrAnomalyApplicationServiceTests
 
     private async Task<(
          HsrAnomalyApplicationService Service,
-         Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>> ApiMock,
+         Mock<IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext>> ApiMock,
          Mock<IImageUpdaterService> ImageUpdaterMock,
          Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
          Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -458,7 +458,7 @@ public class HsrAnomalyApplicationServiceTests
             Mock.Of<ILogger<HsrAnomalyCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var apiMock = new Mock<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>>();
+        var apiMock = new Mock<IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext>>();
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
@@ -583,7 +583,7 @@ public class HsrAnomalyApplicationServiceTests
             BestRecord = new RecordBrief { RankIcon = "", RankIconType = rank, BossStars = 3, MobStars = 3 },
             ChallengeRecords = [Record(0, false, 3), Record(1, true, 0), Record(2, true, 3), Record(3, true, 3)]
         };
-        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>())).ReturnsAsync(Result<HsrAnomalyInformation>.Success(data));
+        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>())).ReturnsAsync(Available(data));
         storage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var result = await service.ExecuteAsync(CreateContext(1, 1, "test", ("server", Server.Asia)));
         Assert.That(result.IsSuccess, Is.True);
@@ -630,5 +630,20 @@ public class HsrAnomalyApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<HsrAnomalyInformation>> Available(HsrAnomalyInformation data)
+    {
+        return Result<GameApiResponse<HsrAnomalyInformation>>.Success(GameApiResponse<HsrAnomalyInformation>.Available(data));
+    }
+
+    private static Result<GameApiResponse<HsrAnomalyInformation>> Empty()
+    {
+        return Result<GameApiResponse<HsrAnomalyInformation>>.Success(GameApiResponse<HsrAnomalyInformation>.Empty());
+    }
+
+    private static Result<GameApiResponse<HsrAnomalyInformation>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<HsrAnomalyInformation>>.Failure(status, message);
     }
 }

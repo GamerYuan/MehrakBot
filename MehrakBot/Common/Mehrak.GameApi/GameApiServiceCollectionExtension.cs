@@ -42,33 +42,33 @@ public static class GameApiServiceCollectionExtension
         services.AddSingleton<IImageUpdaterService, ImageUpdaterService>();
 
         // Genshin services
-        services.AddSingleton<IApiService<GenshinAbyssInformation, BaseHoYoApiContext>, GenshinAbyssApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<GenshinAbyssInformation>, BaseHoYoApiContext>, GenshinAbyssApiService>();
         services
             .AddSingleton<ICharacterApiService<GenshinBasicCharacterData, GenshinCharacterDetail, GenshinCharacterApiContext>,
                 GenshinCharacterApiService>();
         services
             .AddSingleton<IApiService<GenshinRealTimeNotesData, BaseHoYoApiContext>, GenshinRealTimeNotesApiService>();
-        services.AddSingleton<IApiService<GenshinStygianInformation, BaseHoYoApiContext>, GenshinStygianApiService>();
-        services.AddSingleton<IApiService<GenshinTheaterResponseData, BaseHoYoApiContext>, GenshinTheaterApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>, GenshinStygianApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext>, GenshinTheaterApiService>();
 
         // Honkai: Star Rail services
         services
             .AddSingleton<ICharacterApiService<HsrBasicCharacterData, HsrBasicCharacterData, CharacterApiContext>,
                 HsrCharacterApiService>();
-        services.AddSingleton<IApiService<HsrMemoryInformation, BaseHoYoApiContext>, HsrMemoryApiService>();
-        services.AddSingleton<IApiService<HsrEndInformation, HsrEndGameApiContext>, HsrEndGameApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext>, HsrMemoryApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext>, HsrEndGameApiService>();
         services.AddSingleton<IApiService<HsrRealTimeNotesData, BaseHoYoApiContext>, HsrRealTimeNotesApiService>();
-        services.AddSingleton<IApiService<HsrAnomalyInformation, BaseHoYoApiContext>, HsrAnomalyApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext>, HsrAnomalyApiService>();
 
         // Zenless Zone Zero services
-        services.AddSingleton<IApiService<ZzzAssaultData, BaseHoYoApiContext>, ZzzAssaultApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<ZzzAssaultData>, BaseHoYoApiContext>, ZzzAssaultApiService>();
         services
             .AddSingleton<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>,
                 ZzzCharacterApiService>();
-        services.AddSingleton<IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>, ZzzDefenseApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>, ZzzDefenseApiService>();
         services.AddSingleton<IApiService<ZzzRealTimeNotesData, BaseHoYoApiContext>, ZzzRealTimeNotesApiService>();
         services.AddSingleton<IApiService<IEnumerable<ZzzBuddyData>, BaseHoYoApiContext>, ZzzBuddyApiService>();
-        services.AddSingleton<IApiService<ZzzTowerData, BaseHoYoApiContext>, ZzzTowerApiService>();
+        services.AddSingleton<IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext>, ZzzTowerApiService>();
         services
             .AddSingleton<IApiService<ZzzCharacterEntryPageList, ZzzCharacterEntryPageApiContext>,
                 ZzzCharacterEntryPageApiService>();

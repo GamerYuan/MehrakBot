@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Nodes;
+﻿#region
+
+using System.Text.Json.Nodes;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Shared;
@@ -6,11 +8,15 @@ using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
 
+#endregion
+
 namespace Mehrak.GameApi.Zzz;
 
-internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext>
+internal class ZzzTowerApiService : IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext>
 {
     private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/climbing_tower_detail";
+    private const string ErrorMessage =
+        "An unknown error occurred when accessing HoYoLAB API. Please try again later";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzTowerApiService> m_Logger;
@@ -21,12 +27,13 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzTowerData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
+    public async Task<Result<GameApiResponse<ZzzTowerData>>> GetAsync(BaseHoYoApiContext context,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<ZzzTowerData>.Failure(StatusCode.BadParameter,
+            return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
@@ -41,35 +48,31 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                 new HoYoLabRequest
                 {
                     RequestUri = requestUri,
-                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0};",
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again",
-                        Parse = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
-                        NonSuccessStatus = "An unknown error occurred when accessing HoYoLAB API. Please try again later"
-                    }
+                    CookieFormat = "ltoken_v2={1}; ltuid_v2={0};"
                 },
                 new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
                 m_HttpClientFactory, m_Logger, scope.Token);
 
             if (!result.IsSuccess)
-                return Result<ZzzTowerData>.Failure(result.StatusCode, result.ErrorMessage, result.RequestUri);
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(result.StatusCode, result.ErrorMessage,
+                    result.RequestUri);
 
             var json = result.Data;
 
             if (!HoYoLabApi.TryReadRetcode(json, out var retcode))
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
-                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
-                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null,
+                    GameApiLog.OmittedMarker);
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.ExternalServerError, ErrorMessage,
+                    requestUri);
             }
 
             if (retcode == HoYoLabRetcodes.GameRecordAuth)
             {
                 m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
-                return Result<ZzzTowerData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again", requestUri);
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.Unauthorized,
+                    HoYoLabFailureMessages.Default.Unauthorized, requestUri);
             }
 
             if (retcode != 0)
@@ -77,46 +80,63 @@ internal class ZzzTowerApiService : IApiService<ZzzTowerData, BaseHoYoApiContext
                 m_Logger.LogError(LogMessages.UnknownRetcode, retcode, GameApiLog.ContextId(context.UserId),
                     GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
                     GameApiLog.RenderBody(json));
-                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.ExternalServerError, ErrorMessage,
+                    requestUri);
             }
 
             if (json["data"] is not JsonObject dataNode)
             {
-                m_Logger.LogError(LogMessages.EmptyResponseData, GameApiLog.Endpoint(requestUri), GameApiLog.ContextId(context.UserId),
-                    GameApiLog.SafeQueryParameters(requestUri), GameApiLog.RenderBody(json));
-                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+                m_Logger.LogError(LogMessages.EmptyResponseData, GameApiLog.Endpoint(requestUri),
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri),
+                    GameApiLog.RenderBody(json));
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.ExternalServerError, ErrorMessage,
+                    requestUri);
             }
 
             var towerNode = dataNode["climbing_tower_s3"];
             if (towerNode is null)
-                return Result<ZzzTowerData>.Success(GetEmptyData(), requestUri: requestUri);
+                return Result<GameApiResponse<ZzzTowerData>>.Success(GameApiResponse<ZzzTowerData>.Empty(),
+                    requestUri: requestUri);
 
             if (!HoYoLabApi.TryDeserializeNode<ZzzTowerData>(towerNode, out var towerData))
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
-                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
-                return Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
+                    GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null,
+                    GameApiLog.OmittedMarker);
+                return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.ExternalServerError, ErrorMessage,
+                    requestUri);
             }
 
-            return Result<ZzzTowerData>.Success(towerData, requestUri: requestUri);
+            if (towerData.DisplayAvatarRankList is null)
+                return HoYoLabApi.InvalidEndpointData<ZzzTowerData>(requestUri, m_Logger, context.UserId,
+                    ErrorMessage);
+
+            if (towerData.DisplayAvatarRankList.Count == 0)
+            {
+                m_Logger.LogInformation(LogMessages.DataNotFoundForFeature, "Simulated Battle Trial",
+                    GameApiLog.ContextId(context.UserId));
+                return Result<GameApiResponse<ZzzTowerData>>.Success(GameApiResponse<ZzzTowerData>.Empty(),
+                    requestUri: requestUri);
+            }
+
+            if (towerData.LayerInfo is null || towerData.MvpInfo is null ||
+                !GameApiPayloadValidation.HasNoNullEntries(towerData.DisplayAvatarRankList) ||
+                towerData.DisplayAvatarRankList.Any(avatar => string.IsNullOrEmpty(avatar.Rarity)))
+                return HoYoLabApi.InvalidEndpointData<ZzzTowerData>(requestUri, m_Logger, context.UserId,
+                    ErrorMessage);
+
+            return Result<GameApiResponse<ZzzTowerData>>.Success(GameApiResponse<ZzzTowerData>.Available(towerData),
+                requestUri: requestUri);
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzTowerData>.FromCancellation(cancellationToken, requestUri);
+            return Result<GameApiResponse<ZzzTowerData>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
             GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
-            return Result<ZzzTowerData>.Failure(StatusCode.BotError,
+            return Result<GameApiResponse<ZzzTowerData>>.Failure(StatusCode.BotError,
                 "An error occurred while retrieving tower data", requestUri);
         }
-    }
-
-    private static ZzzTowerData GetEmptyData()
-    {
-        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
     }
 }

@@ -44,13 +44,7 @@ public class GenshinRealTimeNotesApiService : IApiService<GenshinRealTimeNotesDa
             return await HoYoLabApi.ExecuteAsync(
                 new HoYoLabRequest
                 {
-                    RequestUri = requestUri,
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid ltuid or ltoken provided for real-time notes API",
-                        Parse = "Failed to parse JSON response from real-time notes API",
-                        NonSuccessStatus = "Failed to fetch real-time notes"
-                    }
+                    RequestUri = requestUri
                 },
                 new HoYoLabEnvelopePolicy<GenshinRealTimeNotesData>
                 {

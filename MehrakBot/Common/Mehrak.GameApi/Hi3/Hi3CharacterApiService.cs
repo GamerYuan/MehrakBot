@@ -63,13 +63,7 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                         new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
                         new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
                         new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
-                    ],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                        Parse = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
-                        NonSuccessStatus = "Failed to retrieve character information"
-                    }
+                    ]
                 },
                 new HoYoLabEnvelopePolicy<Hi3CharacterList>
                 {

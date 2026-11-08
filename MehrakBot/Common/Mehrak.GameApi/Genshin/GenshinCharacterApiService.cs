@@ -71,13 +71,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     RequestUri = requestUri,
                     Method = HttpMethod.Post,
                     Body = payload,
-                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                        Parse = "Failed to retrieve character list data",
-                        NonSuccessStatus = "Failed to retrieve character list data"
-                    }
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
                 },
                 new HoYoLabEnvelopePolicy<CharacterListData>
                 {
@@ -180,13 +174,7 @@ public class GenshinCharacterApiService : ICharacterApiService<GenshinBasicChara
                     RequestUri = requestUri,
                     Method = HttpMethod.Post,
                     Body = payload,
-                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                        Parse = "An error occurred while retrieving character data",
-                        NonSuccessStatus = "An error occurred while retrieving character data"
-                    }
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
                 },
                 new HoYoLabEnvelopePolicy<GenshinCharacterDetail>
                 {

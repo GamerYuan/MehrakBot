@@ -11,8 +11,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Genshin;
 
-internal class GenshinTheaterApiService : IApiService<GenshinTheaterResponseData, BaseHoYoApiContext>
+internal class GenshinTheaterApiService : IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext>
 {
+    private const string ErrorMessage = "An error occurred while retrieving Imaginarium Theater data";
+
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinTheaterApiService> m_Logger;
 
@@ -24,12 +26,13 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterResponseData
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinTheaterResponseData>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
+    public async Task<Result<GameApiResponse<GenshinTheaterResponseData>>> GetAsync(BaseHoYoApiContext context,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<GenshinTheaterResponseData>.Failure(StatusCode.BadParameter,
+            return Result<GameApiResponse<GenshinTheaterResponseData>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
@@ -40,55 +43,100 @@ internal class GenshinTheaterApiService : IApiService<GenshinTheaterResponseData
         {
             using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var result = await HoYoLabApi.ExecuteAsync(
-                new HoYoLabRequest
-                {
-                    RequestUri = requestUri,
-                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again",
-                        Parse = "An error occurred while retrieving Imaginarium Theater data",
-                        NonSuccessStatus = "An error occurred while retrieving Imaginarium Theater data"
-                    }
-                },
+            var request = new HoYoLabRequest
+            {
+                RequestUri = requestUri,
+                Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
+            };
+
+            return await HoYoLabApi.ExecuteAsync<GenshinTheaterResponseData,
+                GameApiResponse<GenshinTheaterResponseData>>(
+                request,
                 new HoYoLabEnvelopePolicy<GenshinTheaterResponseData>
                 {
-                    UnknownRetcode = "An error occurred while retrieving Imaginarium Theater data"
+                    UnknownRetcode = ErrorMessage
                 },
                 new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
-                m_HttpClientFactory, m_Logger, scope.Token);
+                m_HttpClientFactory, m_Logger, scope.Token,
+                payload =>
+                {
+                    if (!payload.IsUnlock)
+                    {
+                        m_Logger.LogInformation(LogMessages.FeatureNotUnlocked, "Imaginarium Theater",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<GenshinTheaterResponseData>>.Success(
+                            GameApiResponse<GenshinTheaterResponseData>.Locked(), requestUri: requestUri));
+                    }
 
-            if (!result.IsSuccess)
-                return result;
+                    if (payload.Data is null)
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<GenshinTheaterResponseData>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
 
-            var responseData = result.Data;
-            if (!responseData.IsUnlock)
-            {
-                m_Logger.LogInformation(LogMessages.FeatureNotUnlocked, "Imaginarium Theater", GameApiLog.ContextId(context.UserId));
-                return Result<GenshinTheaterResponseData>.Failure(StatusCode.Unauthorized,
-                    "Imaginarium Theater is not unlocked yet", requestUri);
-            }
+                    if (payload.Data.Count == 0 && payload.TarotCardState is null)
+                    {
+                        m_Logger.LogInformation(LogMessages.DataNotFoundForFeature, "Imaginarium Theater",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<GenshinTheaterResponseData>>.Success(
+                            GameApiResponse<GenshinTheaterResponseData>.Empty(), requestUri: requestUri));
+                    }
 
-            if (responseData.Data is null ||
-                (responseData.Data.Count == 0 && responseData.TarotCardState is null))
-            {
-                m_Logger.LogError(LogMessages.DataNotFoundForFeature, "Imaginarium Theater", GameApiLog.ContextId(context.UserId));
-                return Result<GenshinTheaterResponseData>.Failure(StatusCode.ExternalServerError,
-                    "No Imaginarium Theater data found", requestUri);
-            }
+                    if (!HasValidDetailData(payload.Data))
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<GenshinTheaterResponseData>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
 
-            return result;
+                    return Task.FromResult(Result<GameApiResponse<GenshinTheaterResponseData>>.Success(
+                        GameApiResponse<GenshinTheaterResponseData>.Available(payload), requestUri: requestUri));
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<GenshinTheaterResponseData>.FromCancellation(cancellationToken, requestUri);
+            return Result<GameApiResponse<GenshinTheaterResponseData>>.FromCancellation(cancellationToken,
+                requestUri);
         }
         catch (Exception e)
         {
             GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
-            return Result<GenshinTheaterResponseData>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving Imaginarium Theater data", requestUri);
+            return Result<GameApiResponse<GenshinTheaterResponseData>>.Failure(StatusCode.BotError,
+                ErrorMessage, requestUri);
         }
+    }
+
+    private static bool HasValidDetailData(List<GenshinTheaterInformation> records)
+    {
+        foreach (var record in records)
+        {
+            if (record is null)
+                return false;
+
+            if (!record.HasDetailData)
+                continue;
+
+            if (record.Detail is null || record.Detail.RoundsData is null ||
+                record.Detail.RoundsData.Count == 0 ||
+                record.Detail.FightStatistic is null || record.Stat is null ||
+                record.Stat.GetMedalRoundList is null || record.Schedule is null)
+                return false;
+
+            if (!GameApiPayloadValidation.IsUnixSeconds(record.Schedule.StartTime) ||
+                !GameApiPayloadValidation.IsUnixSeconds(record.Schedule.EndTime))
+                return false;
+
+            var fightStatistic = record.Detail.FightStatistic;
+            if (fightStatistic.MaxDefeatAvatar is null || fightStatistic.MaxDamageAvatar is null ||
+                fightStatistic.MaxTakeDamageAvatar is null || fightStatistic.TotalCoinConsumed is null ||
+                fightStatistic.ShortestAvatarList is null ||
+                !GameApiPayloadValidation.HasNoNullEntries(fightStatistic.ShortestAvatarList))
+                return false;
+
+            if (record.Detail.RoundsData.Any(round => round is null || round.Avatars is null ||
+                !GameApiPayloadValidation.HasNoNullEntries(round.Avatars) ||
+                round.SplendourBuff is null || round.SplendourBuff.Summary is null ||
+                round.SplendourBuff.Buffs is null ||
+                !GameApiPayloadValidation.HasNoNullEntries(round.SplendourBuff.Buffs) ||
+                round.SplendourBuff.Buffs.Any(buff => buff.Name is null)))
+                return false;
+        }
+
+        return true;
     }
 }

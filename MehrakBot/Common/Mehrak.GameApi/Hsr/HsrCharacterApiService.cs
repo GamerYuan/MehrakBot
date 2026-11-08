@@ -231,13 +231,7 @@ public class
                 new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
                 new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
                 new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
-            ],
-            Failures = new HoYoLabFailureMessages
-            {
-                Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                Parse = "Failed to retrieve character information",
-                NonSuccessStatus = "Failed to retrieve character information"
-            }
+            ]
         };
     }
 }

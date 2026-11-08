@@ -21,7 +21,7 @@ namespace Mehrak.Application.Zzz.Tower;
 public class ZzzTowerApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzTowerData> m_CardService;
-    private readonly IApiService<ZzzTowerData, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext> m_ApiService;
     private readonly ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> m_CharacterApi;
     private readonly IImageUpdaterService m_ImageUpdaterService;
 
@@ -33,7 +33,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
         ICardService<ZzzTowerData> cardService,
-        IApiService<ZzzTowerData, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext> apiService,
         ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext> characterApi,
         IImageUpdaterService imageUpdaterService,
         ILogger<ZzzTowerApplicationService> logger)
@@ -54,7 +54,7 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
         var profileTask = FetchGameProfileAsync(context.UserId, context.LtUid, context.LToken, Game.ZenlessZoneZero,
             region, cancellationToken);
 
-        Task<Result<ZzzTowerData>>? towerTask = null;
+        Task<Result<GameApiResponse<ZzzTowerData>>>? towerTask = null;
         Task<Result<IEnumerable<ZzzBasicAvatarData>>>? charTask = null;
         if (cachedGameUid != null)
         {
@@ -100,13 +100,15 @@ public class ZzzTowerApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.SimulatedBattleTrial);
         }
 
-        var towerData = towerResponse.Data;
+        var outcome = towerResponse.Data;
 
-        if (towerData.DisplayAvatarRankList.Count == 0)
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Simulated Battle Trial", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.SimulatedBattleTrial));
         }
+
+        var towerData = outcome.Payload;
 
         var characterResponse = charTask!.Result;
 

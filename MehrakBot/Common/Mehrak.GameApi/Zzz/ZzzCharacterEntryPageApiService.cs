@@ -116,12 +116,7 @@ internal class ZzzCharacterEntryPageApiService : IApiService<ZzzCharacterEntryPa
                     new KeyValuePair<string, string>("X-Rpc-Wiki_app", "zzz"),
                     new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
                     new KeyValuePair<string, string>("Referer", "https://wiki.hoyolab.com/")
-                ],
-                Failures = new HoYoLabFailureMessages
-                {
-                    Parse = FailureMessage,
-                    NonSuccessStatus = FailureMessage
-                }
+                ]
             },
             new HoYoLabEnvelopePolicy<ZzzCharacterEntryPageList>
             {

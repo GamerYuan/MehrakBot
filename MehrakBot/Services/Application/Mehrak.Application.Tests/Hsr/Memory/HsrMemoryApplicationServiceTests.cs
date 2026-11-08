@@ -87,7 +87,7 @@ public class HsrMemoryApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -129,7 +129,7 @@ public class HsrMemoryApplicationServiceTests
         };
 
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -168,7 +168,7 @@ public class HsrMemoryApplicationServiceTests
         };
 
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -194,7 +194,7 @@ public class HsrMemoryApplicationServiceTests
 
         var memoryData = await LoadTestDataAsync("Moc_TestData_1.json");
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Available(memoryData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
@@ -227,7 +227,7 @@ public class HsrMemoryApplicationServiceTests
 
         var memoryData = await LoadTestDataAsync(testDataFile);
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Available(memoryData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -283,7 +283,7 @@ public class HsrMemoryApplicationServiceTests
 
         var memoryData = await LoadTestDataAsync(testDataFile);
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Available(memoryData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -322,7 +322,7 @@ public class HsrMemoryApplicationServiceTests
         // Force early exit after UpdateGameUid by making Memory API fail
         memoryApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -362,7 +362,7 @@ public class HsrMemoryApplicationServiceTests
 
         memoryApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -386,7 +386,7 @@ public class HsrMemoryApplicationServiceTests
 
         memoryApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -418,7 +418,7 @@ public class HsrMemoryApplicationServiceTests
 
         var memoryData = await LoadTestDataAsync(testDataFile);
         memoryApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<HsrMemoryInformation>.Success(memoryData));
+            .ReturnsAsync(Available(memoryData));
 
         var context = CreateContext(S3TestHelper.Instance.GetUniqueUserId(), 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -494,7 +494,7 @@ public class HsrMemoryApplicationServiceTests
 
     private (
         HsrMemoryApplicationService Service,
-        Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>> MemoryApiMock,
+        Mock<IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext>> MemoryApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<ICardService<HsrMemoryInformation>> CardServiceMock,
@@ -503,7 +503,7 @@ public class HsrMemoryApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<HsrMemoryInformation>>();
-        var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
+        var memoryApiMock = new Mock<IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
@@ -530,7 +530,7 @@ public class HsrMemoryApplicationServiceTests
 
     private (
         HsrMemoryApplicationService Service,
-        Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>> MemoryApiMock,
+        Mock<IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext>> MemoryApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -542,7 +542,7 @@ public class HsrMemoryApplicationServiceTests
             Mock.Of<ILogger<HsrMemoryCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var memoryApiMock = new Mock<IApiService<HsrMemoryInformation, BaseHoYoApiContext>>();
+        var memoryApiMock = new Mock<IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext>>();
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
@@ -733,5 +733,20 @@ public class HsrMemoryApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<HsrMemoryInformation>> Available(HsrMemoryInformation data)
+    {
+        return Result<GameApiResponse<HsrMemoryInformation>>.Success(GameApiResponse<HsrMemoryInformation>.Available(data));
+    }
+
+    private static Result<GameApiResponse<HsrMemoryInformation>> Empty()
+    {
+        return Result<GameApiResponse<HsrMemoryInformation>>.Success(GameApiResponse<HsrMemoryInformation>.Empty());
+    }
+
+    private static Result<GameApiResponse<HsrMemoryInformation>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<HsrMemoryInformation>>.Failure(status, message);
     }
 }

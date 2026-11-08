@@ -44,13 +44,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
             var envelope = await HoYoLabApi.SendEnvelopeAsync<object>(
                 new HoYoLabRequest
                 {
-                    RequestUri = requestUri,
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please re-authenticate",
-                        Parse = "An error occurred while redeeming the code",
-                        NonSuccessStatus = "An error occurred while redeeming the code"
-                    }
+                    RequestUri = requestUri
                 },
                 new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
                 m_HttpClientFactory, m_Logger, scope.Token, HoYoLabRetcodes.AccountAuth);
@@ -66,7 +60,7 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
                 case HoYoLabRetcodes.AccountAuth:
                     m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
                     return Result<CodeRedeemResult>.Failure(StatusCode.Unauthorized,
-                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
+                        HoYoLabFailureMessages.Default.Unauthorized, requestUri);
 
                 case 0:
                     m_Logger.LogInformation("Successfully redeemed code for User {UserId} in game {Game}",

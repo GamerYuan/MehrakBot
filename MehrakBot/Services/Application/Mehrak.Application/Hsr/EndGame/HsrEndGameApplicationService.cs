@@ -17,6 +17,7 @@ using Mehrak.Domain.Shared.Utility;
 using Mehrak.Domain.User.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hsr.Types;
+using Mehrak.GameApi.Shared.Types;
 using Mehrak.Infrastructure.User;
 
 #endregion
@@ -27,7 +28,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
 {
     private readonly IServiceProvider m_ServiceProvider;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<HsrEndInformation, HsrEndGameApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext> m_ApiService;
 
     protected override string CommandName => "End Game";
     protected override string CardName => Mode switch
@@ -42,7 +43,7 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
     public HsrEndGameApplicationService(
         IServiceProvider serviceProvider,
         IImageUpdaterService imageUpdaterService,
-        IApiService<HsrEndInformation, HsrEndGameApiContext> apiService,
+        IApiService<GameApiResponse<HsrEndInformation>, HsrEndGameApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -86,20 +87,15 @@ public class HsrEndGameApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, mode == HsrEndGameMode.PureFiction ? CommandErrorTarget.PureFiction : CommandErrorTarget.ApocalypticShadow);
         }
 
-        var challengeData = challengeResponse.Data;
-        if (!challengeData.HasData)
+        var outcome = challengeResponse.Data;
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
                 profile.GameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, endgameMode));
         }
 
-        if (challengeData.AllFloorDetail.All(x => x is { Node1: null, Node2: null, Node3: null }))
-        {
-            Logger.LogInformation(LogMessage.NoClearRecords, mode.GetString(), context.UserId,
-                profile.GameUid);
-            return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, endgameMode));
-        }
+        var challengeData = outcome.Payload;
 
         var tz = server.GetTimeZoneInfo();
         var group = challengeData.Groups[0];

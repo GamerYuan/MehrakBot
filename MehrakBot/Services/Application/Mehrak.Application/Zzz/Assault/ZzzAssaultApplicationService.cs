@@ -33,7 +33,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzAssaultData> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<ZzzAssaultData, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<ZzzAssaultData>, BaseHoYoApiContext> m_ApiService;
 
     private static readonly DrawingOptions ClipOptions = new();
 
@@ -42,7 +42,7 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
     public ZzzAssaultApplicationService(
         ICardService<ZzzAssaultData> cardService,
         IImageUpdaterService imageUpdaterService,
-        IApiService<ZzzAssaultData, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<ZzzAssaultData>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -78,13 +78,15 @@ internal class ZzzAssaultApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.DeadlyAssault);
         }
 
-        var assaultData = assaultResponse.Data;
+        var outcome = assaultResponse.Data;
 
-        if (!assaultData.HasData || assaultData.List.Count == 0)
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Assault", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.DeadlyAssault));
         }
+
+        var assaultData = outcome.Payload;
 
         var tz = server.GetTimeZoneInfo();
         var startTs = assaultData.StartTime.ToTimestamp(tz);

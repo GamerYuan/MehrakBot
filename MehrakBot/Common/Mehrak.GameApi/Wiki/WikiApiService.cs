@@ -49,12 +49,7 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 {
                     RequestUri = requestUri,
                     RequiresCredentials = false,
-                    Headers = headers,
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Parse = "An error occurred while accessing HoYoWiki API",
-                        NonSuccessStatus = "An error occurred while accessing HoYoWiki API"
-                    }
+                    Headers = headers
                 },
                 new HoYoLabCredentials(context.UserId, 0, string.Empty),
                 m_HttpClientFactory, m_Logger, scope.Token);

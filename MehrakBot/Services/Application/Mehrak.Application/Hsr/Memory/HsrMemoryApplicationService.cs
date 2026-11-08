@@ -26,7 +26,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrMemoryInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<HsrMemoryInformation, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext> m_ApiService;
 
 
     protected override string CommandName => "Memory of Chaos";
@@ -34,7 +34,7 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
     public HsrMemoryApplicationService(
         ICardService<HsrMemoryInformation> cardService,
         IImageUpdaterService imageUpdaterService,
-        IApiService<HsrMemoryInformation, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<HsrMemoryInformation>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -69,13 +69,15 @@ internal class HsrMemoryApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.MemoryOfChaos);
         }
 
-        var memoryData = memoryResult.Data;
+        var outcome = memoryResult.Data;
 
-        if (!memoryData.HasData || memoryData.BattleNum == 0)
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Memory of Chaos", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, EndgameMode.MemoryOfChaos));
         }
+
+        var memoryData = outcome.Payload;
 
         var tz = server.GetTimeZoneInfo();
         var startTime = new DateTimeOffset(memoryData.StartTime.ToDateTime(), tz.BaseUtcOffset)

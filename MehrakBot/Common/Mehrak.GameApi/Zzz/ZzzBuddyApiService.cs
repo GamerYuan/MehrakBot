@@ -58,13 +58,7 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
                 new HoYoLabRequest
                 {
                     RequestUri = requestUri,
-                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again.",
-                        Parse = "Failed to retrieve character list data",
-                        NonSuccessStatus = "Failed to retrieve character list data"
-                    }
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
                 },
                 new HoYoLabEnvelopePolicy<ZzzBuddyResponse>
                 {

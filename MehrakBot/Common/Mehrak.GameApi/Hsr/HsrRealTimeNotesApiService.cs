@@ -50,13 +50,7 @@ public class HsrRealTimeNotesApiService : IApiService<HsrRealTimeNotesData, Base
                         new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
                         new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
                         new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
-                    ],
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid ltuid or ltoken provided for real-time notes API",
-                        Parse = "Failed to parse JSON response from real-time notes API",
-                        NonSuccessStatus = "Failed to fetch real-time notes"
-                    }
+                    ]
                 },
                 new HoYoLabEnvelopePolicy<HsrRealTimeNotesData>
                 {

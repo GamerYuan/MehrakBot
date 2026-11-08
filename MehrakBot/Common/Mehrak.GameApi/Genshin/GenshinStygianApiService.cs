@@ -11,8 +11,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Genshin;
 
-internal class GenshinStygianApiService : IApiService<GenshinStygianInformation, BaseHoYoApiContext>
+internal class GenshinStygianApiService : IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>
 {
+    private const string ErrorMessage = "An error occurred while retrieving Stygian Onslaught data";
+
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<GenshinStygianApiService> m_Logger;
 
@@ -24,12 +26,13 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
         m_Logger = logger;
     }
 
-    public async Task<Result<GenshinStygianInformation>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
+    public async Task<Result<GameApiResponse<GenshinStygianInformation>>> GetAsync(BaseHoYoApiContext context,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<GenshinStygianInformation>.Failure(StatusCode.BadParameter,
+            return Result<GameApiResponse<GenshinStygianInformation>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
@@ -40,33 +43,82 @@ internal class GenshinStygianApiService : IApiService<GenshinStygianInformation,
         {
             using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            return await HoYoLabApi.ExecuteAsync(
-                new HoYoLabRequest
-                {
-                    RequestUri = requestUri,
-                    Failures = new HoYoLabFailureMessages
-                    {
-                        Unauthorized = "Invalid HoYoLAB UID or Cookies. Please authenticate again",
-                        Parse = "An error occurred while retrieving Stygian Onslaught data",
-                        NonSuccessStatus = "An error occurred while retrieving Stygian Onslaught data"
-                    }
-                },
+            var request = new HoYoLabRequest
+            {
+                RequestUri = requestUri
+            };
+
+            return await HoYoLabApi.ExecuteAsync<GenshinStygianInformation,
+                GameApiResponse<GenshinStygianInformation>>(
+                request,
                 new HoYoLabEnvelopePolicy<GenshinStygianInformation>
                 {
-                    UnknownRetcode = "An error occurred while retrieving Stygian Onslaught data"
+                    UnknownRetcode = ErrorMessage
                 },
                 new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
-                m_HttpClientFactory, m_Logger, scope.Token);
+                m_HttpClientFactory, m_Logger, scope.Token,
+                payload =>
+                {
+                    if (!payload.IsUnlock)
+                    {
+                        m_Logger.LogInformation(LogMessages.FeatureNotUnlocked, "Stygian Onslaught",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<GenshinStygianInformation>>.Success(
+                            GameApiResponse<GenshinStygianInformation>.Locked(), requestUri: requestUri));
+                    }
+
+                    if (payload.Data is null)
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<GenshinStygianInformation>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
+
+                    if (payload.Data.Count == 0)
+                    {
+                        m_Logger.LogInformation(LogMessages.DataNotFoundForFeature, "Stygian Onslaught",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<GenshinStygianInformation>>.Success(
+                            GameApiResponse<GenshinStygianInformation>.Empty(), requestUri: requestUri));
+                    }
+
+                    var record = payload.Data[0];
+                    if (record is null || record.Single is null)
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<GenshinStygianInformation>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
+
+                    if (!record.Single.HasData)
+                    {
+                        m_Logger.LogInformation(LogMessages.DataNotFoundForFeature, "Stygian Onslaught",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<GenshinStygianInformation>>.Success(
+                            GameApiResponse<GenshinStygianInformation>.Empty(), requestUri: requestUri));
+                    }
+
+                    if (record.Schedule is null ||
+                        !GameApiPayloadValidation.IsUnixSeconds(record.Schedule.StartTime) ||
+                        !GameApiPayloadValidation.IsUnixSeconds(record.Schedule.EndTime) ||
+                        record.Single.Challenge is null ||
+                        !GameApiPayloadValidation.HasNoNullEntries(record.Single.Challenge) ||
+                        record.Single.Challenge.Any(challenge => challenge.Teams is null ||
+                            !GameApiPayloadValidation.HasNoNullEntries(challenge.Teams) ||
+                            challenge.BestAvatar is null ||
+                            !GameApiPayloadValidation.HasNoNullEntries(challenge.BestAvatar) ||
+                            challenge.Monster is null))
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<GenshinStygianInformation>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
+
+                    return Task.FromResult(Result<GameApiResponse<GenshinStygianInformation>>.Success(
+                        GameApiResponse<GenshinStygianInformation>.Available(payload), requestUri: requestUri));
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<GenshinStygianInformation>.FromCancellation(cancellationToken, requestUri);
+            return Result<GameApiResponse<GenshinStygianInformation>>.FromCancellation(cancellationToken,
+                requestUri);
         }
         catch (Exception e)
         {
             GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
-            return Result<GenshinStygianInformation>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving Stygian Onslaught data", requestUri);
+            return Result<GameApiResponse<GenshinStygianInformation>>.Failure(StatusCode.BotError,
+                ErrorMessage, requestUri);
         }
     }
 }
