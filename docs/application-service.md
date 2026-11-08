@@ -254,6 +254,32 @@ Recommended structure:
 - Log full technical context (`userId`, command scope, API result).
 - Catch broad exceptions at service boundary and return stable fallback response.
 
+## Dependency telemetry
+
+`CommandDispatcher` classifies the terminal `CommandResult` on the command activity and adds only bounded enum names:
+
+| Terminal result | Activity status | `mehrak.command.outcome` |
+| --- | --- | --- |
+| Success, including partial success | `OK` | `success` |
+| `AuthError`/`Cancelled`, or a `BotError` carrying an expected user code (`AuthenticationRequired`, `Cancelled`, `CharacterNotFound`, `RequestLimitExceeded`) | `UNSET` | `expected_failure` |
+| `ApiError`, `Timeout`, `Unknown`, or any other `BotError` | `ERROR` | `failure` |
+| Escaping exception | `ERROR` | `failure` |
+| Request cancellation | `UNSET` | `cancelled` |
+
+`mehrak.command.failure_reason` and `mehrak.command.error_code` contain enum names only; messages and user data are
+never copied into tags. Expected dependency normalization is registered only by the Application host. An S3
+existence probe (`HEAD` 404) keeps its span, duration and `http.response.status_code=404`, loses the
+status-derived `error.type`, and gains `mehrak.dependency.outcome=expected_miss` with
+`mehrak.dependency.kind=existence_probe`. A wiki HTTP 404 is handled the same way with
+`mehrak.dependency.kind=wiki_content`. A wiki HTTP `200` with `retcode` `404` is different: its transport span is
+already a non-error `200` and only carries the wiki kind tag (no `expected_miss` outcome); `WikiApiService` later
+logs `Warning` and preserves its wiki-specific failure copy. HTTP 401/403/429/5xx and transport faults remain
+errors. A marked S3 existence-probe `HEAD` 404 is normalized this way, including one caused by a missing bucket: a `HEAD` response has no
+body, so the request span cannot distinguish a missing key from a missing bucket. The `NoSuchBucket` branch only
+logs when the SDK/backend actually supplies that error code; the AWS `HeadObject` documentation notes that `HEAD`
+errors are generic and that it is not possible to retrieve the exact exception. There is no reliable bucket health
+check on this path, so that log is best-effort rather than a guarantee for every missing bucket.
+
 ## Performance and Reliability Notes
 
 - Prefer batching/concurrent IO where safe (`Task.WhenAll`) for image updates and external calls.

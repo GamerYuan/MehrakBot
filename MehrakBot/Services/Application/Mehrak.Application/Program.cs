@@ -18,7 +18,9 @@ public class Program
         builder.AddServiceDefaults();
         builder.Services.AddOpenTelemetry()
             .WithMetrics(m => m.AddMeter("MehrakApplication"))
-            .WithTracing(t => t.AddSource(ApplicationTelemetry.ActivitySourceName));
+            .WithTracing(t => t
+                .AddSource(ApplicationTelemetry.ActivitySourceName)
+                .AddExpectedDependencyNormalization());
 
         if (builder.Environment.IsDevelopment())
         {

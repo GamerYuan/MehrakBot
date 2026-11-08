@@ -9,6 +9,7 @@ using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
+using Mehrak.Domain.Shared.Telemetry;
 using Mehrak.GameApi.CodeRedeem;
 using Mehrak.GameApi.GameRecord;
 using Mehrak.GameApi.GameRole;
@@ -91,8 +92,10 @@ public class HoYoLabApiTests
         var handler = new FakeHttpMessageHandler();
         string? cookie = null;
         string? language = null;
+        ExpectedDependencyKind observedKind = ExpectedDependencyKind.ExistenceProbe;
         handler.Enqueue(request =>
         {
+            observedKind = ExpectedDependency.Current;
             cookie = request.Headers.GetValues("Cookie").Single();
             language = request.Headers.GetValues("X-Rpc-Language").Single();
             return JsonResponse(SuccessJson);
@@ -113,6 +116,7 @@ public class HoYoLabApiTests
             Assert.That(handler.LastRequest.RequestUri!.ToString(), Is.EqualTo(requestUri));
             Assert.That(cookie, Is.EqualTo("ltuid_v2=100; ltoken_v2=synthetic-token"));
             Assert.That(language, Is.EqualTo("en-us"));
+            Assert.That(observedKind, Is.EqualTo(ExpectedDependencyKind.None));
         }
     }
 
@@ -633,6 +637,134 @@ public class HoYoLabApiTests
             Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
             Assert.That(result.ErrorMessage, Does.Not.Contain(UpstreamCanary));
             Assert.That(result.RequestUri, Is.Not.Null);
+        }
+    }
+
+    [Test]
+    public async Task WikiApiService_HttpNotFound_IsExpectedContentMissAndKeepsResultMapping()
+    {
+        var handler = new FakeHttpMessageHandler();
+        ExpectedDependencyKind observedKind = ExpectedDependencyKind.None;
+        handler.Enqueue(_ =>
+        {
+            observedKind = ExpectedDependency.Current;
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.ErrorMessage, Is.EqualTo(DefaultRequestFailure));
+            Assert.That(observedKind, Is.EqualTo(ExpectedDependencyKind.WikiContentLookup));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Warning));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Error));
+            Assert.That(ExpectedDependency.Current, Is.EqualTo(ExpectedDependencyKind.None));
+        }
+    }
+
+    [TestCase(HttpStatusCode.Unauthorized)]
+    [TestCase(HttpStatusCode.Forbidden)]
+    [TestCase(HttpStatusCode.TooManyRequests)]
+    [TestCase(HttpStatusCode.InternalServerError)]
+    public async Task WikiApiService_NonContentMissHttpFailure_RemainsAnError(HttpStatusCode statusCode)
+    {
+        var handler = new FakeHttpMessageHandler();
+        ExpectedDependencyKind observedKind = ExpectedDependencyKind.None;
+        handler.Enqueue(_ =>
+        {
+            observedKind = ExpectedDependency.Current;
+            return new HttpResponseMessage(statusCode);
+        });
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(observedKind, Is.EqualTo(ExpectedDependencyKind.WikiContentLookup));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Error));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Warning));
+        }
+    }
+
+    [Test]
+    public async Task WikiApiService_Retcode404_IsExpectedContentMissAndDowngradesLog()
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson("""{"retcode":404,"message":"not found","data":null}""");
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.ErrorMessage, Is.EqualTo("An error occurred while accessing HoYoWiki API"));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Warning));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Error));
+        }
+    }
+
+    [Test]
+    public async Task WikiApiService_RetcodeOtherThan404_RemainsAnError()
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson("""{"retcode":12345,"message":"upstream failure","data":null}""");
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Error));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Warning));
+        }
+    }
+
+    [Test]
+    public async Task WikiApiService_MalformedRetcode_RemainsErrorLevel()
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson("""{"retcode":"invalid","message":"upstream","data":null}""");
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Error));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Warning));
+        }
+    }
+
+    [Test]
+    public async Task WikiApiService_TransportFault_RemainsAnError()
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.Enqueue(() => throw new HttpRequestException("synthetic transport failure"));
+
+        var logger = new CapturingLogger<WikiApiService>();
+        var service = new WikiApiService(handler.ToHttpClientFactory(), logger);
+        var result = await service.GetAsync(new WikiApiContext(1, Game.Genshin, "123"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.BotError));
+            Assert.That(logger.Levels, Does.Contain(LogLevel.Error));
+            Assert.That(logger.Levels, Does.Not.Contain(LogLevel.Warning));
         }
     }
 
@@ -1361,6 +1493,8 @@ public class HoYoLabApiTests
 
         public List<IReadOnlyList<KeyValuePair<string, object?>>> States { get; } = [];
 
+        public List<LogLevel> Levels { get; } = [];
+
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => new Scope();
 
         public bool IsEnabled(LogLevel logLevel) => true;
@@ -1368,6 +1502,7 @@ public class HoYoLabApiTests
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
+            Levels.Add(logLevel);
             Entries.Add(formatter(state, exception));
             if (exception is not null)
                 Entries.Add(exception.ToString());

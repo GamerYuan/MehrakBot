@@ -5,12 +5,19 @@ using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
+using Mehrak.Domain.Shared.Telemetry;
 using Mehrak.GameApi.Shared;
 using Microsoft.Extensions.Logging;
 
 #endregion
 
 namespace Mehrak.GameApi.Wiki;
+
+internal static class WikiRetcodes
+{
+    /// <summary>HoYoWiki reports a missing entry page as an HTTP 200 response with this retcode.</summary>
+    public const int ContentNotFound = 404;
+}
 
 public class WikiApiService : IApiService<JsonNode, WikiApiContext>
 {
@@ -49,7 +56,8 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
                 {
                     RequestUri = requestUri,
                     RequiresCredentials = false,
-                    Headers = headers
+                    Headers = headers,
+                    ExpectedDependency = ExpectedDependencyKind.WikiContentLookup
                 },
                 new HoYoLabCredentials(context.UserId, 0, string.Empty),
                 m_HttpClientFactory, m_Logger, scope.Token);
@@ -62,6 +70,17 @@ public class WikiApiService : IApiService<JsonNode, WikiApiContext>
             {
                 m_Logger.LogError(LogMessages.FailedToParseResponse, GameApiLog.Endpoint(requestUri),
                     GameApiLog.ContextId(context.UserId), GameApiLog.SafeQueryParameters(requestUri), null, null, GameApiLog.OmittedMarker);
+                return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
+                    "An error occurred while accessing HoYoWiki API", requestUri);
+            }
+
+            if (retcode == WikiRetcodes.ContentNotFound)
+            {
+                // A missing wiki entry page is a normal content miss for the locale fallback callers. Keep the
+                // failure result and downgrade only this known retcode to a warning.
+                m_Logger.LogWarning(LogMessages.UnknownRetcode, retcode, GameApiLog.ContextId(context.UserId),
+                    GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
+                    GameApiLog.RenderBody(json));
                 return Result<JsonNode>.Failure(StatusCode.ExternalServerError,
                     "An error occurred while accessing HoYoWiki API", requestUri);
             }

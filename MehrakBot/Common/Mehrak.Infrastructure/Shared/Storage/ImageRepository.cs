@@ -4,6 +4,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Common;
+using Mehrak.Domain.Shared.Telemetry;
 using Mehrak.Infrastructure.Shared.Config;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -125,10 +126,18 @@ public class ImageRepository : IImageRepository
                 Key = fileName
             };
 
+            using var probe = ExpectedDependency.Begin(ExpectedDependencyKind.ExistenceProbe);
             var response = await m_S3.GetObjectMetadataAsync(headReq, cancellationToken).ConfigureAwait(false);
             exists = (int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300;
             m_ExistsCache.Set(fileName, exists, CreateExistsCacheOptions());
             return exists;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound && IsMissingBucket(ex))
+        {
+            m_Logger.LogError(ex, "GetObjectMetadata did not find bucket {Bucket} for file {FileName}; check the Storage configuration",
+                m_Bucket, Sanitize(fileName));
+            m_ExistsCache.Set(fileName, false, CreateExistsCacheOptions());
+            return false;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -189,6 +198,11 @@ public class ImageRepository : IImageRepository
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         };
+    }
+
+    private static bool IsMissingBucket(AmazonS3Exception exception)
+    {
+        return string.Equals(exception.ErrorCode, "NoSuchBucket", StringComparison.OrdinalIgnoreCase);
     }
 
     // ponytail: strips CR/LF to prevent log forging. Full sanitization (Unicode line separators, etc.) if audit requires it.
