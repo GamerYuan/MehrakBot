@@ -87,7 +87,7 @@ public class GenshinStygianApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -121,7 +121,7 @@ public class GenshinStygianApplicationServiceTests
         };
 
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Locked());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -169,7 +169,7 @@ public class GenshinStygianApplicationServiceTests
         };
 
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -195,7 +195,7 @@ public class GenshinStygianApplicationServiceTests
 
         var stygianData = await LoadTestDataAsync("Stygian_TestData_1.json");
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Available(stygianData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(false);
@@ -227,7 +227,7 @@ public class GenshinStygianApplicationServiceTests
 
         var stygianData = await LoadTestDataAsync("Stygian_TestData_1.json");
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Available(stygianData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -278,7 +278,7 @@ public class GenshinStygianApplicationServiceTests
 
         var stygianData = await LoadTestDataAsync("Stygian_TestData_1.json");
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Available(stygianData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -312,7 +312,7 @@ public class GenshinStygianApplicationServiceTests
 
         stygianApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -352,7 +352,7 @@ public class GenshinStygianApplicationServiceTests
 
         stygianApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -379,7 +379,7 @@ public class GenshinStygianApplicationServiceTests
 
         stygianApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -412,7 +412,7 @@ public class GenshinStygianApplicationServiceTests
 
         var stygianData = await LoadTestDataAsync(testDataFile);
         stygianApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<GenshinStygianInformation>.Success(stygianData));
+            .ReturnsAsync(Available(stygianData));
 
         imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>()))
             .ReturnsAsync(true);
@@ -502,7 +502,7 @@ public class GenshinStygianApplicationServiceTests
 
     private (
         GenshinStygianApplicationService Service,
-        Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>> StygianApiMock,
+        Mock<IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>> StygianApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -511,7 +511,7 @@ public class GenshinStygianApplicationServiceTests
     {
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var cardServiceMock = new Mock<ICardService<StygianData>>();
-        var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
+        var stygianApiMock = new Mock<IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
         var attachmentStorageMock = new Mock<IAttachmentStorageService>();
         var loggerMock = new Mock<ILogger<GenshinStygianApplicationService>>();
@@ -541,7 +541,7 @@ public class GenshinStygianApplicationServiceTests
 
     private (
         GenshinStygianApplicationService Service,
-        Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>> StygianApiMock,
+        Mock<IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>> StygianApiMock,
         Mock<IApiService<GameProfileDto, GameRoleApiContext>> GameRoleApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<IAttachmentStorageService> AttachmentStorageMock,
@@ -554,7 +554,7 @@ public class GenshinStygianApplicationServiceTests
             Mock.Of<ILogger<GenshinStygianCardService>>(),
             Mock.Of<IApplicationMetrics>());
 
-        var stygianApiMock = new Mock<IApiService<GenshinStygianInformation, BaseHoYoApiContext>>();
+        var stygianApiMock = new Mock<IApiService<GameApiResponse<GenshinStygianInformation>, BaseHoYoApiContext>>();
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
@@ -729,15 +729,16 @@ public class GenshinStygianApplicationServiceTests
         StygianData Record(bool hasData, string start, string end) => new()
         {
             Schedule = new StygianSchedule { ScheduleId = "1", StartTime = start, EndTime = end, Name = "" },
-            Single = new StygianChallengeData { HasData = hasData },
-            Multi = new StygianChallengeData { HasData = true }
+            Single = new StygianChallengeData { HasData = hasData, Challenge = hasData ? [] : null },
+            Multi = new StygianChallengeData { HasData = true, Challenge = [] }
         };
         var data = new GenshinStygianInformation
         {
             IsUnlock = true,
             Data = [Record(firstHasData, "1763300000", "1764300000"), Record(true, "1765300000", "1766300000")]
         };
-        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>())).ReturnsAsync(Result<GenshinStygianInformation>.Success(data));
+        api.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
+            .ReturnsAsync(firstHasData ? Available(data) : Empty());
         storage.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var result = await service.ExecuteAsync(CreateContext(1, 1, "test", ("server", Server.Asia)));
         Assert.That(result.IsSuccess, Is.True);
@@ -790,5 +791,25 @@ public class GenshinStygianApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<GenshinStygianInformation>> Available(GenshinStygianInformation data)
+    {
+        return Result<GameApiResponse<GenshinStygianInformation>>.Success(GameApiResponse<GenshinStygianInformation>.Available(data));
+    }
+
+    private static Result<GameApiResponse<GenshinStygianInformation>> Empty()
+    {
+        return Result<GameApiResponse<GenshinStygianInformation>>.Success(GameApiResponse<GenshinStygianInformation>.Empty());
+    }
+
+    private static Result<GameApiResponse<GenshinStygianInformation>> Locked()
+    {
+        return Result<GameApiResponse<GenshinStygianInformation>>.Success(GameApiResponse<GenshinStygianInformation>.Locked());
+    }
+
+    private static Result<GameApiResponse<GenshinStygianInformation>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<GenshinStygianInformation>>.Failure(status, message);
     }
 }

@@ -48,4 +48,54 @@ public class CodeRedeemApiServiceTests
             Assert.That(result.ErrorMessage, Does.Not.Contain("credential or unsafe details"));
         });
     }
+
+    [TestCase(Game.Unsupported)]
+    [TestCase(Game.TearsOfThemis)]
+    [TestCase(Game.HonkaiImpact3)]
+    [TestCase((Game)999)]
+    public async Task UnsupportedRedemptionGame_ReturnsBadParameterWithoutHttp(Game game)
+    {
+        var handler = new FakeHttpMessageHandler();
+        var service = new CodeRedeemApiService(handler.ToHttpClientFactory(),
+            new Mock<ILogger<CodeRedeemApiService>>().Object);
+
+        var result = await service.GetAsync(new CodeRedeemApiContext(1, 2, "synthetic-token", "800000001",
+            "os_asia", game, "TESTCODE"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.BadParameter));
+            Assert.That(result.ErrorMessage, Is.EqualTo("Code redemption is not supported for this game"));
+            Assert.That(result.RequestUri, Is.Null);
+            Assert.That(handler.RequestCount, Is.Zero);
+        }
+    }
+
+    [TestCase(Game.Genshin, HoYoLabDomains.GenshinOpsApi, "hk4e_global")]
+    [TestCase(Game.HonkaiStarRail, HoYoLabDomains.HsrOpsApi, "hkrpg_global")]
+    [TestCase(Game.ZenlessZoneZero, HoYoLabDomains.ZzzOpsApi, "nap_global")]
+    public async Task SupportedGame_SendsExactRedemptionEndpointAndSucceeds(Game game, string apiRoot, string gameBiz)
+    {
+        var handler = new FakeHttpMessageHandler();
+        handler.EnqueueJson("""{"retcode":0,"message":"OK","data":null}""");
+        var service = new CodeRedeemApiService(handler.ToHttpClientFactory(),
+            new Mock<ILogger<CodeRedeemApiService>>().Object);
+
+        var result = await service.GetAsync(new CodeRedeemApiContext(1, 2, "synthetic-token", "800000001",
+            "os_asia", game, "TESTCODE"));
+        var expectedUri =
+            $"{apiRoot}/common/apicdkey/api/webExchangeCdkeyHyl?cdkey=TESTCODE&game_biz={gameBiz}" +
+            "&region=os_asia&uid=800000001&lang=en-us";
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data.Outcome, Is.EqualTo(RedemptionOutcome.Redeemed));
+            Assert.That(result.Data.Status, Is.EqualTo(CodeStatus.Valid));
+            Assert.That(handler.RequestCount, Is.EqualTo(1));
+            Assert.That(handler.LastRequest!.RequestUri!.ToString(), Is.EqualTo(expectedUri));
+            Assert.That(result.RequestUri, Is.EqualTo(expectedUri));
+        }
+    }
 }

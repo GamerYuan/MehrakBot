@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,9 +19,16 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
 
     public int RequestCount { get; private set; }
 
+    public HttpRequestMessage? LastRequest { get; private set; }
+
     public void Enqueue(Func<HttpResponseMessage> responder)
     {
         m_Responders.Enqueue(_ => responder());
+    }
+
+    public void Enqueue(Func<HttpRequestMessage, HttpResponseMessage> responder)
+    {
+        m_Responders.Enqueue(responder);
     }
 
     public void EnqueueJson(string json, HttpStatusCode statusCode = HttpStatusCode.OK)
@@ -36,6 +43,7 @@ internal sealed class FakeHttpMessageHandler : HttpMessageHandler
         CancellationToken cancellationToken)
     {
         RequestCount++;
+        LastRequest = request;
         return Task.FromResult(m_Responders.Dequeue()(request));
     }
 

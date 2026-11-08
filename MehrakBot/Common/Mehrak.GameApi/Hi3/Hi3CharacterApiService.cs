@@ -1,5 +1,4 @@
-﻿﻿﻿using System.Text.Json;
-using Mehrak.Domain.Cache;
+﻿using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -18,11 +17,6 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
 
     private static readonly string ApiEndpoint = "/game_record/honkai3rd/api/characters";
     private const int CacheExpirationMinutes = 10;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
-    };
 
     public Hi3CharacterApiService(
         IHttpClientFactory httpClientFactory,
@@ -43,13 +37,15 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.BbsApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var cacheKey = $"hi3_characters_{context.Region}_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey, timeoutCts.Token);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<Hi3CharacterDetail>>(cacheKey, scope.Token);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -57,98 +53,46 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
                 return Result<IEnumerable<Hi3CharacterDetail>>.Success(cachedData);
             }
 
-            var requestUri =
-                $"{HoYoLabDomains.BbsApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            using HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri),
-                Headers =
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
                 {
-                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" },
-                    { "X-Rpc-Client_type", "5" },
-                    { "X-Rpc-App_version", "1.5.0" },
-                    { "X-Rpc-Language", "en-us" },
-                    { "DS", DSGenerator.GenerateDS() }
-                }
-            };
+                    RequestUri = requestUri,
+                    Headers =
+                    [
+                        new KeyValuePair<string, string>("X-Rpc-Client_type", "5"),
+                        new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
+                        new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
+                        new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
+                    ]
+                },
+                new HoYoLabEnvelopePolicy<Hi3CharacterList>
+                {
+                    HasData = data => data.Characters is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character information"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    List<Hi3CharacterDetail> result = [.. data.Characters.Select(x => x.Character)];
 
-            using var response = await client.SendAsync(request, timeoutCts.Token);
+                    await m_Cache.SetAsync(
+                        new CharacterListCacheEntry<Hi3CharacterDetail>(cacheKey, result,
+                            TimeSpan.FromMinutes(CacheExpirationMinutes)), scope.Token);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<Hi3CharacterList>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), JsonOptions, timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Data == null || json.Data.Characters.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            List<Hi3CharacterDetail> result = [.. json.Data.Characters.Select(x => x.Character)];
-
-            await m_Cache.SetAsync(
-                new CharacterListCacheEntry<Hi3CharacterDetail>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
-
-            return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
+                    return Result<IEnumerable<Hi3CharacterDetail>>.Success(result, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<Hi3CharacterDetail>>.FromCancellation(cancellationToken);
+            return Result<IEnumerable<Hi3CharacterDetail>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.BbsApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.BbsApi}{ApiEndpoint}", context.UserId, e);
             return Result<IEnumerable<Hi3CharacterDetail>>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character information");
+                "An error occurred while retrieving character information", requestUri);
         }
     }
 
@@ -160,5 +104,3 @@ internal class Hi3CharacterApiService : ICharacterApiService<Hi3CharacterDetail,
         throw new NotSupportedException();
     }
 }
-
-

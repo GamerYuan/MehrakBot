@@ -1,4 +1,5 @@
-﻿﻿﻿using System.Text.Json;
+﻿#region
+
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
@@ -6,6 +7,8 @@ using Mehrak.GameApi.Shared;
 using Mehrak.GameApi.Shared.Types;
 using Mehrak.GameApi.Zzz.Types;
 using Microsoft.Extensions.Logging;
+
+#endregion
 
 namespace Mehrak.GameApi.Zzz;
 
@@ -36,98 +39,54 @@ internal class ZzzBuddyApiService : IApiService<IEnumerable<ZzzBuddyData>, BaseH
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{BasePath}?server={context.Region}&role_id={context.GameUid}";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var cacheKey = $"zzz_buddies_{context.GameUid}";
-            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, timeoutCts.Token);
+            var cachedEntry = await m_Cache.GetAsync<IEnumerable<ZzzBuddyData>>(cacheKey, scope.Token);
 
             if (cachedEntry != null)
             {
                 return Result<IEnumerable<ZzzBuddyData>>.Success(cachedEntry)!;
             }
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{BasePath}?server={context.Region}&role_id={context.GameUid}";
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Headers = [new KeyValuePair<string, string>("X-Rpc-Language", "en-us")]
+                },
+                new HoYoLabEnvelopePolicy<ZzzBuddyResponse>
+                {
+                    HasData = data => data.List is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character list data"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
+                        data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
+                    await m_Cache.SetAsync(cacheEntry, scope.Token);
 
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
-
-            HttpRequestMessage request = new()
-            {
-                RequestUri = new Uri(requestUri)
-            };
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
-            request.Headers.Add("X-Rpc-Language", "en-us");
-
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<ZzzBuddyResponse>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
-
-            if (json?.Data == null || json.Data.List.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character list data", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            var cacheEntry = new CharacterListCacheEntry<ZzzBuddyData>(cacheKey,
-                json.Data.List, TimeSpan.FromMinutes(CacheExpirationMinutes));
-
-            await m_Cache.SetAsync(cacheEntry, cancellationToken);
-
-            return Result<IEnumerable<ZzzBuddyData>>.Success(json.Data.List, requestUri: requestUri);
+                    return Result<IEnumerable<ZzzBuddyData>>.Success(data.List, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<ZzzBuddyData>>.FromCancellation(cancellationToken);
+            return Result<IEnumerable<ZzzBuddyData>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{BasePath}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{BasePath}", context.UserId, e);
             return Result<IEnumerable<ZzzBuddyData>>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character data");
+                "An error occurred while retrieving character data", requestUri);
         }
     }
 }
-
-

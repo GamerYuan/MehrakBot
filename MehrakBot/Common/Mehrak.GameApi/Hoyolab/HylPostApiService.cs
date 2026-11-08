@@ -1,10 +1,8 @@
-﻿using System.Text.Json;
-using Mehrak.Domain.Shared.Abstractions;
+﻿using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Shared;
-using Mehrak.GameApi.Shared.Types;
 using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Hoyolab;
@@ -27,69 +25,42 @@ public class HylPostApiService : IApiService<HylPost, HylPostApiContext>
         var requestUri = $"{HoYoLabDomains.BbsApi}/{Endpoint}?post_id={context.PostId}&scene=1";
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri)
-            };
-            request.Headers.Add("X-Rpc-Language", context.Locale.ToLocaleString());
-            request.Headers.Add("X-Rpc-Show-Translated", "true");
-            request.Headers.Add("X-Rpc-Client_type", "4");
-            request.Headers.Add("X-Rpc-App_version", "4.9.0");
-            request.Headers.Add("X-Rpc-Lsrag", "");
-
-            var response = await client.SendAsync(request, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<HylPost>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while accessing HoYoLAB API", requestUri);
-            }
-
-            await using var stream = await response.Content.ReadAsStreamAsync(timeoutCts.Token);
-            var json = await JsonSerializer.DeserializeAsync<ApiResponse<HylPostWrapper>>(stream, (JsonSerializerOptions?)null, timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.FailedToParseResponse, requestUri, context.UserId);
-                return Result<HylPost>.Failure(StatusCode.ExternalServerError,
-                    "Failed to parse response from HoYoLAB API", requestUri);
-            }
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<HylPost>.Failure(StatusCode.ExternalServerError,
-                    $"HoYoLAB API returned error code {json.Retcode} with message: {json.Message}", requestUri);
-            }
-
-            if (json.Data == null || json.Data.Post == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<HylPost>.Failure(StatusCode.ExternalServerError,
-                    "HoYoLAB API returned empty data", requestUri);
-            }
-
-            return Result<HylPost>.Success(json.Data.Post, requestUri: requestUri);
+            return await HoYoLabApi.ExecuteAsync(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    RequiresCredentials = false,
+                    Headers =
+                    [
+                        new KeyValuePair<string, string>("X-Rpc-Language", context.Locale.ToLocaleString()),
+                        new KeyValuePair<string, string>("X-Rpc-Show-Translated", "true"),
+                        new KeyValuePair<string, string>("X-Rpc-Client_type", "4"),
+                        new KeyValuePair<string, string>("X-Rpc-App_version", "4.9.0"),
+                        new KeyValuePair<string, string>("X-Rpc-Lsrag", "")
+                    ]
+                },
+                new HoYoLabEnvelopePolicy<HylPostWrapper>
+                {
+                    AuthRetcode = null,
+                    HasData = data => data.Post is not null,
+                    UnknownRetcode = "An error occurred while accessing HoYoLAB API",
+                    EmptyData = "HoYoLAB API returned empty data"
+                },
+                new HoYoLabCredentials(context.UserId, 0, string.Empty),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                data => Task.FromResult(Result<HylPost>.Success(data.Post, requestUri: requestUri)));
         }
         catch (OperationCanceledException)
         {
-            return Result<HylPost>.FromCancellation(cancellationToken);
+            return Result<HylPost>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                requestUri, context.UserId);
-            return Result<HylPost>.Failure(StatusCode.BotError, "An error occurred while fetching HoYoLAB Post data.");
+            GameApiLog.LogException(m_Logger, requestUri, context.UserId, e);
+            return Result<HylPost>.Failure(StatusCode.BotError, "An error occurred while fetching HoYoLAB Post data.",
+                requestUri);
         }
     }
 }

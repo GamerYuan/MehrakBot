@@ -30,14 +30,14 @@ public class GenshinArcanaApplicationService : BaseAttachmentApplicationService
     internal const string RendererVersion = "v9";
 
     private readonly ICardService<GenshinTarotCardState> m_CardService;
-    private readonly IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext> m_ApiService;
 
     protected override string CommandName => "Arcana";
     protected override string CardName => "Lunar Arcana";
 
     public GenshinArcanaApplicationService(
         ICardService<GenshinTarotCardState> cardService,
-        IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -69,10 +69,9 @@ public class GenshinArcanaApplicationService : BaseAttachmentApplicationService
                 return CommandResult.Failure(CommandFailureReason.Timeout, CommandErrorCode.Timeout);
             if (response.StatusCode == StatusCode.Unauthorized)
             {
-                Logger.LogInformation("Lunar Arcana is not unlocked for User {UserId} UID {GameUid}",
-                    context.UserId, gameUid);
-                return CommandResult.Success(
-                    EndgameOutcome.Locked(Game.Genshin, profile.GameUid, EndgameMode.Arcana));
+                Logger.LogWarning(LogMessage.InvalidLogin, context.UserId);
+                return CommandResult.Failure(CommandFailureReason.AuthError,
+                    CommandErrorCode.AuthenticationRequired, CommandErrorTarget.Arcana);
             }
 
             Logger.LogError(LogMessage.ApiError, "Arcana", context.UserId, gameUid, response);
@@ -80,7 +79,22 @@ public class GenshinArcanaApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.Arcana);
         }
 
-        var tarotState = response.Data.TarotCardState;
+        var outcome = response.Data;
+        if (!outcome.IsAvailable)
+        {
+            if (outcome.Availability == GameApiAvailability.Locked)
+            {
+                Logger.LogInformation("Lunar Arcana is not unlocked for User {UserId} UID {GameUid}",
+                    context.UserId, gameUid);
+                return CommandResult.Success(
+                    EndgameOutcome.Locked(Game.Genshin, profile.GameUid, EndgameMode.Arcana));
+            }
+
+            Logger.LogInformation(LogMessage.NoClearRecords, "Arcana", context.UserId, gameUid);
+            return CommandResult.Success(EndgameOutcome.Empty(Game.Genshin, profile.GameUid, EndgameMode.Arcana));
+        }
+
+        var tarotState = outcome.Payload.TarotCardState;
         if (tarotState?.List is null || tarotState.List.Count == 0)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Arcana", context.UserId, gameUid);

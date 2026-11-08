@@ -27,7 +27,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<ZzzDefenseDataV2> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<ZzzDefenseDataV2, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext> m_ApiService;
 
 
     protected override string CommandName => "Defense";
@@ -35,7 +35,7 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
     public ZzzDefenseApplicationService(
         ICardService<ZzzDefenseDataV2> cardService,
         IImageUpdaterService imageUpdaterService,
-        IApiService<ZzzDefenseDataV2, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -71,20 +71,16 @@ internal class ZzzDefenseApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.ShiyuDefense);
         }
 
-        var defenseData = defenseResponse.Data!;
+        var outcome = defenseResponse.Data;
 
-        if (defenseData.Brief == null)
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense));
         }
 
-        var nonNull = defenseData.FifthLayerDetail?.LayerChallengeInfoList;
-        if (nonNull == null || nonNull.Count == 0)
-        {
-            Logger.LogInformation(LogMessage.NoClearRecords, "Shiyu Defense", context.UserId, gameUid);
-            return CommandResult.Success(EndgameOutcome.Empty(Game.ZenlessZoneZero, profile.GameUid, EndgameMode.ShiyuDefense));
-        }
+        var defenseData = outcome.Payload;
+        var nonNull = defenseData.FifthLayerDetail!.LayerChallengeInfoList;
 
         var fileName = GetCardFileName("zzz", "defense", "v1", defenseData, profile, new { Server = server });
         if (await AttachmentExistsAsync(fileName, cancellationToken))

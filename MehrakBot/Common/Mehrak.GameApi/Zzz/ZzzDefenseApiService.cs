@@ -1,6 +1,5 @@
-﻿﻿﻿#region
+﻿#region
 
-using System.Net.Http.Json;
 using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Services;
 using Mehrak.GameApi.Shared;
@@ -12,9 +11,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Mehrak.GameApi.Zzz;
 
-internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiContext>
+internal class ZzzDefenseApiService : IApiService<GameApiResponse<ZzzDefenseDataV2>, BaseHoYoApiContext>
 {
     private const string ApiEndpoint = "/event/game_record_zzz/api/zzz/hadal_info_v2";
+    private const string ErrorMessage = "An error occurred while fetching Shiyu Defense data";
 
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<ZzzDefenseApiService> m_Logger;
@@ -25,88 +25,78 @@ internal class ZzzDefenseApiService : IApiService<ZzzDefenseDataV2, BaseHoYoApiC
         m_Logger = logger;
     }
 
-    public async Task<Result<ZzzDefenseDataV2>> GetAsync(BaseHoYoApiContext context, CancellationToken cancellationToken = default)
+    public async Task<Result<GameApiResponse<ZzzDefenseDataV2>>> GetAsync(BaseHoYoApiContext context,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(context.GameUid) || string.IsNullOrEmpty(context.Region))
         {
             m_Logger.LogError(LogMessages.InvalidRegionOrUid);
-            return Result<ZzzDefenseDataV2>.Failure(StatusCode.BadParameter,
+            return Result<GameApiResponse<ZzzDefenseDataV2>>.Failure(StatusCode.BadParameter,
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&schedule_type=1";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Get, requestUri);
-            if (!LTokenValidator.IsValidLToken(context.LToken))
+            var request = new HoYoLabRequest
             {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.Unauthorized,
-                    "Invalid cookies. Please re-authenticate.", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltoken_v2={context.LToken}; ltuid_v2={context.LtUid};");
+                RequestUri = requestUri,
+                CookieFormat = "ltoken_v2={1}; ltuid_v2={0};"
+            };
 
-            var response = await client.SendAsync(request, timeoutCts.Token);
+            return await HoYoLabApi.ExecuteAsync<ZzzDefenseDataWrapper, GameApiResponse<ZzzDefenseDataV2>>(
+                request,
+                new HoYoLabEnvelopePolicy<ZzzDefenseDataWrapper>
+                {
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = ErrorMessage
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                wrapper =>
+                {
+                    var payload = wrapper.HadalInfoV2;
+                    if (payload is null)
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<ZzzDefenseDataV2>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data", requestUri);
-            }
+                    if (payload.Brief is null || payload.FifthLayerDetail?.LayerChallengeInfoList is null ||
+                        payload.FifthLayerDetail.LayerChallengeInfoList.Count == 0)
+                    {
+                        m_Logger.LogInformation(LogMessages.DataNotFoundForFeature, "Shiyu Defense",
+                            GameApiLog.ContextId(context.UserId));
+                        return Task.FromResult(Result<GameApiResponse<ZzzDefenseDataV2>>.Success(
+                            GameApiResponse<ZzzDefenseDataV2>.Empty(), requestUri: requestUri));
+                    }
 
-            var json =
-                await response.Content.ReadFromJsonAsync<ApiResponse<ZzzDefenseDataWrapper>>(timeoutCts.Token);
+                    if (!GameApiPayloadValidation.IsUnixSeconds(payload.BeginTime) ||
+                        !GameApiPayloadValidation.IsUnixSeconds(payload.EndTime) ||
+                        string.IsNullOrEmpty(payload.Brief.Rating) ||
+                        !GameApiPayloadValidation.HasNoNullEntries(payload.FifthLayerDetail.LayerChallengeInfoList) ||
+                        payload.FifthLayerDetail.LayerChallengeInfoList.Any(info =>
+                            string.IsNullOrEmpty(info.Rating) || info.AvatarList is null ||
+                            !GameApiPayloadValidation.HasNoNullEntries(info.AvatarList) ||
+                            info.AvatarList.Any(avatar => string.IsNullOrEmpty(avatar.Rarity))))
+                        return Task.FromResult(HoYoLabApi.InvalidEndpointData<ZzzDefenseDataV2>(
+                            requestUri, m_Logger, context.UserId, ErrorMessage));
 
-            if (json?.Data == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while fetching Shiyu Defense data", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.Unauthorized,
-                    "Invalid cookies. Please re-authenticate.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<ZzzDefenseDataV2>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            return Result<ZzzDefenseDataV2>.Success(json.Data!.HadalInfoV2, requestUri: requestUri);
+                    return Task.FromResult(Result<GameApiResponse<ZzzDefenseDataV2>>.Success(
+                        GameApiResponse<ZzzDefenseDataV2>.Available(payload), requestUri: requestUri));
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<ZzzDefenseDataV2>.FromCancellation(cancellationToken);
+            return Result<GameApiResponse<ZzzDefenseDataV2>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
-            return Result<ZzzDefenseDataV2>.Failure(StatusCode.BotError,
-                "An error occurred while fetching Shiyu Defense data");
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
+            return Result<GameApiResponse<ZzzDefenseDataV2>>.Failure(StatusCode.BotError, ErrorMessage,
+                requestUri);
         }
     }
 }
-
-

@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Net.Http.Json;
 using Mehrak.Domain.Command.Models;
 using Mehrak.Domain.Shared.Enums;
 using Mehrak.Domain.Shared.Models;
@@ -15,6 +14,8 @@ namespace Mehrak.GameApi.CodeRedeem;
 
 public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiContext>
 {
+    private const string UnsupportedGameMessage = "Code redemption is not supported for this game";
+
     private readonly IHttpClientFactory m_HttpClientFactory;
     private readonly ILogger<CodeRedeemApiService> m_Logger;
 
@@ -26,108 +27,87 @@ public class CodeRedeemApiService : IApiService<CodeRedeemResult, CodeRedeemApiC
 
     public async Task<Result<CodeRedeemResult>> GetAsync(CodeRedeemApiContext context, CancellationToken cancellationToken = default)
     {
+        if (context.Game is not (Game.Genshin or Game.HonkaiStarRail or Game.ZenlessZoneZero))
+        {
+            m_Logger.LogError("Code redemption is not supported for game {Game} for User {UserId}", context.Game,
+                GameApiLog.ContextId(context.UserId));
+            return Result<CodeRedeemResult>.Failure(StatusCode.BadParameter, UnsupportedGameMessage);
+        }
+
+        var requestUri = $"{GetUri(context.Game)}?cdkey={context.Code}&game_biz={context.Game.ToGameBizString()}" +
+                         $"&region={context.Region}&uid={context.GameUid}&lang=en-us";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            var requestUri = $"{GetUri(context.Game)}?cdkey={context.Code}&game_biz={context.Game.ToGameBizString()}" +
-                             $"&region={context.Region}&uid={context.GameUid}&lang=en-us";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<CodeRedeemResult>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
-            }
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri),
-                Headers =
+            var envelope = await HoYoLabApi.SendEnvelopeAsync<object>(
+                new HoYoLabRequest
                 {
-                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" }
-                }
-            };
+                    RequestUri = requestUri
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token, HoYoLabRetcodes.AccountAuth);
 
-            var response = await client.SendAsync(request, timeoutCts.Token);
+            if (!envelope.IsSuccess)
+                return Result<CodeRedeemResult>.Failure(envelope.StatusCode, envelope.ErrorMessage,
+                    envelope.RequestUri);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while redeeming the code", requestUri);
-            }
-
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
-                    "An error occurred while redeeming the code", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
+            var json = envelope.Data;
 
             switch (json.Retcode)
             {
+                case HoYoLabRetcodes.AccountAuth:
+                    m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
+                    return Result<CodeRedeemResult>.Failure(StatusCode.Unauthorized,
+                        HoYoLabFailureMessages.Default.Unauthorized, requestUri);
+
                 case 0:
-                    m_Logger.LogInformation("Successfully redeemed code {Code} for User {UserId} gameUid {GameUid}", context.Code,
-                        context.UserId, context.GameUid);
+                    m_Logger.LogInformation("Successfully redeemed code for User {UserId} in game {Game}",
+                        GameApiLog.ContextId(context.UserId), context.Game);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redeemed Successfully!",
                         CodeStatus.Valid, RedemptionOutcome.Redeemed), requestUri: requestUri);
 
                 case -2001:
-                    m_Logger.LogInformation("Code {Code} is expired for User {UserId} gameUid {GameUid}", context.Code,
-                        context.UserId, context.GameUid);
+                    m_Logger.LogInformation("Redemption code expired for User {UserId} in game {Game}",
+                        GameApiLog.ContextId(context.UserId), context.Game);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Expired",
                         CodeStatus.Invalid, RedemptionOutcome.Expired), requestUri: requestUri);
 
                 case -2003:
-                    m_Logger.LogInformation("Invalid code {Code} for User {UserId} gameUid {GameUid}", context.Code,
-                        context.UserId, context.GameUid);
+                    m_Logger.LogInformation("Invalid redemption code for User {UserId} in game {Game}",
+                        GameApiLog.ContextId(context.UserId), context.Game);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Invalid Code", CodeStatus.Invalid, RedemptionOutcome.Invalid), requestUri: requestUri);
 
                 case -2016:
-                    m_Logger.LogInformation("Redemption in cooldown code {Code} User {UserId} gameUid {GameUid}",
-                        context.Code, context.UserId, context.GameUid);
+                    m_Logger.LogInformation("Redemption in cooldown for User {UserId} in game {Game}",
+                        GameApiLog.ContextId(context.UserId), context.Game);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption in Cooldown",
                         CodeStatus.Valid, RedemptionOutcome.Cooldown), requestUri: requestUri);
 
                 case -2017:
-                    m_Logger.LogInformation("Code {Code} already used for User {UserId} gameUid {GameUid}", context.Code,
-                        context.UserId, context.GameUid);
+                    m_Logger.LogInformation("Redemption code already used for User {UserId} in game {Game}",
+                        GameApiLog.ContextId(context.UserId), context.Game);
                     return Result<CodeRedeemResult>.Success(new CodeRedeemResult("Redemption Code Already Used",
                         CodeStatus.Valid, RedemptionOutcome.AlreadyUsed), requestUri: requestUri);
 
-                case -100:
-                    m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                    return Result<CodeRedeemResult>.Failure(StatusCode.Unauthorized,
-                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
-
                 default:
-                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
+                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, GameApiLog.ContextId(context.UserId),
+                        GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
+                        GameApiLog.RenderBody(json));
                     return Result<CodeRedeemResult>.Failure(StatusCode.ExternalServerError,
                         "An error occurred while redeeming the code", requestUri);
             }
         }
         catch (OperationCanceledException)
         {
-            return Result<CodeRedeemResult>.FromCancellation(cancellationToken);
+            return Result<CodeRedeemResult>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred, GetUri(context.Game), context.UserId);
+            GameApiLog.LogException(m_Logger, GetUri(context.Game), context.UserId, e);
             return Result<CodeRedeemResult>.Failure(StatusCode.BotError,
-                "An error occurred while redeeming the code");
+                "An error occurred while redeeming the code", requestUri);
         }
     }
 
@@ -171,5 +151,3 @@ public readonly record struct CodeRedeemResult
         Outcome = outcome;
     }
 }
-
-

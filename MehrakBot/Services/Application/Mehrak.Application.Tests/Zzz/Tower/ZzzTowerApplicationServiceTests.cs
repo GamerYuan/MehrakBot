@@ -79,7 +79,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Failure(status, "unsafe upstream text"));
+            .ReturnsAsync(Failure(status, "unsafe upstream text"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -107,7 +107,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(GetEmptyData()));
+            .ReturnsAsync(Empty());
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -132,7 +132,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Failure(StatusCode.ExternalServerError, "API Error"));
@@ -162,7 +162,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
@@ -199,7 +199,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
@@ -237,7 +237,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
@@ -299,7 +299,7 @@ public class ZzzTowerApplicationServiceTests
             .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
 
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
 
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(Result<IEnumerable<ZzzBasicAvatarData>>.Success(CreateBasicCharacterList()));
@@ -343,7 +343,7 @@ public class ZzzTowerApplicationServiceTests
         gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
             .ReturnsAsync(Result<GameProfileDto>.Success(profile));
         towerApiMock.Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Success(await LoadTestDataAsync("Tower_TestData_1.json")));
+            .ReturnsAsync(Available(await LoadTestDataAsync("Tower_TestData_1.json")));
         characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
             .ReturnsAsync(() =>
             {
@@ -383,7 +383,7 @@ public class ZzzTowerApplicationServiceTests
 
         towerApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -422,7 +422,7 @@ public class ZzzTowerApplicationServiceTests
 
         towerApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -445,7 +445,7 @@ public class ZzzTowerApplicationServiceTests
 
         towerApiMock
             .Setup(x => x.GetAsync(It.IsAny<BaseHoYoApiContext>()))
-            .ReturnsAsync(Result<ZzzTowerData>.Failure(StatusCode.ExternalServerError, "err"));
+            .ReturnsAsync(Failure(StatusCode.ExternalServerError, "err"));
 
         var context = CreateContext(1, 1ul, "test", ("server", Server.Asia.ToString()));
 
@@ -465,7 +465,7 @@ public class ZzzTowerApplicationServiceTests
 
     private (
         ZzzTowerApplicationService Service,
-        Mock<IApiService<ZzzTowerData, BaseHoYoApiContext>> TowerApiMock,
+        Mock<IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext>> TowerApiMock,
         Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>> CharacterApiMock,
         Mock<IImageUpdaterService> ImageUpdaterMock,
         Mock<ICardService<ZzzTowerData>> CardServiceMock,
@@ -475,7 +475,7 @@ public class ZzzTowerApplicationServiceTests
         ) SetupMocks()
     {
         var cardServiceMock = new Mock<ICardService<ZzzTowerData>>();
-        var towerApiMock = new Mock<IApiService<ZzzTowerData, BaseHoYoApiContext>>();
+        var towerApiMock = new Mock<IApiService<GameApiResponse<ZzzTowerData>, BaseHoYoApiContext>>();
         var characterApiMock = new Mock<ICharacterApiService<ZzzBasicAvatarData, ZzzFullAvatarData, CharacterApiContext>>();
         var imageUpdaterMock = new Mock<IImageUpdaterService>();
         var gameRoleApiMock = new Mock<IApiService<GameProfileDto, GameRoleApiContext>>();
@@ -595,11 +595,6 @@ public class ZzzTowerApplicationServiceTests
         return profile;
     }
 
-    private static ZzzTowerData GetEmptyData()
-    {
-        return new() { DisplayAvatarRankList = [], LayerInfo = new() { MedalIcon = string.Empty }, MvpInfo = new() };
-    }
-
     #endregion
     private static EndgameOutcome GetOutcome(CommandResult result)
     {
@@ -632,5 +627,20 @@ public class ZzzTowerApplicationServiceTests
             Assert.That(outcome.CycleStart, Is.Null);
             Assert.That(outcome.CycleEnd, Is.Null);
         }
+    }
+
+    private static Result<GameApiResponse<ZzzTowerData>> Available(ZzzTowerData data)
+    {
+        return Result<GameApiResponse<ZzzTowerData>>.Success(GameApiResponse<ZzzTowerData>.Available(data));
+    }
+
+    private static Result<GameApiResponse<ZzzTowerData>> Empty()
+    {
+        return Result<GameApiResponse<ZzzTowerData>>.Success(GameApiResponse<ZzzTowerData>.Empty());
+    }
+
+    private static Result<GameApiResponse<ZzzTowerData>> Failure(StatusCode status, string? message = null)
+    {
+        return Result<GameApiResponse<ZzzTowerData>>.Failure(status, message);
     }
 }

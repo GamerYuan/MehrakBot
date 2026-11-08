@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Mehrak.GameApi.Shared;
 
 namespace Mehrak.GameApi.Hoyolab;
 
@@ -17,11 +18,11 @@ public class HylPost
 public class HylPostDetail
 {
     [JsonPropertyName("post_id")] public required string PostId { get; set; }
-    [JsonPropertyName("uid")] public required string Uid { get; set; }
-    [JsonPropertyName("subject")] public required string Subject { get; set; }
+    [JsonPropertyName("uid")][GameApiSensitive] public required string Uid { get; set; }
+    [JsonPropertyName("subject")][GameApiSensitive] public required string Subject { get; set; }
     [JsonPropertyName("created_at")] public long CreatedAt { get; set; }
-    [JsonPropertyName("content")] public required string Content { get; set; }
-    [JsonPropertyName("structured_content")] public required string StructuredContent { get; set; }
+    [JsonPropertyName("content")][GameApiSensitive] public required string Content { get; set; }
+    [JsonPropertyName("structured_content")][GameApiSensitive] public required string StructuredContent { get; set; }
     [JsonPropertyName("origin_lang")] public required string OriginLang { get; set; }
     [JsonPropertyName("lang")] public required string Lang { get; set; }
 }

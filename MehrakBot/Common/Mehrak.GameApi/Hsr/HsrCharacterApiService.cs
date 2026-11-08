@@ -1,6 +1,5 @@
 ﻿#region
 
-using System.Text.Json;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Shared.Models;
@@ -43,13 +42,15 @@ public class
                 "Game UID or region is null or empty");
         }
 
+        var requestUri =
+            $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             var cacheKey = $"hsr_characters_{context.GameUid}";
-            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, timeoutCts.Token);
+            var cachedData = await m_Cache.GetAsync<IEnumerable<HsrBasicCharacterData>>(cacheKey, scope.Token);
 
             // Try to get data from cache first
             if (cachedData != null)
@@ -57,98 +58,36 @@ public class
                 return Result<IEnumerable<HsrBasicCharacterData>>.Success(cachedData);
             }
 
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}");
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
-            }
-
-            var requestUri =
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
-
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            using HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri),
-                Headers =
+            return await HoYoLabApi.ExecuteAsync(
+                CreateRequest(requestUri),
+                new HoYoLabEnvelopePolicy<HsrBasicCharacterData>
                 {
-                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" },
-                    { "X-Rpc-Client_type", "5" },
-                    { "X-Rpc-App_version", "1.5.0" },
-                    { "X-Rpc-Language", "en-us" },
-                    { "DS", DSGenerator.GenerateDS() }
-                }
-            };
+                    HasData = data => data.AvatarList is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character information"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    HsrBasicCharacterData[] result = [data];
 
-            using var response = await client.SendAsync(request, timeoutCts.Token);
+                    await m_Cache.SetAsync(
+                        new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
+                            TimeSpan.FromMinutes(CacheExpirationMinutes)), scope.Token);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Data == null || json.Data.AvatarList.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            HsrBasicCharacterData[] result = [json.Data];
-
-            await m_Cache.SetAsync(
-                new CharacterListCacheEntry<HsrBasicCharacterData>(cacheKey, result,
-                    TimeSpan.FromMinutes(CacheExpirationMinutes)), cancellationToken);
-
-            return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
+                    return Result<IEnumerable<HsrBasicCharacterData>>.Success(result, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<IEnumerable<HsrBasicCharacterData>>.FromCancellation(cancellationToken);
+            return Result<IEnumerable<HsrBasicCharacterData>>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<IEnumerable<HsrBasicCharacterData>>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character information");
+                "An error occurred while retrieving character information", requestUri);
         }
     }
 
@@ -161,14 +100,15 @@ public class
                 "Game UID, region, or character ID is invalid");
         }
 
+        string? requestUri = null;
+
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
             // Check cache for the requested character
             var charCacheKey = $"hsr_char:{context.GameUid}:{context.CharacterId}";
-            var cachedChar = await m_Cache.GetAsync<HsrCharacterInformation>(charCacheKey, timeoutCts.Token);
+            var cachedChar = await m_Cache.GetAsync<HsrCharacterInformation>(charCacheKey, scope.Token);
 
             if (cachedChar != null)
             {
@@ -177,7 +117,7 @@ public class
                 if (cachedChar.Equip != null)
                 {
                     var equipKey = $"hsr_equip_wiki:{cachedChar.Equip.Id}";
-                    var cachedEquip = await m_Cache.GetAsync<string>(equipKey, timeoutCts.Token);
+                    var cachedEquip = await m_Cache.GetAsync<string>(equipKey, scope.Token);
                     if (cachedEquip != null)
                         equipWiki[cachedChar.Equip.Id.ToString()] = cachedEquip;
                 }
@@ -188,7 +128,7 @@ public class
                     .Distinct().ToArray();
 
                 var relicTasks = relicIds.Select(id =>
-                    m_Cache.GetAsync<string>($"hsr_relic_wiki:{id}", timeoutCts.Token));
+                    m_Cache.GetAsync<string>($"hsr_relic_wiki:{id}", scope.Token));
                 var relicResults = await Task.WhenAll(relicTasks);
 
                 for (var i = 0; i < relicIds.Length; i++)
@@ -206,137 +146,92 @@ public class
             }
 
             // Cache miss — fetch all from API
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}");
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.");
-            }
-
-            var requestUri =
+            requestUri =
                 $"{HoYoLabDomains.PublicApi}{ApiEndpoint}?server={context.Region}&role_id={context.GameUid}&need_wiki=true";
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var client = m_HttpClientFactory.CreateClient("Default");
-            using HttpRequestMessage request = new()
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri(requestUri),
-                Headers =
+            return await HoYoLabApi.ExecuteAsync(
+                CreateRequest(requestUri),
+                new HoYoLabEnvelopePolicy<HsrBasicCharacterData>
                 {
-                    { "Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}" },
-                    { "X-Rpc-Client_type", "5" },
-                    { "X-Rpc-App_version", "1.5.0" },
-                    { "X-Rpc-Language", "en-us" },
-                    { "DS", DSGenerator.GenerateDS() }
-                }
-            };
+                    HasData = data => data.AvatarList is { Count: > 0 },
+                    UnknownRetcode = "An unknown error occurred when accessing HoYoLAB API. Please try again later",
+                    EmptyData = "Failed to retrieve character information"
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token,
+                async data =>
+                {
+                    // Cache each character individually
+                    var charCacheTasks = data.AvatarList.Select(avatar =>
+                        m_Cache.SetAsync(
+                            new CacheEntryBase<HsrCharacterInformation>(
+                                $"hsr_char:{context.GameUid}:{avatar.Id}",
+                                avatar,
+                                TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
+                            scope.Token));
+                    await Task.WhenAll(charCacheTasks);
 
-            using var response = await client.SendAsync(request, timeoutCts.Token);
+                    // Cache equip wiki entries
+                    var equipWikiCacheTasks = data.EquipWiki.Select(kvp =>
+                        m_Cache.SetAsync(
+                            new CacheEntryBase<string>(
+                                $"hsr_equip_wiki:{kvp.Key}",
+                                kvp.Value,
+                                TimeSpan.FromMinutes(WikiCacheMinutes)),
+                            scope.Token));
+                    await Task.WhenAll(equipWikiCacheTasks);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
+                    // Cache relic wiki entries
+                    var relicWikiCacheTasks = data.RelicWiki.Select(kvp =>
+                        m_Cache.SetAsync(
+                            new CacheEntryBase<string>(
+                                $"hsr_relic_wiki:{kvp.Key}",
+                                kvp.Value,
+                                TimeSpan.FromMinutes(WikiCacheMinutes)),
+                            scope.Token));
+                    await Task.WhenAll(relicWikiCacheTasks);
 
-            var json =
-                await JsonSerializer.DeserializeAsync<ApiResponse<HsrBasicCharacterData>>(
-                    await response.Content.ReadAsStreamAsync(timeoutCts.Token), (JsonSerializerOptions?)null, timeoutCts.Token);
+                    // Find and return the requested character
+                    var requestedChar = data.AvatarList.FirstOrDefault(x => x.Id == context.CharacterId);
+                    if (requestedChar == null)
+                    {
+                        m_Logger.LogError("Requested character {CharacterId} not found in API response", context.CharacterId);
+                        return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
+                            "Requested character not found", requestUri);
+                    }
 
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode, context.UserId);
-
-            if (json.Retcode == 10001)
-            {
-                m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please authenticate again.", requestUri);
-            }
-
-            if (json.Retcode != 0)
-            {
-                m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred when accessing HoYoLAB API. Please try again later", requestUri);
-            }
-
-            if (json.Data == null || json.Data.AvatarList.Count == 0)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
-                    "Failed to retrieve character information", requestUri);
-            }
-
-            // Cache each character individually
-            var charCacheTasks = json.Data.AvatarList.Select(avatar =>
-                m_Cache.SetAsync(
-                    new CacheEntryBase<HsrCharacterInformation>(
-                        $"hsr_char:{context.GameUid}:{avatar.Id}",
-                        avatar,
-                        TimeSpan.FromMinutes(CharacterDetailCacheMinutes)),
-                    timeoutCts.Token));
-            await Task.WhenAll(charCacheTasks);
-
-            // Cache equip wiki entries
-            var equipWikiCacheTasks = json.Data.EquipWiki.Select(kvp =>
-                m_Cache.SetAsync(
-                    new CacheEntryBase<string>(
-                        $"hsr_equip_wiki:{kvp.Key}",
-                        kvp.Value,
-                        TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    timeoutCts.Token));
-            await Task.WhenAll(equipWikiCacheTasks);
-
-            // Cache relic wiki entries
-            var relicWikiCacheTasks = json.Data.RelicWiki.Select(kvp =>
-                m_Cache.SetAsync(
-                    new CacheEntryBase<string>(
-                        $"hsr_relic_wiki:{kvp.Key}",
-                        kvp.Value,
-                        TimeSpan.FromMinutes(WikiCacheMinutes)),
-                    timeoutCts.Token));
-            await Task.WhenAll(relicWikiCacheTasks);
-
-            // Find and return the requested character
-            var requestedChar = json.Data.AvatarList.FirstOrDefault(x => x.Id == context.CharacterId);
-            if (requestedChar == null)
-            {
-                m_Logger.LogError("Requested character {CharacterId} not found in API response", context.CharacterId);
-                return Result<HsrBasicCharacterData>.Failure(StatusCode.ExternalServerError,
-                    "Requested character not found", requestUri);
-            }
-
-            return Result<HsrBasicCharacterData>.Success(new HsrBasicCharacterData
-            {
-                AvatarList = [requestedChar],
-                EquipWiki = json.Data.EquipWiki,
-                RelicWiki = json.Data.RelicWiki
-            }, requestUri: requestUri);
+                    return Result<HsrBasicCharacterData>.Success(new HsrBasicCharacterData
+                    {
+                        AvatarList = [requestedChar],
+                        EquipWiki = data.EquipWiki,
+                        RelicWiki = data.RelicWiki
+                    }, requestUri: requestUri);
+                });
         }
         catch (OperationCanceledException)
         {
-            return Result<HsrBasicCharacterData>.FromCancellation(cancellationToken);
+            return Result<HsrBasicCharacterData>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId);
+            GameApiLog.LogException(m_Logger, $"{HoYoLabDomains.PublicApi}{ApiEndpoint}", context.UserId, e);
             return Result<HsrBasicCharacterData>.Failure(StatusCode.BotError,
-                "An error occurred while retrieving character information");
+                "An error occurred while retrieving character information", requestUri);
         }
     }
+
+    private static HoYoLabRequest CreateRequest(string requestUri)
+    {
+        return new HoYoLabRequest
+        {
+            RequestUri = requestUri,
+            Headers =
+            [
+                new KeyValuePair<string, string>("X-Rpc-Client_type", "5"),
+                new KeyValuePair<string, string>("X-Rpc-App_version", "1.5.0"),
+                new KeyValuePair<string, string>("X-Rpc-Language", "en-us"),
+                new KeyValuePair<string, string>("DS", DSGenerator.GenerateDS())
+            ]
+        };
+    }
 }
-
-

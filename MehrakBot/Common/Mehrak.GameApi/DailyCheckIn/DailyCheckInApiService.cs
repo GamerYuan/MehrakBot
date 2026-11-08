@@ -1,8 +1,5 @@
-﻿﻿﻿#region
+﻿#region
 
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mehrak.Domain.Shared.Abstractions;
 using Mehrak.Domain.Shared.Enums;
@@ -56,86 +53,65 @@ public class DailyCheckInApiService : IApiService<CheckInStatus, CheckInApiConte
 
         try
         {
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(IApiService.MaxTimeoutSeconds));
+            using var scope = new HoYoLabRequestScope(cancellationToken);
 
-            m_Logger.LogInformation(LogMessages.PreparingRequest, requestUri);
-
-            var httpClient = m_HttpClientFactory.CreateClient("Default");
-            HttpRequestMessage request = new(HttpMethod.Post, requestUri);
             CheckInApiPayload requestBody = new() { ActId = actId };
-            if (!LTokenValidator.IsValidLToken(context.LToken))
-            {
-                // Reject malformed credential characters/lengths before building the Cookie header. HttpHeaders.Add
-                // would throw a FormatException embedding the credential value, which the catch below would write to
-                // retained file/OTLP logs. This sanitized warning never includes the credential itself.
-                m_Logger.LogWarning("Rejected HoYoLAB request with malformed credential format for User {UserId} at {Endpoint}", context.UserId, requestUri);
-                return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
-                    "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
-            }
-            request.Headers.Add("Cookie", $"ltuid_v2={context.LtUid}; ltoken_v2={context.LToken}");
 
-            if (context.Game == Game.ZenlessZoneZero) request.Headers.Add("X-Rpc-Signgame", "zzz");
+            var headers = new List<KeyValuePair<string, string>>();
+            if (context.Game == Game.ZenlessZoneZero)
+                headers.Add(new KeyValuePair<string, string>("X-Rpc-Signgame", "zzz"));
 
-            request.Content =
-                new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var envelope = await HoYoLabApi.SendEnvelopeAsync<object>(
+                new HoYoLabRequest
+                {
+                    RequestUri = requestUri,
+                    Method = HttpMethod.Post,
+                    Body = requestBody,
+                    Headers = headers
+                },
+                new HoYoLabCredentials(context.UserId, context.LtUid, context.LToken),
+                m_HttpClientFactory, m_Logger, scope.Token, HoYoLabRetcodes.AccountAuth);
 
-            var response = await httpClient.SendAsync(request, timeoutCts.Token);
+            if (!envelope.IsSuccess)
+                return Result<CheckInStatus>.Failure(envelope.StatusCode, envelope.ErrorMessage, envelope.RequestUri);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                m_Logger.LogError(LogMessages.NonSuccessStatusCode, response.StatusCode, requestUri);
-                return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred during check-in", requestUri);
-            }
-
-            var json = await response.Content.ReadFromJsonAsync<ApiResponse<object>>(timeoutCts.Token);
-
-            if (json == null)
-            {
-                m_Logger.LogError(LogMessages.EmptyResponseData, requestUri, context.UserId);
-                return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
-                    "An unknown error occurred during check-in", requestUri);
-            }
-
-            // Info-level API retcode after parse
-            m_Logger.LogInformation(LogMessages.InboundHttpResponseWithRetcode, (int)response.StatusCode, requestUri, json.Retcode,
-                context.UserId);
+            var json = envelope.Data;
 
             switch (json.Retcode)
             {
+                case HoYoLabRetcodes.AccountAuth:
+                    m_Logger.LogError(LogMessages.InvalidCredentials, GameApiLog.ContextId(context.UserId));
+                    return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
+                        HoYoLabFailureMessages.Default.Unauthorized, requestUri);
+
                 case -5003:
-                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, context.UserId, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.AlreadyCheckedIn, GameApiLog.ContextId(context.UserId), context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.AlreadyCheckedIn, requestUri: requestUri);
 
                 case 0:
                     return Result<CheckInStatus>.Success(CheckInStatus.Success, requestUri: requestUri);
 
                 case -10002:
-                    m_Logger.LogInformation(LogMessages.NoValidProfile, context.UserId, context.LtUid, context.Game.ToString());
+                    m_Logger.LogInformation(LogMessages.NoValidProfile, GameApiLog.ContextId(context.UserId), context.Game.ToString());
                     return Result<CheckInStatus>.Success(CheckInStatus.NoValidProfile, requestUri: requestUri);
 
-                case -100:
-                    m_Logger.LogError(LogMessages.InvalidCredentials, context.UserId);
-                    return Result<CheckInStatus>.Failure(StatusCode.Unauthorized,
-                        "Invalid HoYoLAB UID or Cookies. Please re-authenticate", requestUri);
-
                 default:
-                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, context.UserId, requestUri, json);
+                    m_Logger.LogError(LogMessages.UnknownRetcode, json.Retcode, GameApiLog.ContextId(context.UserId),
+                        GameApiLog.Endpoint(requestUri), GameApiLog.SafeQueryParameters(requestUri),
+                        GameApiLog.RenderBody(json));
                     return Result<CheckInStatus>.Failure(StatusCode.ExternalServerError,
-                        $"An unknown error occurred during check-in", requestUri);
+                        "An unknown error occurred during check-in", requestUri);
             }
         }
         catch (OperationCanceledException)
         {
-            return Result<CheckInStatus>.FromCancellation(cancellationToken);
+            return Result<CheckInStatus>.FromCancellation(cancellationToken, requestUri);
         }
         catch (Exception e)
         {
-            m_Logger.LogError(e, LogMessages.ExceptionOccurred,
-                CheckInUrls.GetValueOrDefault(context.Game, "unknown"), context.UserId);
+            GameApiLog.LogException(m_Logger, requestUri, context.UserId, e);
             return Result<CheckInStatus>.Failure(StatusCode.BotError,
-                "An error occurred during check-in");
+                "An error occurred during check-in", requestUri);
         }
     }
 
@@ -160,5 +136,3 @@ public class CheckInApiContext : IApiContext
         Game = game;
     }
 }
-
-

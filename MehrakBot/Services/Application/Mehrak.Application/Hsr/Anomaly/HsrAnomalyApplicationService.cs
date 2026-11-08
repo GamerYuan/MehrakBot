@@ -24,7 +24,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
 {
     private readonly ICardService<HsrAnomalyInformation> m_CardService;
     private readonly IImageUpdaterService m_ImageUpdaterService;
-    private readonly IApiService<HsrAnomalyInformation, BaseHoYoApiContext> m_ApiService;
+    private readonly IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext> m_ApiService;
 
 
     protected override string CommandName => "Anomaly Arbitration";
@@ -32,7 +32,7 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
     public HsrAnomalyApplicationService(
         ICardService<HsrAnomalyInformation> cardService,
         IImageUpdaterService imageUpdaterService,
-        IApiService<HsrAnomalyInformation, BaseHoYoApiContext> apiService,
+        IApiService<GameApiResponse<HsrAnomalyInformation>, BaseHoYoApiContext> apiService,
         IApiService<GameProfileDto, GameRoleApiContext> gameRoleApi,
         UserDbContext userContext,
         IAttachmentStorageService attachmentStorageService,
@@ -67,13 +67,15 @@ internal class HsrAnomalyApplicationService : BaseAttachmentApplicationService
                 CommandErrorCode.ApiUnavailable, CommandErrorTarget.AnomalyArbitration);
         }
 
-        var anomalyData = anomalyResult.Data;
+        var outcome = anomalyResult.Data;
 
-        if (anomalyData.ChallengeRecords.Count == 0)
+        if (!outcome.IsAvailable)
         {
             Logger.LogInformation(LogMessage.NoClearRecords, "Anomaly Arbitration", context.UserId, gameUid);
             return CommandResult.Success(EndgameOutcome.Empty(Game.HonkaiStarRail, profile.GameUid, EndgameMode.AnomalyArbitration));
         }
+
+        var anomalyData = outcome.Payload;
 
         var bestRecord = anomalyData.BestRecord.RankIconType != RankIconType.ChallengePeakRankIconTypeNone
             ? anomalyData.ChallengeRecords.FirstOrDefault(

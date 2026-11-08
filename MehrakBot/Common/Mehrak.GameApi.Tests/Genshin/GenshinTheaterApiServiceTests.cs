@@ -16,7 +16,15 @@ public class GenshinTheaterApiServiceTests
     private const string TheaterRecordJson = """
         {
           "detail": {
-            "rounds_data": [],
+            "rounds_data": [
+              {
+                "avatars": [],
+                "round_id": 1,
+                "finish_time": "0",
+                "finish_date_time": {},
+                "splendour_buff": {"summary": {"total_level": 1}, "buffs": []}
+              }
+            ],
             "detail_stat": {"get_medal_round_list": []},
             "backup_avatars": [],
             "fight_statisic": {
@@ -41,7 +49,7 @@ public class GenshinTheaterApiServiceTests
 
     private FakeHttpMessageHandler m_Handler = null!;
     private ServiceProvider m_Provider = null!;
-    private IApiService<GenshinTheaterResponseData, BaseHoYoApiContext> m_Service = null!;
+    private IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext> m_Service = null!;
 
     [SetUp]
     public void SetUp()
@@ -54,7 +62,7 @@ public class GenshinTheaterApiServiceTests
         services.AddGameApiServices();
 
         m_Provider = services.BuildServiceProvider();
-        m_Service = m_Provider.GetRequiredService<IApiService<GenshinTheaterResponseData, BaseHoYoApiContext>>();
+        m_Service = m_Provider.GetRequiredService<IApiService<GameApiResponse<GenshinTheaterResponseData>, BaseHoYoApiContext>>();
     }
 
     [TearDown]
@@ -71,11 +79,10 @@ public class GenshinTheaterApiServiceTests
         var result = await m_Service.GetAsync(CreateContext());
 
         Assert.That(result.IsSuccess, Is.True);
-        var response = result.Data;
-        Assert.That(response, Is.Not.Null);
+        var response = GetAvailablePayload(result);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(response!.IsUnlock, Is.True);
+            Assert.That(response.IsUnlock, Is.True);
             Assert.That(response.Data, Is.Empty);
             Assert.That(response.TarotCardState, Is.Not.Null);
             Assert.That(response.TarotCardState!.TotalNum, Is.EqualTo(22));
@@ -103,11 +110,10 @@ public class GenshinTheaterApiServiceTests
         var result = await m_Service.GetAsync(CreateContext());
 
         Assert.That(result.IsSuccess, Is.True);
-        var response = result.Data;
-        Assert.That(response, Is.Not.Null);
+        var response = GetAvailablePayload(result);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(response!.Data, Has.Count.EqualTo(1));
+            Assert.That(response.Data, Has.Count.EqualTo(1));
             Assert.That(response.Data[0].HasDetailData, Is.True);
             Assert.That(response.TarotCardState, Is.Not.Null);
             Assert.That(response.TarotCardState!.List, Has.Count.EqualTo(22));
@@ -122,11 +128,10 @@ public class GenshinTheaterApiServiceTests
         var result = await m_Service.GetAsync(CreateContext());
 
         Assert.That(result.IsSuccess, Is.True);
-        var response = result.Data;
-        Assert.That(response, Is.Not.Null);
+        var response = GetAvailablePayload(result);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(response!.TarotCardState, Is.Null);
+            Assert.That(response.TarotCardState, Is.Null);
             Assert.That(response.Data, Has.Count.EqualTo(1));
             Assert.That(response.Data[0].HasDetailData, Is.True);
             Assert.That(response.Data[0].Schedule.StartTime, Is.EqualTo("1786000000"));
@@ -134,7 +139,7 @@ public class GenshinTheaterApiServiceTests
     }
 
     [Test]
-    public async Task GetAsync_UnlockedEmptyTheaterDataWithoutTarotState_ReturnsExternalServerError()
+    public async Task GetAsync_UnlockedEmptyTheaterDataWithoutTarotState_ReturnsEmptyOutcome()
     {
         m_Handler.EnqueueJson(CreatePayload("[]"));
 
@@ -142,14 +147,15 @@ public class GenshinTheaterApiServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
-            Assert.That(result.ErrorMessage, Does.Contain("No Imaginarium Theater data found"));
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.Availability, Is.EqualTo(GameApiAvailability.Empty));
+            Assert.That(result.Data.Payload, Is.Null);
         }
     }
 
     [Test]
-    public async Task GetAsync_NotUnlocked_ReturnsUnauthorized()
+    public async Task GetAsync_NotUnlocked_ReturnsLockedOutcome()
     {
         m_Handler.EnqueueJson(CreatePayload("[]", isUnlock: false, tarotCardStateJson: CreateTarotCardStateJson()));
 
@@ -157,12 +163,185 @@ public class GenshinTheaterApiServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
-            Assert.That(result.ErrorMessage, Does.Contain("not unlocked"));
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.Availability, Is.EqualTo(GameApiAvailability.Locked));
+            Assert.That(result.Data.Payload, Is.Null);
         }
     }
 
+    [Test]
+    public async Task GetAsync_HasDetailDataWithNullDetail_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            """[{"detail":null,"stat":{"get_medal_round_list":[]},"schedule":{"start_time":"1786000000","end_time":"1789000000","start_date_time":{},"end_date_time":{}},"has_data":true,"has_detail_data":true}]"""));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.ErrorMessage, Does.Not.Contain("NullReferenceException"));
+            Assert.That(result.RequestUri, Is.Not.Null);
+        }
+    }
+
+    [TestCase("253402300800")]
+    [TestCase("-62135596801")]
+    [TestCase("9223372036854775807")]
+    public async Task GetAsync_ScheduleOutsideUnixSecondsRange_ReturnsControlledInvalidResponse(
+        string invalidTime)
+    {
+        m_Handler.EnqueueJson(CreatePayload($"[{CreateDetailRecordJson(invalidTime, "1789000000")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+            Assert.That(result.RequestUri, Is.Not.Null);
+        }
+    }
+
+    [TestCase("253402300799")]
+    [TestCase("-62135596800")]
+    public async Task GetAsync_ScheduleAtUnixSecondsBounds_ReturnsAvailable(string boundary)
+    {
+        m_Handler.EnqueueJson(CreatePayload($"[{CreateDetailRecordJson(boundary, "1789000000")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.IsAvailable, Is.True);
+            Assert.That(result.Data.Payload, Is.Not.Null);
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_AvailableWithDetailRecord_ReturnsPayload()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.IsAvailable, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_NullRoundAvatarEntry_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", avatarsJson: "[null]")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_NullSplendourBuffEntry_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", buffsJson: "[null]")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_NullShortestAvatarEntry_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", shortestAvatarListJson: "[null]")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_NullSplendourBuffSummary_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", summaryJson: null)}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_NullBuffName_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", buffsJson: "[{\"name\":null,\"icon\":\"i\"}]")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_AvailableWithBuff_ReturnsPayload()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", buffsJson: "[{\"name\":\"Buff\",\"icon\":\"i\"}]")}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.Not.Null);
+            Assert.That(result.Data!.IsAvailable, Is.True);
+        }
+    }
+    [Test]
+    public async Task GetAsync_HasDetailDataWithEmptyRounds_ReturnsControlledInvalidResponse()
+    {
+        m_Handler.EnqueueJson(CreatePayload(
+            $"[{CreateDetailRecordJson("1786000000", "1789000000", includeRound: false)}]"));
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.ExternalServerError));
+        }
+    }
     [TestCase(10001, StatusCode.Unauthorized)]
     [TestCase(12345, StatusCode.ExternalServerError)]
     public async Task GetAsync_ErrorRetcode_ReturnsExistingMappedFailure(int retcode, StatusCode expectedStatus)
@@ -175,6 +354,24 @@ public class GenshinTheaterApiServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(expectedStatus));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_AuthRetcodeWithoutData_ReturnsUnauthorized()
+    {
+        m_Handler.EnqueueJson("""{"retcode":10001,"message":"upstream text"}""");
+
+        var result = await m_Service.GetAsync(CreateContext());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Unauthorized));
+            Assert.That(result.ErrorMessage, Does.Contain("Invalid HoYoLAB UID or Cookies"));
+            Assert.That(result.ErrorMessage, Does.Not.Contain("upstream text"));
+            Assert.That(result.ErrorMessage, Does.Not.Contain("not unlocked"));
+            Assert.That(result.RequestUri, Is.Not.Null);
         }
     }
 
@@ -240,7 +437,25 @@ public class GenshinTheaterApiServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Cancelled));
+            Assert.That(result.RequestUri, Is.Not.Null);
             Assert.That(m_Handler.RequestCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_PreCancelledCaller_ReturnsCancelledWithoutSendingRequest()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        var result = await m_Service.GetAsync(CreateContext(), cancellation.Token);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Cancelled));
+            Assert.That(result.RequestUri, Is.Not.Null);
+            Assert.That(m_Handler.RequestCount, Is.Zero);
         }
     }
 
@@ -255,12 +470,59 @@ public class GenshinTheaterApiServiceTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.StatusCode, Is.EqualTo(StatusCode.Timeout));
+            Assert.That(result.RequestUri, Is.Not.Null);
         }
     }
 
     private static BaseHoYoApiContext CreateContext()
     {
         return new BaseHoYoApiContext(1, 100, "valid-token", "900000001", "os_asia");
+    }
+
+    private static GenshinTheaterResponseData GetAvailablePayload(
+        Result<GameApiResponse<GenshinTheaterResponseData>> result)
+    {
+        Assert.That(result.Data, Is.Not.Null);
+        Assert.That(result.Data!.IsAvailable, Is.True);
+        return result.Data.Payload!;
+    }
+
+    private static string CreateDetailRecordJson(string startTime, string endTime,
+        string avatarsJson = "[]", string buffsJson = "[]", string shortestAvatarListJson = "[]",
+        string? summaryJson = "{\"total_level\":1}", bool includeRound = true)
+    {
+        var summary = summaryJson ?? "null";
+        var roundsData = includeRound
+            ? "[{\"avatars\":" + avatarsJson + ",\"round_id\":1,\"finish_time\":\"0\"," +
+              "\"finish_date_time\":{},\"splendour_buff\":{\"summary\":" + summary +
+              ",\"buffs\":" + buffsJson + "}}]"
+            : "[]";
+
+        return $$"""
+            {
+              "detail": {
+                "rounds_data": {{roundsData}},
+                "detail_stat": {"get_medal_round_list": []},
+                "backup_avatars": [],
+                "fight_statisic": {
+                  "max_defeat_avatar": {"value": ""},
+                  "max_damage_avatar": {"value": ""},
+                  "max_take_damage_avatar": {"value": ""},
+                  "total_coin_consumed": {"value": ""},
+                  "shortest_avatar_list": {{shortestAvatarListJson}}
+                }
+              },
+              "stat": {"get_medal_round_list": []},
+              "schedule": {
+                "start_time": "{{startTime}}",
+                "end_time": "{{endTime}}",
+                "start_date_time": {},
+                "end_date_time": {}
+              },
+              "has_data": true,
+              "has_detail_data": true
+            }
+            """;
     }
 
     private static string CreatePayload(string dataJson, bool isUnlock = true, string? tarotCardStateJson = null,

@@ -1,9 +1,9 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Mehrak.Domain.Cache;
 using Mehrak.Domain.Cache.Abstractions;
 using Mehrak.Domain.Character;
-using Mehrak.Domain.Shared.Models;
 using Mehrak.Domain.Shared.Enums;
+using Mehrak.Domain.Shared.Models;
 using Mehrak.GameApi.GameRole;
 using Mehrak.GameApi.Hi3.Types;
 using Mehrak.GameApi.Shared.Types;
@@ -77,7 +77,6 @@ public class Hi3CharacterApiServiceTests
     [Test]
     public async Task GetAllCharactersAsync_RetCode10001_ReturnsUnauthorized()
     {
-        // Unlike Genshin/Hsr/Zzz, retcode is checked before the empty-data guard here
         m_Handler.EnqueueJson("""{"retcode":10001,"message":"auth error"}""");
         var service = CreateService();
         var context = new CharacterApiContext(1, 100, "ltoken", "100000001", "overseas01");
