@@ -46,6 +46,7 @@ public static class FileNameFormat
         public const string AnomalyName = "hsr/anomaly_{0}.png";
         public const string EquipName = "hsr/equip_{0}.png";
         public const string RankName = "hsr/rank_{0}.png";
+        public const string ExRankName = "hsr/ex_rank_{0}.png";
         public const string SkillName = "hsr/skill_{0}.png";
         public const string BossName = "hsr/boss_{0}.png";
 

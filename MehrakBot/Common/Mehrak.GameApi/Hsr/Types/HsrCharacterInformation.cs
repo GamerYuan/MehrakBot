@@ -23,6 +23,7 @@ public class HsrCharacterInformation
     [JsonPropertyName("relics")] public required List<Relic> Relics { get; init; }
     [JsonPropertyName("ornaments")] public required List<Relic> Ornaments { get; init; }
     [JsonPropertyName("ranks")] public required List<Rank> Ranks { get; init; }
+    [JsonPropertyName("ex_ranks")] public List<ExRank>? ExRanks { get; init; }
     [JsonPropertyName("properties")] public required List<Property> Properties { get; init; }
     [JsonPropertyName("skills")] public required List<Skill> Skills { get; init; }
     [JsonPropertyName("base_type")] public int? BaseType { get; init; }
@@ -116,14 +117,22 @@ public class Rank
     [JsonPropertyName("desc")] public string? Desc { get; init; }
     [JsonPropertyName("is_unlocked")] public bool IsUnlocked { get; init; }
 
-    public string ToImageName()
+    public virtual string ToImageName()
     {
         return string.Format(FileNameFormat.Hsr.RankName, Id);
     }
 
-    public IImageData ToImageData()
+    public virtual IImageData ToImageData()
     {
         return new ImageData(ToImageName(), Icon);
+    }
+}
+
+public class ExRank : Rank
+{
+    public override string ToImageName()
+    {
+        return string.Format(FileNameFormat.Hsr.ExRankName, Id);
     }
 }
 

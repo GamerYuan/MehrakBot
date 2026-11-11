@@ -123,12 +123,11 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                 characterInformation.Equip.ToImageName(), disposables, cancellationToken);
         Task<(bool Active, Image Image)>[] rankTasks =
         [
-            .. characterInformation.Ranks!.Select(async x =>
-            {
-                var image = await LoadImageFromRepositoryAsync(x.ToImageName(), disposables, cancellationToken);
-                return (Active: x.IsUnlocked, Image: image);
-            })
+            .. characterInformation.Ranks!.Select(x => LoadRankImageAsync(x, disposables, cancellationToken))
         ];
+
+        var exRank = characterInformation.ExRanks?.FirstOrDefault();
+        var exRankTask = exRank is null ? null : LoadRankImageAsync(exRank, disposables, cancellationToken);
 
         Skill[] baseSkill =
             [.. characterInformation.Skills!.Where(x => (x.PointType == 2 && x.Remake != "Technique") || x.PointType == 4)];
@@ -231,6 +230,7 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
 
         var equipImage = await equipImageTask;
         (bool Active, Image Image)[] ranks = [.. (await Task.WhenAll(rankTasks)).Reverse()];
+        (bool Active, Image Image)? exRankImage = exRankTask is null ? null : await exRankTask;
         (Skill Data, Image Image)[] baseSkillImages = [.. await Task.WhenAll(baseSkillTasks)];
         (Skill Data, Image Image)[][] skillImages = [.. await Task.WhenAll(skillTasks)];
         var stats = characterInformation.Properties!.Where(x =>
@@ -296,12 +296,26 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
                     TextAlignment = TextAlignment.End,
                 }, extraText: !string.IsNullOrWhiteSpace(context.PortraitConfig?.ArtistAttribution) ? $"Cre: {context.PortraitConfig!.ArtistAttribution}" : null);
 
+                var hasExRank = exRankImage is not null;
+                var rankRadius = hasExRank ? 35f : 45f;
+                var rankSpacing = hasExRank ? 90f : 100f;
+                var exRankOffset = hasExRank ? 1 : 0;
+
+                if (exRankImage is { } exRankSlot)
+                {
+                    if (!exRankSlot.Active) exRankSlot.Image.Mutate(x => x.Brightness(0.5f));
+                    else ApplyExRankAccentTint(exRankSlot.Image, accentColor);
+
+                    canvas.DrawBoundedCenteredIcon(exRankSlot.Image, new PointF(900, 1115), rankRadius, 5,
+                        Color.DarkSlateGray, accentColor, 5f);
+                }
+
                 for (var i = 0; i < ranks.Length; i++)
                 {
-                    var offset = i * 100;
+                    var offset = (i + exRankOffset) * rankSpacing;
                     if (!ranks[i].Active) ranks[i].Image.Mutate(x => x.Brightness(0.5f));
-                    canvas.DrawBoundedCenteredIcon(ranks[i].Image, new PointF(900, 1115 - offset), 45, 5, Color.DarkSlateGray,
-                        accentColor, 5f);
+                    canvas.DrawBoundedCenteredIcon(ranks[i].Image, new PointF(900, 1115 - offset), rankRadius, 5,
+                        Color.DarkSlateGray, accentColor, 5f);
                 }
 
                 for (var i = 0; i < baseSkillImages.Length; i++)
@@ -676,6 +690,29 @@ public class HsrCharacterCardService : CharacterCardServiceBase<HsrCharacterInfo
             new LinearLineSegment(new PointF(right, bottom), new PointF(left + radiusX, bottom)),
             new ArcLineSegment(bottomLeftCenter, cornerRadius, 0F, 90F, 90F),
             new LinearLineSegment(new PointF(left, bottom - radiusY), new PointF(left, top + radiusY)));
+    }
+
+    private async Task<(bool Active, Image Image)> LoadRankImageAsync(Rank rank, DisposableBag disposables,
+        CancellationToken cancellationToken)
+    {
+        var image = await LoadImageFromRepositoryAsync(rank.ToImageName(), disposables, cancellationToken);
+        return (Active: rank.IsUnlocked, Image: image);
+    }
+
+    internal static void ApplyExRankAccentTint(Image image, Color accentColor, float amount = 0.35f)
+    {
+        var accent = accentColor.ToPixel<Rgba32>();
+        image.Mutate(ctx => ctx.ProcessPixelRowsAsVector4(row =>
+        {
+            foreach (ref var pixel in row)
+            {
+                // Transparent pixels stay fully transparent; the alpha channel is never modified.
+                if (pixel.W <= 0f) continue;
+                pixel.X = pixel.X * (1f - amount) + accent.R / 255f * amount;
+                pixel.Y = pixel.Y * (1f - amount) + accent.G / 255f * amount;
+                pixel.Z = pixel.Z * (1f - amount) + accent.B / 255f * amount;
+            }
+        }));
     }
 
     private static Color GetAccentColor(string element)

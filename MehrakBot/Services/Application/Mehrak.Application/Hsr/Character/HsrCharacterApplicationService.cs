@@ -196,7 +196,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
             : null;
         var stockConfig = await (stockConfigTask ?? Task.FromResult<CharacterPortraitConfig?>(null));
 
-        var fileName = GetCardFileName("hsr", "character", "v1", characterInfo, profile,
+        var fileName = GetCardFileName("hsr", "character", "v2", characterInfo, profile,
             new { Server = server, Portrait = activePortrait, StockConfig = stockConfig });
         if (await AttachmentExistsAsync(fileName, cancellationToken))
         {
@@ -356,8 +356,17 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                         new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)) ?? []);
             }
 
+            var exRank = characterInfo.ExRanks?.FirstOrDefault();
+            var rankIconSize = exRank is null ? 80 : 60;
+
             tasks.AddRange(characterInfo.Ranks.Select(x => m_ImageUpdaterService.UpdateImageAsync(x.ToImageData(),
-                new ImageProcessorBuilder().Resize(80, 0).Build(), cancellationToken)));
+                new ImageProcessorBuilder().Resize(rankIconSize, 0).Build(), cancellationToken)));
+
+            if (exRank != null)
+            {
+                tasks.Add(m_ImageUpdaterService.UpdateImageAsync(exRank.ToImageData(),
+                    new ImageProcessorBuilder().Resize(60, 0).Build(), cancellationToken));
+            }
         }
         finally
         {
@@ -384,7 +393,7 @@ public class HsrCharacterApplicationService : BaseAttachmentApplicationService
                 stockConfig);
         if (resolution.UsedStockFallback)
         {
-            fileName = GetCardFileName("hsr", "character", "v1", characterInfo, profile,
+            fileName = GetCardFileName("hsr", "character", "v2", characterInfo, profile,
                 new { Server = server, Portrait = resolution.Config, StockConfig = resolution.Config });
 
             if (await AttachmentExistsAsync(fileName, cancellationToken))
