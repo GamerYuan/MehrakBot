@@ -225,7 +225,7 @@ internal sealed class DashboardSessionServiceTests : IDisposable
             await ctx.SaveChangesAsync();
         }
 
-        Assert.DoesNotThrowAsync(() => m_Service.RefreshSessionAsync("token000000000000000000000000008"));
+        await Assert.DoesNotThrowAsync(() => m_Service.RefreshSessionAsync("token000000000000000000000000008"));
     }
 
     [Test]
@@ -233,7 +233,7 @@ internal sealed class DashboardSessionServiceTests : IDisposable
     {
         SetupService();
 
-        Assert.DoesNotThrowAsync(() => m_Service.RefreshSessionAsync("nonexistent000000000000000000000"));
+        await Assert.DoesNotThrowAsync(() => m_Service.RefreshSessionAsync("nonexistent000000000000000000000"));
     }
 
     #endregion
@@ -262,7 +262,7 @@ internal sealed class DashboardSessionServiceTests : IDisposable
     {
         SetupService();
 
-        Assert.DoesNotThrowAsync(() => m_Service.InvalidateSessionAsync("nonexistent000000000000000000000"));
+        await Assert.DoesNotThrowAsync(() => m_Service.InvalidateSessionAsync("nonexistent000000000000000000000"));
     }
 
     [Test]
@@ -275,7 +275,7 @@ internal sealed class DashboardSessionServiceTests : IDisposable
             await ctx.SaveChangesAsync();
         }
 
-        Assert.DoesNotThrowAsync(() => m_Service.InvalidateSessionAsync("abc"));
+        await Assert.DoesNotThrowAsync(() => m_Service.InvalidateSessionAsync("abc"));
 
         await using var verifyCtx = CreateContext();
         var session = await verifyCtx.DashboardSessions.FirstOrDefaultAsync(s => s.Token == "abc");
@@ -317,7 +317,7 @@ internal sealed class DashboardSessionServiceTests : IDisposable
     {
         SetupService();
 
-        Assert.DoesNotThrowAsync(() => m_Service.InvalidateAllForUserAsync(999L));
+        await Assert.DoesNotThrowAsync(() => m_Service.InvalidateAllForUserAsync(999L));
     }
 
     #endregion

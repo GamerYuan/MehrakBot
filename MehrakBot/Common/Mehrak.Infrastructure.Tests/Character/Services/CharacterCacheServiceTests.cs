@@ -92,7 +92,7 @@ internal sealed class CharacterCacheServiceTests : IDisposable
     {
         var service = CreateService(cacheRefreshSucceeds: false);
 
-        var exception = Assert.ThrowsAsync<CacheSynchronizationException>(() =>
+        var exception = await Assert.ThrowsAsync<CacheSynchronizationException>(() =>
             service.UpsertCharacters(Game.Genshin, ["Raiden"]));
 
         Assert.That(exception!.DatabaseCommitted, Is.True);
@@ -111,7 +111,7 @@ internal sealed class CharacterCacheServiceTests : IDisposable
                 It.IsAny<RedisKey>(), It.IsAny<RedisValue[]>(), It.IsAny<CommandFlags>()))
             .Returns(Task.FromException<long>(new RedisException("queued command failed")));
 
-        Assert.ThrowsAsync<CacheSynchronizationException>(() => service.UpsertCharacters(Game.Genshin, ["Raiden"]));
+        await Assert.ThrowsAsync<CacheSynchronizationException>(() => service.UpsertCharacters(Game.Genshin, ["Raiden"]));
         await using var context = m_DbFactory.CreateDbContext<CharacterDbContext>();
         Assert.That(await context.Characters.CountAsync(), Is.EqualTo(1));
         m_RedisDatabase.Verify(database => database.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()), Times.Once);

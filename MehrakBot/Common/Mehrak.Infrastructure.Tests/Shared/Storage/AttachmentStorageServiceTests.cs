@@ -37,14 +37,14 @@ public sealed class AttachmentStorageServiceTests
     }
 
     [Test]
-    public void ExistsAsync_ServerError_IsNotSwallowed()
+    public async Task ExistsAsync_ServerError_IsNotSwallowed()
     {
         var s3 = new Mock<IAmazonS3>();
         s3.Setup(x => x.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AmazonS3Exception("denied") { StatusCode = HttpStatusCode.InternalServerError });
         var service = CreateService(s3.Object);
 
-        Assert.ThrowsAsync<AmazonS3Exception>(async () => await service.ExistsAsync(ValidFileName));
+        await Assert.ThrowsAsync<AmazonS3Exception>(async () => await service.ExistsAsync(ValidFileName));
     }
 
     [Test]

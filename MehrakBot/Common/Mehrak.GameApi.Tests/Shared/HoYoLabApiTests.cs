@@ -454,13 +454,13 @@ public class HoYoLabApiTests
     }
 
     [Test]
-    public void ExecuteAsync_HeaderSetupFailure_DoesNotSendRequest()
+    public async Task ExecuteAsync_HeaderSetupFailure_DoesNotSendRequest()
     {
         var handler = new FakeHttpMessageHandler();
         var request = CreateRequest("https://example.invalid/bad-header",
             [new KeyValuePair<string, string>("Bad-Header", "value\r\nInjected")]);
 
-        Assert.ThrowsAsync<FormatException>(() => HoYoLabApi.ExecuteAsync(request, CreatePolicy(),
+        await Assert.ThrowsAsync<FormatException>(() => HoYoLabApi.ExecuteAsync(request, CreatePolicy(),
             new HoYoLabCredentials(1, 100, "synthetic-token"), handler.ToHttpClientFactory(),
             new Mock<ILogger>().Object, CancellationToken.None));
         Assert.That(handler.RequestCount, Is.Zero);

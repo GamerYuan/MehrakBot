@@ -13,7 +13,7 @@ internal sealed class InitializationFailureTests
 {
     [TestCase(false)]
     [TestCase(true)]
-    public void FailedContentInitialization_PreventsHostStartup(bool aliases)
+    public async Task FailedContentInitialization_PreventsHostStartup(bool aliases)
     {
         var cache = new Mock<ICharacterCacheService>();
         cache.Setup(service => service.UpdateAllCharactersAsync()).ThrowsAsync(new InvalidOperationException("cache unavailable"));
@@ -34,7 +34,7 @@ internal sealed class InitializationFailureTests
 
         try
         {
-            Assert.ThrowsAsync<InvalidOperationException>(() => host.StartAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => host.StartAsync());
         }
         finally
         {

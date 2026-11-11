@@ -71,7 +71,7 @@ internal sealed partial class UserPortraitPostgreSqlConcurrencyTests
             Options.Create(new UserPortraitStorageConfig { Bucket = "test-bucket" }),
             NullLogger<UserPortraitService>.Instance);
 
-        Assert.ThrowsAsync<IOException>(() => service.DeletePortraitAsync(100L, uploadId));
+        await Assert.ThrowsAsync<IOException>(() => service.DeletePortraitAsync(100L, uploadId));
         await using var verify = CreateContext();
         Assert.That(await verify.UserPortraitUploads.AnyAsync(upload => upload.Id == uploadId), Is.True);
         Assert.That(await verify.UserPortraitDeletions.AnyAsync(), Is.False);

@@ -257,7 +257,7 @@ public class DashboardCookieEventsTests
         m_MockProfileAuthService.Setup(s => s.RevokeAllAsync(It.IsAny<ulong>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("cache down"));
 
-        Assert.DoesNotThrowAsync(() => m_Events.SigningOut(context));
+        await Assert.DoesNotThrowAsync(() => m_Events.SigningOut(context));
     }
 
     #endregion

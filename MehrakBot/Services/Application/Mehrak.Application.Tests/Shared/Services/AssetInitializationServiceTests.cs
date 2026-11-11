@@ -57,7 +57,7 @@ public class AssetInitializationServiceTests
     }
 
     [Test]
-    public void StartAsync_FailedArcanaRefresh_ReportsFailureInsteadOfKeepingStaleAssets()
+    public async Task StartAsync_FailedArcanaRefresh_ReportsFailureInsteadOfKeepingStaleAssets()
     {
         var repository = CreateExistingRepository();
         repository.Setup(x => x.UploadFileAsync(FileNameFormat.Genshin.ArcanaBackgroundName, It.IsAny<Stream>(),
@@ -66,7 +66,7 @@ public class AssetInitializationServiceTests
         using var provider = new ServiceCollection().AddSingleton(repository.Object).BuildServiceProvider();
         var service = new AssetInitializationService(provider);
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(() => service.StartAsync(CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartAsync(CancellationToken.None));
 
         Assert.That(exception!.Message, Does.Contain(FileNameFormat.Genshin.ArcanaBackgroundName));
     }

@@ -367,7 +367,7 @@ internal sealed class UserPortraitServiceTests : IDisposable
                 return Task.FromCanceled<PutObjectResponse>(cancellation.Token);
             });
         if (cancel)
-            Assert.CatchAsync<OperationCanceledException>(() => m_Service.UploadPortraitAsync(
+            await Assert.CatchAsync<OperationCanceledException>(() => m_Service.UploadPortraitAsync(
                 100L, Game.Genshin, "Raiden", new MemoryStream(), "retry-hash", "png", cancellation.Token));
         else
             Assert.That((await m_Service.UploadPortraitAsync(

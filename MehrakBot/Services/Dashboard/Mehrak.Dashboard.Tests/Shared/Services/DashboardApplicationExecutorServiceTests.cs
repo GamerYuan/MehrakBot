@@ -52,25 +52,25 @@ public class DashboardApplicationExecutorServiceTests
     }
 
     [Test]
-    public void ExecuteAsync_ThrowsIfDiscordUserIdNotProvided()
+    public async Task ExecuteAsync_ThrowsIfDiscordUserIdNotProvided()
     {
         // arrange
         m_Service.CommandName = "testCommand";
 
         // act & assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
         Assert.That(ex.Message, Does.Contain("Discord user ID must be provided"));
     }
 
     [Test]
-    public void ExecuteAsync_ThrowsIfCommandNameNotProvided()
+    public async Task ExecuteAsync_ThrowsIfCommandNameNotProvided()
     {
         // arrange
         m_Service.DiscordUserId = 123;
         m_Service.CommandName = "";
 
         // act & assert
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.ExecuteAsync(1));
         Assert.That(ex.Message, Does.Contain("Command name must be provided"));
     }
 

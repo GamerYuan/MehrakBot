@@ -160,7 +160,7 @@ public class ImageRepositoryTests
     }
 
     [Test]
-    public void DownloadFileToStreamAsync_NotFound_IsNotMarkedAsExistenceProbe()
+    public async Task DownloadFileToStreamAsync_NotFound_IsNotMarkedAsExistenceProbe()
     {
         var s3 = new Mock<IAmazonS3>();
         ExpectedDependencyKind observedKind = ExpectedDependencyKind.ExistenceProbe;
@@ -170,7 +170,7 @@ public class ImageRepositoryTests
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var repository = CreateRepository(s3.Object, cache);
 
-        Assert.ThrowsAsync<ImageNotFoundException>(async () =>
+        await Assert.ThrowsAsync<ImageNotFoundException>(async () =>
             await repository.DownloadFileToStreamAsync("genshin/test.png"));
         Assert.Multiple(() =>
         {

@@ -161,10 +161,10 @@ internal sealed class AliasServiceTests : IDisposable
     }
 
     [Test]
-    public void UpsertAliases_ConflictingNormalizedTargets_RejectsBeforeWriting()
+    public async Task UpsertAliases_ConflictingNormalizedTargets_RejectsBeforeWriting()
     {
         SetupService();
-        Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.UpsertAliases(Game.Genshin,
+        await Assert.ThrowsAsync<InvalidOperationException>(() => m_Service.UpsertAliases(Game.Genshin,
             new() { ["Raiden"] = "Raiden Shogun", [" RAIDEN "] = "Raiden" }));
         Assert.That(m_Service.GetAliases(Game.Genshin), Is.Empty);
     }

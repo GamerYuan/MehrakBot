@@ -394,13 +394,13 @@ public class HylEmbedServiceTests
     }
 
     [Test]
-    public void ExecuteAsync_NullContext_ThrowsInvalidOperationException()
+    public async Task ExecuteAsync_NullContext_ThrowsInvalidOperationException()
     {
         // Arrange
         m_Service.Context = null;
 
         // Act & Assert
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await m_Service.ExecuteAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await m_Service.ExecuteAsync());
     }
 
     #endregion

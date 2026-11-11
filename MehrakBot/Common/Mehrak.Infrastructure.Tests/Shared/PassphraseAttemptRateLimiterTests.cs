@@ -254,7 +254,7 @@ public class PassphraseAttemptRateLimiterTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        Assert.DoesNotThrowAsync(() => m_Limiter.ReleaseReservationAsync(userId, reservation, cts.Token));
+        await Assert.DoesNotThrowAsync(() => m_Limiter.ReleaseReservationAsync(userId, reservation, cts.Token));
         m_MockDatabase.Verify(d => d.ScriptEvaluateAsync(
             It.Is<string>(s => s.Contains("ZREM")),
             It.IsAny<RedisKey[]>(),

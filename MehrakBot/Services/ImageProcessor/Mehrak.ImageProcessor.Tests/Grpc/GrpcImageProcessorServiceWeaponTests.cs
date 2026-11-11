@@ -74,7 +74,7 @@ internal class GrpcImageProcessorServiceWeaponTests
     }
 
     [Test]
-    public void ProcessWeaponImage_WhenProcessorThrows_LogsAndThrowsRpcException()
+    public async Task ProcessWeaponImage_WhenProcessorThrows_LogsAndThrowsRpcException()
     {
         m_MockWeaponProcessor.Setup(p => p.ProcessImage(It.IsAny<IEnumerable<Stream>>()))
             .Returns<IEnumerable<Stream>>(streams =>
@@ -86,7 +86,7 @@ internal class GrpcImageProcessorServiceWeaponTests
         var request = new ProcessWeaponImageRequest();
         request.Images.Add(ByteString.CopyFrom(new byte[] { 1 }));
 
-        var ex = Assert.ThrowsAsync<RpcException>(async () =>
+        var ex = await Assert.ThrowsAsync<RpcException>(async () =>
         {
             await m_Service.ProcessWeaponImage(request, CreateServerCallContext());
         });
@@ -136,7 +136,7 @@ internal class GrpcImageProcessorServiceWeaponTests
     }
 
     [Test]
-    public void ProcessWeaponImage_DisposesInputStreamsOnException()
+    public async Task ProcessWeaponImage_DisposesInputStreamsOnException()
     {
         var inputStreams = new List<MemoryStream>();
 
@@ -151,7 +151,7 @@ internal class GrpcImageProcessorServiceWeaponTests
         request.Images.Add(ByteString.CopyFrom(new byte[] { 1 }));
         request.Images.Add(ByteString.CopyFrom(new byte[] { 2 }));
 
-        Assert.ThrowsAsync<RpcException>(async () =>
+        await Assert.ThrowsAsync<RpcException>(async () =>
         {
             await m_Service.ProcessWeaponImage(request, CreateServerCallContext());
         });

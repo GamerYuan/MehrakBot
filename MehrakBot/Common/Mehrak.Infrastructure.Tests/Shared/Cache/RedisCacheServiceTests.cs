@@ -379,7 +379,7 @@ public class RedisCacheServiceTests
     #region Edge Cases
 
     [Test]
-    public void GetAsync_WithInvalidJson_ThrowsJsonException()
+    public async Task GetAsync_WithInvalidJson_ThrowsJsonException()
     {
         // Arrange
         const string key = "invalid-json-key";
@@ -390,11 +390,11 @@ public class RedisCacheServiceTests
             .ReturnsAsync(bytes);
 
         // Act & Assert
-        Assert.ThrowsAsync<JsonException>(async () => await m_CacheService.GetAsync<TestObject>(key));
+        await Assert.ThrowsAsync<JsonException>(async () => await m_CacheService.GetAsync<TestObject>(key));
     }
 
     [Test]
-    public void GetAsync_WithTypeMismatch_ThrowsJsonException()
+    public async Task GetAsync_WithTypeMismatch_ThrowsJsonException()
     {
         // Arrange
         const string key = "type-mismatch-key";
@@ -406,7 +406,7 @@ public class RedisCacheServiceTests
             .ReturnsAsync(bytes);
 
         // Act & Assert
-        Assert.ThrowsAsync<JsonException>(async () => await m_CacheService.GetAsync<int>(key));
+        await Assert.ThrowsAsync<JsonException>(async () => await m_CacheService.GetAsync<int>(key));
     }
 
     [Test]

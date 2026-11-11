@@ -494,7 +494,7 @@ public class GameApiLogSanitizerTests
         });
 
         var logger = new CapturingLogger<object>();
-        Assert.CatchAsync<OperationCanceledException>(async () => await HoYoLabApi.ExecuteAsync(
+        await Assert.CatchAsync<OperationCanceledException>(async () => await HoYoLabApi.ExecuteAsync(
             CreateRequest("https://example.invalid/budget-cancelled-read"), CreatePolicy<DiagnosticPayload>(),
             new HoYoLabCredentials(123456789, 100, "synthetic-token"), handler.ToHttpClientFactory(), logger,
             linked.Token));

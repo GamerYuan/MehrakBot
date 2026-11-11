@@ -52,13 +52,13 @@ public sealed class CardFixtureBenchmarkRunnerTests
     }
 
     [Test]
-    public void InvokeCaseAsync_TestAndCleanupFail_ReportsPrimaryBeforeCleanup()
+    public async Task InvokeCaseAsync_TestAndCleanupFail_ReportsPrimaryBeforeCleanup()
     {
         var method = typeof(FailingLifecycleFixture).GetMethod(nameof(FailingLifecycleFixture.GoldenCase),
             BindingFlags.Instance | BindingFlags.Public)!;
         var testCase = new CardFixtureBenchmarkCase(typeof(FailingLifecycleFixture), method, [], "case");
 
-        var exception = Assert.ThrowsAsync<AggregateException>(() =>
+        var exception = await Assert.ThrowsAsync<AggregateException>(() =>
             CardFixtureBenchmarkRunner.InvokeCaseAsync(testCase));
 
         Assert.That(exception!.InnerExceptions, Has.Count.EqualTo(2));

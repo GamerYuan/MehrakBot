@@ -8,20 +8,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.Core.Api" Version="2.80.0" />
-        <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
-        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+        <PackageReference Include="Grpc.Core.Api" Version="2.85.0" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.85.0" />
+        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.85.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.9" />
-        <PackageReference Include="NetCord" Version="1.0.0-beta.7" />
-        <PackageReference Include="NetCord.Hosting" Version="1.0.0-beta.7" />
-        <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-beta.7" />
-        <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-beta.7" />
-        <PackageReference Include="NetCord.Services" Version="1.0.0-beta.7" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0" />
+        <PackageReference Include="NetCord" Version="1.0.0-beta.30" />
+        <PackageReference Include="NetCord.Hosting" Version="1.0.0-beta.30" />
+        <PackageReference Include="NetCord.Hosting.AspNetCore" Version="1.0.0-beta.30" />
+        <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-beta.30" />
+        <PackageReference Include="NetCord.Services" Version="1.0.0-beta.30" />
         <PackageReference Include="Serilog.Enrichers.HttpContext" Version="8.3.0" />
     </ItemGroup>
 

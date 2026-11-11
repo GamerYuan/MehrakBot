@@ -107,14 +107,14 @@ From `.editorconfig` — these differ from C# defaults:
 ## Technology Stack
 
 - **.NET 10.0** (all projects; source generator targets `netstandard2.0`)
-- **Discord:** NetCord 1.0.0-beta.7
-- **gRPC:** Grpc.AspNetCore 2.80.0 / Google.Protobuf 3.35.1
+- **Discord:** NetCord 1.0.0-beta.30
+- **gRPC:** Grpc.AspNetCore 2.85.0 / Google.Protobuf 3.36.2
 - **Images:** SixLabors.ImageSharp 4 + OpenCvSharp4 4.13.0 (ImageProcessor also uses Microsoft.ML.OnnxRuntime)
 - **DB:** PostgreSQL via EF Core + Npgsql; **Cache:** StackExchange.Redis; **Object storage:** AWSSDK.S3 (SeaweedFS in dev); **Analytics:** ClickHouse
 
 ## Testing
 
-- **NUnit 4.x** + **Moq**
+- **NUnit 5.x** + **Moq**; await `Assert.ThrowsAsync`, `Assert.CatchAsync`, and `Assert.DoesNotThrowAsync`
 - Infrastructure tests spin up real PostgreSQL/Redis via Testcontainers
 - Application tests use Testcontainers.LocalStack for S3 and compare card images via perceptual hashing
 - Test fixtures go in `TestData/` directories; helpers in `TestUtils/`

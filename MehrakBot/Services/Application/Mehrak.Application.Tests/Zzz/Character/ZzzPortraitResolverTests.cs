@@ -107,7 +107,7 @@ public class ZzzPortraitResolverTests
         cts.Cancel();
         var resolver = new ZzzPortraitResolver(Mock.Of<IApiService<JsonNode, WikiApiContext>>(),
             Mock.Of<IImageFetcher>(), Mock.Of<IPortraitMatcher>(), NullLogger.Instance);
-        Assert.ThrowsAsync<OperationCanceledException>(() => resolver.ResolveAsync(1, "752", avatar, needBase, true, cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => resolver.ResolveAsync(1, "752", avatar, needBase, true, cts.Token));
     }
 
     [Test]

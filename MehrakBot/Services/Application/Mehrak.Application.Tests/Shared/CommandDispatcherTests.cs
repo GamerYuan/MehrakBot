@@ -23,7 +23,7 @@ public sealed class CommandDispatcherTests
         cancellation.Cancel();
         var completion = NewCompletionSource();
 
-        Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
             await fixture.Dispatcher.DispatchAsync(NewCommand(completion, cancellation.Token)));
         Assert.That(completion.Task.IsCanceled, Is.True);
     }

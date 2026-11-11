@@ -207,7 +207,7 @@ public class GenshinTheaterCardServiceTests
         Assert.That(rendered.Length, Is.GreaterThan(0));
 
         provider.Dispose();
-        var exception = Assert.ThrowsAsync<CommandException>(async () =>
+        var exception = await Assert.ThrowsAsync<CommandException>(async () =>
         {
             using var ignored = await service.GetCardAsync(context);
         });
@@ -223,7 +223,7 @@ public class GenshinTheaterCardServiceTests
         var theaterData = json.Deserialize<GenshinTheaterInformation>()!;
         var context = CreateContext(theaterData);
 
-        var exception = Assert.ThrowsAsync<CommandException>(async () => await m_Service.GetCardAsync(context));
+        var exception = await Assert.ThrowsAsync<CommandException>(async () => await m_Service.GetCardAsync(context));
 
         Assert.That(exception!.InnerException, Is.TypeOf<ArgumentException>());
         Assert.That(exception.InnerException!.Message, Does.Contain("Difficulty must be between 1 and 5"));

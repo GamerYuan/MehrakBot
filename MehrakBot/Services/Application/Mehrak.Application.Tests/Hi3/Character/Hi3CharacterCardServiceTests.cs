@@ -114,7 +114,7 @@ internal class Hi3CharacterCardServiceTests
         cardContext.SetParameter("server", Hi3Server.SEA);
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<CommandException>(async () => await service.GetCardAsync(cardContext));
+        var ex = await Assert.ThrowsAsync<CommandException>(async () => await service.GetCardAsync(cardContext));
         Assert.That(ex!.Message, Is.EqualTo("No splash art image found for character"));
     }
 
