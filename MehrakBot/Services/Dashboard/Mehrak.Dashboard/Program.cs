@@ -60,6 +60,7 @@ public class Program
         builder.Services.Configure<S3StorageConfig>(builder.Configuration.GetSection("Storage"));
         builder.Services.Configure<UserPortraitStorageConfig>(builder.Configuration.GetSection("UserPortraitStorage"));
         builder.Services.Configure<AttachmentStorageConfig>(builder.Configuration.GetSection("AttachmentStorage"));
+        builder.Services.Configure<AssetCleanupConfig>(builder.Configuration.GetSection("AssetCleanup"));
 
         builder.Services.Configure<RedisConfig>(options =>
         {
@@ -77,6 +78,7 @@ public class Program
         builder.Services.AddScoped<DashboardCookieEvents>();
 
         builder.Services.AddInfrastructureServices();
+        builder.Services.AddAssetCleanup();
         builder.Services.AddDashboardInfrastructureHostedServices();
         builder.Services.AddSingleton<GameRoleApiService>();
 
