@@ -119,6 +119,7 @@ From `.editorconfig` — these differ from C# defaults:
 - Application tests use Testcontainers.LocalStack for S3 and compare card images via perceptual hashing
 - Test fixtures go in `TestData/` directories; helpers in `TestUtils/`
 - All production projects have `InternalsVisibleTo` for their test projects
+- When adding or removing a normal golden-image test case in a `*CardServiceTests` fixture, review the benchmark corpus and update `CardFixtureBenchmarkTests.ExpectedCaseCount` in `Services/Application/Mehrak.Application.Tests/Benchmarks/CardFixtureBenchmarkTests.cs`; from `MehrakBot/`, run the discovery suite with `dotnet test Services/Application/Mehrak.Application.Tests/Mehrak.Application.Tests.csproj --filter "FullyQualifiedName~CardFixtureBenchmarkRunnerTests"` as well as the affected card fixtures. Cases marked `[Explicit]` are excluded from this corpus.
 
 ## End-to-End Testing
 
