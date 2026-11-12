@@ -7,6 +7,7 @@ using Mehrak.Domain.Image;
 using Mehrak.Domain.Shared.Storage;
 using Mehrak.Infrastructure.Shared.Config;
 using Mehrak.Infrastructure.Shared.Storage;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -124,20 +125,149 @@ internal sealed class AssetSuffixCleanupServiceTests
         VerifyNoMutations();
     }
 
-    [TestCase(null)]
-    [TestCase("")]
-    [TestCase("   ")]
-    [TestCase("_bg\u0001.png")]
-    public async Task InvalidSuffix_IsRejectedBeforeListing(string? suffix)
+    [TestCase(null, false)]
+    [TestCase("", false)]
+    [TestCase("   ", false)]
+    [TestCase("_bg\u0001.png", false)]
+    [TestCase("_bg\u0085.png", false)]
+    [TestCase("_bg\u2028.png", false)]
+    [TestCase("_bg\u2029.png", false)]
+    [TestCase("_bg\r\n.png", true)]
+    [TestCase("_bg\u2028.png", true)]
+    public async Task InvalidSuffix_IsRejectedBeforeListing(string? suffix, bool dryRun)
     {
         var service = CreateService();
 
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest(suffix!)));
+            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest(suffix!, dryRun)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.InvalidSuffix));
         m_S3.Verify(x => x.ListObjectsV2Async(
             It.IsAny<ListObjectsV2Request>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task DryRun_MatchesSuffixLiterallyWithoutTrimmingOrNormalizing()
+    {
+        SetupSourcePages(new ListObjectsV2Response
+        {
+            S3Objects =
+            [
+                CreateObject("genshin/a _bg.png"),
+                CreateObject("genshin/a_bg.png"),
+                CreateObject("genshin/a_bg.png ")
+            ],
+            IsTruncated = false
+        });
+
+        var service = CreateService();
+        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest(" _bg.png"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Suffix, Is.EqualTo(" _bg.png"));
+            Assert.That(result.Keys.Select(key => key.Key), Is.EqualTo(new[] { "genshin/a _bg.png" }));
+        });
+    }
+
+    [Test]
+    public async Task DryRun_ListingFailureLogsNoSuffixLineBreaksOrProviderText()
+    {
+        m_S3.Setup(x => x.ListObjectsV2Async(
+                It.Is<ListObjectsV2Request>(request => request.BucketName == SourceBucket),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AmazonS3Exception(
+                "listing failed\u001b[2J\r\nINJECTED LINE\u000b\u000c\u0085NEL\u2028LS\u2029PS")
+            {
+                StatusCode = HttpStatusCode.Forbidden
+            });
+
+        var logger = new CapturingLogger<AssetSuffixCleanupService>();
+        var service = CreateService(logger: logger);
+        var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
+            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png")));
+
+        var entry = logger.Entries.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.ListingFailed));
+            Assert.That(exception.Message.IndexOfAny(LogLineBreaks), Is.EqualTo(-1));
+            Assert.That(entry.Level, Is.EqualTo(LogLevel.Error));
+            Assert.That(entry.Exception, Is.Null);
+            Assert.That(entry.Message, Does.Not.Contain("_bg.png"));
+            Assert.That(entry.Message, Does.Not.Contain("INJECTED"));
+            Assert.That(entry.Message, Does.Contain("AmazonS3Exception"));
+            Assert.That(entry.State["S3StatusCode"], Is.EqualTo(403));
+        });
+        AssertNoUnsafeLogCharacters(logger.Entries);
+        VerifyNoMutations();
+    }
+
+    [Test]
+    public async Task Execute_LogsProjectionsOnlyAndKeepsStorageKeyIdentity()
+    {
+        const string taintedKey = "genshin/a\u001b[2J\u001b[H\r\nFAKE-KEY\u000b\u000c\u0085B\u2028C\u2029D_bg.png";
+        const string taintedPrefix = "asset\u2028-cleanup";
+        var tainted = CreateObject(taintedKey);
+        var healthy = CreateObject("genshin/b_bg.png");
+        SetupSourcePages(Page(tainted, healthy));
+        SetupBackupBucketExists();
+        SetupMissingLifecycle();
+        SetupMetadata(healthy.Key, healthy.ETag, healthy.Size!.Value);
+
+        var attemptedCopyKeys = new List<string>();
+        m_S3.Setup(x => x.CopyObjectAsync(
+                It.IsAny<CopyObjectRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<CopyObjectRequest, CancellationToken>((request, _) =>
+            {
+                attemptedCopyKeys.Add(request.SourceKey);
+                if (request.SourceKey == taintedKey)
+                {
+                    throw new AmazonS3Exception("copy failed\u001b[2J\r\nPROVIDER-LEAK\u000b\u000c\u2028FAILURE")
+                    {
+                        StatusCode = HttpStatusCode.InternalServerError
+                    };
+                }
+            })
+            .ReturnsAsync(new CopyObjectResponse());
+        m_S3.Setup(x => x.DeleteObjectAsync(
+                It.Is<DeleteObjectRequest>(request => request.Key == healthy.Key),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DeleteObjectResponse());
+
+        var logger = new CapturingLogger<AssetSuffixCleanupService>();
+        var service = CreateService(backupPrefix: taintedPrefix, logger: logger);
+        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+
+        var warning = logger.Entries.Single(entry => entry.Level == LogLevel.Warning);
+        var completion = logger.Entries.Single(entry => entry.Message.Contains("run completed"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.DeletedCount, Is.EqualTo(1));
+            Assert.That(result.FailedCount, Is.EqualTo(1));
+            Assert.That(result.Keys.Select(key => key.Key), Is.EqualTo(new[] { taintedKey, healthy.Key }));
+            Assert.That(attemptedCopyKeys, Is.EqualTo(new[] { taintedKey, healthy.Key }));
+            Assert.That(result.BackupLocation, Does.Contain(taintedPrefix));
+            Assert.That(logger.Entries.All(entry => entry.Exception is null), Is.True);
+            Assert.That(logger.Entries.Select(entry => entry.Message), Has.None.Contains("PROVIDER-LEAK"));
+            Assert.That(logger.Entries.SelectMany(entry => entry.State.Values.OfType<string>()),
+                Has.None.Contains("PROVIDER-LEAK"));
+            Assert.That(logger.Entries.All(entry => !entry.State.ContainsKey("Suffix")), Is.True);
+
+            Assert.That(warning.Message, Does.Contain(AssetCleanupErrorCodes.CopyFailed));
+            Assert.That(warning.Message, Does.Contain("AmazonS3Exception"));
+            Assert.That(warning.State["Key"] as string, Does.EndWith("_bg.png"));
+
+            Assert.That(completion.Message, Does.Not.Contain("_bg.png"));
+            Assert.That(completion.State["SuffixLength"], Is.EqualTo(7));
+            Assert.That(completion.State["Matched"], Is.EqualTo(2));
+            Assert.That(completion.State["Deleted"], Is.EqualTo(1));
+            Assert.That(completion.State["Failed"], Is.EqualTo(1));
+            Assert.That(completion.State["BackupLocation"], Does.StartWith($"s3://{BackupBucket}/asset-cleanup/"));
+        });
+        AssertNoUnsafeLogCharacters(logger.Entries);
     }
 
     [Test]
@@ -879,7 +1009,8 @@ internal sealed class AssetSuffixCleanupServiceTests
     private AssetSuffixCleanupService CreateService(
         string backupBucket = BackupBucket,
         string backupPrefix = AssetSuffixCleanupService.DefaultBackupPrefix,
-        string sourceBucket = SourceBucket)
+        string sourceBucket = SourceBucket,
+        ILogger<AssetSuffixCleanupService>? logger = null)
     {
         return new AssetSuffixCleanupService(
             m_S3.Object,
@@ -892,7 +1023,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             }),
             Options.Create(new AttachmentStorageConfig { Bucket = AttachmentBucket }),
             Options.Create(new UserPortraitStorageConfig { Bucket = PortraitBucket }),
-            NullLogger<AssetSuffixCleanupService>.Instance,
+            logger ?? NullLogger<AssetSuffixCleanupService>.Instance,
             new FixedTimeProvider(DateTimeOffset.Parse("2026-01-02T03:04:05Z")));
     }
 
@@ -1055,6 +1186,64 @@ internal sealed class AssetSuffixCleanupServiceTests
         m_S3.Verify(x => x.DeleteObjectAsync(
             It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
         m_Repository.Verify(x => x.InvalidateCache(It.IsAny<string>()), Times.Never);
+    }
+
+    private static readonly char[] LogLineBreaks = ['\r', '\n', '\u0085', '\u2028', '\u2029'];
+
+    private static void AssertNoUnsafeLogCharacters(IEnumerable<CapturedLogEntry> entries)
+    {
+        foreach (var entry in entries)
+        {
+            AssertLogProjectionIsInert(entry.Message, "A rendered log message");
+
+            foreach (var value in entry.State.Values.OfType<string>())
+                AssertLogProjectionIsInert(value, "A structured log value");
+        }
+    }
+
+    private static void AssertLogProjectionIsInert(string text, string description)
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(text.IndexOfAny(LogLineBreaks), Is.EqualTo(-1),
+                $"{description} must not contain a line break");
+            Assert.That(text.Any(char.IsControl), Is.False,
+                $"{description} must not contain a control character");
+        });
+    }
+
+    private sealed record CapturedLogEntry(
+        LogLevel Level,
+        string Message,
+        Exception? Exception,
+        IReadOnlyDictionary<string, object?> State);
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<CapturedLogEntry> Entries { get; } = [];
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NoopScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var values = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (state is IEnumerable<KeyValuePair<string, object?>> pairs)
+            {
+                foreach (var pair in pairs)
+                    values[pair.Key] = pair.Value;
+            }
+
+            Entries.Add(new CapturedLogEntry(logLevel, formatter(state, exception), exception, values));
+        }
+    }
+
+    private sealed class NoopScope : IDisposable
+    {
+        public static NoopScope Instance { get; } = new();
+        public void Dispose() { }
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider

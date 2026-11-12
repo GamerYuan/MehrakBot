@@ -1,10 +1,12 @@
 ﻿#region
 
+using Amazon.S3;
 using Mehrak.Dashboard.Asset;
 using Mehrak.Dashboard.Asset.Models;
 using Mehrak.Domain.Shared.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -148,5 +150,56 @@ public class AssetCleanupControllerTests
             new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, CancellationToken.None);
 
         Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(502));
+    }
+
+    [Test]
+    public async Task CleanupBySuffix_StorageFailure_DoesNotLogProviderExceptionText()
+    {
+        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
+                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AssetCleanupException(
+                AssetCleanupErrorCodes.ListingFailed,
+                "The asset bucket listing failed; no objects were changed.",
+                new AmazonS3Exception("listing failed\u001b[2J\r\nINJECTED\u000b\u000c\u0085NEL\u2028LS\u2029PS")));
+
+        var logger = new CapturingLogger<AssetCleanupController>();
+        var controller = new AssetCleanupController(m_CleanupService.Object, logger);
+
+        var result = await controller.CleanupBySuffix(
+            new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, CancellationToken.None);
+
+        var entry = logger.Entries.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(502));
+            Assert.That(entry.Exception, Is.Null);
+            Assert.That(entry.Message, Does.Contain(AssetCleanupErrorCodes.ListingFailed));
+            Assert.That(entry.Message, Does.Contain("AmazonS3Exception"));
+            Assert.That(entry.Message, Does.Not.Contain("INJECTED"));
+            Assert.That(entry.Message.IndexOfAny(['\r', '\n', '\u0085', '\u2028', '\u2029']),
+                Is.EqualTo(-1));
+            Assert.That(entry.Message.Any(char.IsControl), Is.False);
+        });
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = [];
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NoopScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, formatter(state, exception), exception));
+        }
+    }
+
+    private sealed class NoopScope : IDisposable
+    {
+        public static NoopScope Instance { get; } = new();
+        public void Dispose() { }
     }
 }

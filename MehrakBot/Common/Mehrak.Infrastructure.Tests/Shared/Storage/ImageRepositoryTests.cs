@@ -179,6 +179,28 @@ public class ImageRepositoryTests
         });
     }
 
+    [Test]
+    public void InvalidateCache_LogsKeyWithoutLineBreaksAndKeepsRawCacheKey()
+    {
+        const string key = "genshin/a\u001b[2J\r\nSPLIT\u000b\u000c\u0085B\u2028C\u2029D.png";
+        var s3 = new Mock<IAmazonS3>();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = new CapturingLogger<ImageRepository>();
+        var repository = CreateRepository(s3.Object, cache, logger);
+
+        repository.InvalidateCache(key);
+
+        Assert.Multiple(() =>
+        {
+            var message = logger.Messages.Single();
+            Assert.That(message.IndexOfAny(['\r', '\n', '\u0085', '\u2028', '\u2029']), Is.EqualTo(-1));
+            Assert.That(message.Any(char.IsControl), Is.False);
+            Assert.That(message, Does.Contain("genshin/a[2J"));
+            Assert.That(cache.TryGetValue(key, out var cached), Is.True);
+            Assert.That(cached, Is.False);
+        });
+    }
+
     private static ImageRepository CreateRepository(IAmazonS3 s3, IMemoryCache cache) =>
         new(s3, Options.Create(new S3StorageConfig { Bucket = "test-bucket" }),
             NullLogger<ImageRepository>.Instance, cache);
@@ -190,6 +212,7 @@ public class ImageRepositoryTests
     private sealed class CapturingLogger<T> : ILogger<T>
     {
         public List<LogLevel> Levels { get; } = [];
+        public List<string> Messages { get; } = [];
 
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NoopScope.Instance;
 
@@ -199,6 +222,7 @@ public class ImageRepositoryTests
             Func<TState, Exception?, string> formatter)
         {
             Levels.Add(logLevel);
+            Messages.Add(formatter(state, exception));
         }
     }
 

@@ -164,7 +164,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             }
             catch (AssetCleanupKeyException ex)
             {
-                m_Logger.LogWarning(ex, "Asset cleanup failed for {Key} with {ErrorCode}", match.Key, ex.Code);
+                m_Logger.LogWarning(
+                    "Asset cleanup failed for key {Key} with {ErrorCode} from {FailureType}",
+                    SanitizeForLog(match.Key), ex.Code, FailureTypeName(ex));
                 failedCount++;
                 keyResults.Add(new AssetSuffixCleanupKeyResult(
                     match.Key,
@@ -175,7 +177,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             }
             catch (Exception ex)
             {
-                m_Logger.LogWarning(ex, "Asset cleanup failed unexpectedly for {Key}", match.Key);
+                m_Logger.LogWarning(
+                    "Asset cleanup failed unexpectedly for key {Key} from {FailureType}",
+                    SanitizeForLog(match.Key), FailureTypeName(ex));
                 failedCount++;
                 keyResults.Add(new AssetSuffixCleanupKeyResult(
                     match.Key,
@@ -187,8 +191,8 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
 
         m_Logger.LogInformation(
-            "Asset cleanup run completed for suffix {Suffix}: {Matched} matched, {Deleted} deleted, {Failed} failed, backup location {BackupLocation}",
-            suffix, matches.Count, deletedCount, failedCount, backupLocation);
+            "Asset cleanup run completed for a {SuffixLength}-character suffix: {Matched} matched, {Deleted} deleted, {Failed} failed, backup location {BackupLocation}",
+            suffix.Length, matches.Count, deletedCount, failedCount, SanitizeForLog(backupLocation));
 
         return new AssetSuffixCleanupResult(
             DryRun: false,
@@ -229,7 +233,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             }
             catch (Exception ex)
             {
-                m_Logger.LogError(ex, "Asset bucket listing failed for suffix {Suffix}", suffix);
+                m_Logger.LogError(
+                    "Asset bucket listing failed with {FailureType} ({S3StatusCode}); no objects were changed",
+                    FailureTypeName(ex), GetS3StatusCode(ex));
                 throw new AssetCleanupException(
                     AssetCleanupErrorCodes.ListingFailed,
                     "The asset bucket listing failed; no objects were changed.",
@@ -307,7 +313,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Backup bucket {Bucket} could not be checked", m_BackupBucket);
+            m_Logger.LogError(
+                "Backup bucket {Bucket} could not be checked because of {FailureType}",
+                SanitizeForLog(m_BackupBucket), FailureTypeName(ex));
             throw new AssetCleanupException(
                 AssetCleanupErrorCodes.BackupBucketUnavailable,
                 "The backup bucket could not be checked; no objects were changed.",
@@ -322,7 +330,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             await m_S3.PutBucketAsync(
                 new PutBucketRequest { BucketName = m_BackupBucket },
                 cancellationToken).ConfigureAwait(false);
-            m_Logger.LogInformation("Created asset backup bucket {Bucket}", m_BackupBucket);
+            m_Logger.LogInformation("Created asset backup bucket {Bucket}", SanitizeForLog(m_BackupBucket));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -332,11 +340,13 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             ex.StatusCode == HttpStatusCode.Conflict ||
             ex.ErrorCode is "BucketAlreadyOwnedByYou" or "BucketAlreadyExists")
         {
-            m_Logger.LogDebug(ex, "Backup bucket {Bucket} already exists", m_BackupBucket);
+            m_Logger.LogDebug("Backup bucket {Bucket} already exists", SanitizeForLog(m_BackupBucket));
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Backup bucket {Bucket} could not be created", m_BackupBucket);
+            m_Logger.LogError(
+                "Backup bucket {Bucket} could not be created because of {FailureType}",
+                SanitizeForLog(m_BackupBucket), FailureTypeName(ex));
             throw new AssetCleanupException(
                 AssetCleanupErrorCodes.BackupBucketUnavailable,
                 "The backup bucket could not be created; no objects were changed.",
@@ -369,7 +379,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Backup bucket {Bucket} lifecycle could not be read", m_BackupBucket);
+            m_Logger.LogError(
+                "Backup bucket {Bucket} lifecycle could not be read because of {FailureType}",
+                SanitizeForLog(m_BackupBucket), FailureTypeName(ex));
             throw new AssetCleanupException(
                 AssetCleanupErrorCodes.LifecycleUnavailable,
                 "The backup bucket lifecycle could not be read; no objects were changed.",
@@ -425,7 +437,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
         catch (Exception ex)
         {
-            m_Logger.LogError(ex, "Backup bucket {Bucket} lifecycle could not be applied", m_BackupBucket);
+            m_Logger.LogError(
+                "Backup bucket {Bucket} lifecycle could not be applied because of {FailureType}",
+                SanitizeForLog(m_BackupBucket), FailureTypeName(ex));
             throw new AssetCleanupException(
                 AssetCleanupErrorCodes.LifecycleRejected,
                 "The seven-day backup lifecycle could not be applied; no objects were changed.",
@@ -536,7 +550,8 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             // The source is already absent; the verified backup remains the only copy.
-            m_Logger.LogInformation("Source object {Key} was already absent after backup verification", candidate.Key);
+            m_Logger.LogInformation("Source object {Key} was already absent after backup verification",
+                SanitizeForLog(candidate.Key));
         }
         catch (AmazonS3Exception ex) when (
             ex.StatusCode is HttpStatusCode.PreconditionFailed or HttpStatusCode.Conflict)
@@ -563,7 +578,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
         catch (Exception ex)
         {
-            m_Logger.LogWarning(ex, "Local existence cache could not be invalidated for {Key}", key);
+            m_Logger.LogWarning(
+                "Local existence cache could not be invalidated for key {Key} from {FailureType}",
+                SanitizeForLog(key), FailureTypeName(ex));
         }
     }
 
@@ -781,10 +798,10 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                 AssetCleanupErrorCodes.InvalidSuffix,
                 "A non-whitespace suffix is required.");
 
-        if (suffix.Any(char.IsControl))
+        if (suffix.Any(char.IsControl) || ContainsLineSeparator(suffix))
             throw new AssetCleanupException(
                 AssetCleanupErrorCodes.InvalidSuffix,
-                "The suffix must not contain control characters.");
+                "The suffix must not contain control characters or line separators.");
 
         if (suffix.Length > MaxS3KeyBytes)
             throw new AssetCleanupException(
@@ -793,6 +810,54 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
 
         return suffix;
     }
+
+    /// <summary>
+    /// Detects the line separators that <see cref="char.IsControl(char)"/> does not classify as control characters.
+    /// A suffix containing them is rejected instead of normalized, so the destructive match set never changes.
+    /// </summary>
+    private static bool ContainsLineSeparator(string value) =>
+        value.Contains('\u2028') || value.Contains('\u2029');
+
+    /// <summary>
+    /// Removes control characters, Unicode line separators and paragraph separators from a logged value so a storage
+    /// key, bucket name, prefix or backup location cannot forge additional log lines or inject terminal escapes.
+    /// Only the logged projection changes; storage keys and cache keys keep their original value.
+    /// </summary>
+    private static string SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        // Explicit line-break removal keeps the projection recognizable as log-forging sanitization.
+        var withoutLineBreaks = value.Replace("\r", "").Replace("\n", "");
+        var builder = new StringBuilder(withoutLineBreaks.Length);
+
+        foreach (var character in withoutLineBreaks)
+        {
+            if (char.IsControl(character) || character is '\u2028' or '\u2029')
+                continue;
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Returns the innermost exception type of a failure chain. Provider exception messages are deliberately not
+    /// logged because storage providers can echo untrusted keys or request content in them.
+    /// </summary>
+    private static string FailureTypeName(Exception exception)
+    {
+        var current = exception;
+        while (current.InnerException is { } inner)
+            current = inner;
+
+        return current.GetType().Name;
+    }
+
+    private static int? GetS3StatusCode(Exception exception) =>
+        exception is AmazonS3Exception s3Exception ? (int)s3Exception.StatusCode : null;
 
     private static string NormalizeBackupPrefix(string? prefix)
     {

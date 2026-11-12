@@ -47,9 +47,24 @@ public sealed class AssetCleanupController : ControllerBase
         }
         catch (AssetCleanupException ex)
         {
-            m_Logger.LogWarning(ex, "Asset suffix cleanup failed with {ErrorCode}", ex.Code);
+            m_Logger.LogWarning(
+                "Asset suffix cleanup failed with {ErrorCode} from {FailureType}",
+                ex.Code, FailureTypeName(ex));
             return StatusCode(MapStatusCode(ex.Code), new { code = ex.Code, error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Returns the innermost exception type of a failure chain. Provider exception messages are not logged because
+    /// storage providers can echo request keys or other untrusted content in them.
+    /// </summary>
+    private static string FailureTypeName(Exception exception)
+    {
+        var current = exception;
+        while (current.InnerException is { } inner)
+            current = inner;
+
+        return current.GetType().Name;
     }
 
     internal static int MapStatusCode(string code) => code switch

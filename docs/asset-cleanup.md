@@ -13,8 +13,11 @@ bucket from `Storage:Bucket`; attachments and user uploads are never source buck
 }
 ```
 
-- `suffix` is required, must not be whitespace-only, must not contain control characters, and is
-  matched with `string.EndsWith(..., StringComparison.Ordinal)`. Matching is literal and
+- `suffix` is required, must not be whitespace-only, must not contain control characters or the
+  Unicode line and paragraph separators `U+2028`/`U+2029`, and is matched with
+  `string.EndsWith(..., StringComparison.Ordinal)`. An unsupported suffix is rejected with
+  `invalid_suffix` (HTTP 400) before any storage call and is never trimmed, stripped, or
+  normalized, so a valid suffix always defines the same literal match set. Matching is
   case-sensitive; `pn` does not match `_bg.png`, and `_BG.png` does not match `_bg.png`.
 - `dryRun` defaults to `true`. A dry run lists every matching key across all listing pages and
   performs no bucket setup, lifecycle write, copy, delete, or local cache invalidation.
@@ -42,6 +45,13 @@ counts, and a backup location such as `s3://mehrak-asset-backups/asset-cleanup/2
 A partial run is explicit: failed keys retain their source object and carry a stable `errorCode`.
 The endpoint returns HTTP 200 after a completed run even when some keys failed; inspect `failedCount`
 and the per-key statuses.
+
+Logs record counts, error codes, and the failing exception type. Storage keys, bucket and prefix
+configuration, and the backup location are written as an inert projection: every control character
+(including CR, LF, `U+0085`, ESC, and other terminal controls) and the Unicode line and paragraph
+separators `U+2028`/`U+2029` are removed, the suffix is logged only as its length, and storage
+provider exception messages are never logged. Storage calls, match decisions, cache identities,
+responses, and status codes always use the original, unprojected values.
 
 ## Configuration
 
