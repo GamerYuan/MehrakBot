@@ -120,6 +120,8 @@ public static class AppHostProgram
             .WithReference(imageProcessor)
             .WithEnvironment("Storage__ServiceURL", "http://localhost:8333")
             .WithEnvironment("Storage__SecretKey", seaweedSecretKey)
+            .WithEnvironment("AssetCleanup__BackupBucket", "mehrak-asset-backups")
+            .WithEnvironment("AssetCleanup__BackupPrefix", "asset-cleanup")
             .WithEnvironment("SeaweedFiler__BaseUrl", "http://localhost:8888")
             .WithEnvironment("Dashboard__AdminDiscordId", dashboardAdminDiscordId)
             .WithEnvironment("Dashboard__Origin", dashboardOrigin)

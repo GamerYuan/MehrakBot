@@ -73,6 +73,8 @@ services:
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
+      - AssetCleanup__BackupBucket=${ASSET_CLEANUP_BACKUP_BUCKET:-mehrak-asset-backups}
+      - AssetCleanup__BackupPrefix=${ASSET_CLEANUP_BACKUP_PREFIX:-asset-cleanup}
       - Nginx__KnownProxy=${NGINX_KNOWN_PROXY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_SERVICE_NAME=MehrakDashboard

@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Mehrak.Domain.Image;
@@ -205,7 +206,25 @@ public class ImageRepository : IImageRepository
         return string.Equals(exception.ErrorCode, "NoSuchBucket", StringComparison.OrdinalIgnoreCase);
     }
 
-    // ponytail: strips CR/LF to prevent log forging. Full sanitization (Unicode line separators, etc.) if audit requires it.
-    private static string Sanitize(string value) =>
-        value.Replace("\r", "").Replace("\n", "");
+    /// <summary>
+    /// Removes control characters, Unicode line separators and paragraph separators from a logged key so it cannot
+    /// forge additional log lines or inject terminal escapes. Only the logged projection changes; the key used for
+    /// storage and cache lookups keeps its original value.
+    /// </summary>
+    private static string Sanitize(string value)
+    {
+        // Explicit line-break removal keeps the projection recognizable as log-forging sanitization.
+        var withoutLineBreaks = value.Replace("\r", "").Replace("\n", "");
+        var builder = new StringBuilder(withoutLineBreaks.Length);
+
+        foreach (var character in withoutLineBreaks)
+        {
+            if (char.IsControl(character) || character is '\u2028' or '\u2029')
+                continue;
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
+    }
 }
