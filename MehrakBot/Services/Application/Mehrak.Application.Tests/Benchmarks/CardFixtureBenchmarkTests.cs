@@ -22,7 +22,7 @@ public sealed class CardFixtureBenchmarkTests
 {
     internal const string FilterEnvironmentVariable = "MEHRAK_CARD_BENCHMARK_FILTER";
     internal const string LegacyBackgroundsEnvironmentVariable = "MEHRAK_CARD_BENCHMARK_LEGACY_BACKGROUNDS";
-    internal const int ExpectedCaseCount = 73;
+    internal const int ExpectedCaseCount = 75;
 
     [Test]
     public async Task RunGoldenCardFixtures_WithWarmup_RecordsMeasuredSamples()

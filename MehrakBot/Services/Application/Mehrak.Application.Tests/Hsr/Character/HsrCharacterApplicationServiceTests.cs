@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mehrak.Application.Hsr.Character;
@@ -33,6 +34,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using SixLabors.ImageSharp;
 
 #endregion
 
@@ -548,6 +550,159 @@ public class HsrCharacterApplicationServiceTests
 
         characterCacheMock.Verify(x => x.UpsertCharacters(Game.HonkaiStarRail, It.IsAny<IEnumerable<CharacterUpsertEntry>>()),
             Times.Once);
+    }
+
+    [Test]
+    [TestCase("Acheron_ExUnlocked_TestData.json")]
+    [TestCase("Acheron_ExLocked_TestData.json")]
+    public async Task ExecuteAsync_WithExRank_DownloadsDistinctExIconAndResizesAllRankIconsTo60(
+        string testDataFileName)
+    {
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var charList = await LoadTestDataAsync(testDataFileName);
+        var character = charList.AvatarList[0];
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var updates = new ConcurrentBag<(IImageData Data, IImageProcessor Processor)>();
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IImageData, IImageProcessor, CancellationToken>((data, processor, _) =>
+                updates.Add((data, processor)))
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Name),
+            ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+
+        var exRank = character.ExRanks!.Single();
+        var exUpdates = updates.Where(x => x.Data.Name == exRank.ToImageName()).ToList();
+        Assert.That(exUpdates, Has.Count.EqualTo(1), "The first Ex rank must be queued exactly once.");
+        Assert.That(exUpdates[0].Data.Url, Is.EqualTo(exRank.Icon));
+        Assert.That(await GetProcessorOutputSizeAsync(exUpdates[0].Processor), Is.EqualTo(new Size(60, 60)),
+            "The Ex icon must be resized to 60 px.");
+
+        foreach (var rank in character.Ranks)
+        {
+            var rankUpdates = updates.Where(x => x.Data.Name == rank.ToImageName()).ToList();
+            Assert.That(rankUpdates, Has.Count.EqualTo(1), rank.Name);
+            Assert.That(rankUpdates[0].Data.Url, Is.EqualTo(rank.Icon), rank.Name);
+            Assert.That(await GetProcessorOutputSizeAsync(rankUpdates[0].Processor), Is.EqualTo(new Size(60, 60)),
+                $"{rank.Name} must be resized to 60 px when an Ex rank is present.");
+        }
+
+        var collidingRank = character.Ranks.Single(x => x.Id == exRank.Id);
+        var collidingUpdate = updates.Single(x => x.Data.Name == collidingRank.ToImageName());
+        Assert.That(collidingUpdate.Data.Url, Is.EqualTo(collidingRank.Icon));
+        Assert.That(collidingUpdate.Data.Url, Is.Not.EqualTo(exRank.Icon));
+    }
+
+    [Test]
+    [TestCase("Stelle_TestData.json", "Trailblazer", false)]
+    [TestCase("Acheron_ExUnlocked_TestData.json", "Acheron", true)]
+    public async Task ExecuteAsync_WithoutExRank_KeepsEightyPixelRankIconsAndDownloadsNoExIcon(
+        string testDataFileName, string characterName, bool useEmptyExRankList)
+    {
+        var (service, characterApiMock, _, _, wikiApiMock, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+        wikiApiMock.Setup(x => x.GetAsync(It.IsAny<WikiApiContext>()))
+            .ReturnsAsync(Result<JsonNode>.Failure(StatusCode.ExternalServerError, "Not Needed"));
+
+        var charList = await LoadTestDataAsync(testDataFileName);
+        var character = charList.AvatarList[0];
+        if (useEmptyExRankList)
+        {
+            typeof(HsrCharacterInformation).GetProperty(nameof(HsrCharacterInformation.ExRanks))!
+                .SetValue(character, new List<ExRank>());
+        }
+
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+        cardServiceMock.Setup(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()))
+            .ReturnsAsync(new MemoryStream());
+
+        var updates = new ConcurrentBag<(IImageData Data, IImageProcessor Processor)>();
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IImageData, IImageProcessor, CancellationToken>((data, processor, _) =>
+                updates.Add((data, processor)))
+            .ReturnsAsync(true);
+
+        var context = CreateContext(1, 1ul, "test", ("character", characterName),
+            ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        Assert.That(result.IsSuccess, Is.True, result.Error?.Message);
+        Assert.That(updates.Any(x => x.Data.Name.StartsWith("hsr/ex_rank_", StringComparison.Ordinal)), Is.False,
+            "No Ex icon may be downloaded when ex_ranks is null or empty.");
+
+        foreach (var rank in character.Ranks)
+        {
+            var rankUpdates = updates.Where(x => x.Data.Name == rank.ToImageName()).ToList();
+            Assert.That(rankUpdates, Has.Count.EqualTo(1), rank.Name);
+            Assert.That(await GetProcessorOutputSizeAsync(rankUpdates[0].Processor), Is.EqualTo(new Size(80, 80)),
+                $"{rank.Name} must keep the 80 px resize when no Ex rank is present.");
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenExRankImageUpdateFails_ReturnsImageUpdateFailed()
+    {
+        var (service, characterApiMock, _, _, _, imageRepositoryMock, imageUpdaterMock, cardServiceMock,
+            gameRoleApiMock, _, _, _, _, _, _) = SetupMocks();
+
+        gameRoleApiMock.Setup(x => x.GetAsync(It.IsAny<GameRoleApiContext>()))
+            .ReturnsAsync(Result<GameProfileDto>.Success(CreateTestProfile()));
+        imageRepositoryMock.Setup(x => x.FileExistsAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var charList = await LoadTestDataAsync("Acheron_ExUnlocked_TestData.json");
+        var character = charList.AvatarList[0];
+        var exRank = character.ExRanks!.Single();
+        characterApiMock.Setup(x => x.GetAllCharactersAsync(It.IsAny<CharacterApiContext>()))
+            .ReturnsAsync(Result<IEnumerable<HsrBasicCharacterData>>.Success([charList]));
+
+        imageUpdaterMock.Setup(x => x.UpdateImageAsync(It.IsAny<IImageData>(), It.IsAny<IImageProcessor>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((IImageData data, IImageProcessor _, CancellationToken _) =>
+                Task.FromResult(data.Name != exRank.ToImageName()));
+
+        var context = CreateContext(1, 1ul, "test", ("character", character.Name),
+            ("server", Server.Asia.ToString()));
+
+        var result = await service.ExecuteAsync(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(CommandFailureReason.ApiError));
+            Assert.That(((CharacterCardsOutcome)result.Outcome!).Items.First().Error!.Code,
+                Is.EqualTo(CommandErrorCode.ImageUpdateFailed));
+        }
+
+        imageUpdaterMock.Verify(x => x.UpdateImageAsync(
+            It.Is<IImageData>(data => data.Name == exRank.ToImageName()),
+            It.IsAny<IImageProcessor>(), It.IsAny<CancellationToken>()), Times.Once);
+        cardServiceMock.Verify(x => x.GetCardAsync(It.IsAny<ICardGenerationContext<HsrCharacterInformation>>()),
+            Times.Never);
     }
 
     [Test]
@@ -1573,6 +1728,14 @@ public class HsrCharacterApplicationServiceTests
             Nickname = "TestPlayer",
             Level = 60
         };
+    }
+
+    private static async Task<Size> GetProcessorOutputSizeAsync(IImageProcessor processor)
+    {
+        await using var input = PortraitServiceMockFactory.CreateSolidColorPngStream(100, 100, (255, 255, 255));
+        await using var output = processor.ProcessImage(input);
+        using var image = await Image.LoadAsync(output);
+        return image.Size;
     }
 
     private static async Task<HsrBasicCharacterData> LoadTestDataAsync(string filename = "Stelle_TestData.json")
