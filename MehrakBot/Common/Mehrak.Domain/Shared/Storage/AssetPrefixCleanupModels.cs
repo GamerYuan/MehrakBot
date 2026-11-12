@@ -1,8 +1,8 @@
 ﻿namespace Mehrak.Domain.Shared.Storage;
 
-public sealed record AssetSuffixCleanupRequest(string Suffix, bool DryRun = true);
+public sealed record AssetPrefixCleanupRequest(string Prefix, bool DryRun = true);
 
-public static class AssetSuffixCleanupStatuses
+public static class AssetPrefixCleanupStatuses
 {
     public const string Matched = "matched";
     public const string Deleted = "deleted";
@@ -11,7 +11,7 @@ public static class AssetSuffixCleanupStatuses
 
 public static class AssetCleanupErrorCodes
 {
-    public const string InvalidSuffix = "invalid_suffix";
+    public const string InvalidPrefix = "invalid_prefix";
     public const string SourceBucketUnconfigured = "source_bucket_unconfigured";
     public const string SourceBucketConflict = "source_bucket_conflict";
     public const string BackupBucketUnconfigured = "backup_bucket_unconfigured";
@@ -34,21 +34,21 @@ public static class AssetCleanupErrorCodes
     public const string UnexpectedError = "unexpected_error";
 }
 
-public sealed record AssetSuffixCleanupKeyResult(
+public sealed record AssetPrefixCleanupKeyResult(
     string Key,
     string Status,
     string? BackupKey = null,
     string? ErrorCode = null,
     string? Error = null);
 
-public sealed record AssetSuffixCleanupResult(
+public sealed record AssetPrefixCleanupResult(
     bool DryRun,
-    string Suffix,
+    string Prefix,
     int MatchedCount,
     int DeletedCount,
     int FailedCount,
     string? BackupLocation,
-    IReadOnlyList<AssetSuffixCleanupKeyResult> Keys);
+    IReadOnlyList<AssetPrefixCleanupKeyResult> Keys);
 
 public sealed class AssetCleanupException : Exception
 {

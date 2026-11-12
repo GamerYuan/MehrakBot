@@ -14,33 +14,33 @@ namespace Mehrak.Dashboard.Asset;
 [Route("assets")]
 public sealed class AssetCleanupController : ControllerBase
 {
-    private readonly IAssetSuffixCleanupService m_CleanupService;
+    private readonly IAssetPrefixCleanupService m_CleanupService;
     private readonly ILogger<AssetCleanupController> m_Logger;
 
     public AssetCleanupController(
-        IAssetSuffixCleanupService cleanupService,
+        IAssetPrefixCleanupService cleanupService,
         ILogger<AssetCleanupController> logger)
     {
         m_CleanupService = cleanupService;
         m_Logger = logger;
     }
 
-    [HttpPost("cleanup-by-suffix")]
-    public async Task<IActionResult> CleanupBySuffix(
-        [FromBody] CleanupBySuffixRequest request,
+    [HttpPost("cleanup-by-prefix")]
+    public async Task<IActionResult> CleanupByPrefix(
+        [FromBody] CleanupByPrefixRequest request,
         CancellationToken cancellationToken)
     {
         if (request is null)
             return BadRequest(new
             {
-                code = AssetCleanupErrorCodes.InvalidSuffix,
-                error = "A request body with a non-whitespace suffix is required."
+                code = AssetCleanupErrorCodes.InvalidPrefix,
+                error = "A request body with a non-whitespace prefix is required."
             });
 
         try
         {
-            var result = await m_CleanupService.CleanupBySuffixAsync(
-                new AssetSuffixCleanupRequest(request.Suffix ?? "", request.DryRun),
+            var result = await m_CleanupService.CleanupByPrefixAsync(
+                new AssetPrefixCleanupRequest(request.Prefix ?? "", request.DryRun),
                 cancellationToken).ConfigureAwait(false);
 
             return Ok(result);
@@ -48,7 +48,7 @@ public sealed class AssetCleanupController : ControllerBase
         catch (AssetCleanupException ex)
         {
             m_Logger.LogWarning(
-                "Asset suffix cleanup failed with {ErrorCode} from {FailureType}",
+                "Asset prefix cleanup failed with {ErrorCode} from {FailureType}",
                 ex.Code, FailureTypeName(ex));
             return StatusCode(MapStatusCode(ex.Code), new { code = ex.Code, error = ex.Message });
         }
@@ -69,7 +69,7 @@ public sealed class AssetCleanupController : ControllerBase
 
     internal static int MapStatusCode(string code) => code switch
     {
-        AssetCleanupErrorCodes.InvalidSuffix => StatusCodes.Status400BadRequest,
+        AssetCleanupErrorCodes.InvalidPrefix => StatusCodes.Status400BadRequest,
         AssetCleanupErrorCodes.SourceBucketUnconfigured => StatusCodes.Status409Conflict,
         AssetCleanupErrorCodes.SourceBucketConflict => StatusCodes.Status409Conflict,
         AssetCleanupErrorCodes.BackupBucketUnconfigured => StatusCodes.Status409Conflict,

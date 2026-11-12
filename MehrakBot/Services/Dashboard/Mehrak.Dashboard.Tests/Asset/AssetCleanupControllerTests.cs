@@ -1,5 +1,6 @@
 ﻿#region
 
+using System.Text.Json;
 using Amazon.S3;
 using Mehrak.Dashboard.Asset;
 using Mehrak.Dashboard.Asset.Models;
@@ -17,13 +18,15 @@ namespace Mehrak.Dashboard.Tests.Asset;
 [TestFixture]
 public class AssetCleanupControllerTests
 {
-    private Mock<IAssetSuffixCleanupService> m_CleanupService = null!;
+    private const string SourcePrefix = "genshin/arcana_";
+
+    private Mock<IAssetPrefixCleanupService> m_CleanupService = null!;
     private AssetCleanupController m_Controller = null!;
 
     [SetUp]
     public void SetUp()
     {
-        m_CleanupService = new Mock<IAssetSuffixCleanupService>();
+        m_CleanupService = new Mock<IAssetPrefixCleanupService>();
         m_Controller = new AssetCleanupController(
             m_CleanupService.Object,
             NullLogger<AssetCleanupController>.Instance);
@@ -39,7 +42,7 @@ public class AssetCleanupControllerTests
             .GetCustomAttributes(typeof(RouteAttribute), true)
             .Single();
         var httpPost = (HttpPostAttribute)typeof(AssetCleanupController)
-            .GetMethod(nameof(AssetCleanupController.CleanupBySuffix))!
+            .GetMethod(nameof(AssetCleanupController.CleanupByPrefix))!
             .GetCustomAttributes(typeof(HttpPostAttribute), true)
             .Single();
 
@@ -47,46 +50,49 @@ public class AssetCleanupControllerTests
         {
             Assert.That(authorize.Policy, Is.EqualTo("RequireSuperAdmin"));
             Assert.That(route.Template, Is.EqualTo("assets"));
-            Assert.That(httpPost.Template, Is.EqualTo("cleanup-by-suffix"));
+            Assert.That(httpPost.Template, Is.EqualTo("cleanup-by-prefix"));
         });
     }
 
     [Test]
-    public async Task CleanupBySuffix_DefaultsToDryRun()
+    public async Task CleanupByPrefix_DefaultsToDryRun()
     {
-        AssetSuffixCleanupRequest? captured = null;
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<AssetSuffixCleanupRequest, CancellationToken>((request, _) => captured = request)
-            .ReturnsAsync(new AssetSuffixCleanupResult(true, "_bg.png", 1, 0, 0, null, []));
+        AssetPrefixCleanupRequest? captured = null;
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<AssetPrefixCleanupRequest, CancellationToken>((request, _) => captured = request)
+            .ReturnsAsync(new AssetPrefixCleanupResult(true, SourcePrefix, 1, 0, 0, null, []));
 
-        var result = await m_Controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = "_bg.png" }, CancellationToken.None);
+        var result = await m_Controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = SourcePrefix }, CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(result, Is.TypeOf<OkObjectResult>());
+            var ok = (OkObjectResult)result;
+            Assert.That(ok.Value, Is.TypeOf<AssetPrefixCleanupResult>());
+            Assert.That(((AssetPrefixCleanupResult)ok.Value!).Prefix, Is.EqualTo(SourcePrefix));
             Assert.That(captured, Is.Not.Null);
-            Assert.That(captured!.Suffix, Is.EqualTo("_bg.png"));
+            Assert.That(captured!.Prefix, Is.EqualTo(SourcePrefix));
             Assert.That(captured.DryRun, Is.True);
         });
     }
 
     [Test]
-    public async Task CleanupBySuffix_ForwardsExecuteAndCancellationToken()
+    public async Task CleanupByPrefix_ForwardsExecuteAndCancellationToken()
     {
         using var cancellation = new CancellationTokenSource();
-        AssetSuffixCleanupRequest? captured = null;
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), cancellation.Token))
-            .Callback<AssetSuffixCleanupRequest, CancellationToken>((request, _) => captured = request)
-            .ReturnsAsync(new AssetSuffixCleanupResult(false, "_bg.png", 0, 0, 0, null, []));
+        AssetPrefixCleanupRequest? captured = null;
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), cancellation.Token))
+            .Callback<AssetPrefixCleanupRequest, CancellationToken>((request, _) => captured = request)
+            .ReturnsAsync(new AssetPrefixCleanupResult(false, SourcePrefix, 0, 0, 0, null, []));
 
-        await m_Controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, cancellation.Token);
+        await m_Controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = SourcePrefix, DryRun = false }, cancellation.Token);
 
-        m_CleanupService.Verify(service => service.CleanupBySuffixAsync(
-            It.IsAny<AssetSuffixCleanupRequest>(), cancellation.Token), Times.Once);
+        m_CleanupService.Verify(service => service.CleanupByPrefixAsync(
+            It.IsAny<AssetPrefixCleanupRequest>(), cancellation.Token), Times.Once);
         Assert.Multiple(() =>
         {
             Assert.That(captured, Is.Not.Null);
@@ -95,68 +101,105 @@ public class AssetCleanupControllerTests
     }
 
     [Test]
-    public async Task CleanupBySuffix_NullBody_ReturnsBadRequestWithoutCallingService()
+    public async Task CleanupByPrefix_NullBody_ReturnsBadRequestWithoutCallingService()
     {
-        var result = await m_Controller.CleanupBySuffix(null!, CancellationToken.None);
+        var result = await m_Controller.CleanupByPrefix(null!, CancellationToken.None);
 
-        Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
-        m_CleanupService.Verify(service => service.CleanupBySuffixAsync(
-            It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        var badRequest = (BadRequestObjectResult)result;
+        Assert.Multiple(() =>
+        {
+            Assert.That(badRequest.StatusCode, Is.EqualTo(400));
+            Assert.That(JsonSerializer.Serialize(badRequest.Value), Does.Contain(AssetCleanupErrorCodes.InvalidPrefix));
+        });
+        m_CleanupService.Verify(service => service.CleanupByPrefixAsync(
+            It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
-    public async Task CleanupBySuffix_InvalidSuffix_ReturnsBadRequest()
+    public async Task CleanupByPrefix_OldSuffixBody_IsRejectedAsInvalidPrefixBeforeExecution()
     {
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new AssetCleanupException(
-                AssetCleanupErrorCodes.InvalidSuffix, "A non-whitespace suffix is required."));
+        var request = JsonSerializer.Deserialize<CleanupByPrefixRequest>(
+            """{"suffix":"_bg.png","dryRun":false}""");
+        Assert.That(request, Is.Not.Null);
 
-        var result = await m_Controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = " " }, CancellationToken.None);
+        AssetPrefixCleanupRequest? captured = null;
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<AssetPrefixCleanupRequest, CancellationToken>((cleanupRequest, _) => captured = cleanupRequest)
+            .ThrowsAsync(new AssetCleanupException(
+                AssetCleanupErrorCodes.InvalidPrefix, "A non-whitespace prefix is required."));
+
+        var result = await m_Controller.CleanupByPrefix(request!, CancellationToken.None);
+
+        var objectResult = (ObjectResult)result;
+        Assert.Multiple(() =>
+        {
+            Assert.That(request!.Prefix, Is.Null);
+            Assert.That(objectResult.StatusCode, Is.EqualTo(400));
+            Assert.That(JsonSerializer.Serialize(objectResult.Value),
+                Does.Contain(AssetCleanupErrorCodes.InvalidPrefix));
+            Assert.That(captured, Is.Not.Null);
+            Assert.That(captured!.Prefix, Is.Empty);
+            Assert.That(captured.Prefix, Is.Not.EqualTo("_bg.png"));
+        });
+        m_CleanupService.Verify(service => service.CleanupByPrefixAsync(
+            It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CleanupByPrefix_InvalidPrefix_ReturnsBadRequest()
+    {
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AssetCleanupException(
+                AssetCleanupErrorCodes.InvalidPrefix, "A non-whitespace prefix is required."));
+
+        var result = await m_Controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = " " }, CancellationToken.None);
 
         var objectResult = (ObjectResult)result;
         Assert.Multiple(() =>
         {
             Assert.That(objectResult.StatusCode, Is.EqualTo(400));
-            Assert.That(objectResult.Value, Is.Not.Null);
+            Assert.That(JsonSerializer.Serialize(objectResult.Value),
+                Does.Contain(AssetCleanupErrorCodes.InvalidPrefix));
         });
     }
 
     [TestCase(AssetCleanupErrorCodes.BackupBucketConflict)]
     [TestCase(AssetCleanupErrorCodes.SourceBucketConflict)]
     [TestCase(AssetCleanupErrorCodes.LifecycleConflict)]
-    public async Task CleanupBySuffix_ConfigurationConflict_ReturnsConflict(string errorCode)
+    public async Task CleanupByPrefix_ConfigurationConflict_ReturnsConflict(string errorCode)
     {
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AssetCleanupException(errorCode, "Buckets or lifecycle rules conflict."));
 
-        var result = await m_Controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, CancellationToken.None);
+        var result = await m_Controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = SourcePrefix, DryRun = false }, CancellationToken.None);
 
         Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(409));
     }
 
     [Test]
-    public async Task CleanupBySuffix_StorageFailure_ReturnsBadGateway()
+    public async Task CleanupByPrefix_StorageFailure_ReturnsBadGateway()
     {
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AssetCleanupException(
                 AssetCleanupErrorCodes.ListingFailed, "Listing failed."));
 
-        var result = await m_Controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, CancellationToken.None);
+        var result = await m_Controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = SourcePrefix, DryRun = false }, CancellationToken.None);
 
         Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(502));
     }
 
     [Test]
-    public async Task CleanupBySuffix_StorageFailure_DoesNotLogProviderExceptionText()
+    public async Task CleanupByPrefix_StorageFailure_DoesNotLogProviderExceptionText()
     {
-        m_CleanupService.Setup(service => service.CleanupBySuffixAsync(
-                It.IsAny<AssetSuffixCleanupRequest>(), It.IsAny<CancellationToken>()))
+        m_CleanupService.Setup(service => service.CleanupByPrefixAsync(
+                It.IsAny<AssetPrefixCleanupRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new AssetCleanupException(
                 AssetCleanupErrorCodes.ListingFailed,
                 "The asset bucket listing failed; no objects were changed.",
@@ -165,8 +208,8 @@ public class AssetCleanupControllerTests
         var logger = new CapturingLogger<AssetCleanupController>();
         var controller = new AssetCleanupController(m_CleanupService.Object, logger);
 
-        var result = await controller.CleanupBySuffix(
-            new CleanupBySuffixRequest { Suffix = "_bg.png", DryRun = false }, CancellationToken.None);
+        var result = await controller.CleanupByPrefix(
+            new CleanupByPrefixRequest { Prefix = SourcePrefix, DryRun = false }, CancellationToken.None);
 
         var entry = logger.Entries.Single();
         Assert.Multiple(() =>

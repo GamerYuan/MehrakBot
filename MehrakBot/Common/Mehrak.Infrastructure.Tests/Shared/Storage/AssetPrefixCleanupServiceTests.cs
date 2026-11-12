@@ -19,7 +19,7 @@ namespace Mehrak.Infrastructure.Tests.Shared.Storage;
 [TestFixture]
 [Parallelizable(ParallelScope.Self)]
 [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-internal sealed class AssetSuffixCleanupServiceTests
+internal sealed class AssetPrefixCleanupServiceTests
 {
     private const string SourceBucket = "mehrak-assets";
     private const string BackupBucket = "mehrak-asset-backups";
@@ -29,6 +29,7 @@ internal sealed class AssetSuffixCleanupServiceTests
     private readonly Mock<IAmazonS3> m_S3 = new();
     private readonly Mock<IImageRepository> m_Repository = new();
     private readonly List<string> m_Operations = [];
+    private readonly List<ListObjectsV2Request> m_SourceRequests = [];
 
     [SetUp]
     public void SetUp()
@@ -59,22 +60,28 @@ internal sealed class AssetSuffixCleanupServiceTests
             });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png"));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/"));
 
         Assert.Multiple(() =>
         {
             Assert.That(result.DryRun, Is.True);
+            Assert.That(result.Prefix, Is.EqualTo("genshin/"));
             Assert.That(result.MatchedCount, Is.EqualTo(3));
             Assert.That(result.DeletedCount, Is.Zero);
             Assert.That(result.FailedCount, Is.Zero);
             Assert.That(result.BackupLocation, Is.Null);
             Assert.That(result.Keys.Select(key => key.Key),
-                Is.EqualTo(new[] { "genshin/a_bg.png", "genshin/c_bg.png", "hsr/d_bg.png" }));
-            Assert.That(result.Keys.All(key => key.Status == AssetSuffixCleanupStatuses.Matched), Is.True);
+                Is.EqualTo(new[] { "genshin/a_bg.png", "genshin/b.png", "genshin/c_bg.png" }));
+            Assert.That(result.Keys.All(key => key.Status == AssetPrefixCleanupStatuses.Matched), Is.True);
         });
 
+        Assert.That(m_SourceRequests.Select(request => request.Prefix),
+            Is.EqualTo(new[] { "genshin/", "genshin/" }));
+        Assert.That(m_SourceRequests.Select(request => request.ContinuationToken),
+            Is.EqualTo(new string?[] { null, "page-2" }));
         m_S3.Verify(x => x.ListObjectsV2Async(
             It.Is<ListObjectsV2Request>(request => request.BucketName == SourceBucket &&
+                                                   request.Prefix == "genshin/" &&
                                                    request.ContinuationToken == "page-2"),
             It.IsAny<CancellationToken>()), Times.Once);
         VerifyNoMutations();
@@ -84,25 +91,50 @@ internal sealed class AssetSuffixCleanupServiceTests
     }
 
     [Test]
-    public async Task DryRun_UsesCaseSensitiveLiteralFullKeySuffix()
+    public async Task DryRun_SelectsOnlyFullKeysBeginningWithLiteralPrefix()
     {
         SetupSourcePages(new ListObjectsV2Response
         {
             S3Objects =
             [
-                CreateObject("genshin/a_BG.png"),
-                CreateObject("genshin/b_bg.png"),
-                CreateObject("genshin/c_bg.png.bak"),
-                CreateObject("genshin/d_bg.png")
+                CreateObject("genshin/arcana_1001_bg.png"),
+                CreateObject("genshin/arcana_1002.png"),
+                CreateObject("genshin-other/arcana_1003.png"),
+                CreateObject("legacy/genshin/arcana_1004.png"),
+                CreateObject("legacy/genshin/"),
+                CreateObject("Genshin/arcana_1005.png")
             ],
             IsTruncated = false
         });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png"));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/"));
 
-        Assert.That(result.Keys.Select(key => key.Key),
-            Is.EqualTo(new[] { "genshin/b_bg.png", "genshin/d_bg.png" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Prefix, Is.EqualTo("genshin/"));
+            Assert.That(result.Keys.Select(key => key.Key),
+                Is.EqualTo(new[] { "genshin/arcana_1001_bg.png", "genshin/arcana_1002.png" }));
+        });
+    }
+
+    [Test]
+    public async Task DryRun_PrefixMatchingIsCaseSensitive()
+    {
+        SetupSourcePages(new ListObjectsV2Response
+        {
+            S3Objects =
+            [
+                CreateObject("genshin/arcana_1001.png"),
+                CreateObject("Genshin/arcana_1002.png")
+            ],
+            IsTruncated = false
+        });
+
+        var service = CreateService();
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("Genshin/"));
+
+        Assert.That(result.Keys.Select(key => key.Key), Is.EqualTo(new[] { "Genshin/arcana_1002.png" }));
     }
 
     [Test]
@@ -115,7 +147,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         });
 
         var service = CreateService(backupBucket: "");
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png"));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/"));
 
         Assert.Multiple(() =>
         {
@@ -128,26 +160,39 @@ internal sealed class AssetSuffixCleanupServiceTests
     [TestCase(null, false)]
     [TestCase("", false)]
     [TestCase("   ", false)]
-    [TestCase("_bg\u0001.png", false)]
-    [TestCase("_bg\u0085.png", false)]
-    [TestCase("_bg\u2028.png", false)]
-    [TestCase("_bg\u2029.png", false)]
-    [TestCase("_bg\r\n.png", true)]
-    [TestCase("_bg\u2028.png", true)]
-    public async Task InvalidSuffix_IsRejectedBeforeListing(string? suffix, bool dryRun)
+    [TestCase("genshin/\u0085", false)]
+    [TestCase("genshin/\u2028", false)]
+    [TestCase("genshin/\u2029", false)]
+    [TestCase("genshin/\r\n", true)]
+    [TestCase("genshin/\u2028", true)]
+    public async Task InvalidPrefix_IsRejectedBeforeListing(string? prefix, bool dryRun)
     {
         var service = CreateService();
 
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest(suffix!, dryRun)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest(prefix!, dryRun)));
 
-        Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.InvalidSuffix));
+        Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.InvalidPrefix));
         m_S3.Verify(x => x.ListObjectsV2Async(
             It.IsAny<ListObjectsV2Request>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
-    public async Task DryRun_MatchesSuffixLiterallyWithoutTrimmingOrNormalizing()
+    public async Task InvalidPrefix_ControlCharacter_IsRejectedBeforeListing()
+    {
+        var service = CreateService();
+        var prefix = "genshin/" + (char)1;
+
+        var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest(prefix)));
+
+        Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.InvalidPrefix));
+        m_S3.Verify(x => x.ListObjectsV2Async(
+            It.IsAny<ListObjectsV2Request>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task DryRun_MatchesPrefixLiterallyWithoutTrimmingOrNormalizing()
     {
         SetupSourcePages(new ListObjectsV2Response
         {
@@ -161,17 +206,17 @@ internal sealed class AssetSuffixCleanupServiceTests
         });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest(" _bg.png"));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/a "));
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Suffix, Is.EqualTo(" _bg.png"));
+            Assert.That(result.Prefix, Is.EqualTo("genshin/a "));
             Assert.That(result.Keys.Select(key => key.Key), Is.EqualTo(new[] { "genshin/a _bg.png" }));
         });
     }
 
     [Test]
-    public async Task DryRun_ListingFailureLogsNoSuffixLineBreaksOrProviderText()
+    public async Task DryRun_ListingFailureLogsNoPrefixLineBreaksOrProviderText()
     {
         m_S3.Setup(x => x.ListObjectsV2Async(
                 It.Is<ListObjectsV2Request>(request => request.BucketName == SourceBucket),
@@ -182,10 +227,10 @@ internal sealed class AssetSuffixCleanupServiceTests
                 StatusCode = HttpStatusCode.Forbidden
             });
 
-        var logger = new CapturingLogger<AssetSuffixCleanupService>();
+        var logger = new CapturingLogger<AssetPrefixCleanupService>();
         var service = CreateService(logger: logger);
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png")));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/")));
 
         var entry = logger.Entries.Single();
 
@@ -195,7 +240,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             Assert.That(exception.Message.IndexOfAny(LogLineBreaks), Is.EqualTo(-1));
             Assert.That(entry.Level, Is.EqualTo(LogLevel.Error));
             Assert.That(entry.Exception, Is.Null);
-            Assert.That(entry.Message, Does.Not.Contain("_bg.png"));
+            Assert.That(entry.Message, Does.Not.Contain("genshin/"));
             Assert.That(entry.Message, Does.Not.Contain("INJECTED"));
             Assert.That(entry.Message, Does.Contain("AmazonS3Exception"));
             Assert.That(entry.State["S3StatusCode"], Is.EqualTo(403));
@@ -236,15 +281,16 @@ internal sealed class AssetSuffixCleanupServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DeleteObjectResponse());
 
-        var logger = new CapturingLogger<AssetSuffixCleanupService>();
+        var logger = new CapturingLogger<AssetPrefixCleanupService>();
         var service = CreateService(backupPrefix: taintedPrefix, logger: logger);
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         var warning = logger.Entries.Single(entry => entry.Level == LogLevel.Warning);
         var completion = logger.Entries.Single(entry => entry.Message.Contains("run completed"));
 
         Assert.Multiple(() =>
         {
+            Assert.That(result.Prefix, Is.EqualTo("genshin/"));
             Assert.That(result.DeletedCount, Is.EqualTo(1));
             Assert.That(result.FailedCount, Is.EqualTo(1));
             Assert.That(result.Keys.Select(key => key.Key), Is.EqualTo(new[] { taintedKey, healthy.Key }));
@@ -254,14 +300,14 @@ internal sealed class AssetSuffixCleanupServiceTests
             Assert.That(logger.Entries.Select(entry => entry.Message), Has.None.Contains("PROVIDER-LEAK"));
             Assert.That(logger.Entries.SelectMany(entry => entry.State.Values.OfType<string>()),
                 Has.None.Contains("PROVIDER-LEAK"));
-            Assert.That(logger.Entries.All(entry => !entry.State.ContainsKey("Suffix")), Is.True);
+            Assert.That(logger.Entries.All(entry => !entry.State.ContainsKey("Prefix")), Is.True);
 
             Assert.That(warning.Message, Does.Contain(AssetCleanupErrorCodes.CopyFailed));
             Assert.That(warning.Message, Does.Contain("AmazonS3Exception"));
-            Assert.That(warning.State["Key"] as string, Does.EndWith("_bg.png"));
+            Assert.That(warning.State["Key"] as string, Does.StartWith("genshin/a").And.EndWith("_bg.png"));
 
-            Assert.That(completion.Message, Does.Not.Contain("_bg.png"));
-            Assert.That(completion.State["SuffixLength"], Is.EqualTo(7));
+            Assert.That(completion.Message, Does.Not.Contain("genshin/"));
+            Assert.That(completion.State["PrefixLength"], Is.EqualTo(8));
             Assert.That(completion.State["Matched"], Is.EqualTo(2));
             Assert.That(completion.State["Deleted"], Is.EqualTo(1));
             Assert.That(completion.State["Failed"], Is.EqualTo(1));
@@ -276,7 +322,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         var service = CreateService(backupBucket: "");
 
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.BackupBucketUnconfigured));
         m_S3.Verify(x => x.ListObjectsV2Async(
@@ -291,7 +337,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         var service = CreateService(sourceBucket: sourceBucket);
 
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", dryRun)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", dryRun)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.SourceBucketConflict));
         m_S3.Verify(x => x.ListObjectsV2Async(
@@ -307,7 +353,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         var service = CreateService(backupBucket: backupBucket);
 
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.BackupBucketConflict));
         m_S3.Verify(x => x.ListObjectsV2Async(
@@ -326,7 +372,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.ListingTokenMissing));
         VerifyNoMutations();
@@ -351,7 +397,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.ListingTokenRepeated));
         VerifyNoMutations();
@@ -380,7 +426,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.ListingFailed));
         VerifyNoMutations();
@@ -411,8 +457,8 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await service.CleanupBySuffixAsync(
-                new AssetSuffixCleanupRequest("_bg.png", DryRun: false), cancellation.Token));
+            await service.CleanupByPrefixAsync(
+                new AssetPrefixCleanupRequest("genshin/", DryRun: false), cancellation.Token));
 
         VerifyNoMutations();
     }
@@ -423,7 +469,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupSourcePages(new ListObjectsV2Response { S3Objects = [], IsTruncated = false });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -446,7 +492,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupSuccessfulCopyVerifyDelete(source);
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.That(result.DeletedCount, Is.EqualTo(1));
         m_S3.Verify(x => x.PutBucketAsync(
@@ -474,7 +520,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         };
         var existingExpireRule = new LifecycleRule
         {
-            Id = AssetSuffixCleanupService.ExpireRuleId,
+            Id = AssetPrefixCleanupService.ExpireRuleId,
             Status = LifecycleRuleStatus.Enabled,
             Filter = PrefixFilter("asset-cleanup/"),
             Expiration = new LifecycleRuleExpiration { Days = 7 },
@@ -482,7 +528,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         };
         var existingDeleteMarkerRule = new LifecycleRule
         {
-            Id = AssetSuffixCleanupService.DeleteMarkerRuleId,
+            Id = AssetPrefixCleanupService.DeleteMarkerRuleId,
             Status = LifecycleRuleStatus.Enabled,
             Filter = PrefixFilter("asset-cleanup/"),
             Expiration = new LifecycleRuleExpiration { ExpiredObjectDeleteMarker = true }
@@ -515,7 +561,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupSuccessfulCopyVerifyDelete(source);
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -534,13 +580,13 @@ internal sealed class AssetSuffixCleanupServiceTests
             Assert.That(rules, Does.Not.Contain(existingExpireRule));
             Assert.That(rules, Does.Not.Contain(existingDeleteMarkerRule));
 
-            var expireRule = rules.Single(rule => rule.Id == AssetSuffixCleanupService.ExpireRuleId);
+            var expireRule = rules.Single(rule => rule.Id == AssetPrefixCleanupService.ExpireRuleId);
             Assert.That(expireRule.Status, Is.EqualTo(LifecycleRuleStatus.Enabled));
             Assert.That(expireRule.Expiration.Days, Is.EqualTo(7));
             Assert.That(expireRule.NoncurrentVersionExpiration.NoncurrentDays, Is.EqualTo(7));
             Assert.That(GetRulePrefix(expireRule), Is.EqualTo("asset-cleanup/"));
 
-            var deleteMarkerRule = rules.Single(rule => rule.Id == AssetSuffixCleanupService.DeleteMarkerRuleId);
+            var deleteMarkerRule = rules.Single(rule => rule.Id == AssetPrefixCleanupService.DeleteMarkerRuleId);
             Assert.That(deleteMarkerRule.Status, Is.EqualTo(LifecycleRuleStatus.Enabled));
             Assert.That(deleteMarkerRule.Expiration.ExpiredObjectDeleteMarker, Is.True);
             Assert.That(GetRulePrefix(deleteMarkerRule), Is.EqualTo("asset-cleanup/"));
@@ -567,7 +613,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.LifecycleUnavailable));
         VerifyNoCopiesOrDeletes();
@@ -585,7 +631,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.LifecycleRejected));
         VerifyNoCopiesOrDeletes();
@@ -662,7 +708,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         await AssertLifecycleConflictAsync(
             new LifecycleRule
             {
-                Id = AssetSuffixCleanupService.ExpireRuleId,
+                Id = AssetPrefixCleanupService.ExpireRuleId,
                 Status = LifecycleRuleStatus.Enabled,
                 Filter = PrefixFilter("old-prefix/"),
                 Expiration = new LifecycleRuleExpiration { Days = 7 },
@@ -670,7 +716,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             },
             new LifecycleRule
             {
-                Id = AssetSuffixCleanupService.DeleteMarkerRuleId,
+                Id = AssetPrefixCleanupService.DeleteMarkerRuleId,
                 Status = LifecycleRuleStatus.Enabled,
                 Filter = PrefixFilter("old-prefix/"),
                 Expiration = new LifecycleRuleExpiration { ExpiredObjectDeleteMarker = true }
@@ -731,7 +777,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupSuccessfulCopyVerifyDelete(source);
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.That(result.DeletedCount, Is.EqualTo(1));
         Assert.That(putRequest, Is.Not.Null);
@@ -762,7 +808,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.LifecycleConflict));
         m_S3.Verify(x => x.PutLifecycleConfigurationAsync(
@@ -781,7 +827,7 @@ internal sealed class AssetSuffixCleanupServiceTests
 
         var service = CreateService();
         var exception = await Assert.ThrowsAsync<AssetCleanupException>(async () =>
-            await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false)));
+            await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false)));
 
         Assert.That(exception!.Code, Is.EqualTo(AssetCleanupErrorCodes.BackupBucketUnavailable));
         m_S3.Verify(x => x.GetLifecycleConfigurationAsync(
@@ -801,13 +847,13 @@ internal sealed class AssetSuffixCleanupServiceTests
             .ThrowsAsync(new AmazonS3Exception("copy failed") { StatusCode = HttpStatusCode.InternalServerError });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
             Assert.That(result.DeletedCount, Is.Zero);
             Assert.That(result.FailedCount, Is.EqualTo(1));
-            Assert.That(result.Keys.Single().Status, Is.EqualTo(AssetSuffixCleanupStatuses.Failed));
+            Assert.That(result.Keys.Single().Status, Is.EqualTo(AssetPrefixCleanupStatuses.Failed));
             Assert.That(result.Keys.Single().ErrorCode, Is.EqualTo(AssetCleanupErrorCodes.CopyFailed));
             Assert.That(result.Keys.Single().BackupKey, Is.Null);
         });
@@ -829,7 +875,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupMetadata(source.Key, backupETag, backupSize);
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -856,7 +902,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             .ThrowsAsync(new AmazonS3Exception("precondition") { StatusCode = HttpStatusCode.PreconditionFailed });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.That(result.Keys.Single().ErrorCode, Is.EqualTo(AssetCleanupErrorCodes.SourceModified));
         m_S3.Verify(x => x.DeleteObjectAsync(
@@ -887,7 +933,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             .ThrowsAsync(new AmazonS3Exception("precondition") { StatusCode = HttpStatusCode.PreconditionFailed });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -925,14 +971,14 @@ internal sealed class AssetSuffixCleanupServiceTests
             .ThrowsAsync(new AmazonS3Exception("delete failed") { StatusCode = HttpStatusCode.InternalServerError });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
             Assert.That(result.DeletedCount, Is.EqualTo(1));
             Assert.That(result.FailedCount, Is.EqualTo(1));
             Assert.That(result.Keys.Single(key => key.Key == deleted.Key).Status,
-                Is.EqualTo(AssetSuffixCleanupStatuses.Deleted));
+                Is.EqualTo(AssetPrefixCleanupStatuses.Deleted));
             Assert.That(result.Keys.Single(key => key.Key == failed.Key).ErrorCode,
                 Is.EqualTo(AssetCleanupErrorCodes.DeleteFailed));
         });
@@ -955,7 +1001,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             .ThrowsAsync(new AmazonS3Exception("missing") { StatusCode = HttpStatusCode.NotFound });
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.That(result.DeletedCount, Is.EqualTo(1));
         m_Repository.Verify(x => x.InvalidateCache(source.Key), Times.Once);
@@ -970,7 +1016,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         SetupMissingLifecycle();
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -987,13 +1033,13 @@ internal sealed class AssetSuffixCleanupServiceTests
     [Test]
     public async Task Execute_SourceLargerThanSingleCopyLimit_FailsKeyWithoutCopy()
     {
-        var source = CreateObject("genshin/a_bg.png", size: AssetSuffixCleanupService.MaxSingleCopyBytes + 1);
+        var source = CreateObject("genshin/a_bg.png", size: AssetPrefixCleanupService.MaxSingleCopyBytes + 1);
         SetupSourcePages(Page(source));
         SetupBackupBucketExists();
         SetupMissingLifecycle();
 
         var service = CreateService();
-        var result = await service.CleanupBySuffixAsync(new AssetSuffixCleanupRequest("_bg.png", DryRun: false));
+        var result = await service.CleanupByPrefixAsync(new AssetPrefixCleanupRequest("genshin/", DryRun: false));
 
         Assert.Multiple(() =>
         {
@@ -1006,13 +1052,13 @@ internal sealed class AssetSuffixCleanupServiceTests
             It.IsAny<DeleteObjectRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private AssetSuffixCleanupService CreateService(
+    private AssetPrefixCleanupService CreateService(
         string backupBucket = BackupBucket,
-        string backupPrefix = AssetSuffixCleanupService.DefaultBackupPrefix,
+        string backupPrefix = AssetPrefixCleanupService.DefaultBackupPrefix,
         string sourceBucket = SourceBucket,
-        ILogger<AssetSuffixCleanupService>? logger = null)
+        ILogger<AssetPrefixCleanupService>? logger = null)
     {
-        return new AssetSuffixCleanupService(
+        return new AssetPrefixCleanupService(
             m_S3.Object,
             m_Repository.Object,
             Options.Create(new S3StorageConfig { Bucket = sourceBucket }),
@@ -1023,7 +1069,7 @@ internal sealed class AssetSuffixCleanupServiceTests
             }),
             Options.Create(new AttachmentStorageConfig { Bucket = AttachmentBucket }),
             Options.Create(new UserPortraitStorageConfig { Bucket = PortraitBucket }),
-            logger ?? NullLogger<AssetSuffixCleanupService>.Instance,
+            logger ?? NullLogger<AssetPrefixCleanupService>.Instance,
             new FixedTimeProvider(DateTimeOffset.Parse("2026-01-02T03:04:05Z")));
     }
 
@@ -1033,6 +1079,7 @@ internal sealed class AssetSuffixCleanupServiceTests
         m_S3.Setup(x => x.ListObjectsV2Async(
                 It.Is<ListObjectsV2Request>(request => request.BucketName == SourceBucket),
                 It.IsAny<CancellationToken>()))
+            .Callback<ListObjectsV2Request, CancellationToken>((request, _) => m_SourceRequests.Add(request))
             .ReturnsAsync(() => queue.Dequeue());
     }
 

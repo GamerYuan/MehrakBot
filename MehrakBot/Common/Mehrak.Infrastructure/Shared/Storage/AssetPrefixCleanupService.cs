@@ -16,11 +16,11 @@ using Microsoft.Extensions.Options;
 namespace Mehrak.Infrastructure.Shared.Storage;
 
 /// <summary>
-/// Removes asset objects whose full key ends with a literal suffix. Assets are copied into a
+/// Removes asset objects whose full key begins with a literal prefix. Assets are copied into a
 /// dedicated backup bucket before the source object is conditionally deleted. Dry runs never
 /// change storage, including bucket or lifecycle configuration.
 /// </summary>
-public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
+public sealed class AssetPrefixCleanupService : IAssetPrefixCleanupService
 {
     internal const int RetentionDays = 7;
     internal const string ExpireRuleId = "mehrak-asset-cleanup-expire-7d";
@@ -31,7 +31,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
 
     private readonly IAmazonS3 m_S3;
     private readonly IImageRepository m_ImageRepository;
-    private readonly ILogger<AssetSuffixCleanupService> m_Logger;
+    private readonly ILogger<AssetPrefixCleanupService> m_Logger;
     private readonly TimeProvider m_TimeProvider;
     private readonly string m_SourceBucket;
     private readonly string m_BackupBucket;
@@ -39,14 +39,14 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
     private readonly string m_AttachmentBucket;
     private readonly string m_PortraitBucket;
 
-    public AssetSuffixCleanupService(
+    public AssetPrefixCleanupService(
         IAmazonS3 s3,
         IImageRepository imageRepository,
         IOptions<S3StorageConfig> storageConfig,
         IOptions<AssetCleanupConfig> cleanupConfig,
         IOptions<AttachmentStorageConfig> attachmentConfig,
         IOptions<UserPortraitStorageConfig> portraitConfig,
-        ILogger<AssetSuffixCleanupService> logger,
+        ILogger<AssetPrefixCleanupService> logger,
         TimeProvider? timeProvider = null)
     {
         m_S3 = s3;
@@ -60,28 +60,28 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         m_PortraitBucket = portraitConfig.Value.Bucket?.Trim() ?? "";
     }
 
-    public async Task<AssetSuffixCleanupResult> CleanupBySuffixAsync(
-        AssetSuffixCleanupRequest request,
+    public async Task<AssetPrefixCleanupResult> CleanupByPrefixAsync(
+        AssetPrefixCleanupRequest request,
         CancellationToken cancellationToken = default)
     {
-        var suffix = ValidateSuffix(request.Suffix);
+        var prefix = ValidatePrefix(request.Prefix);
 
         ValidateSourceConfiguration();
 
         if (!request.DryRun)
             ValidateExecuteConfiguration();
 
-        var matches = await ListMatchingKeysAsync(suffix, cancellationToken).ConfigureAwait(false);
+        var matches = await ListMatchingKeysAsync(prefix, cancellationToken).ConfigureAwait(false);
 
         if (request.DryRun)
         {
             var dryRunKeys = matches
-                .Select(match => new AssetSuffixCleanupKeyResult(match.Key, AssetSuffixCleanupStatuses.Matched))
+                .Select(match => new AssetPrefixCleanupKeyResult(match.Key, AssetPrefixCleanupStatuses.Matched))
                 .ToList();
 
-            return new AssetSuffixCleanupResult(
+            return new AssetPrefixCleanupResult(
                 DryRun: true,
-                Suffix: suffix,
+                Prefix: prefix,
                 MatchedCount: matches.Count,
                 DeletedCount: 0,
                 FailedCount: 0,
@@ -91,9 +91,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
 
         if (matches.Count == 0)
         {
-            return new AssetSuffixCleanupResult(
+            return new AssetPrefixCleanupResult(
                 DryRun: false,
-                Suffix: suffix,
+                Prefix: prefix,
                 MatchedCount: 0,
                 DeletedCount: 0,
                 FailedCount: 0,
@@ -109,7 +109,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         await EnsureBackupBucketAsync(cancellationToken).ConfigureAwait(false);
         await ApplyBackupLifecycleAsync(cancellationToken).ConfigureAwait(false);
 
-        var keyResults = new List<AssetSuffixCleanupKeyResult>(matches.Count);
+        var keyResults = new List<AssetPrefixCleanupKeyResult>(matches.Count);
         var deletedCount = 0;
         var failedCount = 0;
 
@@ -153,9 +153,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                 InvalidateExistsCache(match.Key);
 
                 deletedCount++;
-                keyResults.Add(new AssetSuffixCleanupKeyResult(
+                keyResults.Add(new AssetPrefixCleanupKeyResult(
                     match.Key,
-                    AssetSuffixCleanupStatuses.Deleted,
+                    AssetPrefixCleanupStatuses.Deleted,
                     BackupKey: backupKey));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -168,9 +168,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                     "Asset cleanup failed for key {Key} with {ErrorCode} from {FailureType}",
                     SanitizeForLog(match.Key), ex.Code, FailureTypeName(ex));
                 failedCount++;
-                keyResults.Add(new AssetSuffixCleanupKeyResult(
+                keyResults.Add(new AssetPrefixCleanupKeyResult(
                     match.Key,
-                    AssetSuffixCleanupStatuses.Failed,
+                    AssetPrefixCleanupStatuses.Failed,
                     BackupKey: backupCreated ? backupKey : null,
                     ErrorCode: ex.Code,
                     Error: ex.Message));
@@ -181,9 +181,9 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                     "Asset cleanup failed unexpectedly for key {Key} from {FailureType}",
                     SanitizeForLog(match.Key), FailureTypeName(ex));
                 failedCount++;
-                keyResults.Add(new AssetSuffixCleanupKeyResult(
+                keyResults.Add(new AssetPrefixCleanupKeyResult(
                     match.Key,
-                    AssetSuffixCleanupStatuses.Failed,
+                    AssetPrefixCleanupStatuses.Failed,
                     BackupKey: backupCreated ? backupKey : null,
                     ErrorCode: AssetCleanupErrorCodes.UnexpectedError,
                     Error: "The object could not be processed; the source object was not deleted."));
@@ -191,12 +191,12 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         }
 
         m_Logger.LogInformation(
-            "Asset cleanup run completed for a {SuffixLength}-character suffix: {Matched} matched, {Deleted} deleted, {Failed} failed, backup location {BackupLocation}",
-            suffix.Length, matches.Count, deletedCount, failedCount, SanitizeForLog(backupLocation));
+            "Asset cleanup run completed for a {PrefixLength}-character prefix: {Matched} matched, {Deleted} deleted, {Failed} failed, backup location {BackupLocation}",
+            prefix.Length, matches.Count, deletedCount, failedCount, SanitizeForLog(backupLocation));
 
-        return new AssetSuffixCleanupResult(
+        return new AssetPrefixCleanupResult(
             DryRun: false,
-            Suffix: suffix,
+            Prefix: prefix,
             MatchedCount: matches.Count,
             DeletedCount: deletedCount,
             FailedCount: failedCount,
@@ -204,7 +204,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
             Keys: keyResults);
     }
 
-    private async Task<List<AssetCandidate>> ListMatchingKeysAsync(string suffix, CancellationToken cancellationToken)
+    private async Task<List<AssetCandidate>> ListMatchingKeysAsync(string prefix, CancellationToken cancellationToken)
     {
         var matches = new List<AssetCandidate>();
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -222,6 +222,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                     new ListObjectsV2Request
                     {
                         BucketName = m_SourceBucket,
+                        Prefix = prefix,
                         ContinuationToken = continuationToken,
                         MaxKeys = 1000
                     },
@@ -254,7 +255,7 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
                 foreach (var item in objects)
                 {
                     if (string.IsNullOrEmpty(item.Key) ||
-                        !item.Key.EndsWith(suffix, StringComparison.Ordinal) ||
+                        !item.Key.StartsWith(prefix, StringComparison.Ordinal) ||
                         !seenKeys.Add(item.Key))
                     {
                         continue;
@@ -791,29 +792,29 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
     private static bool IsSameBucket(string left, string right) =>
         !string.IsNullOrWhiteSpace(right) && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-    private static string ValidateSuffix(string? suffix)
+    private static string ValidatePrefix(string? prefix)
     {
-        if (string.IsNullOrWhiteSpace(suffix))
+        if (string.IsNullOrWhiteSpace(prefix))
             throw new AssetCleanupException(
-                AssetCleanupErrorCodes.InvalidSuffix,
-                "A non-whitespace suffix is required.");
+                AssetCleanupErrorCodes.InvalidPrefix,
+                "A non-whitespace prefix is required.");
 
-        if (suffix.Any(char.IsControl) || ContainsLineSeparator(suffix))
+        if (prefix.Any(char.IsControl) || ContainsLineSeparator(prefix))
             throw new AssetCleanupException(
-                AssetCleanupErrorCodes.InvalidSuffix,
-                "The suffix must not contain control characters or line separators.");
+                AssetCleanupErrorCodes.InvalidPrefix,
+                "The prefix must not contain control characters or line separators.");
 
-        if (suffix.Length > MaxS3KeyBytes)
+        if (prefix.Length > MaxS3KeyBytes)
             throw new AssetCleanupException(
-                AssetCleanupErrorCodes.InvalidSuffix,
-                "The suffix must not exceed the storage key length limit.");
+                AssetCleanupErrorCodes.InvalidPrefix,
+                "The prefix must not exceed the storage key length limit.");
 
-        return suffix;
+        return prefix;
     }
 
     /// <summary>
     /// Detects the line separators that <see cref="char.IsControl(char)"/> does not classify as control characters.
-    /// A suffix containing them is rejected instead of normalized, so the destructive match set never changes.
+    /// A prefix containing them is rejected instead of normalized, so the destructive match set never changes.
     /// </summary>
     private static bool ContainsLineSeparator(string value) =>
         value.Contains('\u2028') || value.Contains('\u2029');
@@ -877,8 +878,8 @@ public sealed class AssetSuffixCleanupService : IAssetSuffixCleanupService
         return $"{m_BackupPrefix}/{timestamp}-{Guid.NewGuid():N}/";
     }
 
-    private static AssetSuffixCleanupKeyResult Failure(string key, string code, string error) =>
-        new(key, AssetSuffixCleanupStatuses.Failed, ErrorCode: code, Error: error);
+    private static AssetPrefixCleanupKeyResult Failure(string key, string code, string error) =>
+        new(key, AssetPrefixCleanupStatuses.Failed, ErrorCode: code, Error: error);
 
     private sealed record AssetCandidate(string Key, string? ETag, long? Size);
 

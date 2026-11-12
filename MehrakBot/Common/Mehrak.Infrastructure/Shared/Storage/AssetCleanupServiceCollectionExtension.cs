@@ -12,7 +12,7 @@ public static class AssetCleanupServiceCollectionExtension
 {
     public static IServiceCollection AddAssetCleanup(this IServiceCollection services)
     {
-        services.AddSingleton<IAssetSuffixCleanupService, AssetSuffixCleanupService>();
+        services.AddSingleton<IAssetPrefixCleanupService, AssetPrefixCleanupService>();
         return services;
     }
 }

@@ -218,7 +218,7 @@ one process so a multi-process deployment does not repeat the same startup or ma
 - `Mehrak.Application` owns attachment-bucket setup and character/alias cache initialization. It also owns the
   attachment expiration scan registered by its application startup.
 - `Mehrak.Bot` owns the bot presence, which reads the authoritative count of users with profiles from PostgreSQL.
-- `Mehrak.Dashboard` owns expired dashboard-session cleanup and the superadmin-only asset suffix
+- `Mehrak.Dashboard` owns expired dashboard-session cleanup and the superadmin-only asset prefix
   cleanup endpoint, including setup of its dedicated backup bucket and retention lifecycle (see
   `docs/asset-cleanup.md`).
 

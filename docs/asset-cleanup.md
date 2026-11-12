@@ -1,24 +1,31 @@
-﻿# Asset suffix cleanup
+﻿# Asset prefix cleanup
 
-`POST /assets/cleanup-by-suffix` is a superadmin-only Dashboard maintenance endpoint for removing
-asset objects whose **full storage key** ends with a literal suffix. It always reads the fixed asset
-bucket from `Storage:Bucket`; attachments and user uploads are never source buckets.
+`POST /assets/cleanup-by-prefix` is a superadmin-only Dashboard maintenance endpoint for removing
+asset objects whose **full storage key** begins with a literal prefix. It always reads the fixed
+asset bucket from `Storage:Bucket`; attachments and user uploads are never source buckets.
 
 ## Request
 
 ```json
 {
-  "suffix": "_bg.png",
+  "prefix": "genshin/arcana_",
   "dryRun": true
 }
 ```
 
-- `suffix` is required, must not be whitespace-only, must not contain control characters or the
+- `prefix` is required, must not be whitespace-only, must not contain control characters or the
   Unicode line and paragraph separators `U+2028`/`U+2029`, and is matched with
-  `string.EndsWith(..., StringComparison.Ordinal)`. An unsupported suffix is rejected with
-  `invalid_suffix` (HTTP 400) before any storage call and is never trimmed, stripped, or
-  normalized, so a valid suffix always defines the same literal match set. Matching is
-  case-sensitive; `pn` does not match `_bg.png`, and `_BG.png` does not match `_bg.png`.
+  `string.StartsWith(..., StringComparison.Ordinal)`. An unsupported prefix is rejected with
+  `invalid_prefix` (HTTP 400) before any storage call and is never trimmed, stripped, or
+  normalized, so a valid prefix always defines the same literal match set. Matching is
+  case-sensitive; `genshin/arcana_` does not match `Genshin/arcana_1001.png`, and spaces are
+  literal characters.
+- The prefix is a plain string prefix, not a folder selector. `genshin` also matches
+  `genshin-other/arcana_1001.png`; supply the trailing slash (`genshin/`) when only that folder
+  should be selected.
+- The source prefix is distinct from `AssetCleanup:BackupPrefix` and from the generated run
+  folder. The request selects source keys only; backup configuration never widens or changes that
+  selection.
 - `dryRun` defaults to `true`. A dry run lists every matching key across all listing pages and
   performs no bucket setup, lifecycle write, copy, delete, or local cache invalidation.
 - The request cannot select a source or backup bucket.
@@ -28,14 +35,14 @@ Dry-run response:
 ```json
 {
   "dryRun": true,
-  "suffix": "_bg.png",
+  "prefix": "genshin/arcana_",
   "matchedCount": 2,
   "deletedCount": 0,
   "failedCount": 0,
   "backupLocation": null,
   "keys": [
     { "key": "genshin/arcana_1001_bg.png", "status": "matched", "backupKey": null, "errorCode": null, "error": null },
-    { "key": "genshin/arcana_1002_bg.png", "status": "matched", "backupKey": null, "errorCode": null, "error": null }
+    { "key": "genshin/arcana_1002_icon.png", "status": "matched", "backupKey": null, "errorCode": null, "error": null }
   ]
 }
 ```
@@ -49,9 +56,9 @@ and the per-key statuses.
 Logs record counts, error codes, and the failing exception type. Storage keys, bucket and prefix
 configuration, and the backup location are written as an inert projection: every control character
 (including CR, LF, `U+0085`, ESC, and other terminal controls) and the Unicode line and paragraph
-separators `U+2028`/`U+2029` are removed, the suffix is logged only as its length, and storage
-provider exception messages are never logged. Storage calls, match decisions, cache identities,
-responses, and status codes always use the original, unprojected values.
+separators `U+2028`/`U+2029` are removed, the request prefix is logged only as its length, and
+storage provider exception messages are never logged. Storage calls, match decisions, cache
+identities, responses, and status codes always use the original, unprojected values.
 
 ## Configuration
 
@@ -76,9 +83,11 @@ the first execute run.
 
 ## Execution safety
 
-1. The full source listing is paginated before any mutation. A listing error, cancellation, a
-   truncated page without a continuation token, or a repeated continuation token aborts the run
-   with zero writes.
+1. The full source listing is paginated before any mutation. The validated request prefix is sent
+   as the `ListObjectsV2` prefix on every page, and returned keys are defensively rechecked with
+   `string.StartsWith(..., StringComparison.Ordinal)` before they become matches. A listing error,
+   cancellation, a truncated page without a continuation token, or a repeated continuation token
+   aborts the run with zero writes.
 2. Zero matching keys is a no-op: no bucket setup and no lifecycle write.
 3. The backup bucket is checked and, if absent, created. Failures abort before any copy.
 4. Backup retention is written before any source deletion. Existing lifecycle rules in the backup
@@ -155,7 +164,7 @@ asset has been verified.
 
 ## Error codes
 
-Whole-request failures: `invalid_suffix` (400), `source_bucket_unconfigured`,
+Whole-request failures: `invalid_prefix` (400), `source_bucket_unconfigured`,
 `source_bucket_conflict`, `backup_bucket_unconfigured`, `invalid_backup_prefix`,
 `backup_bucket_conflict`, `lifecycle_conflict` (409), and `backup_bucket_unavailable`,
 `lifecycle_unavailable`, `lifecycle_rejected`, `listing_failed`, `listing_token_missing`,
