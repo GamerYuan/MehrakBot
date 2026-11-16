@@ -314,7 +314,9 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
     private static bool TryReadGifGeometry(byte[] data, out UploadImageGeometry geometry)
     {
         geometry = default;
-        if (data.Length < 10)
+        // Frame descriptors can occur after image data, so traverse the container up
+        // to the transport budget rather than limiting the scan to dimension headers.
+        if (data.Length < 13 || data.Length > MaxImageBytes)
             return false;
 
         var width = data[6] | (data[7] << 8);
@@ -322,17 +324,64 @@ public sealed class NsfwClassifier : INsfwClassifier, IDisposable
         if (width == 0 || height == 0)
             return false;
 
-        // Each animation frame is introduced by a Graphic Control Extension block.
-        var frames = 1;
-        var end = Math.Min(data.Length - 1, HeaderScanLimit);
-        for (var i = 0; i < end; i++)
+        var offset = 13; // signature and logical screen descriptor
+        if ((data[10] & 0x80) != 0)
+            offset += 3 * (1 << ((data[10] & 0x07) + 1));
+        if (offset > data.Length)
+            return false;
+
+        var frames = 0;
+        while (offset < data.Length)
         {
-            if (data[i] == 0x21 && data[i + 1] == 0xF9)
-                frames++;
+            switch (data[offset++])
+            {
+                case 0x3B: // trailer
+                    if (frames == 0)
+                        return false;
+                    geometry = new UploadImageGeometry("gif", width, height, frames);
+                    return true;
+                case 0x21: // extension label followed by length-prefixed sub-blocks
+                    if (offset >= data.Length)
+                        return false;
+                    offset++;
+                    if (!TrySkipGifSubBlocks(data, ref offset))
+                        return false;
+                    break;
+                case 0x2C: // image descriptor, optional local table, then LZW data
+                    if (data.Length - offset < 9)
+                        return false;
+                    var packed = data[offset + 8];
+                    offset += 9;
+                    if ((packed & 0x80) != 0)
+                        offset += 3 * (1 << ((packed & 0x07) + 1));
+                    if (offset >= data.Length)
+                        return false;
+                    offset++; // LZW minimum code size; pixels are not decoded here
+                    if (!TrySkipGifSubBlocks(data, ref offset))
+                        return false;
+                    frames++;
+                    break;
+                default:
+                    return false;
+            }
         }
 
-        geometry = new UploadImageGeometry("gif", width, height, frames);
-        return true;
+        return false; // missing trailer
+    }
+
+    private static bool TrySkipGifSubBlocks(byte[] data, ref int offset)
+    {
+        while (offset < data.Length)
+        {
+            var length = data[offset++];
+            if (length == 0)
+                return true;
+            if (length > data.Length - offset)
+                return false;
+            offset += length;
+        }
+
+        return false;
     }
 
     private static bool TryReadBmpGeometry(byte[] data, out UploadImageGeometry geometry)

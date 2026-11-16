@@ -1,4 +1,4 @@
-using Google.Protobuf;
+﻿using Google.Protobuf;
 using Grpc.Core;
 using Mehrak.Domain.Protobuf;
 using Mehrak.ImageProcessor.Shared.Services;
@@ -84,6 +84,95 @@ internal class NsfwClassifierBoundsTests
 
         Assert.That(NsfwClassifier.TryGetImageGeometry(apng, out var geometry), Is.True);
         Assert.That(geometry.Frames, Is.GreaterThan(1));
+        Assert.Throws<ArgumentException>(() => NsfwClassifier.ValidatePixelBudget(geometry));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TryGetImageGeometry_SingleImageGif_WithOrWithoutControlExtension_Passes(bool controlExtension)
+    {
+        var gif = BuildGif(controlExtension: controlExtension);
+
+        Assert.That(NsfwClassifier.TryGetImageGeometry(gif, out var geometry), Is.True);
+        Assert.That(geometry, Is.EqualTo(new UploadImageGeometry("gif", 1, 1, 1)));
+        Assert.DoesNotThrow(() => NsfwClassifier.ValidatePixelBudget(geometry));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void TryGetImageGeometry_TwoImageGif_IsOverFrameBudget(bool controlExtension)
+    {
+        var gif = BuildGif(frames: 2, controlExtension: controlExtension);
+
+        Assert.That(NsfwClassifier.TryGetImageGeometry(gif, out var geometry), Is.True);
+        Assert.That(geometry.Frames, Is.EqualTo(2));
+        Assert.Throws<ArgumentException>(() => NsfwClassifier.ValidatePixelBudget(geometry));
+    }
+
+    [TestCase(0, 0)]
+    [TestCase(7, -1)]
+    [TestCase(-1, 7)]
+    public void TryGetImageGeometry_GifColorTables_AreSkipped(int globalTableSize, int localTableSize)
+    {
+        var gif = BuildGif(globalTableSize: globalTableSize, localTableSize: localTableSize);
+
+        Assert.That(NsfwClassifier.TryGetImageGeometry(gif, out var geometry), Is.True);
+        Assert.That(geometry.Frames, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TryGetImageGeometry_GifPayloadMarkers_AreNotFrames()
+    {
+        // Structural fixture: these bytes need not be valid LZW codes. Only block
+        // boundaries, not compressed pixels or extension contents, are inspected.
+        byte[] markers = [0x21, 0xF9, 0x2C, 0x3B];
+        var gif = BuildGif(extensionPayload: markers, imagePayload: markers);
+
+        Assert.That(NsfwClassifier.TryGetImageGeometry(gif, out var geometry), Is.True);
+        Assert.That(geometry.Frames, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void TryGetImageGeometry_TruncatedGifBlocks_ReturnFalse()
+    {
+        var gif = BuildGif(controlExtension: true, globalTableSize: 0, localTableSize: 0,
+            extensionPayload: [0x21, 0xF9, 0x2C, 0x3B]);
+
+        // Every prefix exercises truncation in the screen descriptor, both tables,
+        // extensions, image descriptor, LZW sub-blocks, and final trailer.
+        for (var length = 0; length < gif.Length; length++)
+        {
+            Assert.That(NsfwClassifier.TryGetImageGeometry(gif[..length], out var geometry), Is.False,
+                $"Truncated at byte {length}");
+            Assert.That(geometry, Is.Default);
+        }
+    }
+
+    [Test]
+    public void TryGetImageGeometry_MalformedGifBlocks_ReturnFalse()
+    {
+        var gif = BuildGif();
+        var unknownBlock = (byte[])gif.Clone();
+        unknownBlock[19] = 0xFF; // first block after the two-entry global table
+        var missingImage = gif[..19].Concat(new byte[] { 0x3B }).ToArray();
+        var zeroWidth = (byte[])gif.Clone();
+        zeroWidth[6] = 0;
+        var oversizedSubBlock = (byte[])gif.Clone();
+        oversizedSubBlock[30] = 0xFF; // image data sub-block length exceeds remaining bytes
+
+        foreach (var malformed in new[] { unknownBlock, missingImage, zeroWidth, oversizedSubBlock })
+            Assert.That(NsfwClassifier.TryGetImageGeometry(malformed, out _), Is.False);
+    }
+
+    [Test]
+    public void TryGetImageGeometry_OversizedGifScreen_IsOverBudget()
+    {
+        var gif = BuildGif();
+        gif[6] = 0xFF;
+        gif[7] = 0xFF;
+
+        Assert.That(NsfwClassifier.TryGetImageGeometry(gif, out var geometry), Is.True);
+        Assert.That(geometry.Width, Is.EqualTo(65535));
         Assert.Throws<ArgumentException>(() => NsfwClassifier.ValidatePixelBudget(geometry));
     }
 
@@ -178,6 +267,49 @@ internal class NsfwClassifierBoundsTests
         jpeg.Write(new byte[] { 0x01, 0x01, 0x11, 0x00 }); // one component
         jpeg.Write(new byte[] { 0xFF, 0xD9 }); // EOI
         return jpeg.ToArray();
+    }
+
+    private static byte[] BuildGif(int frames = 1, bool controlExtension = false,
+        int globalTableSize = 0, int localTableSize = -1,
+        byte[]? extensionPayload = null, byte[]? imagePayload = null)
+    {
+        using var gif = new MemoryStream();
+        gif.Write("GIF89a"u8);
+        gif.Write(new byte[] { 1, 0, 1, 0,
+            globalTableSize < 0 ? (byte)0 : (byte)(0x80 | globalTableSize), 0, 0 });
+        WriteColorTable(globalTableSize);
+        if (extensionPayload is not null)
+        {
+            gif.Write(new byte[] { 0x21, 0xFE, (byte)extensionPayload.Length });
+            gif.Write(extensionPayload);
+            gif.Write(new byte[] { 1, 0x2C, 0 }); // second comment sub-block and terminator
+        }
+        for (var frame = 0; frame < frames; frame++)
+        {
+            if (controlExtension)
+                gif.Write(new byte[] { 0x21, 0xF9, 4, 0, 0x21, 0xF9, 0x2C, 0 });
+            gif.Write(new byte[] { 0x2C, 0, 0, 0, 0, 1, 0, 1, 0,
+                localTableSize < 0 ? (byte)0 : (byte)(0x80 | localTableSize) });
+            WriteColorTable(localTableSize);
+            var payload = imagePayload ?? new byte[] { 0x44, 0x01 }; // one pixel, then LZW end code
+            gif.Write(new byte[] { 2, (byte)payload.Length });
+            gif.Write(payload);
+            gif.WriteByte(0);
+        }
+        gif.WriteByte(0x3B);
+        return gif.ToArray();
+
+        void WriteColorTable(int size)
+        {
+            if (size < 0)
+                return;
+            var table = new byte[3 * (1 << (size + 1))];
+            // Marker-like palette bytes must also remain opaque to block traversal.
+            table[0] = 0x21;
+            table[1] = 0xF9;
+            table[2] = 0x2C;
+            gif.Write(table);
+        }
     }
 
     private static void WriteChunk(Stream stream, string type, byte[] data)

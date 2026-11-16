@@ -20,6 +20,7 @@ public interface IAuthenticationMiddlewareService
 public class AuthenticationResult
 {
     public AuthStatus Status { get; private init; }
+    internal AuthenticationResponsePhase ResponsePhase { get; private init; }
 
     [MemberNotNullWhen(true, nameof(LToken))]
     [MemberNotNullWhen(true, nameof(User))]
@@ -44,6 +45,7 @@ public class AuthenticationResult
         return new AuthenticationResult
         {
             Status = AuthStatus.Success,
+            ResponsePhase = AuthenticationResponsePhase.Followup,
             UserId = userId,
             LtUid = ltuid,
             LToken = ltoken,
@@ -57,6 +59,7 @@ public class AuthenticationResult
         return new AuthenticationResult
         {
             Status = AuthStatus.Failure,
+            ResponsePhase = AuthenticationResponsePhase.Followup,
             Context = newContext,
             ErrorMessage = errorMessage
         };
@@ -67,6 +70,18 @@ public class AuthenticationResult
         return new AuthenticationResult
         {
             Status = AuthStatus.NotFound,
+            ResponsePhase = AuthenticationResponsePhase.InitialResponse,
+            Context = context,
+            ErrorMessage = errorMessage
+        };
+    }
+
+    internal static AuthenticationResult NotFoundAfterAcknowledgement(IInteractionContext context, string errorMessage)
+    {
+        return new AuthenticationResult
+        {
+            Status = AuthStatus.NotFound,
+            ResponsePhase = AuthenticationResponsePhase.Followup,
             Context = context,
             ErrorMessage = errorMessage
         };
@@ -108,6 +123,12 @@ public class AuthenticationResponse
         Passphrase = passphrase;
         Context = context;
     }
+}
+
+internal enum AuthenticationResponsePhase
+{
+    InitialResponse,
+    Followup
 }
 
 public enum AuthStatus
