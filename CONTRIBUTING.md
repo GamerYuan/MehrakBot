@@ -32,7 +32,8 @@ Alternatively, you can run `aspire run` from the root of the repository to start
 
 This starts all infrastructure (PostgreSQL, Redis, SeaweedFS, ClickHouse) and application services automatically. The Aspire dashboard opens in your browser.
 
-Alternatively, you can use the production docker compose directly:
+Alternatively, you can use production Docker Compose. Set `POSTGRES_DB` in `.env.local` first;
+if you're reusing a PostgreSQL volume, use the existing database name.
 
 ```
 docker compose --env-file .env.local up -d

@@ -38,7 +38,7 @@ dotnet test --filter "FullyQualifiedName~GenshinCharacter"
   ```
   aspire run
   ```
-- **Production compose** — still available at the repo root:
+- **Production Compose** — set `POSTGRES_DB` in `.env.local` before running from the repo root:
   ```
   docker compose --env-file .env.local up -d
   ```
