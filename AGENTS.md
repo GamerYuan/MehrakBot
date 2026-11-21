@@ -38,7 +38,7 @@ dotnet test --filter "FullyQualifiedName~GenshinCharacter"
   ```
   aspire run
   ```
-- **Production compose** — still available at the repo root:
+- **Production Compose** — set `POSTGRES_DB` in `.env.local` before running from the repo root:
   ```
   docker compose --env-file .env.local up -d
   ```
@@ -123,9 +123,9 @@ From `.editorconfig` — these differ from C# defaults:
 
 ## End-to-End Testing
 
-A browser instance is connected to this harness via **browser-mcp**, with the Vue.js frontend already loaded at `http://localhost:5173/`. It is logged in via OAuth2 as a **superadmin** account, giving full access to all dashboard capabilities.
+When provided by the harness, **browser-mcp** can exercise the separately hosted Vue.js frontend at `http://localhost:5173/`. Verify the connected browser and OAuth2 role before testing; do not assume a logged-in superadmin session. Vue frontend source is not included in this repository.
 
-The frontend talks to the Dashboard REST endpoints, which expose the **same functionality as the Discord bot slash commands** (card generation, character lookup, code redemption, etc.). Use the browser to exercise these flows end-to-end without going through Discord.
+The frontend talks to Dashboard REST endpoints for a **subset** of bot functionality: card generation and content/profile administration. Dashboard does not expose equivalent notes, daily check-in, or code redemption execution routes; its codes endpoints administer the code list, not redemption. Use Discord for bot-only flows and inspect the Dashboard controllers before choosing a browser test.
 
 **Known limitation:** not all game content is fully implemented yet — some card details may not be generatable. If a card fails to render, check whether the character/content exists in the current data set before treating it as a bug.
 
@@ -134,13 +134,13 @@ The frontend talks to the Dashboard REST endpoints, which expose the **same func
 ## CI & Deploy
 
 - **CI** (`validation.yml`): runs on `ubuntu-24.04` with .NET 10 SDK; does `dotnet restore` → `dotnet build --configuration Release` → `dotnet test`
-- **Release image builds** (`build.yml`): triggered by `v*` tags; builds and pushes Application, Bot, Dashboard, and ImageProcessor images to GHCR
+- **Release image builds** (`build.yml`): triggered by `v*` tags; builds and pushes Application, Bot, Dashboard, ImageProcessor, and MigrationService images to GHCR
 - **GitHub releases** (`release.yml`): triggered by `v*` tags; archives `MehrakBot/Assets` and creates the release
 - Application Dockerfile uses a custom base image with OpenCV/OpenCvSharp preinstalled (`ghcr.io/gameryuan/mehrak-app-base`)
 
 ## Docs
 
-Detailed guides in `docs/`: `architecture.md`, `commands.md`, `application-service.md`, `card-service.md`, `about-imagesharp.md`.
+Detailed guides in `docs/`: [architecture](docs/architecture.md), [lifecycle contracts and state-machine inventory](docs/state-machines.md), `commands.md`, `application-service.md`, `card-service.md`, `about-imagesharp.md`.
 
 ## Git Commits
 

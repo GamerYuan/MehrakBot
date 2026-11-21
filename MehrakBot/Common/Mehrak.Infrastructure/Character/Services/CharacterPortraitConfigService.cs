@@ -1,5 +1,4 @@
-﻿using System.Data;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Mehrak.Domain.Character;
 using Mehrak.Domain.Character.Models;
 using Mehrak.Domain.Shared.Enums;
@@ -47,6 +46,10 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
             using var scope = m_ScopeFactory.CreateScope();
             using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+            await using var transaction = await context.Database.BeginTransactionAsync();
+            await CharacterDbLock.AcquireAsync(context, $"portrait-config:{game}");
+
+            // Reload under the same per-game lock used by mutations and aggregate fills.
             var entity = await context.CharacterPortraitConfigs.AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Game == game && c.ServerId == serverId && c.SubId == subId);
 
@@ -85,6 +88,9 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
         using var scope = m_ScopeFactory.CreateScope();
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(context, $"portrait-config:{game}");
 
         var entities = await context.CharacterPortraitConfigs.AsNoTracking()
             .Where(c => c.Game == game)
@@ -137,6 +143,7 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
 
             try
             {
+                await CharacterDbLock.AcquireAsync(context, $"portrait-config:{game}");
                 var serverIdEntity = await context.CharacterServerIds
                     .AsNoTracking()
                     .Include(x => x.Character)
@@ -179,28 +186,14 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        var cacheKey = $"portrait_cfg_{game}_{serverId}_{subId}";
-                        var cacheModel = ToCacheModel(entity);
-
-                        var cacheOptions = new DistributedCacheEntryOptions
-                        {
-                            SlidingExpiration = TimeSpan.FromHours(1)
-                        };
-
-                        await m_Cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(cacheModel), cacheOptions);
-
-                        var allCacheKey = $"portrait_cfg_all_{game}";
-                        await m_Cache.RemoveAsync(allCacheKey);
-                    }
-                    catch (Exception e)
-                    {
-                        m_Logger.LogError(e, "Failed to update cache for character portrait config after upsert.");
-                    }
-                });
+                    await RefreshCacheFromDatabaseAsync(game, serverId, subId);
+                }
+                catch (Exception e)
+                {
+                    m_Logger.LogError(e, "Failed to update cache for character portrait config after upsert.");
+                }
 
                 return true;
             }
@@ -214,6 +207,24 @@ internal class CharacterPortraitConfigService : ICharacterPortraitConfigService
         }
 
         return false;
+    }
+
+    private async Task RefreshCacheFromDatabaseAsync(Game game, int serverId, int subId)
+    {
+        using var scope = m_ScopeFactory.CreateScope();
+        await using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await CharacterDbLock.AcquireAsync(context, $"portrait-config:{game}");
+
+        // A later mutation may have committed before this lock was reacquired. Never
+        // publish the entity captured by the write transaction.
+        var entity = await context.CharacterPortraitConfigs.AsNoTracking()
+            .SingleAsync(c => c.Game == game && c.ServerId == serverId && c.SubId == subId);
+
+        await m_Cache.RemoveAsync($"portrait_cfg_all_{game}");
+        await m_Cache.SetStringAsync($"portrait_cfg_{game}_{serverId}_{subId}",
+            JsonSerializer.Serialize(ToCacheModel(entity)),
+            new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromHours(1) });
     }
 
     private static CharacterPortraitConfig ToConfig(CharacterPortraitConfigModel entity)

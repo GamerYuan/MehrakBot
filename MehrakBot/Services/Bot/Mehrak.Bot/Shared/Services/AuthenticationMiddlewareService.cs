@@ -204,7 +204,7 @@ public class AuthenticationMiddlewareService : IAuthenticationMiddlewareService
             m_Logger.LogWarning(
                 "Authentication refused: profile {ProfileId} for UserId={UserId} was removed during authentication",
                 profile.Id, request.Context.Interaction.User.Id);
-            return AuthenticationResult.NotFound(authResponse.Context,
+            return AuthenticationResult.NotFoundAfterAcknowledgement(authResponse.Context,
                 "No profiles found. Please add a profile first.");
         }
 

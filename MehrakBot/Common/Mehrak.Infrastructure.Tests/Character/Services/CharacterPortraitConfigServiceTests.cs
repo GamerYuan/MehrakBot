@@ -392,8 +392,6 @@ internal sealed class CharacterPortraitConfigServiceTests : IDisposable
         var update = new CharacterPortraitConfigUpdate { OffsetX = 5 };
         await m_Service.UpsertConfigAsync(Game.Genshin, 800, update);
 
-        await Task.Delay(500);
-
         m_MockCache.Verify(c => c.SetAsync(
             "portrait_cfg_Genshin_800_0",
             It.IsAny<byte[]>(),

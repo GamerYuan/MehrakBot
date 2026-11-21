@@ -42,7 +42,8 @@ public sealed class CodesController : GameWriteController
         m_Logger.LogInformation("Adding {Count} codes for game {Game}", normalized.Count, parsedGame);
 
         var payload = normalized.ToDictionary(code => code, _ => CodeStatus.Valid, StringComparer.OrdinalIgnoreCase);
-        await UpdateCodesAsync(parsedGame, payload);
+        if (!await UpdateCodesAsync(parsedGame, payload))
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update codes." });
 
         return NoContent();
     }
@@ -67,7 +68,8 @@ public sealed class CodesController : GameWriteController
         m_Logger.LogInformation("Removing {Count} codes for game {Game}", normalized.Count, parsedGame);
 
         var payload = normalized.ToDictionary(code => code, _ => CodeStatus.Invalid, StringComparer.OrdinalIgnoreCase);
-        await UpdateCodesAsync(parsedGame, payload);
+        if (!await UpdateCodesAsync(parsedGame, payload))
+            return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Failed to update codes." });
 
         return NoContent();
     }
@@ -95,7 +97,7 @@ public sealed class CodesController : GameWriteController
             .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
-    private async Task UpdateCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
+    private async Task<bool> UpdateCodesAsync(Game gameName, Dictionary<string, CodeStatus> codes)
     {
         var incoming = codes.Select(x => x.Key).ToHashSet();
 
@@ -135,10 +137,12 @@ public sealed class CodesController : GameWriteController
             await m_CodeContext.SaveChangesAsync();
             m_Logger.LogInformation("Added {Count} new codes, removed {Removed} expired codes for game: {Game}.",
                 newValidCodes.Count, codesToRemove.Count, gameName);
+            return true;
         }
         catch (DbUpdateException e)
         {
             m_Logger.LogError(e, "Failed to update Codes for game: {Game}", gameName);
+            return false;
         }
     }
 }

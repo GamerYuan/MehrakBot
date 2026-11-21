@@ -70,15 +70,13 @@ public class ImageUpdaterService : IImageUpdaterService
                 }
 
                 processedStream.Position = 0;
-                await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
+                return await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
             }
             else
             {
                 stream.Position = 0;
-                await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType, timeoutCts.Token);
+                return await m_ImageRepository.UploadFileAsync(data.Name, stream, FileNameFormat.PngContentType, timeoutCts.Token);
             }
-
-            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -110,16 +108,15 @@ public class ImageUpdaterService : IImageUpdaterService
             m_Logger.LogInformation(LogMessages.PreparingRequest,
                 string.Join(", ", allUrls.Select(GameApiLog.Endpoint)), GameApiLog.NoSafeQueryParameters);
 
-            var responses = await allUrls.ToAsyncEnumerable().Select(async (x, token) =>
-            {
-                var r = await client.GetAsync(x, token);
-                return r;
-            }).ToListAsync(timeoutCts.Token);
-
+            List<HttpResponseMessage> responses = [];
             List<Stream> streams = [];
 
             try
             {
+                foreach (var url in allUrls)
+                {
+                    responses.Add(await client.GetAsync(url, timeoutCts.Token));
+                }
 
                 if (responses.Any(x => !x.IsSuccessStatusCode))
                 {
@@ -143,9 +140,7 @@ public class ImageUpdaterService : IImageUpdaterService
                 }
 
                 processedStream.Position = 0;
-                await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
-
-                return true;
+                return await m_ImageRepository.UploadFileAsync(data.Name, processedStream, FileNameFormat.PngContentType, timeoutCts.Token);
             }
             finally
             {
