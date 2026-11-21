@@ -21,6 +21,10 @@ The Services category has three layers:
 - `Mehrak.Bot`: The Discord Bot user entry point
 - `Mehrak.Dashboard`: A WebApi backend service for the Dashboard site
 
+## Lifecycle contracts
+
+See [State machines and lifecycle contracts](state-machines.md) for the cross-process inventory, acknowledgement and stream ownership, commit/cache boundaries, portrait cleanup recovery, and focused verification commands. Typed outcomes and upstream snapshots are not interchangeable with local workflow progress.
+
 ## Execution Overview
 
 Execution starts from an entry point (Bot or Dashboard). The caller validates inputs/auth, then dispatches a command to the Application service over gRPC with:
@@ -31,7 +35,7 @@ Execution starts from an entry point (Bot or Dashboard). The caller validates in
 - Command Name: `string`
 - Command Parameters: `Dictionary<string, string>`
 
-The Application service enqueues the request in-process, resolves the keyed `IApplicationService`, builds an `IApplicationContext`, executes business logic, and returns a typed `CommandResult`. For image commands, the application layer generates a card image, stores it, and returns a typed business outcome with image storage references (actual stored keys). The wire carries only typed outcomes, allowlisted coded errors, and storage references; Discord presentation (components, formatting, icons, remove button) is owned locally by the Bot. The `ExecuteRequest` fields and execution RPC are unchanged. Endgame outcomes carry explicit `Complete`/`Empty`/`NotUnlocked` state with UTC cycle instants (Tower has no cycle); notes outcomes carry game-specific resource facts observed at one UTC instant. Explicit empty/partial outcomes are first-class results. The Dashboard REST adapter maps the same typed outcomes to card DTOs, returning HTTP 200 typed empty states (null storage key) for no-record/not-unlocked results; services require a coordinated rebuild with no mixed-version wire guarantee.
+The Application service enqueues the request in-process, resolves the keyed `IApplicationService`, builds an `IApplicationContext`, executes business logic, and returns a typed `CommandResult`. For image commands, the application layer generates a card image, stores it, and returns a typed business outcome with image storage references (actual stored keys). The wire carries only typed outcomes, allowlisted coded errors, and storage references; Discord presentation (components, formatting, icons, remove button) is owned locally by the Bot. The `ExecuteRequest` fields and execution RPC are unchanged. Endgame outcomes carry explicit `Complete`/`Empty`/`NotUnlocked` state with UTC cycle instants (Tower has no cycle); notes outcomes carry game-specific resource facts observed at one UTC instant. Explicit empty/partial outcomes are first-class results. The Dashboard REST adapter maps supported card outcomes to card DTOs, returning HTTP 200 typed empty states (null storage key) for no-record/not-unlocked results; services require a coordinated rebuild with no mixed-version wire guarantee.
 
 ## Sample Execution Path: `/genshin character`
 
@@ -207,7 +211,7 @@ Response envelope (`CommandResult`) carries:
 - Image storage references (actual stored keys + source type); no display filenames, markup, or visibility flags on the wire
 - Explicit empty/partial states; a failed envelope may retain item outcomes
 
-The Dashboard REST adapter maps the same typed outcomes to card DTOs (see `Mehrak.Dashboard/Shared/Models/CommandResponses.md`); no-record/not-unlocked responses are HTTP 200 typed empty states with a null storage key. The wire requires a coordinated service rebuild.
+The Dashboard REST adapter maps supported card outcomes to card DTOs (see [CommandResponses.md](../MehrakBot/Services/Dashboard/Mehrak.Dashboard/Shared/Models/CommandResponses.md)); no-record/not-unlocked responses are HTTP 200 typed empty states with a null storage key. Dashboard provides cards and content/profile administration, not Discord notes/check-in/redemption execution parity. Vue frontend source is maintained outside this repository. The wire requires a coordinated service rebuild.
 
 ## Startup ownership and database migrations
 
@@ -220,7 +224,8 @@ one process so a multi-process deployment does not repeat the same startup or ma
 - `Mehrak.Bot` owns the bot presence, which reads the authoritative count of users with profiles from PostgreSQL.
 - `Mehrak.Dashboard` owns expired dashboard-session cleanup and the superadmin-only asset prefix
   cleanup endpoint, including setup of its dedicated backup bucket and retention lifecycle (see
-  `docs/asset-cleanup.md`).
+  [asset cleanup](asset-cleanup.md)). It also owns the user-portrait deletion outbox worker; metadata deletion
+  commits before retriable storage cleanup (see [portrait deletion](state-machines.md#portrait-deletion-pending-and-retry)).
 
 In Aspire local development, `migration-service` is a one-shot project. Application, Bot, and Dashboard each use a
 successful-completion dependency on it, so database-backed startup work (including Dashboard seeding)

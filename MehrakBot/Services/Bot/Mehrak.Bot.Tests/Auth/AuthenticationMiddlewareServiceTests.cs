@@ -161,6 +161,69 @@ public class AuthenticationMiddlewareServiceTests
     }
 
     [Test]
+    public async Task GetAuthenticationAsync_ProfileDeletedAfterDefer_ReturnsFollowupNotFoundWithoutCaching()
+    {
+        InitializeService(db => db.Users.Add(BuildUserModel(TestUserId, TestLtUid, TestEncryptedToken)));
+        var modalSent = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var deferred = false;
+
+        IInteractionContext CreateContext(bool isModalSubmission)
+        {
+            var interaction = new ModalInteraction(new JsonInteraction
+            {
+                Token = "sample_token",
+                Data = new JsonInteractionData { Components = [] },
+                User = new JsonUser { Id = TestUserId },
+                Channel = new JsonChannel { Id = 987654321UL, Type = ChannelType.TextGuildChannel },
+                Entitlements = []
+            }, null!, (_, _, _, _, _) =>
+            {
+                if (isModalSubmission)
+                    deferred = true;
+                else
+                    modalSent.SetResult();
+                return Task.FromResult<InteractionCallbackResponse?>(null);
+            }, new RestClient());
+            var context = new Mock<IInteractionContext>();
+            context.SetupGet(x => x.Interaction).Returns(interaction);
+            return context.Object;
+        }
+
+        var commandContext = CreateContext(false);
+        var modalContext = CreateContext(true);
+        m_MockEncryptionService.Setup(x => x.Decrypt(TestEncryptedToken, TestPassphrase))
+            .Callback(() =>
+            {
+                Assert.That(deferred, Is.True, "The modal submission must be acknowledged before decryption");
+                using var scope = m_DbFactory!.ScopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+                db.UserProfiles.Remove(db.UserProfiles.Single());
+                db.SaveChanges();
+            })
+            .Returns(TestLToken);
+
+        var authTask = m_Service.GetAuthenticationAsync(new AuthenticationRequest(commandContext, TestProfileId));
+        await modalSent.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var requests = (ConcurrentDictionary<string, byte>)typeof(AuthenticationMiddlewareService)
+            .GetField("m_CurrentRequests", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(m_Service)!;
+        var guid = requests.Keys.Single();
+        Assert.That(m_Service.NotifyAuthenticate(new AuthenticationResponse(TestUserId, guid, TestPassphrase, modalContext)), Is.True);
+
+        var result = await authTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(AuthStatus.NotFound));
+            Assert.That(result.ResponsePhase, Is.EqualTo(AuthenticationResponsePhase.Followup));
+            Assert.That(result.Context, Is.SameAs(modalContext));
+            Assert.That(result.ErrorMessage, Is.EqualTo("No profiles found. Please add a profile first."));
+        });
+        m_MockCacheService.Verify(x => x.SetAsync(It.IsAny<ICacheEntry<BotUnlockTicket>>()), Times.Never);
+        m_MockPassphraseLimiter.Verify(x => x.ReleaseReservationAsync(TestUserId, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(m_Service.NotifyAuthenticate(new AuthenticationResponse(TestUserId, guid, TestPassphrase, modalContext)), Is.False);
+    }
+
+    [Test]
     public async Task GetAuthenticationAsync_TokenInCache_ReturnsSuccess()
     {
         // Arrange

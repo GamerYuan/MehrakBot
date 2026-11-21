@@ -199,9 +199,12 @@ internal class CommandExecutorService : CommandExecutorServiceBase
         else if (authResult.Status == AuthStatus.NotFound)
         {
             MetricsService.TrackCommand(CommandName, Context.Interaction.User.Id, false);
-            await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(
-                new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
-                    .WithFlags(MessageFlags.Ephemeral)));
+            var message = new InteractionMessageProperties().WithContent(authResult.ErrorMessage)
+                .WithFlags(MessageFlags.Ephemeral);
+            if (authResult.ResponsePhase == AuthenticationResponsePhase.Followup)
+                await authResult.Context!.Interaction.SendFollowupMessageAsync(message);
+            else
+                await authResult.Context!.Interaction.SendResponseAsync(InteractionCallback.Message(message));
         }
     }
 }

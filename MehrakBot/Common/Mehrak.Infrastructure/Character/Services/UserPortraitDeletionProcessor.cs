@@ -34,7 +34,9 @@ public sealed class UserPortraitDeletionProcessor
         using var context = scope.ServiceProvider.GetRequiredService<CharacterDbContext>();
         var pendingIds = await context.UserPortraitDeletions
             .AsNoTracking()
-            .OrderBy(deletion => deletion.CreatedAtUtc)
+            .OrderBy(deletion => deletion.LastAttemptAtUtc ?? deletion.CreatedAtUtc)
+            .ThenBy(deletion => deletion.CreatedAtUtc)
+            .ThenBy(deletion => deletion.Id)
             .Take(100)
             .Select(deletion => deletion.Id)
             .ToListAsync(cancellationToken);

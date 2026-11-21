@@ -36,6 +36,7 @@ public class CommandExecutorPresentationTests
     private readonly Mock<IAttachmentStorageService> m_Storage = new();
     private readonly Mock<IImageRepository> m_Images = new();
     private readonly List<string> m_Messages = [];
+    private readonly List<(HttpMethod Method, string Path)> m_Requests = [];
     private readonly List<TrackingStream> m_Streams = [];
     private TestDbContextFactory m_Factory = null!;
     private IServiceScope m_Scope = null!;
@@ -56,6 +57,7 @@ public class CommandExecutorPresentationTests
                     Assert.That(m_Streams.Select(x => x.IsDisposed), Is.All.False, "Streams must stay alive until the card send completes");
                 var body = request.Content == null ? "" : await request.Content.ReadAsStringAsync(ct);
                 m_Messages.Add(body);
+                m_Requests.Add((request.Method, request.RequestUri!.AbsolutePath));
                 if (m_ThrowOnCardSend && body.Contains("remove_card", StringComparison.Ordinal))
                     throw new HttpRequestException("Synthetic Discord send failure");
                 return new HttpResponseMessage
@@ -69,7 +71,7 @@ public class CommandExecutorPresentationTests
         });
         var interaction = new SlashCommandInteraction(new JsonInteraction
         {
-            ApplicationId = 123UL, Type = InteractionType.ApplicationCommand, AppPermissions = Permissions.SendMessages,
+            Id = 456UL, ApplicationId = 123UL, Type = InteractionType.ApplicationCommand, AppPermissions = Permissions.SendMessages,
             Token = "synthetic-token", User = new JsonUser { Id = 42 }, Entitlements = [],
             Channel = new JsonChannel { Id = 321, Type = ChannelType.TextGuildChannel },
             Data = new JsonInteractionData { Id = 1, Name = "test", Type = ApplicationCommandType.ChatInput, Options = [] }
@@ -108,6 +110,56 @@ public class CommandExecutorPresentationTests
         m_Streams.Add(stream);
         m_Storage.Setup(x => x.DownloadAsync(key, default)).ReturnsAsync(new AttachmentDownloadResult(stream, "image/png"));
         return stream;
+    }
+
+    [TestCase("User account not found. Please add a profile first.")]
+    [TestCase("No profiles found. Please add a profile first.")]
+    public async Task AuthenticationNotFoundBeforeAcknowledgement_SendsPrivateInitialResponse(string error)
+    {
+        m_Auth.Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
+            .ReturnsAsync(AuthenticationResult.NotFound(m_Executor.Context, error));
+
+        await m_Executor.ExecuteAsync(1);
+
+        Assert.That(m_Messages, Has.Count.EqualTo(1));
+        Assert.That(m_Requests.Single(), Is.EqualTo((HttpMethod.Post, "/api/v10/interactions/456/synthetic-token/callback")));
+        using var json = JsonDocument.Parse(m_Messages.Single());
+        Assert.Multiple(() =>
+        {
+            Assert.That(json.RootElement.GetProperty("type").GetInt32(), Is.EqualTo(4));
+            Assert.That(json.RootElement.GetProperty("data").GetProperty("content").GetString(), Is.EqualTo(error));
+            Assert.That(json.RootElement.GetProperty("data").GetProperty("flags").GetInt32(), Is.EqualTo((int)MessageFlags.Ephemeral));
+        });
+        m_Application.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
+        m_Metrics.Verify(x => x.TrackCommand("test", 42, false), Times.Once);
+    }
+
+    [Test]
+    public async Task AuthenticationProfileDeletedAfterAcknowledgement_SendsPrivateFollowupNotSecondInitialResponse()
+    {
+        const string error = "No profiles found. Please add a profile first.";
+        m_Auth.Setup(x => x.GetAuthenticationAsync(It.IsAny<AuthenticationRequest>()))
+            .Returns<AuthenticationRequest>(async request =>
+            {
+                await request.Context.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+                return AuthenticationResult.NotFoundAfterAcknowledgement(request.Context, error);
+            });
+
+        await m_Executor.ExecuteAsync(1);
+
+        Assert.That(m_Messages, Has.Count.EqualTo(2));
+        Assert.That(m_Requests[0], Is.EqualTo((HttpMethod.Post, "/api/v10/interactions/456/synthetic-token/callback")));
+        Assert.That(m_Requests[1], Is.EqualTo((HttpMethod.Post, "/api/v10/webhooks/123/synthetic-token")));
+        using var deferred = JsonDocument.Parse(m_Messages[0]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(deferred.RootElement.GetProperty("type").GetInt32(), Is.EqualTo(5));
+            Assert.That(deferred.RootElement.GetProperty("data").GetProperty("flags").GetInt32(), Is.EqualTo((int)MessageFlags.Ephemeral));
+            Assert.That(m_Messages[1], Does.Contain(error));
+            Assert.That(Flags(m_Messages[1]), Is.EqualTo(MessageFlags.Ephemeral));
+        });
+        m_Application.Verify(x => x.ExecuteCommandAsync(It.IsAny<ExecuteRequest>(), null, null, default), Times.Never);
+        m_Metrics.Verify(x => x.TrackCommand("test", 42, false), Times.Once);
     }
 
     [Test]
