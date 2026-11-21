@@ -23,9 +23,9 @@ services:
       - DOTNET_ENVIRONMENT=Production
       - Discord__Token=${DISCORD_TOKEN}
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
-      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
-      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ClickHouse__Username=${CLICKHOUSE_USER}
       - ClickHouse__Password=${CLICKHOUSE_PASSWORD}
@@ -67,9 +67,9 @@ services:
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - SeaweedFiler__BaseUrl=http://seaweed-filer:8888
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
-      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
-      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__application=${APPLICATION_CONNECTION_STRING}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
@@ -115,9 +115,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://*:12000
       - ConnectionStrings__redis=redis:6379,password=${REDIS_PASSWORD}
-      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__mehrakdb=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       # Optional least-privilege runtime role; falls back to the bootstrap credentials when unset.
-      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:-mehrak_dev};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
+      - ConnectionStrings__mehrakdb_runtime=Host=postgres;Port=5432;Database=${POSTGRES_DB:?Set POSTGRES_DB to the target database name};Username=${POSTGRES_RUNTIME_USER:-${POSTGRES_USER}};Password=${POSTGRES_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}
       - ConnectionStrings__image-processor=${IMAGE_PROCESSOR_CONNECTION_STRING}
       - Storage__SecretKey=${SEAWEED_SECRET_KEY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
@@ -178,7 +178,7 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB:-mehrak_dev}
+      - POSTGRES_DB=${POSTGRES_DB:?Set POSTGRES_DB to the target database name}
       - PGDATA=/data/postgres
     networks:
       - mehrak-network

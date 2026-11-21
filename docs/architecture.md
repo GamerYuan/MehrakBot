@@ -222,14 +222,12 @@ one process so a multi-process deployment does not repeat the same startup or ma
   cleanup endpoint, including setup of its dedicated backup bucket and retention lifecycle (see
   `docs/asset-cleanup.md`).
 
-In Aspire local development, `migration-service` is a one-shot project. Application, Bot, and Dashboard each use a
-successful-completion dependency on it, so database-backed startup work (including Dashboard seeding)
-begins only after all EF Core migrations finish successfully. A failed migration prevents those services
-from starting.
+The Aspire AppHost uses `mehrak_dev` for development and staging. Its `migration-service` is a one-shot project.
+Application, Bot, and Dashboard wait for all EF Core migrations to succeed before starting database-backed work
+such as Dashboard seeding. A failed migration prevents those services from starting.
 
-Both Compose files use `POSTGRES_DB` for the database name, defaulting to `mehrak_dev` when unset or empty.
-For an existing PostgreSQL volume, keep this set to the name of the existing database. Changing the setting
-alone does not create or rename a database on an initialized volume.
+Both Compose files require `POSTGRES_DB` to be set. For an existing PostgreSQL volume, set it to the name of
+the existing database. Changing the setting alone does not create or rename a database on an initialized volume.
 
 Production Compose keeps migration separate from the long-running services. Run the migration service explicitly with
 the migration Compose overlay before starting or updating the application services:
