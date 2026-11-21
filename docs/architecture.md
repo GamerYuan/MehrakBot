@@ -227,6 +227,10 @@ successful-completion dependency on it, so database-backed startup work (includi
 begins only after all EF Core migrations finish successfully. A failed migration prevents those services
 from starting.
 
+Both Compose files use `POSTGRES_DB` for the database name, defaulting to `mehrak_dev` when unset or empty.
+For an existing PostgreSQL volume, keep this set to the name of the existing database. Changing the setting
+alone does not create or rename a database on an initialized volume.
+
 Production Compose keeps migration separate from the long-running services. Run the migration service explicitly with
 the migration Compose overlay before starting or updating the application services:
 
